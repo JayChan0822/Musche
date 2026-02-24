@@ -1,0 +1,27 @@
+{
+  "name": "musician-schedule",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/3119929945-web/Musician-Schedule.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/3119929945-web/Musician-Schedule/issues"
+  },
+  "homepage": "https://github.com/3119929945-web/Musician-Schedule#readme",
+  "description": "",
+  "dependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/haptics": "^7.0.2",
+    "@capacitor/ios": "^7.4.4",
+    "@capacitor/local-notifications": "^7.0.3"
+  }
+}
