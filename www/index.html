@@ -5325,8 +5325,8 @@
 
 <script>
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
-    const SUPABASE_URL = 'https://gdpsiinrxhpmxvgvgxeh.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkcHNpaW5yeGhwbXh2Z3ZneGVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MDI2MDcsImV4cCI6MjA3OTQ3ODYwN30.7INv-SkxE97mylnsxICpd7YVG6SNFHyQTy8qVH1e3Mc';
+    const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzYnVlZ21jbml2d2trbHhzeXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTMzMDksImV4cCI6MjA4NzY4OTMwOX0.TRmEAgLBzexlh4Ii1JD-lDpYi5kp_i3P8oG4sDXoHjk';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
@@ -12245,11 +12245,11 @@
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-
-                    const arrayBuffer = e.target.result;
-
-                    // 打印到控制台或显示在页面上
-                    console.log("解析结果：", cleanNames);
+                    //
+                    // const arrayBuffer = e.target.result;
+                    //
+                    // // 打印到控制台或显示在页面上
+                    // console.log("解析结果：", cleanNames);
                     // 重置状态
                     cropImgSrc.value = e.target.result;
                     showCropModal.value = true;
