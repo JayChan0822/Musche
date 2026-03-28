@@ -1,6 +1,15 @@
 import { parseTime, timeToMinutes, addMinutesToTime as addMinutesToTimeValue, addDaysToDate } from './utils/time.js';
 import { formatDate, formatSecs } from './utils/format.js';
 import { generateUniqueId } from './utils/id.js';
+import {
+    calculateBarQuantizedDuration,
+    buildTempoMap,
+    buildTimeSigMap,
+    extractNotesFromJZZTrack,
+    cleanMidiTrackName,
+    normalizeForMatch
+} from './utils/midi.js';
+import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -1288,25 +1297,6 @@ if (typeof window !== 'undefined') {
                 return list.sort((a, b) => b.name.length - a.name.length);
             })();
 
-// 辅助：标准化字符串 (用于模糊比对)
-// 解决了 "B Flat" vs "Bb" vs "♭" 的问题
-            const normalizeForMatch = (str) => {
-                if (!str) return "";
-                return str.toLowerCase()
-                    .replace(/♭/g, 'b')           // 🟢 [新增] 将 Unicode 降号符号转为 b
-                    .replace(/\bflat\b/g, 'b')    // 🟢 [加强] 确保单词 Flat 转为 b (虽然下面也有，但放前面更保险)
-                    .replace(/\./g, ' ')
-                    .replace(/_/g, ' ')
-                    .replace(/-/g, ' ')
-                    .replace(/\d+/g, '')
-                    .replace(/[()\[\]]/g, '')
-                    .replace(/\bflat\b/g, 'b')    // (原有逻辑，保留即可)
-                    .replace(/\bsharp\b/g, '#')
-                    .replace(/♯/g, '#')           // 🟢 [建议] 顺便把 Unicode 升号也加上
-                    .replace(/\bin\b/g, '')
-                    .trim();
-            };
-
 // 核心：查找分组
             const findGroupSmart = (trackName) => {
                 // A. 预处理轨道名
@@ -2088,18 +2078,6 @@ if (typeof window !== 'undefined') {
             const currentMidiDisplayList = computed(() => {
                 return midiViewMode.value === 'groups' ? midiGroupData.value : midiImportData.value;
             });
-
-            const cleanMidiTrackName = (name) => {
-                if (!name) return "";
-                return name
-                    // 1. 移除末尾的数字 (如 "Flute 1", "Violin 2")
-                    .replace(/\s*\d+$/, '')
-                    // 2. 移除末尾的罗马数字 (如 "Violin I", "Violin II") - 可选
-                    .replace(/\s+(I{1,3}|IV|V|VI)$/i, '')
-                    // 3. 移除特殊连字符 (如 "Flute_1" -> "Flute")
-                    .replace(/[_\-]\d+$/, '')
-                    .trim();
-            };
 
             const findGroupFromLibrary = (cleanName) => {
                 const target = cleanName.toLowerCase();
@@ -9696,55 +9674,11 @@ if (typeof window !== 'undefined') {
                 }
             });
 
-            const getOrchString = (names) => {
-                const counts = {};         // 用于统计数量
-                const displayNames = {};   // 用于记录该乐器对应的“最佳显示名称”
-                const abbrMap = {
-                    'violin': 'Vln',
-                    'viola': 'Vla',
-                    'cello': 'Vc',
-                    'double bass': 'Db',
-                    'flute': 'Fl'
-                };
-
-                names.forEach(n => {
-                    // 1. 保留原始的大小写，仅去除末尾数字和空格
-                    let rawClean = n.replace(/[\d\s]+$/g, '').trim();
-                    // 2. 转为小写仅用于在 counts 和 abbrMap 中做 key (匹配)
-                    let lower = rawClean.toLowerCase();
-
-                    // 统计数量
-                    counts[lower] = (counts[lower] || 0) + 1;
-
-                    // 如果是第一次遇到这个乐器，记录它的显示名称
-                    if (!displayNames[lower]) {
-                        if (abbrMap[lower]) {
-                            displayNames[lower] = abbrMap[lower];
-                        } else {
-                            // 确保首字母大写，但保留后续内容的原始大小写 (如 Bb 中的 B)
-                            displayNames[lower] = rawClean.charAt(0).toUpperCase() + rawClean.slice(1);
-                        }
-                    }
-                });
-
-                // 最后组装时使用 displayNames 里存好的名称
-                return Object.entries(counts)
-                    .map(([lower, v]) => `${v} ${displayNames[lower]}`)
-                    .join(', ');
-            };
             // 🔍 辅助：根据名字查找 ID (仅查找，不创建)
             const findSettingId = (type, name) => {
                 if (!name || !settings[type + 's']) return null;
                 const found = settings[type + 's'].find(i => i.name.trim().toLowerCase() === name.trim().toLowerCase());
                 return found ? found.id : null;
-            };
-
-            const extractTime = (str) => {
-                const match = str.match(/(\d{1,2})[:：](\d{2})/);
-                if (match) {
-                    return `${String(match[1]).padStart(2, '0')}:${match[2]}`;
-                }
-                return '';
             };
 
 
@@ -11735,19 +11669,6 @@ if (typeof window !== 'undefined') {
                 if (item.ratios.instrument === undefined) item.ratios.instrument = null;
 
                 return item;
-            };
-
-            // 🟢 [修复] 日期标准化函数
-            const normalizeDate = (input) => {
-                if (!input) return '';
-                // 尝试解析日期
-                const d = new Date(input.replace(/\./g, '/').replace(/-/g, '/'));
-                if (isNaN(d.getTime())) return input.trim(); // 如果解析失败，返回原值
-
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
             };
 
             const isToday = d => formatDate(new Date()) === d;
