@@ -21,6 +21,10 @@
     <script src="https://unpkg.com/pinyin-pro"></script>
     <script src="https://cdn.jsdelivr.net/npm/jzz"></script>
     <script src="https://cdn.jsdelivr.net/npm/jzz-midi-smf"></script>
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/mobile.css">
 
     <script>
         tailwind.config = {
@@ -233,6 +237,7 @@
         }
     </script>
 
+    <!-- Modularization migration marker: legacy inline styles stay active until extracted. -->
     <style>
 
 
@@ -5323,7 +5328,10 @@
 </div>
 
 
+<script type="module" src="./scripts/app.js"></script>
+<!-- Modularization migration marker: legacy inline bootstrap remains the runtime source during phase one. -->
 <script>
+    window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = true;
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
     const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzYnVlZ21jbml2d2trbHhzeXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTMzMDksImV4cCI6MjA4NzY4OTMwOX0.TRmEAgLBzexlh4Ii1JD-lDpYi5kp_i3P8oG4sDXoHjk';
