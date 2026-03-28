@@ -10,6 +10,9 @@ import {
     normalizeForMatch
 } from './utils/midi.js';
 import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
+import { createStorageService } from './services/storage-service.js';
+import { createSupabaseService } from './services/supabase-service.js';
+import { createDeviceService } from './services/device-service.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -31,7 +34,9 @@ if (typeof window !== 'undefined') {
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
     const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzYnVlZ21jbml2d2trbHhzeXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTMzMDksImV4cCI6MjA4NzY4OTMwOX0.TRmEAgLBzexlh4Ii1JD-lDpYi5kp_i3P8oG4sDXoHjk';
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const storageService = createStorageService();
+    const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
+    const deviceService = createDeviceService();
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -59,18 +64,7 @@ if (typeof window !== 'undefined') {
         const newB = Math.min(255, Math.max(0, Math.floor(b * factor)));
         return '#' + [newR, newG, newB].map(x => x.toString(16).padStart(2, '0')).join('');
     };
-    window.triggerTouchHaptic = async (style = 'Light') => {
-        // 使用全局对象获取插件，确保在任何地方都能调用
-        const Haptics = window.Capacitor?.Plugins?.Haptics;
-        if (Haptics) {
-            try {
-                // 使用 Impact 模式进行 UI 级反馈
-                await Haptics.impact({style: style.toUpperCase()});
-            } catch (e) {
-                console.warn("Haptics API调用失败:", e.message);
-            }
-        }
-    };
+    window.triggerTouchHaptic = (style = 'Light') => deviceService.triggerTouchHaptic(style);
 
 
     createApp({
@@ -86,7 +80,7 @@ if (typeof window !== 'undefined') {
             const selectedSource = ref(null);
             const selectedPoolIds = ref(new Set()); // 存储任务池多选的 ID
             // V10.2 新增：左侧栏宽度调节状态 (请添加到其他 ref 变量附近)
-            const savedSidebarWidth = localStorage.getItem('musche_sidebar_width');
+            const savedSidebarWidth = storageService.getItem('musche_sidebar_width');
             const sidebarWidth = ref(savedSidebarWidth ? Number(savedSidebarWidth) : 350);
             const lastPoolClickId = ref(null);      // 记录上一次点击的 ID (用于 Shift 范围选择)
             const lastPoolFocusId = ref(null);      // 新增：记录键盘/鼠标最后交互的 ID (作为键盘导航的起点)
@@ -113,7 +107,7 @@ if (typeof window !== 'undefined') {
             const showMobileTaskInput = ref(false);
             const trackListContainerRef = ref(null);
             const draggingSectionIndex = ref(null);
-            const savedWidth = localStorage.getItem('musche_day_width');
+            const savedWidth = storageService.getItem('musche_day_width');
             const dayColWidth = ref(savedWidth ? Number(savedWidth) : 52);
             const isResizingMobile = ref(false);
             const mobileResizeState = reactive({task: null, startY: 0, startHeight: 0});
@@ -3846,13 +3840,13 @@ if (typeof window !== 'undefined') {
                 currentSearchIndex.value = 0;
             });
 
-            const savedSidebarState = localStorage.getItem('musche_sidebar_open');
+            const savedSidebarState = storageService.getItem('musche_sidebar_open');
             // 🟢 修改: 默认为 true (打开状态)
             const isSidebarOpen = ref(savedSidebarState !== null ? JSON.parse(savedSidebarState) : true);
             // 3. 监听变化并自动保存 (记忆功能)
             watch([isSidebarOpen, sidebarWidth], ([open, width]) => {
-                localStorage.setItem('musche_sidebar_open', open);
-                localStorage.setItem('musche_sidebar_width', width);
+                storageService.setItem('musche_sidebar_open', open);
+                storageService.setItem('musche_sidebar_width', width);
             });
 
             // 🟢 新增: 当鼠标进入输入框，临时禁止父级拖拽 (解决无法选中文本的问题)
@@ -4101,7 +4095,7 @@ if (typeof window !== 'undefined') {
             // ----------------------------------------------------------------
             const startTour = () => {
                 // 确保之前可能存在的侧边栏引导标记不干扰
-                localStorage.removeItem('musche_sidebar_tour_seen');
+                storageService.removeItem('musche_sidebar_tour_seen');
 
                 if (window.innerWidth < 800) {
                     // === 📱 手机模式 ===
@@ -4131,7 +4125,7 @@ if (typeof window !== 'undefined') {
                 }
 
                 // 标记已读
-                localStorage.setItem('musche_tour_seen', 'true');
+                storageService.setItem('musche_tour_seen', 'true');
             };
 
             // 🟢 修复: 简化的侧边栏切换 (不再包含引导逻辑)
@@ -5051,7 +5045,7 @@ if (typeof window !== 'undefined') {
                 } else {
                     dayColWidth.value = 100;
                 }
-                localStorage.setItem('musche_day_width', dayColWidth.value);
+                storageService.setItem('musche_day_width', dayColWidth.value);
                 window.triggerTouchHaptic('Medium');
             };
 
@@ -6516,46 +6510,15 @@ if (typeof window !== 'undefined') {
 
             // --- 🟢 新增：获取 Capacitor 插件引用 ---
             // 注意：这里不能用 import，必须从全局对象取
-            const LocalNotifications = window.Capacitor ? window.Capacitor.Plugins.LocalNotifications : null;
-            const Haptics = window.Capacitor ? window.Capacitor.Plugins.Haptics : null;
-
             // --- 🟢 新增：震动与通知功能函数 ---
             const scheduleReminder = async (title, body, delaySeconds = 5) => {
-                // 1. 安全检查：如果在浏览器里运行，没有 Capacitor 环境，直接返回
-                if (!LocalNotifications || !Haptics) {
-                    console.log("非 App 环境，跳过通知");
-                    return;
-                }
-
                 try {
-                    // 2. 请求权限
-                    let perm = await LocalNotifications.checkPermissions();
-                    if (perm.display === 'prompt') {
-                        perm = await LocalNotifications.requestPermissions();
-                    }
-                    if (perm.display !== 'granted') {
+                    const result = await deviceService.scheduleReminder(title, body, delaySeconds);
+                    if (result.reason === 'permission-denied') {
                         openAlertModal("请授权通知权限，否则无法提醒！");
-                        return;
+                    } else if (result.skipped) {
+                        console.log("非 App 环境，跳过通知");
                     }
-
-                    // 3. 安排通知
-                    const triggerTime = new Date(Date.now() + delaySeconds * 1000);
-                    await LocalNotifications.schedule({
-                        notifications: [{
-                            title: title,
-                            body: body,
-                            id: Math.floor(Math.random() * 100000),
-                            schedule: {at: triggerTime},
-                            sound: 'default'
-                        }]
-                    });
-
-                    // 4. 震动反馈
-                    await Haptics.impact({style: 'MEDIUM'}); // 注意这里用字符串 'MEDIUM'
-
-                    // 5. (可选) 弹个提示
-                    // alert(`已设置提醒：${delaySeconds}秒后`);
-
                 } catch (e) {
                     console.error("通知设置失败", e);
                     openAlertModal("通知设置出错：" + e.message);
@@ -6650,7 +6613,7 @@ if (typeof window !== 'undefined') {
             // 🟢 核心修改: 引入三态主题管理 (Auto / Light / Dark)
 
             // 1. 定义状态: 优先读取本地存储，没有则默认为 'auto'
-            const themeMode = ref(localStorage.getItem('theme_mode') || 'auto');
+            const themeMode = ref(storageService.getItem('theme_mode') || 'auto');
 
             // isDark 依然保留，作为"当前实际生效颜色"的计算结果，供界面其他部分(如图表颜色)使用
             const isDark = ref(document.documentElement.classList.contains('dark'));
@@ -6686,7 +6649,7 @@ if (typeof window !== 'undefined') {
                 themeMode.value = modes[nextIndex];
 
                 // 保存到本地
-                localStorage.setItem('theme_mode', themeMode.value);
+                storageService.setItem('theme_mode', themeMode.value);
 
                 applyTheme();
             };
@@ -7004,28 +6967,26 @@ if (typeof window !== 'undefined') {
                     try {
                         const fileName = `${user.value.id}-${Date.now()}.webp`;
                         const filePath = `${fileName}`;
-                        const {error: uploadError} = await supabaseClient.storage
-                            .from('avatars')
-                            .upload(filePath, blob, {
-                                contentType: 'image/webp', // 显式指定类型
-                                upsert: true
-                            });
+                        const {error: uploadError} = await supabaseService.uploadAvatar(filePath, blob, {
+                            contentType: 'image/webp', // 显式指定类型
+                            upsert: true
+                        });
 
                         if (uploadError) throw uploadError;
 
                         // 获取 URL
-                        const {data} = supabaseClient.storage.from('avatars').getPublicUrl(filePath);
+                        const {data} = supabaseService.getAvatarPublicUrl(filePath);
                         const publicUrl = data.publicUrl;
 
                         // 更新用户资料
-                        const {error: updateError} = await supabaseClient.auth.updateUser({
+                        const {error: updateError} = await supabaseService.updateUser({
                             data: {avatar_url: publicUrl}
                         });
 
                         if (updateError) throw updateError;
 
                         // 更新成功
-                        user.value = (await supabaseClient.auth.getUser()).data.user;
+                        user.value = (await supabaseService.getUser()).data.user;
 
                         // 关闭弹窗
                         cancelCrop();
@@ -7273,10 +7234,7 @@ if (typeof window !== 'undefined') {
                 pushHistory();
 
                 // 3. (可选) 给个轻微震动反馈
-                const Haptics = window.Capacitor?.Plugins?.Haptics;
-                if (Haptics) {
-                    Haptics.impact({style: 'LIGHT'});
-                }
+                window.triggerTouchHaptic('Light');
             };
 
             // --- V9.7.4: settings.projects 取代 settings.projectColors ---
@@ -7584,7 +7542,7 @@ if (typeof window !== 'undefined') {
                 authLoading.value = true;
 
                 // 1. 尝试登录
-                const {data, error} = await supabaseClient.auth.signInWithPassword({
+                const {data, error} = await supabaseService.signInWithPassword({
                     email: authForm.email, password: authForm.password
                 });
 
@@ -7609,7 +7567,7 @@ if (typeof window !== 'undefined') {
                 if (!authForm.email || !authForm.password) return openAlertModal("请输入邮箱和密码");
                 authLoading.value = true;
 
-                const {data, error} = await supabaseClient.auth.signUp({
+                const {data, error} = await supabaseService.signUp({
                     email: authForm.email, password: authForm.password
                 });
 
@@ -7629,57 +7587,12 @@ if (typeof window !== 'undefined') {
 
             // --- 🟢 新增：设置单个任务的系统通知 ---
             const updateTaskNotification = async (task) => {
-                // 1. 如果没有 Capacitor 环境，直接跳过
-                const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
-                if (!LocalNotifications) return;
-
-                // 2. 生成一个安全的 32位 整数 ID (Android 限制 ID 不能太大)
-                // 我们用任务 ID (时间戳) 对 21亿 取模，确保它是唯一的且符合整数范围
-                const notifId = task.scheduleId % 2147483647;
-
-                // 3. 先取消旧的通知 (防止重复或修改时间后旧的还在)
                 try {
-                    await LocalNotifications.cancel({notifications: [{id: notifId}]});
-                } catch (e) { /* 忽略错误 */
-                }
-
-                // 4. 如果用户选择了“无提醒” (0) 或者没有设置时间，就结束
-                if (!task.reminderMinutes || task.reminderMinutes <= 0) return;
-
-                // 5. 计算触发时间
-                // 格式解析: "2025-11-27" + "10:30"
-                const dateStr = task.date.replace(/-/g, '/'); // 兼容 iOS 日期格式
-                const taskTime = new Date(`${dateStr} ${task.startTime}:00`);
-
-                // 减去提前的分钟数
-                const triggerTime = new Date(taskTime.getTime() - task.reminderMinutes * 60 * 1000);
-
-                // 如果触发时间已经过去了，就不设了
-                if (triggerTime.getTime() < Date.now() - 60 * 1000) {
-                    console.warn(`⚠️ 通知跳过: 提醒时间 ${triggerTime.toLocaleTimeString()} 发生在 1 分钟前或更早，已放弃设置。`);
-                    return;
-                }
-
-                // 6. 安排新通知
-                try {
-                    // 确保有权限
-                    let perm = await LocalNotifications.checkPermissions();
-                    if (perm.display !== 'granted') perm = await LocalNotifications.requestPermissions();
-                    if (perm.display !== 'granted') return;
-
-                    await LocalNotifications.schedule({
-                        notifications: [{
-                            title: `准备录音: ${getNameById(task.musicianId, 'musician')}`,
-                            body: `${task.startTime} 开始 (${getNameById(task.projectId, 'project')})`,
-                            id: notifId,
-                            schedule: {at: triggerTime},
-                            sound: 'default', // 或 'beep.wav'
-                            smallIcon: 'ic_stat_icon', // Android 图标
-                        }]
+                    const result = await deviceService.updateTaskNotification(task, {
+                        title: `准备录音: ${getNameById(task.musicianId, 'musician')}`,
+                        body: `${task.startTime} 开始 (${getNameById(task.projectId, 'project')})`
                     });
-
-                    console.log(`✅ 通知已设定: ${triggerTime.toLocaleTimeString()}`);
-
+                    if (!result.skipped) console.log('✅ 通知已设定');
                 } catch (e) {
                     console.error("设置通知失败:", e);
                 }
@@ -7690,7 +7603,7 @@ if (typeof window !== 'undefined') {
                 if (!authForm.email) return openAlertModal("请先在上方输入您的邮箱地址");
 
                 authLoading.value = true;
-                const {data, error} = await supabaseClient.auth.resetPasswordForEmail(authForm.email, {
+                const {data, error} = await supabaseService.resetPasswordForEmail(authForm.email, {
                     redirectTo: window.location.origin, // 重置后跳回当前页面
                 });
 
@@ -7730,7 +7643,7 @@ if (typeof window !== 'undefined') {
 
                 authLoading.value = true;
                 try {
-                    const {data, error} = await supabaseClient.auth.updateUser({
+                    const {data, error} = await supabaseService.updateUser({
                         data: {full_name: tempNickname.value.trim()}
                     });
 
@@ -7757,10 +7670,7 @@ if (typeof window !== 'undefined') {
                         // 1. 如果已登录，清空云端数据 (核心修改点)
                         if (user.value) {
                             // 删除 Supabase 中 user_data 表中与当前用户 ID 匹配的行
-                            const { error } = await supabaseClient
-                                .from('user_data')
-                                .delete()
-                                .eq('user_id', user.value.id);
+                            const { error } = await supabaseService.deleteUserData(user.value.id);
 
                             if (error) {
                                 console.error("Cloud data deletion failed:", error);
@@ -7773,9 +7683,9 @@ if (typeof window !== 'undefined') {
                         }
 
                         // 2. 清理本地数据
-                        localStorage.removeItem('v9_data');
+                        storageService.removeItem('v9_data');
                         // 3. 清除引导记录
-                        localStorage.removeItem('musche_tour_seen');
+                        storageService.removeItem('musche_tour_seen');
 
                         localDataVersion.value = 0;
 
@@ -7821,7 +7731,7 @@ if (typeof window !== 'undefined') {
                 const url = tempAvatarUrl.value.trim();
 
                 // 调用 Supabase 更新用户元数据
-                const {data, error} = await supabaseClient.auth.updateUser({
+                const {data, error} = await supabaseService.updateUser({
                     data: {avatar_url: url}
                 });
 
@@ -7974,21 +7884,17 @@ if (typeof window !== 'undefined') {
                     const filePath = `${fileName}`;
 
                     // 3. 上传到 'avatars' 桶
-                    const {error: uploadError} = await supabaseClient.storage
-                        .from('avatars')
-                        .upload(filePath, file);
+                    const {error: uploadError} = await supabaseService.uploadAvatar(filePath, file);
 
                     if (uploadError) throw uploadError;
 
                     // 4. 获取公开访问 URL
-                    const {data} = supabaseClient.storage
-                        .from('avatars')
-                        .getPublicUrl(filePath);
+                    const {data} = supabaseService.getAvatarPublicUrl(filePath);
 
                     const publicUrl = data.publicUrl;
 
                     // 5. 更新用户元数据 (Metadata)
-                    const {data: userData, error: updateError} = await supabaseClient.auth.updateUser({
+                    const {data: userData, error: updateError} = await supabaseService.updateUser({
                         data: {avatar_url: publicUrl}
                     });
 
@@ -8017,7 +7923,7 @@ if (typeof window !== 'undefined') {
                 // 2. 执行 Supabase 登出
                 // (Supabase 会自动清除浏览器中与账号相关的 sb-xxx-token，但不会动你的 v9_data)
                 try {
-                    await supabaseClient.auth.signOut();
+                    await supabaseService.signOut();
                 } catch (e) {
                     console.error("Cloud signout failed:", e);
                 }
@@ -8039,11 +7945,7 @@ if (typeof window !== 'undefined') {
                 if (!user.value) return;
 
                 // 1. 从云端拉取数据，同时查询 content 和 version
-                const {data, error} = await supabaseClient
-                    .from('user_data')
-                    .select('content, version') // <--- 关键修改：多查一个 version
-                    .eq('user_id', user.value.id)
-                    .single();
+                const {data, error} = await supabaseService.loadUserData(user.value.id);
 
                 if (data && data.content) {
                     console.log("✅ 已加载云端数据, 版本:", data.version);
@@ -8078,9 +7980,8 @@ if (typeof window !== 'undefined') {
                     console.log("⚠️ 云端无数据");
                     localDataVersion.value = 0; // 重置版本
 
-                    const localStr = localStorage.getItem('v9_data');
-                    if (localStr) {
-                        const localData = JSON.parse(localStr);
+                    const localData = storageService.loadData('v9_data');
+                    if (localData) {
                         const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
 
                         if (hasRealData) {
@@ -8095,13 +7996,7 @@ if (typeof window !== 'undefined') {
                                         settings: localData.settings || settings
                                     };
                                     // 初始上传，版本设为 1
-                                    const {error: uploadError} = await supabaseClient
-                                        .from('user_data')
-                                        .upsert({
-                                            user_id: user.value.id,
-                                            content: dataToUpload,
-                                            version: 1
-                                        }, {onConflict: 'user_id'});
+                                    const {error: uploadError} = await supabaseService.saveUserData(user.value.id, dataToUpload, 1);
 
                                     if (!uploadError) {
                                         localDataVersion.value = 1;
@@ -8128,11 +8023,7 @@ if (typeof window !== 'undefined') {
                 try {
                     // --- 步骤 1: 检查云端最新版本 ---
                     // 我们只查询 version 字段，开销很小
-                    const { data: serverRecord, error: checkError } = await supabaseClient
-                        .from('user_data')
-                        .select('version')
-                        .eq('user_id', user.value.id)
-                        .single();
+                    const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
 
                     // 如果查询出错且不是"查无此人"(PGRST116)，则报错
                     if (checkError && checkError.code !== 'PGRST116') throw checkError;
@@ -8169,11 +8060,7 @@ if (typeof window !== 'undefined') {
                     };
 
                     // --- 步骤 3: 执行写入 ---
-                    const { error: saveError } = await supabaseClient.from('user_data').upsert({
-                        user_id: user.value.id,
-                        content: dataToSave,
-                        version: newVersion // 写入新版本号
-                    }, {onConflict: 'user_id'});
+                    const { error: saveError } = await supabaseService.saveUserData(user.value.id, dataToSave, newVersion);
 
                     if (saveError) throw saveError;
 
@@ -9130,7 +9017,7 @@ if (typeof window !== 'undefined') {
                 // ---------------------------------------------------------
 
                 // 检查云端 Session
-                const { data } = await supabaseClient.auth.getSession();
+                const { data } = await supabaseService.getSession();
                 // 🟢 定义初始化函数 (用于出厂设置或第一次打开)
                 const initDefaultData = () => {
                     console.log("执行初始化：生成演示数据 (Musician A / Project A)...");
@@ -9190,7 +9077,7 @@ if (typeof window !== 'undefined') {
                     // 4. 强制打开侧边栏 (默认状态)
                     isSidebarOpen.value = true;
                     // 并保存这个状态，以免下次刷新又关了
-                    localStorage.setItem('musche_sidebar_open', 'true');
+                    storageService.setItem('musche_sidebar_open', 'true');
 
                     // 5. 展开侧边栏里的第一项 (Musician A)，确保 Guide 能定位到它
                     setTimeout(() => {
@@ -9213,8 +9100,7 @@ if (typeof window !== 'undefined') {
 
                 } else {
                     // [情况 B] 未登录：检查本地数据
-                    const localStr = localStorage.getItem('v9_data');
-                    const d = localStr ? JSON.parse(localStr) : {};
+                    const d = storageService.loadData('v9_data') || {};
 
 
                     // 🟢 判定逻辑：如果有旧数据，加载旧数据；否则初始化
@@ -9257,7 +9143,7 @@ if (typeof window !== 'undefined') {
                 }
 
                 // 3. 检查是否需要播放新手引导
-                const hasSeenTour = localStorage.getItem('musche_tour_seen');
+                const hasSeenTour = storageService.getItem('musche_tour_seen');
                 if (!hasSeenTour) {
                     // 稍微延迟，等页面完全渲染、侧边栏展开后再播放
                     setTimeout(() => {
@@ -9298,7 +9184,7 @@ if (typeof window !== 'undefined') {
                         tasks: scheduledTasks.value,
                         settings: {...settings, lastSessionId: currentSessionId.value}
                     };
-                    localStorage.setItem('v9_data', JSON.stringify(dataToSave));
+                    storageService.saveData('v9_data', dataToSave);
                 }
 
             }, {deep: true});
@@ -12015,11 +11901,8 @@ if (typeof window !== 'undefined') {
             const deleteEditingItem = () => {
                 // 1. 如果是删除日程，先取消系统通知 (保持原有逻辑)
                 if (editingSource.value !== 'pool') {
-                    const LocalNotifications = window.Capacitor?.Plugins?.LocalNotifications;
-                    if (LocalNotifications) {
-                        const notifId = editingItem.value.scheduleId % 2147483647;
-                        LocalNotifications.cancel({notifications: [{id: notifId}]});
-                    }
+                    const notifId = editingItem.value.scheduleId % 2147483647;
+                    deviceService.cancelNotification(notifId);
                 }
 
                 if (editingSource.value === 'pool') {
@@ -12772,12 +12655,12 @@ if (typeof window !== 'undefined') {
                     }
                 });
                 // 检查 LocalStorage
-                const hasSeenTour = localStorage.getItem('musche_tour_seen');
+                const hasSeenTour = storageService.getItem('musche_tour_seen');
                 if (!hasSeenTour) {
                     // 稍微延迟，等页面加载完、数据渲染完再显示
                     setTimeout(() => {
                         startTour();
-                        localStorage.setItem('musche_tour_seen', 'true');
+                        storageService.setItem('musche_tour_seen', 'true');
                     }, 1500);
                 }
                 window.addEventListener('beforeunload', handlePageUnload);
