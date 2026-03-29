@@ -1,0 +1,104 @@
+body {
+    background: radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 1) 0, transparent 50%);
+    background-size: cover;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    color: #1d1d1f;
+    transition: background 0.5s ease;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+.font-mono {
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+}
+
+input,
+textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+html:not(.dark) body {
+    background-color: #dfe1e5;
+    background-image: radial-gradient(at 40% 20%, hsla(28, 100%, 74%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, hsla(355, 100%, 93%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 50%, hsla(340, 100%, 76%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(22, 100%, 77%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 100%, hsla(242, 100%, 70%, 0.15) 0px, transparent 50%);
+    color: #0f0f10;
+}
+
+html.dark body {
+    color: #f5f5f7;
+}
+
+.list-move,
+.list-enter-active,
+.list-leave-active {
+    transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.list-enter-from,
+.list-leave-to {
+    opacity: 0;
+    transform: scaleY(0.01) translate(0, 10px);
+}
+
+.list-leave-active {
+    position: absolute;
+    width: 100%;
+    z-index: -1;
+}
+
+::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}
+
+* {
+    scrollbar-width: none;
+}
+
+:root {
+    --slot-height: 40px;
+    --time-col-width: 70px;
+    --grid-line-light: rgba(0, 0, 0, 0.08);
+    --grid-line-dark: rgba(255, 255, 255, 0.08);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+html:not(.dark) .border-glass-border {
+    border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html:not(.dark) {
+    --grid-line-light: rgba(0, 0, 0, 0.06) !important;
+}
+
+html:not(.dark) .shadow-liquid {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+}
+
+svg rect {
+    transition: all 0.1s;
+}
