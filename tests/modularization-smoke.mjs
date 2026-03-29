@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, '..');
 
 const packageJsonPath = resolve(rootDir, 'package.json');
-const indexHtmlPath = resolve(rootDir, 'www/index.html');
+const indexHtmlPath = resolve(rootDir, 'app/index.html');
 
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const indexHtml = readFileSync(indexHtmlPath, 'utf8');
@@ -43,21 +43,21 @@ assert.match(
 assert.ok(!/<style[\s>]/i.test(indexHtml), 'index.html should not contain an inline style block');
 
 const requiredFiles = [
-    'www/scripts/app.js',
-    'www/scripts/utils/time.js',
-    'www/scripts/utils/format.js',
-    'www/scripts/utils/id.js',
-    'www/scripts/utils/midi.js',
-    'www/scripts/utils/csv.js',
-    'www/scripts/services/storage-service.js',
-    'www/scripts/services/supabase-service.js',
-    'www/scripts/services/device-service.js',
-    'www/scripts/features/schedule.js',
-    'www/scripts/features/settings.js',
-    'www/scripts/features/import-csv.js',
-    'www/scripts/features/import-midi.js',
-    'www/scripts/features/auth.js',
-    'www/scripts/features/mobile-ui.js'
+    'app/scripts/app.js',
+    'app/scripts/utils/time.js',
+    'app/scripts/utils/format.js',
+    'app/scripts/utils/id.js',
+    'app/scripts/utils/midi.js',
+    'app/scripts/utils/csv.js',
+    'app/scripts/services/storage-service.js',
+    'app/scripts/services/supabase-service.js',
+    'app/scripts/services/device-service.js',
+    'app/scripts/features/schedule.js',
+    'app/scripts/features/settings.js',
+    'app/scripts/features/import-csv.js',
+    'app/scripts/features/import-midi.js',
+    'app/scripts/features/auth.js',
+    'app/scripts/features/mobile-ui.js'
 ];
 
 for (const relativePath of requiredFiles) {
