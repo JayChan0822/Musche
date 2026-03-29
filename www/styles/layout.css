@@ -1,1 +1,86 @@
-/* Task 1 scaffold: layout styles will be extracted incrementally. */
+.liquid-window {
+    border-radius: 0;
+    border: none;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: radial-gradient(
+            ellipse at center,
+            rgba(255, 255, 255, 0.6) 0%,
+            rgba(240, 242, 245, 0.8) 100%
+    );
+    backdrop-filter: blur(30px);
+}
+
+html.dark .liquid-window {
+    background: radial-gradient(
+            ellipse at center,
+            rgba(30, 32, 35, 0.95) 40%,
+            rgba(30, 32, 35, 0.2) 100%
+    );
+    border: none;
+    box-shadow: none;
+}
+
+.glass-sidebar {
+    background: rgba(245, 245, 247, 0.5);
+    backdrop-filter: blur(40px);
+    border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+html.dark .glass-sidebar {
+    background: rgba(40, 40, 40, 0.4);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.time-label-slot {
+    height: var(--slot-height);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 12px;
+    font-size: 13px;
+    color: #86868b;
+    font-weight: 600;
+    transform: translateY(-50%);
+}
+
+.grid-slot {
+    height: var(--slot-height);
+    border-bottom: 1px solid var(--grid-line-light);
+    width: 100%;
+    position: relative;
+}
+
+html.dark .grid-slot {
+    border-bottom: 1px solid var(--grid-line-dark);
+}
+
+.grid-slot:nth-child(odd) {
+    border-bottom-style: solid;
+}
+
+.grid-slot:nth-child(even) {
+    border-bottom: none;
+}
+
+.grid-slot:nth-child(even)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-bottom: 1px dotted var(--grid-line-light);
+    opacity: 0.5;
+}
+
+html.dark .grid-slot:nth-child(even)::after {
+    border-bottom-color: var(--grid-line-dark);
+}
+
+#main-content {
+    position: relative;
+    overflow: hidden;
+}
