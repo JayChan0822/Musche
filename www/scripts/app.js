@@ -14,6 +14,7 @@ import { createStorageService } from './services/storage-service.js';
 import { createSupabaseService } from './services/supabase-service.js';
 import { createDeviceService } from './services/device-service.js';
 import { registerScheduleFeature } from './features/schedule.js';
+import { registerSettingsFeature } from './features/settings.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -39,6 +40,7 @@ if (typeof window !== 'undefined') {
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
     const deviceService = createDeviceService();
     let scheduleFeature;
+    let settingsFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -4621,14 +4623,7 @@ if (typeof window !== 'undefined') {
             };
 
             // 1. 切换单个分组 (修改：增加 type 参数，使用复合键)
-            const toggleSettingsGroup = (type, groupName) => {
-                const key = type + '|' + groupName; // 🟢 生成唯一 Key
-                if (settingsExpandedGroups.has(key)) {
-                    settingsExpandedGroups.delete(key);
-                } else {
-                    settingsExpandedGroups.add(key);
-                }
-            };
+            const toggleSettingsGroup = (type, groupName) => settingsFeature.toggleSettingsGroup(type, groupName);
 
             // 2. 判断全展开 (修改：使用复合键检查)
             const isAllGroupsExpanded = (type) => {
@@ -7251,77 +7246,9 @@ if (typeof window !== 'undefined') {
             const sortedMusicians = computed(() => sortSettingsList(settings.musicians));
             const sortedProjects = computed(() => sortSettingsList(settings.projects));
 
-            const removeInstrument = (id) => {
-                openConfirmModal(
-                    '删除乐器',
-                    '确定删除该乐器吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        // 1. 从设置中删除
-                        settings.instruments = settings.instruments.filter(i => i.id !== id);
-
-                        // 2. 从任务池删除关联任务
-                        itemPool.value = itemPool.value.filter(item => item.instrumentId !== id);
-
-                        // 3. 从日程表删除关联任务
-                        scheduledTasks.value = scheduledTasks.value.filter(task => task.instrumentId !== id);
-
-                        // 4. 清理可能变空的日程块
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true // 红色按钮
-                );
-            };
-
-            const removeMusician = (id) => {
-                openConfirmModal(
-                    '删除演奏员',
-                    '确定删除该演奏员吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        // 1. 从设置中删除
-                        settings.musicians = settings.musicians.filter(m => m.id !== id);
-
-                        // 2. 从任务池删除关联任务
-                        itemPool.value = itemPool.value.filter(item => item.musicianId !== id);
-
-                        // 3. 从日程表删除关联任务
-                        scheduledTasks.value = scheduledTasks.value.filter(task => task.musicianId !== id);
-
-                        // 4. 清理可能变空的日程块
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true
-                );
-            };
-
-            const deleteProject = (projectId) => {
-                openConfirmModal(
-                    '删除项目',
-                    '确定删除该项目吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        // 1. 从设置中删除
-                        settings.projects = settings.projects.filter(p => p.id !== projectId);
-
-                        // 2. 从任务池删除关联任务
-                        itemPool.value = itemPool.value.filter(item => item.projectId !== projectId);
-
-                        // 3. 从日程表删除关联任务
-                        scheduledTasks.value = scheduledTasks.value.filter(task => task.projectId !== projectId);
-
-                        // 4. 清理可能变空的日程块
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true
-                );
-            };
+            const removeInstrument = (id) => settingsFeature.removeInstrument(id);
+            const removeMusician = (id) => settingsFeature.removeMusician(id);
+            const deleteProject = (projectId) => settingsFeature.deleteProject(projectId);
 
 
             // V9.7.4: newItem 现在绑定 projectId
@@ -8242,165 +8169,20 @@ if (typeof window !== 'undefined') {
             const settingsGroupFocus = ref(null);    // 用于 Settings 弹窗，存储当前聚焦的类型 ('instrument'/'musician'/'project')
 
             // 2. 获取分组后的列表 (核心逻辑) - 🟢 修复: 启用 numeric: true 自然排序
-            const getSettingsGroupedList = (type) => {
-                let list = [];
-                if (type === 'instrument') list = settings.instruments;
-                else if (type === 'musician') list = settings.musicians;
-                else if (type === 'project') list = settings.projects;
-
-                const groups = {};
-                const defaultKey = '未分组';
-
-                list.forEach(item => {
-                    const g = (item.group && item.group.trim()) ? item.group : defaultKey;
-                    if (!groups[g]) groups[g] = [];
-                    groups[g].push(item);
-                });
-
-                // 排序：先按分组名排序（"未分组"放最后），组内按名称排序
-                // 🟢 这里加了 { numeric: true }，解决 C10 排在 C2 前面的问题
-                return Object.keys(groups).sort((a, b) => {
-                    if (a === defaultKey) return 1;
-                    if (b === defaultKey) return -1;
-                    // 修复分组名排序 (例如 Group 2 vs Group 10)
-                    return a.localeCompare(b, 'zh-CN', { numeric: true });
-                }).map(key => ({
-                    name: key === defaultKey ? '' : key,
-                    // 🟢 修复项目名排序 (例如 C2 vs C10)
-                    items: groups[key].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }))
-                }));
-            };
+            const getSettingsGroupedList = (type) => settingsFeature.getSettingsGroupedList(type);
 
             // 🟢 新增：使用 computed 缓存分组结果，防止页面重绘导致输入框跳动
-            const allSettingsGrouped = computed(() => {
-                return {
-                    project: getSettingsGroupedList('project'),
-                    instrument: getSettingsGroupedList('instrument'),
-                    musician: getSettingsGroupedList('musician')
-                };
-            });
+            const allSettingsGrouped = computed(() => settingsFeature.getAllSettingsGrouped());
 
             // 🟢 修复: 健壮的分组获取函数
-            const getExistingGroups = (type) => {
-                // 1. 安全解包: 无论传入的是 Ref 对象还是普通字符串，都统一转为字符串
-                let val = type;
-                if (typeof type === 'object' && type !== null && 'value' in type) {
-                    val = type.value;
-                }
-
-                // 如果值为空，直接返回
-                if (!val) return [];
-
-                // 2. 移除可能存在的前缀
-                // 强制转换为字符串再 replace，防止 val 是非字符串类型导致的报错
-                const realType = String(val).replace('mobile_', '');
-
-                // 3. 匹配数据源
-                let list = [];
-                if (realType === 'instrument') list = settings.instruments;
-                else if (realType === 'musician') list = settings.musicians;
-                else if (realType === 'project') list = settings.projects;
-
-                // 如果找不到对应列表，返回空
-                if (!list || !Array.isArray(list)) return [];
-
-                // 4. 提取分组并去重
-                const groups = new Set();
-                list.forEach(item => {
-                    // 确保 group 字段存在，且不是纯空格
-                    if (item.group && typeof item.group === 'string' && item.group.trim() !== '') {
-                        groups.add(item.group.trim());
-                    }
-                });
-
-                // 5. 排序返回 (按拼音排序)
-                return Array.from(groups).sort((a, b) => a.localeCompare(b, 'zh-CN'));
-            };
+            const getExistingGroups = (type) => settingsFeature.getExistingGroups(type);
 
 
             // 4. 重命名分组
-            const renameGroup = (type, oldName, newName) => {
-                const finalNewName = newName.trim();
-                if (oldName === finalNewName) return; // 没变
-
-                let list = [];
-                if (type === 'instrument') list = settings.instruments;
-                else if (type === 'musician') list = settings.musicians;
-                else if (type === 'project') list = settings.projects;
-
-                // 批量更新所有属于该组的项目
-                // 如果 oldName 为空，表示将"未分组"的项目归入新组
-                // 如果 newName 为空，表示将该组项目变为"未分组"
-                list.forEach(item => {
-                    const g = (item.group || '').trim();
-                    if (g === (oldName || '').trim()) {
-                        item.group = finalNewName;
-                    }
-                });
-                pushHistory();
-            };
+            const renameGroup = (type, oldName, newName) => settingsFeature.renameGroup(type, oldName, newName);
 
             // 🟢 修改：addSettingsItem (支持“移动分组”逻辑)
-            const addSettingsItem = (type) => {
-                const form = newSettingsItem[type];
-                const nameStr = form.name.trim();
-                const groupStr = form.group.trim();
-
-                if (!nameStr && !groupStr) {
-                    return openAlertModal('无法添加', '请至少输入 名称 或 分组。');
-                }
-
-                let list = [];
-                if (type === 'instrument') list = settings.instruments;
-                else if (type === 'musician') list = settings.musicians;
-                else if (type === 'project') list = settings.projects;
-
-                // 🟢 核心修改：检查是否存在同名项目
-                if (nameStr) {
-                    const existingItem = list.find(i => i.name.toLowerCase() === nameStr.toLowerCase());
-
-                    if (existingItem) {
-                        // ✨ 场景 A: 项目已存在 -> 执行“移动分组”操作
-                        if (existingItem.group !== groupStr) {
-                            existingItem.group = groupStr;
-
-                            // 如果有新分组，自动展开它
-                            if (groupStr) settingsExpandedGroups.add(type + '|' + groupStr);
-
-                            pushHistory();
-                            window.triggerTouchHaptic('Success');
-
-                            // 重置输入框，方便下一次操作
-                            form.name = '';
-                            return; // 结束函数，不创建新 ID
-                        } else {
-                            // 如果分组也一样，那就是纯重复，报错
-                            window.triggerTouchHaptic('Error');
-                            return openAlertModal('重复添加', '该项目已存在于当前分组中。');
-                        }
-                    }
-                }
-
-                // ✨ 场景 B: 项目不存在 -> 执行“新建”操作 (原有逻辑)
-                const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
-                const newItem = {
-                    id: generateUniqueId(idPrefix),
-                    name: nameStr,
-                    group: groupStr,
-                    color: generateRandomHexColor()
-                };
-                if (type === 'musician') newItem.defaultRatio = 20;
-
-                list.push(newItem);
-
-                if (groupStr) {
-                    settingsExpandedGroups.add(type + '|' + groupStr);
-                }
-
-                form.name = '';
-                pushHistory();
-                window.triggerTouchHaptic('Success');
-            };
+            const addSettingsItem = (type) => settingsFeature.addSettingsItem(type);
 
             watch(viewDate, () => {
                 // 重置为默认范围，以新日期为中心
@@ -8414,18 +8196,9 @@ if (typeof window !== 'undefined') {
             });
 
             // 6. 删除项目
-            const removeSettingsItem = (type, id) => {
-                // 使用之前定义的特定删除函数以保留确认弹窗逻辑
-                if (type === 'instrument') removeInstrument(id);
-                else if (type === 'musician') removeMusician(id);
-                else if (type === 'project') deleteProject(id);
-            };
+            const removeSettingsItem = (type, id) => settingsFeature.removeSettingsItem(type, id);
 
-            const clearSettingsList = (type) => {
-                if (type === 'instrument') clearAllInstruments();
-                else if (type === 'musician') clearAllMusicians();
-                else if (type === 'project') clearAllProjects();
-            }
+            const clearSettingsList = (type) => settingsFeature.clearSettingsList(type);
 
             // --- 拖拽重分组逻辑 ---
             let settingsDragItem = null;
@@ -9061,15 +8834,7 @@ if (typeof window !== 'undefined') {
             }, {deep: true});
 
             // 🟢 修改: addProject (不再生成颜色)
-            const addProject = () => {
-                settings.projects.push({
-                    id: generateUniqueId('P'),
-                    name: `新项目${settings.projects.length + 1}`,
-                    group: ''
-                    // color: ... 已移除
-                });
-                pushHistory();
-            };
+            const addProject = () => settingsFeature.addProject();
 
             const jumpToGhostContext = (task) => {
                 // 🟢 [新增] 上锁：防止原生 dblclick 事件穿透导致误开弹窗
@@ -9151,34 +8916,8 @@ if (typeof window !== 'undefined') {
             };
 
             // --- 🟢 新增辅助函数: 查找或创建设置项 ---
-            const getOrCreateSettingItem = (type, name, group = '') => {
-                if (!name || !name.trim()) return '';
-
-                let list = [];
-                let idPrefix = '';
-
-                if (type === 'project') { list = settings.projects; idPrefix = 'P'; }
-                else if (type === 'instrument') { list = settings.instruments; idPrefix = 'I'; }
-                else if (type === 'musician') { list = settings.musicians; idPrefix = 'M'; }
-
-                // 查找已存在的 (不区分大小写)
-                const existing = list.find(i => i.name.toLowerCase() === name.trim().toLowerCase());
-                if (existing) return existing.id;
-
-                // 创建新的
-                const newId = generateUniqueId(idPrefix);
-                const newItem = {
-                    id: newId,
-                    name: name.trim(),
-                    group: group.trim(), // 使用传入的分组 (如 Inst Family)
-                    color: generateRandomHexColor()
-                };
-
-                if (type === 'musician') newItem.defaultRatio = 20; // 默认倍率
-
-                list.push(newItem);
-                return newId;
-            };
+            const getOrCreateSettingItem = (type, name, group = '') =>
+                settingsFeature.getOrCreateSettingItem(type, name, group);
 
 
 
@@ -9443,80 +9182,7 @@ if (typeof window !== 'undefined') {
             const autoResizeSchedules = (taskIds) => scheduleFeature.autoResizeSchedules(taskIds);
 
             // 🟢 [新增] 设置项重命名处理 (支持重名自动合并)
-            const handleItemRename = (type, item, event) => {
-                const newName = event.target.value.trim();
-                const oldName = item.name;
-
-                // 1. 空值或未变检查
-                if (!newName) {
-                    event.target.value = oldName; // 回滚
-                    return;
-                }
-                if (newName === oldName) return;
-
-                // 2. 确定数据源
-                let list = [];
-                let idKey = '';
-                if (type === 'instrument') { list = settings.instruments; idKey = 'instrumentId'; }
-                else if (type === 'musician') { list = settings.musicians; idKey = 'musicianId'; }
-                else if (type === 'project') { list = settings.projects; idKey = 'projectId'; }
-
-                // 3. 检查重名 (排除自身)
-                const targetItem = list.find(i => i.name.toLowerCase() === newName.toLowerCase() && i.id !== item.id);
-
-                if (targetItem) {
-                    // === 🚨 发现重名 -> 触发合并流程 ===
-
-                    // 先回滚输入框显示，等待用户确认
-                    event.target.value = oldName;
-
-                    openConfirmModal(
-                        '合并条目',
-                        `检测到 "${targetItem.name}" 已存在。\n确定要将 "${oldName}" 合并归入 "${targetItem.name}" 吗？\n\n⚠ 警告：\n1. "${oldName}" 下的所有任务将转移给 "${targetItem.name}"。\n2. "${oldName}" 将被永久删除。\n3. 此操作不可撤销。`,
-                        () => {
-                            // --- 执行合并 ---
-
-                            // A. 迁移任务池 (Pool)
-                            itemPool.value.forEach(task => {
-                                if (task[idKey] === item.id) {
-                                    task[idKey] = targetItem.id;
-                                }
-                            });
-
-                            // B. 迁移日程表 (Scheduled Tasks)
-                            scheduledTasks.value.forEach(task => {
-                                if (task[idKey] === item.id) {
-                                    task[idKey] = targetItem.id;
-                                }
-                            });
-
-                            // C. 删除旧条目 (Source Item)
-                            const idx = list.findIndex(i => i.id === item.id);
-                            if (idx !== -1) {
-                                list.splice(idx, 1);
-                            }
-
-                            // D. 触发关联更新 (如效率值重算)
-                            // 简单起见，我们触发目标对象的效率更新，以防合并过来的数据影响了平均值
-                            if (type === 'musician') {
-                                autoUpdateEfficiency(targetItem.id, 'musician', false);
-                            }
-
-                            // E. 保存与反馈
-                            pushHistory();
-                            window.triggerTouchHaptic('Success');
-                            openAlertModal("合并成功", `已将相关任务全部转移至 "${targetItem.name}"。`);
-                        },
-                        true, // isDestructive (红色确认按钮)
-                        '确认合并',
-                        '取消'
-                    );
-                } else {
-                    // === ✅ 无重名 -> 正常改名 ===
-                    item.name = newName;
-                    pushHistory();
-                }
-            };
+            const handleItemRename = (type, item, event) => settingsFeature.handleItemRename(type, item, event);
 
             // 🟢 [新增] 录音元数据重命名 (支持级联更新任务 + 自动合并)
             const handleRecRename = (type, item, event) => {
@@ -11713,6 +11379,30 @@ if (typeof window !== 'undefined') {
                 },
             });
 
+            settingsFeature = registerSettingsFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    settingsExpandedGroups,
+                    newSettingsItem,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    generateUniqueId,
+                    generateRandomHexColor,
+                },
+                actions: {
+                    pushHistory,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    openConfirmModal,
+                    openAlertModal,
+                    cleanupEmptySchedules,
+                    autoUpdateEfficiency,
+                },
+            });
+
             // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
             const calculateGroupStats = (sourceList, filterKey) => {
                 const currentSessionItems = itemPool.value.filter(t =>
@@ -12286,78 +11976,9 @@ if (typeof window !== 'undefined') {
 
 
             // 🟢 修改: 清空列表 (级联删除任务，增加确认弹窗)
-            const clearAllInstruments = () => {
-                if (settings.instruments.length === 0) return;
-
-                openConfirmModal(
-                    '清空乐器库',
-                    '确定要清空所有乐器吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        // 1. 获取要删除的ID集合
-                        const idsToDelete = new Set(settings.instruments.map(i => i.id));
-
-                        // 2. 清空设置
-                        settings.instruments = [];
-
-                        // 3. 级联删除: 任务池
-                        itemPool.value = itemPool.value.filter(item => !idsToDelete.has(item.instrumentId));
-
-                        // 4. 级联删除: 日程表
-                        scheduledTasks.value = scheduledTasks.value.filter(task => !idsToDelete.has(task.instrumentId));
-
-                        // 5. 清理空日程块
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true // 红色危险按钮
-                );
-            };
-
-            const clearAllMusicians = () => {
-                if (settings.musicians.length === 0) return;
-
-                openConfirmModal(
-                    '清空人员库',
-                    '确定要清空所有演奏员吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        const idsToDelete = new Set(settings.musicians.map(m => m.id));
-
-                        settings.musicians = [];
-                        itemPool.value = itemPool.value.filter(item => !idsToDelete.has(item.musicianId));
-                        scheduledTasks.value = scheduledTasks.value.filter(task => !idsToDelete.has(task.musicianId));
-
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true
-                );
-            };
-
-            const clearAllProjects = () => {
-                if (settings.projects.length === 0) return;
-
-                openConfirmModal(
-                    '清空项目库',
-                    '确定要清空所有项目吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！',
-                    () => {
-                        const idsToDelete = new Set(settings.projects.map(p => p.id));
-
-                        settings.projects = [];
-                        itemPool.value = itemPool.value.filter(item => !idsToDelete.has(item.projectId));
-                        scheduledTasks.value = scheduledTasks.value.filter(task => !idsToDelete.has(task.projectId));
-
-                        cleanupEmptySchedules();
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true
-                );
-            };
+            const clearAllInstruments = () => settingsFeature.clearAllInstruments();
+            const clearAllMusicians = () => settingsFeature.clearAllMusicians();
+            const clearAllProjects = () => settingsFeature.clearAllProjects();
 
 
             // --- 🟢 手机端适配逻辑 ---
