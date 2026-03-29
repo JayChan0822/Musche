@@ -17,6 +17,8 @@ import { registerScheduleFeature } from './features/schedule.js';
 import { registerSettingsFeature } from './features/settings.js';
 import { registerImportCsvFeature } from './features/import-csv.js';
 import { registerImportMidiFeature } from './features/import-midi.js';
+import { registerAuthFeature } from './features/auth.js';
+import { registerMobileUiFeature } from './features/mobile-ui.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -45,6 +47,8 @@ if (typeof window !== 'undefined') {
     let settingsFeature;
     let importCsvFeature;
     let importMidiFeature;
+    let authFeature;
+    let mobileUiFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -4333,34 +4337,7 @@ if (typeof window !== 'undefined') {
             const isSyncing = ref(false);
 
 // 🟢 新增: 手动同步函数
-            const handleManualSync = async () => {
-                if (!user.value) {
-                    return openAlertModal("请先登录", "只有登录后才能同步云端数据。");
-                }
-
-                if (isSyncing.value) return; // 防止重复点击
-
-                isSyncing.value = true;
-                window.triggerTouchHaptic('Medium'); // 震动反馈
-
-                try {
-                    // 复用已有的 loadCloudData 函数
-                    await loadCloudData();
-
-                    // 稍微延迟一点，让动画转完，给用户一种"已完成"的实感
-                    setTimeout(() => {
-                        isSyncing.value = false;
-                        window.triggerTouchHaptic('Success');
-                        // 可选：如果不希望每次都弹窗，可以只用震动反馈，或者用一个小Toast
-                        // openAlertModal("同步完成", "已拉取最新的云端数据。");
-                    }, 500);
-
-                } catch (e) {
-                    isSyncing.value = false;
-                    window.triggerTouchHaptic('Error');
-                    openAlertModal("同步失败", "网络连接异常或服务不可用。");
-                }
-            };
+            const handleManualSync = async () => authFeature.handleManualSync();
 
             // 4. 自动滚动逻辑 (稍微调整了一下参数以配合 fixed 定位的 ghost)
             const handleTrackListAutoScroll = (clientY) => {
@@ -5227,47 +5204,13 @@ if (typeof window !== 'undefined') {
             const isDark = ref(document.documentElement.classList.contains('dark'));
 
             // 2. 应用主题的核心函数
-            const applyTheme = () => {
-                let shouldBeDark = false;
-
-                if (themeMode.value === 'auto') {
-                    // 如果是自动模式，查询系统偏好
-                    shouldBeDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                } else {
-                    // 否则直接根据设定值
-                    shouldBeDark = themeMode.value === 'dark';
-                }
-
-                // 操作 DOM
-                const html = document.documentElement;
-                if (shouldBeDark) {
-                    html.classList.add('dark');
-                    isDark.value = true;
-                } else {
-                    html.classList.remove('dark');
-                    isDark.value = false;
-                }
-            };
+            const applyTheme = () => mobileUiFeature.applyTheme();
 
             // 3. 切换按钮点击事件 (Auto -> Light -> Dark -> Auto 循环)
-            const toggleTheme = () => {
-                const modes = ['auto', 'light', 'dark'];
-                const nextIndex = (modes.indexOf(themeMode.value) + 1) % modes.length;
-
-                themeMode.value = modes[nextIndex];
-
-                // 保存到本地
-                storageService.setItem('theme_mode', themeMode.value);
-
-                applyTheme();
-            };
+            const toggleTheme = () => mobileUiFeature.toggleTheme();
 
             // 4. 获取当前模式的显示名称和图标 (供 HTML 使用)
-            const getThemeLabel = computed(() => {
-                if (themeMode.value === 'auto') return {text: '跟随系统', icon: 'fa-desktop'};
-                if (themeMode.value === 'dark') return {text: '深色模式', icon: 'fa-moon'};
-                return {text: '浅色模式', icon: 'fa-sun'};
-            });
+            let getThemeLabel;
 
             // --- 🟢 头像裁剪与上传逻辑 ---
             const showCropModal = ref(false);
@@ -6077,53 +6020,10 @@ if (typeof window !== 'undefined') {
             });
 
             // 🟢 修改: 纯粹的登录逻辑 (不再自动跳转注册)
-            const handleLogin = async () => {
-                if (!authForm.email || !authForm.password) return openAlertModal("请输入邮箱和密码");
-                authLoading.value = true;
-
-                // 1. 尝试登录
-                const {data, error} = await supabaseService.signInWithPassword({
-                    email: authForm.email, password: authForm.password
-                });
-
-                if (error) {
-                    // 🟢 关键修改: 登录失败就是失败，不再自动尝试注册
-                    // 这样输错密码时，就会明确提示 "Invalid login credentials" (账号或密码错误)
-                    if (error.message.includes("Invalid login credentials")) {
-                        openAlertModal("登录失败：账号或密码错误");
-                    } else {
-                        openAlertModal("登录失败: " + error.message);
-                    }
-                } else {
-                    user.value = data.user;
-                    showAuthModal.value = false;
-                    await loadCloudData(); // 加载数据
-                }
-                authLoading.value = false;
-            };
+            const handleLogin = async () => authFeature.handleLogin();
 
             // 🟢 新增: 独立的注册逻辑
-            const handleRegister = async () => {
-                if (!authForm.email || !authForm.password) return openAlertModal("请输入邮箱和密码");
-                authLoading.value = true;
-
-                const {data, error} = await supabaseService.signUp({
-                    email: authForm.email, password: authForm.password
-                });
-
-                if (error) {
-                    openAlertModal("注册失败: " + error.message);
-                } else {
-                    // Supabase 默认行为：如果该邮箱已注册，signUp 不会报错，但返回的 user 为 null (或假数据)
-                    // 我们提示用户去确认邮件或直接登录
-                    if (data.user && data.user.identities && data.user.identities.length === 0) {
-                        openAlertModal("该邮箱已被注册，请直接登录 (若忘记密码请点击找回)。");
-                    } else {
-                        openAlertModal("注册成功！\n请检查您的邮箱进行验证，验证后即可登录。");
-                    }
-                }
-                authLoading.value = false;
-            };
+            const handleRegister = async () => authFeature.handleRegister();
 
             // --- 🟢 新增：设置单个任务的系统通知 ---
             const updateTaskNotification = async (task) => {
@@ -6139,150 +6039,33 @@ if (typeof window !== 'undefined') {
             };
 
             // 🟢 新增: 找回密码逻辑
-            const handleResetPwd = async () => {
-                if (!authForm.email) return openAlertModal("请先在上方输入您的邮箱地址");
-
-                authLoading.value = true;
-                const {data, error} = await supabaseService.resetPasswordForEmail(authForm.email, {
-                    redirectTo: window.location.origin, // 重置后跳回当前页面
-                });
-
-                if (error) {
-                    openAlertModal("发送失败: " + error.message);
-                } else {
-                    openAlertModal(`重置邮件已发送至 ${authForm.email}\n请查收邮件并点击链接重设密码。`);
-                }
-                authLoading.value = false;
-            };
+            const handleResetPwd = async () => authFeature.handleResetPwd();
 
             // 🟢 新增: 个人中心逻辑
 
             // 计算当前显示的头像 (优先读取 user_metadata)
-            const userAvatar = computed(() => {
-                if (user.value && user.value.user_metadata && user.value.user_metadata.avatar_url) {
-                    return user.value.user_metadata.avatar_url;
-                }
-                return null;
-            });
+            let userAvatar;
 
             // --- 🟢 新增: 昵称管理逻辑 ---
             const tempNickname = ref('');
 
             // 计算显示名称 (优先显示 full_name，否则显示邮箱前缀)
-            const userDisplayName = computed(() => {
-                if (user.value && user.value.user_metadata && user.value.user_metadata.full_name) {
-                    return user.value.user_metadata.full_name;
-                }
-                return user.value ? user.value.email.split('@')[0] : 'Guest';
-            });
+            let userDisplayName;
 
             // 更新昵称到 Supabase
-            const updateNickname = async () => {
-                if (!user.value) return;
-                if (!tempNickname.value.trim()) return openAlertModal("昵称不能为空");
-
-                authLoading.value = true;
-                try {
-                    const {data, error} = await supabaseService.updateUser({
-                        data: {full_name: tempNickname.value.trim()}
-                    });
-
-                    if (error) throw error;
-
-                    user.value = data.user; // 更新本地用户数据以刷新 UI
-                    // alert("昵称已更新！"); // 可选：不喜欢弹窗可以注释掉
-                    // 这里我们不关闭菜单，方便用户看到变化
-                } catch (error) {
-                    openAlertModal("更新失败: " + error.message);
-                } finally {
-                    authLoading.value = false;
-                }
-            };
+            const updateNickname = async () => authFeature.updateNickname();
 
             // 🚩🚩🚩 替换 factoryReset 函数的完整定义 🚩🚩🚩
 
-            const factoryReset = () => {
-                openConfirmModal(
-                    '恢复出厂设置',
-                    '⚠确定要清空所有数据吗？\n\n如果当前为登录状态，云端数据也将被永久清除。此操作不可逆！',
-                    // 确认执行的异步回调函数
-                    async () => {
-                        // 1. 如果已登录，清空云端数据 (核心修改点)
-                        if (user.value) {
-                            // 删除 Supabase 中 user_data 表中与当前用户 ID 匹配的行
-                            const { error } = await supabaseService.deleteUserData(user.value.id);
-
-                            if (error) {
-                                console.error("Cloud data deletion failed:", error);
-                                // 即使云端删除失败，也要继续进行本地清理和刷新
-                                openAlertModal('云端清理失败', '无法删除云端数据，请检查网络或稍后重试。');
-                            } else {
-                                // 云端删除成功后，给用户一个明确提示 (注意：刷新后这个弹窗会消失)
-                                openAlertModal('云端数据已清除', '您的所有数据已从云端永久清除。');
-                            }
-                        }
-
-                        // 2. 清理本地数据
-                        storageService.removeItem('v9_data');
-                        // 3. 清除引导记录
-                        storageService.removeItem('musche_tour_seen');
-
-                        localDataVersion.value = 0;
-
-                        // 4. 刷新页面
-                        window.location.reload();
-                    },
-                    true, // isDestructive: 红色按钮
-                    '彻底清空',
-                    '再想想'
-                );
-            };
+            const factoryReset = () => authFeature.factoryReset();
 
             // 处理顶部按钮点击
             // 🔴 修改: 加入互斥逻辑
             // 🔴 修改: 处理顶部头像按钮点击 (合并了之前的互斥逻辑和昵称填充)
-            const handleUserBtnClick = () => {
-                if (user.value) {
-                    const wasOpen = showProfileMenu.value;
-
-                    // 1. 强制关闭其他菜单 (互斥)
-                    activeDropdown.value = null;
-                    showMobileMenu.value = false;
-
-                    // 2. 切换自己
-                    showProfileMenu.value = !wasOpen;
-
-                    // 3. 如果打开了，初始化数据
-                    if (showProfileMenu.value) {
-                        // 填充头像 URL
-                        tempAvatarUrl.value = userAvatar.value || '';
-                        // 填充当前昵称 (如果有)
-                        tempNickname.value = userDisplayName.value;
-                    }
-                } else {
-                    showAuthModal.value = true;
-                }
-            };
+            const handleUserBtnClick = () => authFeature.handleUserBtnClick();
 
             // 更新头像到 Supabase
-            const updateAvatar = async () => {
-                if (!user.value) return;
-
-                const url = tempAvatarUrl.value.trim();
-
-                // 调用 Supabase 更新用户元数据
-                const {data, error} = await supabaseService.updateUser({
-                    data: {avatar_url: url}
-                });
-
-                if (error) {
-                    openAlertModal("更新失败: " + error.message);
-                } else {
-                    // 更新本地 user 对象以立即刷新 UI
-                    user.value = data.user;
-                    openAlertModal("头像已更新！");
-                }
-            };
+            const updateAvatar = async () => authFeature.updateAvatar();
 
             // 🟢 新增: 判断是否为默认倍率 (用于隐藏卡片上的倍率标签)
             const isDefaultRatio = (item) => {
@@ -6404,219 +6187,18 @@ if (typeof window !== 'undefined') {
             };
 
             // 🟢 新增: 处理头像文件上传
-            const handleAvatarUpload = async (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                // 1. 限制文件大小 (例如 2MB)
-                if (file.size > 2 * 1024 * 1024) {
-                    return openAlertModal("图片太大了，请选择 2MB 以下的图片");
-                }
-
-                // 更改按钮文字显示状态（可选优化）
-                const btnText = document.getElementById('upload-text');
-                if (btnText) btnText.innerText = "上传中...";
-
-                try {
-                    // 2. 生成文件名: user_id + 时间戳 + 后缀
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${user.value.id}-${Date.now()}.${fileExt}`;
-                    const filePath = `${fileName}`;
-
-                    // 3. 上传到 'avatars' 桶
-                    const {error: uploadError} = await supabaseService.uploadAvatar(filePath, file);
-
-                    if (uploadError) throw uploadError;
-
-                    // 4. 获取公开访问 URL
-                    const {data} = supabaseService.getAvatarPublicUrl(filePath);
-
-                    const publicUrl = data.publicUrl;
-
-                    // 5. 更新用户元数据 (Metadata)
-                    const {data: userData, error: updateError} = await supabaseService.updateUser({
-                        data: {avatar_url: publicUrl}
-                    });
-
-                    if (updateError) throw updateError;
-
-                    // 成功！
-                    user.value = userData.user;
-                    openAlertModal("头像上传成功！");
-
-                } catch (error) {
-                    openAlertModal("上传失败: " + error.message);
-                    console.error(error);
-                } finally {
-                    if (btnText) btnText.innerText = "选择图片...";
-                    event.target.value = ''; // 重置 input，允许重复选择同一文件
-                }
-            };
+            const handleAvatarUpload = async (event) => authFeature.handleAvatarUpload(event);
 
             // 🟢 新增: 登出逻辑
             // 🟢 修改: 暴力清除所有缓存，确保退出后不会自动登录
             // 🟢 修改: 退出登录时，只清除身份信息，保留本地数据 (v9_data)
-            const handleLogout = async () => {
-                // 1. 界面上置空用户
-                user.value = null;
-
-                // 2. 执行 Supabase 登出
-                // (Supabase 会自动清除浏览器中与账号相关的 sb-xxx-token，但不会动你的 v9_data)
-                try {
-                    await supabaseService.signOut();
-                } catch (e) {
-                    console.error("Cloud signout failed:", e);
-                }
-
-                // 🔴 关键修改: 删除之前写的 localStorage.clear() 或 removeItem
-                // 我们不再清除本地存储，这样“游客模式”的数据或者刚才同步下来的数据都会留在本地
-
-                // 3. 提示并刷新
-                openAlertModal("已退出账号连接。");
-
-                localDataVersion.value = 0;
-
-                // 刷新页面，此时 onMounted 会发现没登录，从而加载本地的 v9_data
-                window.location.reload();
-            };
+            const handleLogout = async () => authFeature.handleLogout();
 
             // 🟢 修改: 优化后的加载逻辑 (支持版本控制)
-            const loadCloudData = async () => {
-                if (!user.value) return;
-
-                // 1. 从云端拉取数据，同时查询 content 和 version
-                const {data, error} = await supabaseService.loadUserData(user.value.id);
-
-                if (data && data.content) {
-                    console.log("✅ 已加载云端数据, 版本:", data.version);
-                    const d = data.content;
-
-                    // 🟢 关键: 更新本地版本号
-                    localDataVersion.value = data.version || 0;
-
-                    // 恢复逻辑 (保持不变)
-                    if (d.pool) itemPool.value = d.pool;
-                    if (d.tasks) scheduledTasks.value = d.tasks;
-
-                    if (d.settings) {
-                        settings.startHour = d.settings.startHour;
-                        settings.endHour = d.settings.endHour;
-                        if(d.settings.sessions) settings.sessions = d.settings.sessions;
-                        if(d.settings.instruments) settings.instruments = d.settings.instruments;
-                        if(d.settings.musicians) settings.musicians = d.settings.musicians;
-                        if(d.settings.projects) settings.projects = d.settings.projects;
-                        if(d.settings.studios) settings.studios = d.settings.studios;
-                        if(d.settings.engineers) settings.engineers = d.settings.engineers;
-                        if(d.settings.operators) settings.operators = d.settings.operators;
-                        if(d.settings.assistants) settings.assistants = d.settings.assistants;
-
-                        if (d.settings.lastSessionId) {
-                            const exists = settings.sessions.find(s => s.id === d.settings.lastSessionId);
-                            currentSessionId.value = exists ? exists.id : settings.sessions[0].id;
-                        }
-                    }
-                } else {
-                    // 云端无数据逻辑 (保持不变)
-                    console.log("⚠️ 云端无数据");
-                    localDataVersion.value = 0; // 重置版本
-
-                    const localData = storageService.loadData('v9_data');
-                    if (localData) {
-                        const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
-
-                        if (hasRealData) {
-                            openConfirmModal(
-                                '数据冲突',
-                                '检测到您本地有旧数据，而云端是空的。\n\n您希望如何处理？',
-                                async () => {
-                                    // 上传本地数据逻辑
-                                    const dataToUpload = {
-                                        pool: localData.pool || [],
-                                        tasks: localData.tasks || [],
-                                        settings: localData.settings || settings
-                                    };
-                                    // 初始上传，版本设为 1
-                                    const {error: uploadError} = await supabaseService.saveUserData(user.value.id, dataToUpload, 1);
-
-                                    if (!uploadError) {
-                                        localDataVersion.value = 1;
-                                        openAlertModal('成功', '✅ 本地数据已成功上传！');
-                                    } else {
-                                        openAlertModal('上传失败', uploadError.message);
-                                    }
-                                },
-                                false,
-                                '上传本地数据',
-                                '放弃本地数据'
-                            );
-                        }
-                    }
-                }
-            };
+            const loadCloudData = async () => authFeature.loadCloudData();
 
             // 🟢 修改: 增加版本检查的保存逻辑 (解决 Race Condition)
-            const saveToCloud = async (force = false) => {
-                if (!user.value) return;
-
-                saveStatus.value = 'saving';
-
-                try {
-                    // --- 步骤 1: 检查云端最新版本 ---
-                    // 我们只查询 version 字段，开销很小
-                    const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
-
-                    // 如果查询出错且不是"查无此人"(PGRST116)，则报错
-                    if (checkError && checkError.code !== 'PGRST116') throw checkError;
-
-                    const serverVersion = serverRecord ? serverRecord.version : 0;
-
-                    // 🚨 核心判断: 如果云端版本 > 本地版本，说明有人捷足先登了
-                    if (serverVersion > localDataVersion.value && !force) {
-                        console.warn(`版本冲突: 本地 v${localDataVersion.value} vs 云端 v${serverVersion}`);
-                        saveStatus.value = 'error';
-                        window.triggerTouchHaptic('Error');
-
-                        // 弹出冲突提示
-                        openConfirmModal(
-                            '⚠ 数据同步冲突',
-                            '检测到云端有更新的数据（可能您在其他设备进行了操作）。\n\n为了防止数据覆盖，请先同步最新数据。',
-                            async () => {
-                                await handleManualSync(); // 引导用户拉取
-                            },
-                            false,
-                            '立即同步 (推荐)',
-                            '暂不处理'
-                        );
-                        return; // ⛔️ 终止保存
-                    }
-
-                    // --- 步骤 2: 准备保存 ---
-                    const newVersion = serverVersion + 1; // 版本号 +1
-
-                    const dataToSave = {
-                        pool: itemPool.value,
-                        tasks: scheduledTasks.value,
-                        settings: {...settings, lastSessionId: currentSessionId.value}
-                    };
-
-                    // --- 步骤 3: 执行写入 ---
-                    const { error: saveError } = await supabaseService.saveUserData(user.value.id, dataToSave, newVersion);
-
-                    if (saveError) throw saveError;
-
-                    // ✅ 保存成功: 更新本地版本号
-                    localDataVersion.value = newVersion;
-                    console.log(`云端同步完成 (v${newVersion})`);
-
-                    setTimeout(() => {
-                        saveStatus.value = 'saved';
-                    }, 500);
-
-                } catch (e) {
-                    console.error("保存失败", e);
-                    saveStatus.value = 'error';
-                }
-            };
+            const saveToCloud = async (force = false) => authFeature.saveToCloud(handleManualSync, force);
 
             // --- V11.8 自定义下拉菜单状态 ---
             const activeDropdown = ref(null); // 当前打开的菜单: 'project' | 'instrument' | 'musician' | null
@@ -6695,14 +6277,7 @@ if (typeof window !== 'undefined') {
             });
 
             // 🔴 新增: 切换手机菜单 (互斥其他)
-            const toggleMobileMenu = () => {
-                const wasOpen = showMobileMenu.value;
-                // 先关闭其他所有菜单
-                activeDropdown.value = null;
-                showProfileMenu.value = false;
-                // 再切换自己
-                showMobileMenu.value = !wasOpen;
-            };
+            const toggleMobileMenu = () => mobileUiFeature.toggleMobileMenu();
 
 
             // 🟢 修复: 统一管理所有下拉菜单的“点击外部关闭”逻辑
@@ -7353,30 +6928,12 @@ if (typeof window !== 'undefined') {
 
 
             onMounted(async () => {
-                // 1. 基础初始化 (布局、主题、监听)
-                refreshLayout();
-                applyTheme();
-
                 // 🟢 [新增] 如果默认是滚动月视图，初始化时自动滚动到今天
                 if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
                     nextTick(() => {
                         scrollToMonthDate(viewDate.value);
                     });
                 }
-
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                    if (themeMode.value === 'auto') applyTheme();
-                });
-                window.addEventListener('resize', refreshLayout);
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') {
-                        refreshLayout();
-                        setTimeout(refreshLayout, 200);
-                    }
-                });
-                window.addEventListener('pageshow', (e) => {
-                    if (e.persisted) refreshLayout();
-                });
                 // 绑定全局事件
                 const appElement = document.getElementById('app');
                 if (appElement) {
@@ -7401,145 +6958,9 @@ if (typeof window !== 'undefined') {
                 // ---------------------------------------------------------
                 // 🟢 核心数据加载逻辑开始
                 // ---------------------------------------------------------
-
-                // 检查云端 Session
-                const { data } = await supabaseService.getSession();
-                // 🟢 定义初始化函数 (用于出厂设置或第一次打开)
-                const initDefaultData = () => {
-                    console.log("执行初始化：生成演示数据 (Musician A / Project A)...");
-
-                    // 1. 建立基础设置 (ID固定，方便关联)
-                    const demoMusicianId = 'M_DEMO_A';
-                    const demoProjectId = 'P_DEMO_A';
-                    const demoInstrumentId = 'I_DEMO_A';
-
-                    // 覆盖/初始化 settings
-                    settings.musicians = [{ id: demoMusicianId, name: 'Musician A', defaultRatio: 20, color: '#a855f7', group: '' }];
-                    settings.projects = [{ id: demoProjectId, name: 'Project A', color: '#eab308', group: '' }];
-                    settings.instruments = [{ id: demoInstrumentId, name: 'Instrument A', color: '#3b82f6', group: '' }];
-
-                    // 确保 Session 存在
-                    if(settings.sessions.length === 0) {
-                        settings.sessions = [{id: 'S_DEFAULT', name: '默认录音日程'}];
-                    }
-                    currentSessionId.value = settings.sessions[0].id;
-
-                    // 2. 建立任务池 Task-Card
-                    const demoTaskId = 'T_DEMO_001';
-                    itemPool.value = [{
-                        id: demoTaskId,
-                        name: '演示曲目', // 这里的 name 不重要，显示的是关联对象的 name
-                        sessionId: 'S_DEFAULT',
-                        musicianId: demoMusicianId,
-                        projectId: demoProjectId,
-                        instrumentId: demoInstrumentId,
-                        musicDuration: '03:00', // 谱面 3 分钟
-                        estDuration: '01:00:00', // 预计 1 小时
-                        ratio: 20,
-                        trackCount: 1,
-                        // 🟢 关键: 初始化记录结构，防止报错
-                        records: { musician: {}, project: {}, instrument: {} }
-                    }];
-
-                    // 3. 在“今天”建立日程
-                    const todayStr = formatDate(new Date());
-                    scheduledTasks.value = [{
-                        scheduleId: Date.now(),
-                        templateId: demoTaskId,
-                        sessionId: 'S_DEFAULT',
-                        musicianId: demoMusicianId,
-                        projectId: demoProjectId,
-                        instrumentId: demoInstrumentId,
-                        date: todayStr,
-                        startTime: '10:00',
-                        estDuration: '01:00:00',
-                        trackCount: 1,
-                        ratio: 20,
-                        musicDuration: '03:00',
-                        reminderMinutes: 15,
-                        sound: 'default'
-                    }];
-
-                    // 4. 强制打开侧边栏 (默认状态)
-                    isSidebarOpen.value = true;
-                    // 并保存这个状态，以免下次刷新又关了
-                    storageService.setItem('musche_sidebar_open', 'true');
-
-                    // 5. 展开侧边栏里的第一项 (Musician A)，确保 Guide 能定位到它
-                    setTimeout(() => {
-                        if (musicianStats.value.length > 0) {
-                            expandedStatsIds.add(musicianStats.value[0].id);
-                        }
-                    }, 100); // 稍作延迟等待 computed 计算
-                };
-
-                if (data.session) {
-                    // [情况 A] 已登录：加载云端数据
-                    user.value = data.session.user;
-                    await loadCloudData();
-
-                    // 🚩【核心修复点】：如果已登录但数据是空的，则强制初始化默认数据
-                    if (itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
-                        // 调用你已实现的初始化函数来创建默认任务、日程和侧边栏状态
-                        initDefaultData();
-                    }
-
-                } else {
-                    // [情况 B] 未登录：检查本地数据
-                    const d = storageService.loadData('v9_data') || {};
-
-
-                    // 🟢 判定逻辑：如果有旧数据，加载旧数据；否则初始化
-                    // 判断依据：pool 数组是否有内容
-                    if (d.pool && d.pool.length > 0) {
-                        // --- 加载旧数据 ---
-                        if (d.settings) {
-                            // 恢复各项设置 (使用 Object.assign 或手动赋值以保持响应性)
-                            settings.startHour = d.settings.startHour;
-                            settings.endHour = d.settings.endHour;
-                            if(d.settings.sessions) settings.sessions = d.settings.sessions;
-
-                            // 恢复列表 (带 group 字段)
-                            if(d.settings.instruments) settings.instruments = d.settings.instruments;
-                            if(d.settings.musicians) settings.musicians = d.settings.musicians;
-                            if(d.settings.projects) settings.projects = d.settings.projects;
-
-                            // 🟢 [修复] 恢复录音信息元数据 (防止刷新丢失)
-                            if(d.settings.studios) settings.studios = d.settings.studios;
-                            if(d.settings.engineers) settings.engineers = d.settings.engineers;
-                            if(d.settings.operators) settings.operators = d.settings.operators;
-                            if(d.settings.assistants) settings.assistants = d.settings.assistants;
-
-                            // 恢复 Session ID
-                            if (d.settings.lastSessionId) {
-                                const exists = settings.sessions.find(s => s.id === d.settings.lastSessionId);
-                                currentSessionId.value = exists ? exists.id : settings.sessions[0].id;
-                            }
-                        }
-
-                        // 恢复任务 (确保数据结构升级)
-                        itemPool.value = d.pool.map(item => ensureItemRecords(item));
-                        scheduledTasks.value = d.tasks || [];
-
-                        // 侧边栏状态：读取用户之前的偏好 (在 setup 顶部已读过，这里不需要强制设为 true)
-                    } else {
-                        // --- 无数据 (首次打开 或 恢复出厂设置后) ---
-                        initDefaultData();
-                    }
-                }
-
-                // 3. 检查是否需要播放新手引导
-                const hasSeenTour = storageService.getItem('musche_tour_seen');
-                if (!hasSeenTour) {
-                    // 稍微延迟，等页面完全渲染、侧边栏展开后再播放
-                    setTimeout(() => {
-                        startTour();
-                        // 注意：startTour 函数内部应当包含 isSidebarOpen.value = true 的逻辑
-                    }, 1200);
-                }
-
-                // 初始化一次历史记录
-                pushHistory();
+                await authFeature.bootSessionData({
+                    isSidebarOpen,
+                });
             });
 
             onUnmounted(() => {
@@ -10004,11 +9425,56 @@ if (typeof window !== 'undefined') {
                 },
             });
 
+            authFeature = registerAuthFeature({
+                refs: {
+                    user,
+                    showAuthModal,
+                    authLoading,
+                    authForm,
+                    activeDropdown,
+                    showProfileMenu,
+                    showMobileMenu,
+                    tempAvatarUrl,
+                    tempNickname,
+                    localDataVersion,
+                    saveStatus,
+                    isSyncing,
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    formatDate,
+                    ensureItemRecords,
+                    calculateEstTime,
+                    generateUniqueId,
+                },
+                services: {
+                    storageService,
+                    supabaseService,
+                },
+                actions: {
+                    pushHistory,
+                    openAlertModal,
+                    openConfirmModal,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    reloadPage: () => window.location.reload(),
+                    setSaveStatus: (value) => {
+                        saveStatus.value = value;
+                    },
+                },
+            });
+
             groupedCsvData = importCsvFeature.groupedCsvData;
             isAllSelected = importCsvFeature.isAllSelected;
             availableInstrumentGroups = importMidiFeature.availableInstrumentGroups;
             midiGroupData = importMidiFeature.midiGroupData;
             currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
+            userAvatar = authFeature.userAvatar;
+            userDisplayName = authFeature.userDisplayName;
 
             // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
             const calculateGroupStats = (sourceList, filterKey) => {
@@ -10594,77 +10060,30 @@ if (typeof window !== 'undefined') {
             const isContextSwitching = ref(false); // 🟢 [新增] 上下文切换锁
             const mobileTab = ref('schedule');
 
+            mobileUiFeature = registerMobileUiFeature({
+                refs: {
+                    isMobile,
+                    isSidebarOpen,
+                    showMobileMenu,
+                    showProfileMenu,
+                    activeDropdown,
+                    themeMode,
+                    isDark,
+                },
+                services: {
+                    storageService,
+                },
+                actions: {
+                    handlePageUnload,
+                },
+            });
+            getThemeLabel = mobileUiFeature.getThemeLabel;
+
             // 🟢 优化: 增强版布局刷新函数
-            const refreshLayout = () => {
-                const w = window.innerWidth;
-
-                // 1. 获取用户代理字符串 (判断是否为 Android/iPhone 等)
-                const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-                // 2. 判断是否支持粗略指针 (通常指触摸屏) - 这是一个更现代的 CSS/JS 媒体特性检测
-                const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-
-                // 3. 综合判断:
-                // 只有当 [宽度小于 800] 且 ([是移动端UA] 或 [是触摸设备]) 时，才判定为移动端。
-                // 这样电脑浏览器缩窄时，因为不满足后两个条件，依然会保持电脑端视图。
-                isMobile.value = w < 800 && (isMobileUA || isCoarsePointer);
-
-                // 2. 重新计算视口高度 (解决地址栏遮挡)
-                let vh = window.innerHeight * 0.01;
-                document.documentElement.style.setProperty('--vh', `${vh}px`);
-
-                // 3. 🟢 新增: 电脑端响应式保护逻辑
-                // 当屏幕宽度小于 1100px (接近 iPad 横屏尺寸) 时，自动收起侧边栏，防止顶部日期文字被挤压换行
-                if (!isMobile.value && w < 1100) {
-                    if (isSidebarOpen.value) {
-                        isSidebarOpen.value = false;
-                    }
-                } else if (!isMobile.value && w >= 1100) {
-                    // 可选: 宽度足够大时，如果您希望自动展开，可以取消下面这行的注释
-                    isSidebarOpen.value = true;
-                }
-
-                // 4. 强制重绘 (保持原有逻辑)
-                if (isMobile.value) {
-                    document.body.style.display = 'none';
-                    document.body.offsetHeight;
-                    document.body.style.display = '';
-                }
-            };
+            const refreshLayout = () => mobileUiFeature.refreshLayout();
 
             onMounted(() => {
-                // 初始化执行
-                refreshLayout();
-
-                // 🟢 1. 初始化应用主题
-                applyTheme();
-
-                // 🟢 2. 监听系统颜色变化 (实现"跟随系统"的实时切换)
-                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-                    // 只有当当前模式是 'auto' 时，才响应系统的变化
-                    if (themeMode.value === 'auto') {
-                        applyTheme();
-                    }
-                });
-
-                // 监听窗口大小改变 (旋转屏幕等)
-                window.addEventListener('resize', refreshLayout);
-
-                // 🟢 关键: 监听网页“显示/隐藏” (切后台回来)
-                document.addEventListener('visibilitychange', () => {
-                    if (document.visibilityState === 'visible') {
-                        refreshLayout();
-                        // 延迟 200ms 再执行一次，确保浏览器 UI 动画已结束
-                        setTimeout(refreshLayout, 200);
-                    }
-                });
-
-                // 🟢 关键: 监听 Safari 的页面缓存恢复 (BFCache)
-                window.addEventListener('pageshow', (e) => {
-                    if (e.persisted) {
-                        refreshLayout();
-                    }
-                });
+                mobileUiFeature.mountShellLifecycle();
                 // 检查 LocalStorage
                 const hasSeenTour = storageService.getItem('musche_tour_seen');
                 if (!hasSeenTour) {
@@ -10674,12 +10093,10 @@ if (typeof window !== 'undefined') {
                         storageService.setItem('musche_tour_seen', 'true');
                     }, 1500);
                 }
-                window.addEventListener('beforeunload', handlePageUnload);
             });
 
             onUnmounted(() => {
-                window.removeEventListener('resize', refreshLayout);
-                window.removeEventListener('beforeunload', handlePageUnload);
+                mobileUiFeature.unmountShellLifecycle();
                 // 这里省略了 remove 其他监听，因为这是根组件，销毁即刷新，通常不需要清理
             });
 
