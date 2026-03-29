@@ -13,6 +13,7 @@ import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
 import { createStorageService } from './services/storage-service.js';
 import { createSupabaseService } from './services/supabase-service.js';
 import { createDeviceService } from './services/device-service.js';
+import { registerScheduleFeature } from './features/schedule.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -37,6 +38,7 @@ if (typeof window !== 'undefined') {
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
     const deviceService = createDeviceService();
+    let scheduleFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -5051,141 +5053,10 @@ if (typeof window !== 'undefined') {
 
             // 🟢 修复: 终极修正版清理函数
             // 修复了 S_DEFAULT 含下划线导致的分组解析错误，防止误删所有日程
-            const cleanupEmptySchedules = () => {
-                const activePoolIds = new Set(itemPool.value.map(i => i.id));
-                const originalLength = scheduledTasks.value.length;
-
-                // 1. 按 "Session | 类型 | ID" 分组日程块
-                // 🔴 修复: 使用 "|" 作为分隔符，因为 S_DEFAULT 含有下划线，会导致 split 出错
-                const groups = {};
-                const getGroupKey = (t) => {
-                    const sess = t.sessionId || 'S_DEFAULT';
-                    if (t.musicianId) return `${sess}|M|${t.musicianId}`;
-                    if (t.projectId) return `${sess}|P|${t.projectId}`;
-                    if (t.instrumentId) return `${sess}|I|${t.instrumentId}`;
-                    return null;
-                };
-
-                scheduledTasks.value.forEach(t => {
-                    if (!t.templateId) { // 仅处理聚合块
-                        const k = getGroupKey(t);
-                        if (k) {
-                            if (!groups[k]) groups[k] = [];
-                            groups[k].push(t);
-                        }
-                    }
-                });
-
-                const schedulesKeepSet = new Set();
-
-                // 2. 遍历每一组
-                Object.entries(groups).forEach(([key, scheduleBlocks]) => {
-                    // A. 排序
-                    scheduleBlocks.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-                    // 🔴 修复: 正确解析 Key (使用 | 分割)
-                    const [sess, type, id] = key.split('|');
-
-                    // B. 筛选任务池
-                    const poolItems = itemPool.value.filter(i => {
-                        if ((i.sessionId || 'S_DEFAULT') !== sess) return false;
-                        if (type === 'M') return i.musicianId === id;
-                        if (type === 'P') return i.projectId === id;
-                        if (type === 'I') return i.instrumentId === id;
-                        return false;
-                    });
-
-                    // C. 建立映射: SectionIndex -> 任务列表
-                    const taskMap = new Map();
-                    poolItems.forEach(t => {
-                        let idx = parseInt(t.sectionIndex);
-                        if (isNaN(idx)) idx = 0;
-
-                        if (!taskMap.has(idx)) taskMap.set(idx, []);
-                        taskMap.get(idx).push(t);
-                    });
-
-                    // D. 核心: 索引对齐与保留逻辑
-                    let newBlockIndex = 0;
-
-                    scheduleBlocks.forEach((block, oldIndex) => {
-                        const relatedTasks = taskMap.get(oldIndex);
-
-                        if (relatedTasks && relatedTasks.length > 0) {
-                            // ✅ 命中：保留该块
-                            schedulesKeepSet.add(block.scheduleId);
-
-                            // ⚡️ 修正索引：如果前面有块被删了，修正当前任务的 index
-                            if (oldIndex !== newBlockIndex) {
-                                relatedTasks.forEach(t => {
-                                    t.sectionIndex = newBlockIndex;
-                                });
-                            }
-                            newBlockIndex++;
-                        }
-                        // ❌ 未命中：该块对应任务已空，不加入 KeepSet (即删除)
-                    });
-                });
-
-                // 3. 执行物理删除
-                scheduledTasks.value = scheduledTasks.value.filter(task => {
-                    if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return true;
-
-                    // 非聚合块 (有具体 templateId)，检查 ID 是否存在
-                    if (task.templateId) return activePoolIds.has(task.templateId);
-
-                    // 聚合块，检查是否在保留名单里
-                    return schedulesKeepSet.has(task.scheduleId);
-                });
-
-                if (scheduledTasks.value.length < originalLength) {
-                    window.triggerTouchHaptic('Medium');
-                }
-            };
+            const cleanupEmptySchedules = () => scheduleFeature.cleanupEmptySchedules();
 
             // 🟢 新增: 强力扫描并清理当前弹窗内的空日程块
-            const pruneEmptySchedules = () => {
-                const listData = trackListData.value;
-                if (!listData.schedules || listData.schedules.length === 0) return;
-
-                // 倒序遍历，防止删除元素时索引错位
-                for (let i = listData.schedules.length - 1; i >= 0; i--) {
-                    // 检查属于当前 sectionIndex (i) 的任务还有几个
-                    const itemsInSection = listData.items.filter(item => item.sectionIndex === i);
-
-                    // 如果一个都没有了，说明这个日程块是个空壳
-                    if (itemsInSection.length === 0) {
-                        const scheduleToRemove = listData.schedules[i];
-
-                        // 1. 从主数据库 scheduledTasks 中彻底删除该日程
-                        scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== scheduleToRemove.scheduleId);
-
-                        // 2. 从弹窗 UI 数据中移除
-                        listData.schedules.splice(i, 1);
-
-                        // 3. 关键: 修正所有后续任务的 sectionIndex
-                        // 因为第 i 个日程没了，那么所有 sectionIndex > i 的任务，索引都要减 1
-                        listData.items.forEach(item => {
-                            if (item.sectionIndex > i) {
-                                item.sectionIndex--;
-                            }
-                        });
-                    }
-                }
-
-                // 更新总段数
-                listData.totalSections = listData.schedules.length;
-
-                // 如果全部删光了，关闭弹窗
-                if (listData.totalSections === 0) {
-                    showTrackList.value = false;
-                } else {
-                    // 修正当前显示的索引，防止越界
-                    if (listData.currentSectionIndex >= listData.totalSections) {
-                        listData.currentSectionIndex = listData.totalSections - 1;
-                    }
-                }
-            };
+            const pruneEmptySchedules = () => scheduleFeature.pruneEmptySchedules();
 
             // 🟢 修改: 根据录音记录自动调整日程块 (精确吸附版)
             // 修改点：移除了 snapToGrid 的 30分钟强制吸附，现在会精确贴合录音时间的边缘
@@ -9569,11 +9440,7 @@ if (typeof window !== 'undefined') {
 
 
             // 4. 辅助：全局日程块自动调整
-            const autoResizeSchedules = (taskIds) => {
-                console.log("执行全局自动调整...");
-                // 此处填入你最初代码末尾的那个 taskMap.forEach 循环逻辑
-                // 它会自动计算所有受影响日程块的 minMins 和 maxMins，并更新 scheduledTasks 的 startTime 和 estDuration
-            };
+            const autoResizeSchedules = (taskIds) => scheduleFeature.autoResizeSchedules(taskIds);
 
             // 🟢 [新增] 设置项重命名处理 (支持重名自动合并)
             const handleItemRename = (type, item, event) => {
@@ -11190,37 +11057,8 @@ if (typeof window !== 'undefined') {
             };
 
             // 🟢 修改: checkOverlap (支持分层检测)
-            const checkOverlap = (date, startTime, durationStr, excludeId, checkType) => {
-                // 1. 计算当前意图的时间段
-                const newStart = timeToMinutes(startTime);
-                const newEnd = newStart + parseTime(durationStr) / 60;
-
-                return scheduledTasks.value.some(t => {
-                    // 排除自身
-                    if (t.scheduleId === excludeId) return false;
-
-                    // 排除其他日期
-                    if (t.date !== date) return false;
-
-                    // 排除其他 Session
-                    if ((t.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-
-                    // 🟢 核心修改: 判断现有任务 t 的类型
-                    let tType = 'musician';
-                    if (t.projectId) tType = 'project';
-                    else if (t.instrumentId) tType = 'instrument';
-
-                    // 🟢 只有类型一致时，才检查时间冲突
-                    // (即: 项目任务只跟项目任务撞，不跟人员任务撞)
-                    if (tType !== checkType) return false;
-
-                    // 计算现有任务的时间段
-                    const tStart = timeToMinutes(t.startTime);
-                    const tEnd = tStart + parseTime(t.estDuration) / 60;
-
-                    return (newStart < tEnd && newEnd > tStart);
-                });
-            };
+            const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
+                scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
 
 
             const saveTrackRecord = (item) => {
@@ -11394,37 +11232,8 @@ if (typeof window !== 'undefined') {
             };
 
             // 🟢 修改: 增加 shouldSaveHistory 参数，防止拖动时卡顿
-            const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) => {
-                const upperSection = dividerIndex - 1;
-                const lowerSection = dividerIndex;
-                const items = trackListData.value.items;
-
-                if (direction === 'up') {
-                    // 向上移：把上方分段的最后一个任务，拉到下方分段
-                    for (let i = items.length - 1; i >= 0; i--) {
-                        if (items[i].sectionIndex === upperSection) {
-                            items[i].sectionIndex = lowerSection;
-                            break;
-                        }
-                    }
-                } else if (direction === 'down') {
-                    // 向下移：把下方分段的第一个任务，推到上方分段
-                    for (let i = 0; i < items.length; i++) {
-                        if (items[i].sectionIndex === lowerSection) {
-                            items[i].sectionIndex = upperSection;
-                            break;
-                        }
-                    }
-                }
-
-                // 重新排序
-                // autoSortTrackList();
-
-                // 🟢 关键: 拖动过程中不存历史，只在松手时存
-                if (shouldSaveHistory) {
-                    pushHistory();
-                }
-            };
+            const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
+                scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
             // --- Date/View Logic ---
             const timeSlots = computed(() => {
@@ -11437,63 +11246,13 @@ if (typeof window !== 'undefined') {
             });
 
             // 🟢 修改: getTaskStyle (增加 z-index 控制)
-            const getTaskStyle = t => {
-                const [h, m] = t.startTime.split(':').map(Number);
-                const top = ((h - settings.startHour) * 60 + m) * pxPerMin.value;
-                const hgt = (parseTime(t.estDuration) / 60) * pxPerMin.value;
-
-                let baseColor = '#a855f7';
-                if (t.projectId) baseColor = '#eab308';
-                else if (t.instrumentId) baseColor = '#3b82f6';
-
-                // 🟢 核心修改: 计算层级
-                // 如果任务不是幽灵（即它是当前视图的任务），层级设为 20 (高)
-                // 如果是幽灵，层级设为 1 (低)
-                const isGhost = isTaskGhost(t); // 复用之前的判断函数
-                const zIndex = isGhost ? 1 : 20;
-
-                return {
-                    top: `${top}px`,
-                    height: `${hgt}px`,
-                    '--task-border': baseColor,
-                    zIndex: zIndex, // 应用层级
-                };
-            };
+            const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
 
             // 🟢 新增: 获取日程块显示的标题
-            const getBlockTitle = (task) => {
-                if (task.musicianId) return getNameById(task.musicianId, 'musician');
-                if (task.projectId) return getNameById(task.projectId, 'project');
-                if (task.instrumentId) return getNameById(task.instrumentId, 'instrument');
-                return '未命名日程';
-            };
+            const getBlockTitle = (task) => scheduleFeature.getBlockTitle(task);
 
             // 🟢 新增: 判断任务是否为"幽灵"状态 (Session不匹配 或 视图类型不匹配)
-            const isTaskGhost = (task) => {
-                // 1. 检查 Session 是否匹配 (最基础条件)
-                const taskSession = task.sessionId || 'S_DEFAULT';
-                if (taskSession !== currentSessionId.value) return true;
-
-                // 2. 检查视图类型是否匹配
-                // 当前侧边栏在什么模式，就只亮显什么类型的块
-
-                // 如果是 'musician' (人员) 视图 -> 只有含 musicianId 的块亮显
-                if (sidebarTab.value === 'musician') {
-                    return !task.musicianId;
-                }
-
-                // 如果是 'project' (项目) 视图 -> 只有含 projectId 的块亮显
-                if (sidebarTab.value === 'project') {
-                    return !task.projectId;
-                }
-
-                // 如果是 'instrument' (乐器) 视图 -> 只有含 instrumentId 的块亮显
-                if (sidebarTab.value === 'instrument') {
-                    return !task.instrumentId;
-                }
-
-                return false; // 默认不变成幽灵
-            };
+            const isTaskGhost = (task) => scheduleFeature.isTaskGhost(task);
 
             const hasRecordingInfo = (task) => {
                 // 定义一个辅助函数来检查对象是否有内容
@@ -11929,6 +11688,30 @@ if (typeof window !== 'undefined') {
             };
 
             const sidebarTab = ref('musician');
+
+            scheduleFeature = registerScheduleFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                    trackListData,
+                    showTrackList,
+                    pxPerMin,
+                    sidebarTab,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    parseTime,
+                    timeToMinutes,
+                    getNameById,
+                },
+                actions: {
+                    pushHistory,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
 
             // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
             const calculateGroupStats = (sourceList, filterKey) => {
