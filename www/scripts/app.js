@@ -20,23 +20,6 @@ import { registerImportMidiFeature } from './features/import-midi.js';
 import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 
-if (typeof window !== 'undefined') {
-  window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
-  window.__MUSCHE_MODULARIZATION__ = {
-    phase: 'task-2-helper-extraction',
-    appEntrypoint: 'www/scripts/app.js',
-    helpers: {
-      parseTime,
-      timeToMinutes,
-      addMinutesToTime: addMinutesToTimeValue,
-      addDaysToDate,
-      formatDate,
-      formatSecs,
-      generateUniqueId,
-    },
-  };
-}
-
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
     const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzYnVlZ21jbml2d2trbHhzeXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTMzMDksImV4cCI6MjA4NzY4OTMwOX0.TRmEAgLBzexlh4Ii1JD-lDpYi5kp_i3P8oG4sDXoHjk';
@@ -56,8 +39,6 @@ if (typeof window !== 'undefined') {
         const b = bigint & 255;
         return [r, g, b];
     };
-    const flashingTaskId = ref(null); // 控制哪个任务正在闪烁
-    const statClickIndexMap = reactive({}); // 记录每个演奏员点击循环到了第几个任务
     const getTextColor = hex => {
         if (!hex) return '#1f2937';
         const [r, g, b] = hexToRgb(hex);
