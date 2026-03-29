@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "verify:modularization": "node tests/modularization-smoke.mjs",
+    "test": "npm run verify:modularization"
   },
   "repository": {
     "type": "git",
