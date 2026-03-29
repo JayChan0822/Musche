@@ -15,6 +15,8 @@ import { createSupabaseService } from './services/supabase-service.js';
 import { createDeviceService } from './services/device-service.js';
 import { registerScheduleFeature } from './features/schedule.js';
 import { registerSettingsFeature } from './features/settings.js';
+import { registerImportCsvFeature } from './features/import-csv.js';
+import { registerImportMidiFeature } from './features/import-midi.js';
 
 if (typeof window !== 'undefined') {
   window.__MUSCHE_LEGACY_INLINE_BOOTSTRAP__ = false;
@@ -41,6 +43,8 @@ if (typeof window !== 'undefined') {
     const deviceService = createDeviceService();
     let scheduleFeature;
     let settingsFeature;
+    let importCsvFeature;
+    let importMidiFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -225,92 +229,11 @@ if (typeof window !== 'undefined') {
                 }
             };
 
-            // 修改 groupedCsvData
-            const groupedCsvData = computed(() => {
-                // 🟢 1. 获取当前搜索词
-                const query = csvSearchQuery.value.toLowerCase().trim();
-                const showSkip = csvImportConfig.showSkipRows; // 🟢 获取当前开关状态
-                const mode = activeImportTab.value;
-
-                // 🟢 2. 预处理数据：如果正在搜索，先过滤 flat list
-                let sourceData = csvImportData.value;
-
-                if (query) {
-                    sourceData = sourceData.filter(item => {
-                        // 定义搜索范围：项目名、演奏员、乐器、文件名
-                        const searchTargets = [
-                            item.projectName,
-                            item.playerName,
-                            item.name_real, // 乐器名
-                            item.name_merge // 合并后的文件名
-                        ];
-                        // 只要有一个字段包含搜索词即可
-                        return searchTargets.some(val => val && String(val).toLowerCase().includes(query));
-                    });
-                }
-
-                // === 以下是原有的分组逻辑 (使用 sourceData 而不是 csvImportData.value) ===
-
-                const groups = {};
-                const projectOrder = [];
-
-                sourceData.forEach(row => { // ⚠️ 注意这里改成遍历 sourceData
-                    // 确保只显示当前 Tab 对应的数据 (Rec 或 Edit)
-                    const isValid = activeImportTab.value === 'rec' ? row.hasRecData : row.hasEditData;
-                    if (!isValid) return;
-
-                    // 🟢 核心过滤逻辑：如果关闭了“显示 SKIP”，且当前行状态为 SKIP，则跳过
-                    const status = (mode === 'rec' ? row.recStatusText : row.editStatusText);
-                    if (!showSkip && status === 'SKIP') return;
-
-                    const pName = row.projectName || 'Unknown Project';
-                    if (!groups[pName]) {
-                        groups[pName] = {
-                            projectName: pName,
-                            rows: [],
-                            expanded: !collapsedProjects.has(pName)
-                        };
-                        projectOrder.push(pName);
-                    }
-                    groups[pName].rows.push(row);
-                });
-
-                return projectOrder
-                    .map(pName => groups[pName])
-                    .filter(group => group.rows.length > 0);
-            });
-
-            // 🟢 新增侦听器：搜索词变化时，自动同步选择状态
-            watch(() => [csvSearchQuery.value, activeImportTab.value], ([newQuery, newTab]) => {
-                // 1. 如果搜索框被清空，我们不做任何操作，保留最后一次的选择状态
-                // (这样你可以先搜A，清空，再手动微调)
-                if (!newQuery || !newQuery.trim()) return;
-
-                const query = newQuery.toLowerCase().trim();
-
-                // 2. 遍历所有数据，更新选择状态
-                csvImportData.value.forEach(row => {
-                    // 步骤A: 判断该行是否属于当前标签页 (Rec 或 Edit)
-                    // 我们只修改当前能看到的任务，不要误伤另一个标签页里已选的任务
-                    const isVisibleInTab = newTab === 'rec' ? row.hasRecData : row.hasEditData;
-
-                    if (isVisibleInTab) {
-                        // 步骤B: 判断是否匹配搜索词
-                        const searchTargets = [
-                            row.projectName,
-                            row.playerName,
-                            row.name_real, // 乐器
-                            row.name_merge // 文件名
-                        ];
-                        const isMatch = searchTargets.some(val => val && String(val).toLowerCase().includes(query));
-
-                        // 步骤C: 强制同步状态
-                        // 匹配 = 选中 (true)
-                        // 不匹配 = 取消选中 (false) -> 这就实现了“只剩下过滤出来的任务”
-                        row.selected = isMatch;
-                    }
-                });
-            });
+            let groupedCsvData;
+            let isAllSelected;
+            let availableInstrumentGroups;
+            let midiGroupData;
+            let currentMidiDisplayList;
 
 
             // 初始化表单数据
@@ -363,761 +286,17 @@ if (typeof window !== 'undefined') {
             };
 
             // 1. [新增] 提取通用的状态计算逻辑
-            const calculateRowStatusText = (row) => {
-                const config = csvImportConfig.importTypes;
+            const calculateRowStatusText = (row) => importCsvFeature.calculateRowStatusText(row);
 
-                // 情况 A: 该行未勾选，或者全局导入开关全关 -> SKIP
-                if (!row.selected || (!config.tasks && !config.time && !config.orch)) {
-                    return 'SKIP';
-                }
+            const refreshCsvStatus = () => importCsvFeature.refreshCsvStatus();
 
-                // 情况 B: 任务已存在 (重复)
-                if (row.isDuplicate) {
-                    // 只有开启了时间或编制更新，才显示 UPDATE
-                    if (config.time || config.orch) {
-                        return 'UPDATE';
-                    } else {
-                        // 如果只选了任务导入但任务已存在，实际上没啥可干的，显示 SKIP
-                        return 'SKIP';
-                    }
-                }
+            const toggleCsvSelection = (index, field) => importCsvFeature.toggleCsvSelection(index, field);
 
-                // 情况 C: 新任务
-                return 'NEW';
-            };
-
-            const refreshCsvStatus = () => {
-                const { tasks: isTaskMode, time: isTimeMode, orch: isOrchMode } = csvImportConfig.importTypes;
-
-                csvImportData.value = csvImportData.value.map(row => {
-                    // 修改 refreshCsvStatus 中的 getStatus 逻辑
-                    const getStatus = () => {
-                        const isRecTab = activeImportTab.value === 'rec';
-                        // 1. 数据存在性检查：如果该行在当前模式下根本没有数据，直接跳过
-                        const hasCurrentModeData = isRecTab ? row.hasRecData : row.hasEditData;
-                        if (!hasCurrentModeData) return 'SKIP';
-
-                        if (row.isDuplicate) {
-                            let shouldUpdate = false;
-                            if (isTimeMode) {
-                                // 2. 差异判断：仅对比当前模式相关的差异
-                                // 如果是录音模式，只看录音时间的差异；如果是编辑模式，只看编辑时间
-                                const timeDiff = isRecTab ? row.hasRecTimeDiff : row.hasEdtTimeDiff;
-                                if (timeDiff) shouldUpdate = true;
-                            }
-                            if (isOrchMode && row.hasOrchDiff) {
-                                shouldUpdate = true;
-                            }
-                            return shouldUpdate ? 'UPDATE' : 'SKIP';
-                        } else {
-                            // 新任务逻辑：仅在开启“导入新任务”且当前行有对应数据时标记为 NEW
-                            return isTaskMode ? 'NEW' : 'SKIP';
-                        }
-                    };
-
-                    const finalStatus = getStatus();
-
-                    // 根据状态设置显示文字
-                    if (activeImportTab.value === 'rec') row.recStatusText = finalStatus;
-                    else row.editStatusText = finalStatus;
-
-                    // 🟢 自动勾选逻辑：如果是 SKIP 状态，取消勾选任务
-                    row.selected = (finalStatus !== 'SKIP');
-
-                    return row;
-                });
-
-                refreshCsvPreview();
-            };
-
-            watch(activeImportTab, () => {
-                refreshCsvStatus();
-            });
-
-            const toggleCsvSelection = (index, field) => {
-                const row = csvImportData.value[index];
-                if (!row) return;
-
-                if (field) row.selection[field] = !row.selection[field];
-
-                const config = csvImportConfig.importTypes;
-
-                // 🟢 修复核心逻辑：不再一刀切
-                const updateStatusByTab = (isRec) => {
-                    if (!row.selected || (!config.tasks && !config.time && !config.orch)) return 'SKIP';
-                    if (!row.isDuplicate) return config.tasks ? 'NEW' : 'SKIP';
-
-                    // 检查是否有实际差异
-                    const hasTimeDiff = isRec ? row.hasRecTimeDiff : row.hasEdtTimeDiff;
-                    const shouldUpdate = (config.time && hasTimeDiff) || (config.orch && row.hasOrchDiff);
-                    return shouldUpdate ? 'UPDATE' : 'SKIP';
-                };
-
-                // 分别更新两个标签的状态，互不干扰
-                row.recStatusText = updateStatusByTab(true);
-                row.editStatusText = updateStatusByTab(false);
-
-                csvImportData.value[index] = { ...row };
-            };
-
-            const confirmCsvImport = () => {
-                if (typeof pushHistory === 'function') pushHistory('Import CSV Data');
-                const isRecTab = activeImportTab.value === 'rec';
-
-                // 1. 过滤出当前标签页下的有效勾选行
-                const selectedRows = csvImportData.value.filter(r =>
-                    r.selected && (isRecTab ? r.hasRecData : r.hasEditData)
-                );
-
-                if (selectedRows.length === 0) {
-                    if (csvImportData.value.some(r => r.selected)) {
-                        openAlertModal("提示", `当前视图 (${activeImportTab.value === 'rec' ? 'Recording' : 'Editing'}) 没有选中的有效任务。`);
-                    } else {
-                        showCsvImportModal.value = false;
-                    }
-                    return;
-                }
-
-                pushHistory();
-
-                const affectedTaskIds = new Set();
-                const { tasks: isTaskMode, time: isTimeMode, orch: isOrchMode } = csvImportConfig.importTypes;
-
-                const validRecordings = [];
-                const validEditings = [];
-
-                // 🟢 修复: 追踪所有受影响的维度，不仅仅是 Musician
-                const affectedMusicianIds = new Set();
-                const affectedProjectIds = new Set();
-                const affectedInstrumentIds = new Set();
-
-                const col = csvHeadersMap.value;
-
-                // 🟢 1. 快照系统：用于导入后重新对齐任务 (Task -> Schedule)
-                const taskToScheduleMap = new Map();
-                const snapshotLoaded = new Set(); // 防止重复加载
-
-                // 🟢 通用快照函数
-                const ensureSnapshot = (id, type) => {
-                    const key = `${type}_${id}`;
-                    if (!id || snapshotLoaded.has(key)) return;
-
-                    // 找到该维度下现有的日程
-                    const sList = scheduledTasks.value.filter(t => {
-                        if ((t.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-                        if (type === 'musician') return t.musicianId === id;
-                        if (type === 'project') return t.projectId === id && !t.musicianId; // 编辑日程通常没有演奏员
-                        if (type === 'instrument') return t.instrumentId === id;
-                        return false;
-                    }).sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-                    // 找到该维度下现有的任务
-                    const iList = itemPool.value.filter(i => {
-                        if ((i.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-                        if (type === 'musician') return i.musicianId === id;
-                        if (type === 'project') return i.projectId === id;
-                        if (type === 'instrument') return i.instrumentId === id;
-                        return false;
-                    });
-
-                    // 建立映射
-                    iList.forEach(item => {
-                        const idx = item.sectionIndex || 0;
-                        if (sList[idx]) taskToScheduleMap.set(item.id, sList[idx].scheduleId);
-                    });
-                    snapshotLoaded.add(key);
-                };
-
-                const formatCell = (val) => val ? val.replace(/[\r\n]+/g, ' / ').trim() : '';
-                const getMins = (t) => {
-                    if (!t) return 0;
-                    const [h, m] = t.split(':').map(Number);
-                    return (h || 0) * 60 + (m || 0);
-                };
-                const formatSecsLocal = (seconds) => {
-                    if (seconds <= 0) return "01:00:00";
-                    const h = Math.floor(seconds / 3600);
-                    const m = Math.floor((seconds % 3600) / 60);
-                    const s = Math.floor(seconds % 60);
-                    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-                };
-
-                // 🟢 2. 遍历处理每一行数据
-                selectedRows.forEach(data => {
-                    const pId = getOrCreateSettingItem('project', data.projectName);
-                    const iId = getOrCreateSettingItem('instrument', data.name_real, data.group);
-                    const mId = getOrCreateSettingItem('musician', data.playerName, data.group);
-
-                    // 注册受影响的 ID 并建立快照
-                    if (mId) { affectedMusicianIds.add(mId); ensureSnapshot(mId, 'musician'); }
-                    if (pId) { affectedProjectIds.add(pId); ensureSnapshot(pId, 'project'); }
-                    if (iId) { affectedInstrumentIds.add(iId); ensureSnapshot(iId, 'instrument'); }
-
-                    // // Project Info (混音师等) 更新
-                    // if (pId && data._raw) {
-                    //     const row = data._raw;
-                    //     const proj = settings.projects.find(p => p.id === pId);
-                    //     if (proj) {
-                    //         if (col.mixEngineer > -1 && row[col.mixEngineer]) proj.mixingEngineer = formatCell(row[col.mixEngineer]);
-                    //         if (col.mixStudio > -1 && row[col.mixStudio]) proj.mixingStudio = formatCell(row[col.mixStudio]);
-                    //         if (col.masEngineer > -1 && row[col.masEngineer]) proj.masteringEngineer = formatCell(row[col.masEngineer]);
-                    //         if (col.masStudio > -1 && row[col.masStudio]) proj.masteringStudio = formatCell(row[col.masStudio]);
-                    //     }
-                    // }
-
-                    // === Recording Import (录音导入) ===
-                    if (activeImportTab.value === 'rec') {
-                        if (!data.hasRecData) return;
-
-                        // 🟢【新增】将 Project Info 更新移到这里
-                        // 只有在 Editing 模式下，才更新混音/母带等项目层级信息
-                        if (pId && data._raw) {
-                            const row = data._raw;
-                            const proj = settings.projects.find(p => p.id === pId);
-                            if (proj) {
-                                if (col.mixEngineer > -1 && row[col.mixEngineer]) proj.mixingEngineer = formatCell(row[col.mixEngineer]);
-                                if (col.mixStudio > -1 && row[col.mixStudio]) proj.mixingStudio = formatCell(row[col.mixStudio]);
-                                if (col.masEngineer > -1 && row[col.masEngineer]) proj.masteringEngineer = formatCell(row[col.masEngineer]);
-                                if (col.masStudio > -1 && row[col.masStudio]) proj.masteringStudio = formatCell(row[col.masStudio]);
-                            }
-                        }
-
-                        let taskItem = itemPool.value.find(item => item.projectId === pId && item.name === data.name_merge && item.musicianId === mId && (item.splitTag === (data.isSplit ? `Part ${data.partIndex + 1}` : null)));
-
-                        if (isTaskMode && !taskItem) {
-                            // 🟢 修复: 如果合并名与乐器名一致 (忽略大小写)，则不硬编码任务名
-                            const _inst = settings.instruments.find(i => i.id === iId);
-                            const _isSameName = _inst && _inst.name.toLowerCase() === data.name_merge.toLowerCase();
-                            taskItem = {
-                                id: generateUniqueId('T'),
-                                sessionId: currentSessionId.value,
-                                projectId: pId, instrumentId: iId, musicianId: mId,
-                                name: _isSameName ? '' : data.name_merge, // 🟢 动态名称逻辑
-                                musicDuration: data.duration,
-                                orchestration: '',
-                                records: { musician: {}, project: {}, instrument: {} },
-                                splitTag: data.isSplit ? `Part ${data.partIndex + 1}` : null,
-                                ratio: 20,
-                                estDuration: calculateEstTime(data.duration, 20),
-                                _isNewImport: true
-                            };
-                            itemPool.value.push(taskItem);
-                        }
-
-                        if (!taskItem) return;
-
-                        // 更新任务属性
-                        if (isOrchMode && data.orchestration) taskItem.orchestration = data.orchestration;
-                        if (isTimeMode && data.duration && data.duration !== '00:00') {
-                            if (taskItem.musicDuration !== data.duration) {
-                                taskItem.musicDuration = data.duration;
-                                taskItem.estDuration = calculateEstTime(data.duration, taskItem.ratio || 20);
-                                affectedTaskIds.add(taskItem.id);
-                            }
-                        }
-
-                        // 准备录音时间数据
-                        const rDate = data.recDate;
-                        const rStart = data.recStart;
-                        const rEnd = data.recEnd;
-
-                        if (rDate && rStart) {
-                            // 🟢 写入任务记录
-                            if (taskItem.records) {
-                                if(!taskItem.records.musician) taskItem.records.musician = {};
-                                taskItem.records.musician.recStart = rStart;
-                                if (rEnd) {
-                                    taskItem.records.musician.recEnd = rEnd;
-                                    const [h1, m1] = rStart.split(':').map(Number);
-                                    const [h2, m2] = rEnd.split(':').map(Number);
-                                    let startMins = h1 * 60 + m1;
-                                    let endMins = h2 * 60 + m2;
-                                    if (endMins < startMins) endMins += 24 * 60;
-                                    taskItem.records.musician.actualDuration = formatSecs((endMins - startMins) * 60);
-                                }
-                            }
-
-                            let sMins = getMins(rStart);
-                            let eMins = rEnd ? getMins(rEnd) : sMins + 60;
-                            if (eMins <= sMins) eMins += 1440;
-
-                            const row = data._raw;
-                            validRecordings.push({
-                                task: taskItem,
-                                pId, iId, mId,
-                                date: typeof normalizeDate === 'function' ? normalizeDate(rDate) : rDate,
-                                startMins: sMins, endMins: eMins,
-                                info: {
-                                    studio: data.recStudio || '',
-                                    engineer: data.recEngineer || '',
-                                    operator: (col.recOperator > -1) ? formatCell(row[col.recOperator]) : '',
-                                    assistant: (col.recAssistant > -1) ? formatCell(row[col.recAssistant]) : '',
-                                    notes: (col.recComments > -1) ? formatCell(row[col.recComments]) : ''
-                                }
-                            });
-                        }
-                    }
-                    // === Editing Import (编辑导入) ===
-                    else if (activeImportTab.value === 'edt') {
-                        if (!data.hasEditData) return;
-
-                        // 注意：编辑任务可能没有演奏员(mId)，主要靠 Project 和 Name 匹配
-                        let taskItem = itemPool.value.find(item => item.projectId === pId && item.name === data.name_merge && item.musicianId === mId && (item.splitTag === (data.isSplit ? `Part ${data.partIndex + 1}` : null)));
-
-                        if (isTaskMode && !taskItem) {
-                            const _inst = settings.instruments.find(i => i.id === iId);
-                            const _isSameName = _inst && _inst.name.toLowerCase() === data.name_merge.toLowerCase();
-                            taskItem = {
-                                id: generateUniqueId('T'),
-                                sessionId: currentSessionId.value,
-                                projectId: pId, instrumentId: iId, musicianId: mId,
-                                name: _isSameName ? '' : data.name_merge, // 🟢 动态名称逻辑
-                                musicDuration: data.duration,
-                                orchestration: '',
-                                records: { musician: {}, project: {}, instrument: {} },
-                                splitTag: data.isSplit ? `Part ${data.partIndex + 1}` : null,
-                                ratio: 20,
-                                estDuration: calculateEstTime(data.duration, 20),
-                                _isNewImport: true
-                            };
-                            itemPool.value.push(taskItem);
-                        }
-
-                        if (!taskItem) return;
-
-                        const eDate = data.edtDate;
-                        const eStart = data.edtStart;
-                        const eEnd = data.edtEnd;
-
-                        if (eDate && eStart) {
-                            // 🟢 修复：将编辑时间写入任务记录 (Project 维度)
-                            // 这样任务在列表中就会显示“实际时间”
-                            if (taskItem.records) {
-                                if (!taskItem.records.project) taskItem.records.project = {}; // 确保对象存在
-
-                                taskItem.records.project.recStart = eStart;
-                                if (eEnd) {
-                                    taskItem.records.project.recEnd = eEnd;
-                                    // 计算持续时间
-                                    const [h1, m1] = eStart.split(':').map(Number);
-                                    const [h2, m2] = eEnd.split(':').map(Number);
-                                    let startMins = h1 * 60 + m1;
-                                    let endMins = h2 * 60 + m2;
-                                    if (endMins < startMins) endMins += 24 * 60;
-                                    taskItem.records.project.actualDuration = formatSecs((endMins - startMins) * 60);
-                                }
-                                // 扣除休息时间
-                                if (data.edtRest) {
-                                    taskItem.records.project.breakMinutes = parseInt(data.edtRest) || 0;
-                                }
-                            }
-
-                            let sMins = getMins(eStart);
-                            let eMins = eEnd ? getMins(eEnd) : sMins + 60;
-                            if (eMins <= sMins) eMins += 1440;
-
-                            let durMins = eMins - sMins;
-                            if (data.edtRest) durMins -= parseInt(data.edtRest) || 0;
-
-                            validEditings.push({
-                                task: taskItem,
-                                pId, iId, mId,
-                                date: typeof normalizeDate === 'function' ? normalizeDate(eDate) : eDate,
-                                startMins: sMins, endMins: eMins,
-                                durationMins: durMins,
-                                info: {
-                                    studio: data.edtStudio || '',
-                                    engineer: data.edtEngineer || ''
-                                }
-                            });
-                        }
-                    }
-                });
-
-                // 🟢 3. 生成录音日程 (Rec Schedules)
-                if (validRecordings.length > 0) {
-                    validRecordings.sort((a, b) => a.date.localeCompare(b.date) || a.startMins - b.startMins);
-
-                    for (let i = 0; i < validRecordings.length; i++) {
-                        const current = validRecordings[i];
-                        let sStart = current.startMins, sEnd = current.endMins;
-                        const items = [current.task], infos = [current.info];
-
-                        while (i + 1 < validRecordings.length) {
-                            const next = validRecordings[i + 1];
-                            if (next.date !== current.date || next.mId !== current.mId) break;
-
-                            // 允许0间隔合并
-                            if (next.startMins - sEnd <= 60) {
-                                sEnd = Math.max(sEnd, next.endMins);
-                                items.push(next.task);
-                                infos.push(next.info);
-                                i++;
-                            } else break;
-                        }
-
-                        const mergeF = (list, k) => [...new Set(list.map(x => x[k]).filter(v => v))].join(' / ');
-                        const startStr = `${String(Math.floor(sStart / 60)).padStart(2, '0')}:${String(sStart % 60).padStart(2, '0')}`;
-
-                        let targetScheduleId;
-                        // 查找现有匹配的日程块
-                        const existingTask = scheduledTasks.value.find(t => t.date === current.date && t.startTime === startStr && t.musicianId === current.mId && (t.sessionId || 'S_DEFAULT') === currentSessionId.value );
-
-                        if (existingTask) {
-                            targetScheduleId = existingTask.scheduleId;
-                        } else {
-                            targetScheduleId = Date.now() + Math.random();
-                            scheduledTasks.value.push({
-                                scheduleId: targetScheduleId,
-                                sessionId: currentSessionId.value,
-                                musicianId: current.mId || null,
-                                projectId: (!current.mId && current.pId) ? current.pId : null,
-                                instrumentId: (!current.mId && !current.pId && current.iId) ? current.iId : null,
-                                date: current.date,
-                                startTime: startStr,
-                                estDuration: formatSecsLocal((sEnd - sStart) * 60),
-                                trackCount: 0,
-                                ratio: 20,
-                                recordingInfo: {
-                                    studio: mergeF(infos, 'studio'),
-                                    engineer: mergeF(infos, 'engineer'),
-                                    operator: mergeF(infos, 'operator'),
-                                    assistant: mergeF(infos, 'assistant'),
-                                    notes: mergeF(infos, 'notes')
-                                }
-                            });
-                        }
-
-                        // 记录关联
-                        items.forEach(t => {
-                            taskToScheduleMap.set(t.id, targetScheduleId);
-                        });
-                    }
-                }
-
-                // 🟢 4. 生成编辑日程 (Edit Schedules)
-                if (validEditings.length > 0) {
-                    validEditings.sort((a, b) => a.date.localeCompare(b.date) || a.startMins - b.startMins);
-
-                    for (let i = 0; i < validEditings.length; i++) {
-                        const current = validEditings[i];
-                        let sStart = current.startMins, sEnd = current.endMins;
-                        let duration = current.durationMins;
-                        const items = [current.task], infos = [current.info];
-
-                        while (i + 1 < validEditings.length) {
-                            const next = validEditings[i + 1];
-                            // 编辑日程按 Project 合并
-                            if (next.date !== current.date || next.pId !== current.pId) break;
-
-                            // 允许5分钟误差
-                            if (Math.abs(next.startMins - sEnd) <= 60) {
-                                sEnd = next.endMins;
-                                duration += next.durationMins;
-                                items.push(next.task);
-                                infos.push(next.info);
-                                i++;
-                            } else break;
-                        }
-
-                        const mergeF = (list, k) => [...new Set(list.map(x => x[k]).filter(v => v))].join(' / ');
-                        const startStr = `${String(Math.floor(sStart / 60)).padStart(2, '0')}:${String(sStart % 60).padStart(2, '0')}`;
-
-                        let targetScheduleId;
-                        // 编辑日程：查找 projectId 相同且无 musicianId 的块
-                        const existingTask = scheduledTasks.value.find(t => t.date === current.date && t.startTime === startStr && t.projectId === current.pId && !t.musicianId && (t.sessionId || 'S_DEFAULT') === currentSessionId.value );
-
-                        if (existingTask) {
-                            targetScheduleId = existingTask.scheduleId;
-                        } else {
-                            targetScheduleId = Date.now() + Math.random();
-                            scheduledTasks.value.push({
-                                scheduleId: targetScheduleId,
-                                sessionId: currentSessionId.value,
-                                musicianId: null, // 编辑通常没有演奏员
-                                projectId: current.pId,
-                                instrumentId: null,
-                                date: current.date,
-                                startTime: startStr,
-                                estDuration: formatSecsLocal(duration * 60),
-                                trackCount: 0,
-                                ratio: 1,
-                                statusOverride: 'completed',
-                                editInfo: {
-                                    studio: mergeF(infos, 'studio'),
-                                    engineer: mergeF(infos, 'engineer')
-                                }
-                            });
-                        }
-
-                        // 🟢 记录关联 (关键)
-                        items.forEach(t => {
-                            taskToScheduleMap.set(t.id, targetScheduleId);
-                        });
-                    }
-                }
-
-                // 🟢 5. 收尾：统一更新所有任务的 sectionIndex (Task -> Schedule)
-                const updateIndexes = (id, type) => {
-                    let sList = scheduledTasks.value.filter(t => (t.sessionId || 'S_DEFAULT') === currentSessionId.value);
-                    let iList = itemPool.value.filter(i => (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
-
-                    if (type === 'musician') {
-                        sList = sList.filter(t => t.musicianId === id);
-                        iList = iList.filter(i => i.musicianId === id);
-                    } else if (type === 'project') {
-                        sList = sList.filter(t => t.projectId === id && !t.musicianId); // 仅处理编辑块
-                        iList = iList.filter(i => i.projectId === id);
-                    } else if (type === 'instrument') {
-                        sList = sList.filter(t => t.instrumentId === id);
-                        iList = iList.filter(i => i.instrumentId === id);
-                    }
-
-                    if (sList.length === 0) return;
-
-                    sList.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-                    const schedIdToIndex = {};
-                    sList.forEach((s, idx) => {
-                        schedIdToIndex[s.scheduleId] = idx;
-                    });
-
-                    iList.forEach(item => {
-                        const targetSchedId = taskToScheduleMap.get(item.id);
-                        if (targetSchedId && schedIdToIndex[targetSchedId] !== undefined) {
-                            item.sectionIndex = schedIdToIndex[targetSchedId];
-                        }
-                    });
-                };
-
-                // 🟢 对所有受影响的维度执行更新 (之前可能漏了 Project)
-                affectedMusicianIds.forEach(id => updateIndexes(id, 'musician'));
-                affectedProjectIds.forEach(id => updateIndexes(id, 'project')); // ✅ 必须更新项目索引
-                affectedInstrumentIds.forEach(id => updateIndexes(id, 'instrument'));
-
-                // 更新效率计算 (可选)
-                if (typeof autoUpdateEfficiency === 'function') {
-                    affectedMusicianIds.forEach(id => autoUpdateEfficiency(id, 'musician', false));
-                }
-
-                // 自动调整块大小 (如果有新录音)
-                if (validRecordings.length > 0 && typeof autoResizeSchedules === 'function') {
-                    autoResizeSchedules(Array.from(affectedTaskIds));
-                }
-
-                pushHistory();
-                showCsvImportModal.value = false;
-                openAlertModal("导入完成", `成功导入: 录音日程 ${validRecordings.length} 个, 编辑日程 ${validEditings.length} 个`);
-            };
+            const confirmCsvImport = () => importCsvFeature.confirmCsvImport();
 
             // 🟢 修复后的 addDataToPrepared 函数 (加入差异对比)
-            const addDataToPrepared = (targetList, rawRow, col, options = {}) => {
-                // 1. 基础字段解析
-                const projectName = rawRow[col.project]?.trim() || 'Unknown Project';
-                const rawInstName = rawRow[col.instName]?.trim() || 'Unknown Inst';
-
-                // 名称策略
-                const instName = options.realCsvName || rawInstName;
-                const displayInstName = options.displayCsvName || instName;
-                const mergeName = options.forceName || displayInstName;
-
-                // 数据清洗
-                const duration = options.overrideDuration || rawRow[col.duration]?.trim() || '00:00';
-                const orchestration = rawRow[col.orchestration]?.trim() || '';
-                const playerName = rawRow[col.playerName]?.trim() || '';
-                const groupName = rawRow[col.instFamily]?.trim() || '';
-
-                // 2. 录音数据解析 [REC]
-                const recDate = rawRow[col.recDate]?.trim();
-                const recStart = rawRow[col.recStart]?.trim();
-                const hasRecData = !!(recDate && recStart);
-
-                // 3. 编辑数据解析 [EDT]
-                const edtDate = rawRow[col.edtDate]?.trim();
-                const edtStart = rawRow[col.edtStart]?.trim();
-                const hasEditData = !!(edtDate && edtStart);
-
-                // 4. 构建对象
-                const newItem = {
-                    projectName,
-                    playerName,
-                    group: groupName,
-                    name_real: instName,
-                    name_display: displayInstName,
-                    name_merge: mergeName,
-                    duration,
-                    orchestration,
-
-                    // 录音信息
-                    recDate, recStart,
-                    recEnd: rawRow[col.recEnd]?.trim(),
-                    recStudio: rawRow[col.recStudio]?.trim(),
-                    recEngineer: rawRow[col.recEngineer]?.trim(),
-                    recOperator: (col.recOperator > -1) ? rawRow[col.recOperator]?.trim() : '',
-                    recAssistant: (col.recAssistant > -1) ? rawRow[col.recAssistant]?.trim() : '',
-                    recComments: (col.recComments > -1) ? rawRow[col.recComments]?.trim() : '',
-
-                    // 编辑信息
-                    edtDate, edtStart,
-                    edtEnd: rawRow[col.edtEnd]?.trim(),
-                    edtStudio: rawRow[col.edtStudio]?.trim(),
-                    edtEngineer: rawRow[col.edtEngineer]?.trim(),
-                    edtRest: rawRow[col.edtRest]?.trim(),
-
-                    // 状态标记
-                    hasRecData,
-                    hasEditData,
-                    selected: true,
-                    _raw: rawRow,
-                    isSplit: options.isSplit || false,
-                    partIndex: options.partIndex || 0
-                };
-
-                // 5. 智能重复检测
-                // 仅通过 项目名 + 乐器名 判断身份 (不再包含 duration，避免修改时长导致识别为新任务)
-                const existingTask = itemPool.value.find(item => {
-                    const itemProjName = getNameById(item.projectId, 'project');
-                    // 匹配逻辑：优先匹配自定义名称(item.name)，其次匹配乐器库名称
-                    const itemInstName = item.name || getNameById(item.instrumentId, 'instrument');
-
-                    return itemProjName === newItem.projectName &&
-                        itemInstName === newItem.name_merge;
-                });
-
-                newItem.isDuplicate = !!existingTask;
-
-                // --- 🟢 核心修复：分维度、深入日程表检测差异 ---
-                const { tasks: isTaskMode, time: isTimeMode, orch: isOrchMode } = csvImportConfig.importTypes;
-                let recDiff = false;
-                let edtDiff = false;
-
-                if (existingTask) {
-                    const norm = str => (str || '').toString().trim();
-                    const normTime = t => t ? t.substring(0, 5) : '';
-
-                    // 1. 时长对比 (如果 CSV 时长为空，也不报错，视为一致)
-                    let hasTimeDiff = isTimeMode && newItem.duration && parseTime(existingTask.musicDuration) !== parseTime(newItem.duration);
-
-                    // 2. 配器对比 (如果 CSV 配器为空，视为一致)
-                    let hasOrchDiff = isOrchMode && newItem.orchestration && norm(existingTask.orchestration) !== norm(newItem.orchestration);
-                    newItem.hasOrchDiff = hasOrchDiff;
-
-                    const normalizedRecDate = normalizeDate(newItem.recDate);
-                    const normalizedEdtDate = normalizeDate(newItem.edtDate);
-
-                    // ==========================================
-                    // 🟢 [录音对比] Recording Check (忽略 CSV 空值)
-                    // ==========================================
-                    const recRec = existingTask.records?.musician || {};
-
-                    // 修正逻辑：如果 CSV 时间为空，或者 CSV 时间等于数据库时间，则视为匹配
-                    let recTimeMatch = (!newItem.recStart || normTime(recRec.recStart) === normTime(newItem.recStart)) &&
-                        (!newItem.recEnd || normTime(recRec.recEnd) === normTime(newItem.recEnd));
-
-                    // 查找日程 (这里使用之前修正过的逻辑)
-                    const recSched = scheduledTasks.value.find(s =>
-                        s.date === normalizedRecDate &&
-                        s.musicianId === existingTask.musicianId &&
-                        (s.sessionId || 'S_DEFAULT') === currentSessionId.value
-                    );
-
-                    // 修正逻辑：如果 CSV 录音棚为空，或者匹配，则视为匹配
-                    // 注意：如果数据库里没日程(recSched不存在)，且CSV也没写录音棚，那不算冲突；但通常没日程会直接导致 !recSched 触发 update
-                    const recStudioMatch = !newItem.recStudio || (recSched && norm(recSched.recordingInfo?.studio) === norm(newItem.recStudio));
-
-                    // 计算差异 (注意 !recSched 依然会触发 Update，因为如果数据库没排期，肯定要更新)
-                    newItem.hasRecTimeDiff = hasTimeDiff || !recTimeMatch || !recStudioMatch || !recSched;
-                    recDiff = newItem.hasRecTimeDiff || hasOrchDiff;
-
-
-                    // ==========================================
-                    // 🟢 [编辑对比] Editing Check (忽略 CSV 空值)
-                    // ==========================================
-                    const edtRec = existingTask.records?.project || {};
-
-                    let edtTimeMatch = (!newItem.edtStart || normTime(edtRec.recStart) === normTime(newItem.edtStart)) &&
-                        (!newItem.edtEnd || normTime(edtRec.recEnd) === normTime(newItem.edtEnd));
-
-                    const edtSched = scheduledTasks.value.find(s =>
-                        s.date === normalizedEdtDate &&
-                        s.projectId === existingTask.projectId &&
-                        !s.musicianId &&
-                        (s.sessionId || 'S_DEFAULT') === currentSessionId.value
-                    );
-
-                    const edtStudioMatch = !newItem.edtStudio || (edtSched && norm(edtSched.editInfo?.studio) === norm(newItem.edtStudio));
-
-                    newItem.hasEdtTimeDiff = hasTimeDiff || !edtTimeMatch || !edtStudioMatch || !edtSched;
-                    edtDiff = newItem.hasEdtTimeDiff || hasOrchDiff;
-
-                    // 🕵️‍♂️ [调试日志] 只打印有差异的任务，方便排查
-                    if (newItem.hasRecTimeDiff) {
-                        console.group(`🔍 Debug: ${newItem.name_merge} (检测到 UPDATE)`);
-                        console.log(`项目/乐器:`, newItem.projectName, newItem.name_real);
-                        console.log(`日期对比: CSV[${normalizedRecDate}] vs 数据库日程[${recSched ? recSched.date : '未找到'}]`);
-                        console.log(`ID匹配: CSV乐手[${newItem.playerName}] -> ID[${existingTask.musicianId}]`);
-
-                        if (!recSched) {
-                            console.error(`❌ 原因: 未找到对应的录音日程 (recSched is undefined)`);
-                            console.log(`   -> 请检查: 日期是否一致? Session是否一致? 乐手ID是否一致?`);
-                        } else {
-                            if (!recTimeMatch) {
-                                console.warn(`⚠️ 原因: 时间不匹配`);
-                                console.log(`   CSV : ${normTime(newItem.recStart)} - ${normTime(newItem.recEnd)}`);
-                                console.log(`   DB  : ${normTime(recRec.recStart)} - ${normTime(recRec.recEnd)}`);
-                            }
-                            if (!recStudioMatch) console.warn(`⚠️ 原因: 录音棚不匹配 (CSV: ${newItem.recStudio} vs DB: ${recSched.recordingInfo?.studio})`);
-                            if (hasTimeDiff) console.warn(`⚠️ 原因: 时长(Duration)有变化`);
-                        }
-                        console.groupEnd();
-                    }
-                    if (newItem.hasEdtTimeDiff) {
-                        console.group(`🎬 Edit Debug: ${newItem.projectName} (状态: UPDATE)`);
-                        console.log(`项目名称:`, newItem.projectName);
-                        console.log(`日期对比: CSV[${normalizedEdtDate}] vs DB[${edtSched ? edtSched.date : '❌ 未找到日程'}]`);
-
-                        if (!edtSched) {
-                            console.error(`❌ 主要原因: 数据库中未找到对应的编辑日程`);
-                            console.log(`   可能原因:`);
-                            console.log(`   1. 日期不匹配 (CSV: ${normalizedEdtDate})`);
-                            console.log(`   2. 这是一个新日期的任务，数据库里还没排`);
-                            console.log(`   3. Session ID 不匹配 (当前: ${currentSessionId.value})`);
-                        } else {
-                            if (!edtTimeMatch) {
-                                console.warn(`⚠️ 原因: 时间不匹配`);
-                                console.log(`   CSV要求: ${newItem.edtStart || '(空)'} - ${newItem.edtEnd || '(空)'}`);
-                                console.log(`   DB现有 : ${normTime(edtRec.recStart)} - ${normTime(edtRec.recEnd)}`);
-                            }
-                            if (!edtStudioMatch) {
-                                console.warn(`⚠️ 原因: 录音棚不匹配`);
-                                console.log(`   CSV要求: '${newItem.edtStudio}'`);
-                                console.log(`   DB现有 : '${edtSched.editInfo?.studio}'`);
-                            }
-                            if (hasTimeDiff) console.warn(`⚠️ 原因: 乐曲时长(Duration)发生了变化`);
-                            if (hasOrchDiff) console.warn(`⚠️ 原因: 配器(Orchestration)发生了变化`);
-                        }
-                        console.groupEnd();
-                    }
-                }
-
-                // --- 状态计算函数 (保持逻辑一致) ---
-                const calculateStatus = (hasData, hasSpecificDiff) => {
-                    if (!hasData) return 'SKIP';
-                    if (newItem.isDuplicate) {
-                        return hasSpecificDiff ? 'UPDATE' : 'SKIP';
-                    }
-                    return isTaskMode ? 'NEW' : 'SKIP';
-                };
-
-                newItem.recStatusText = calculateStatus(hasRecData, recDiff);
-                newItem.editStatusText = calculateStatus(hasEditData, edtDiff);
-
-                // 默认选中逻辑
-                const currentStatus = activeImportTab.value === 'rec' ? newItem.recStatusText : newItem.editStatusText;
-                newItem.selected = (currentStatus !== 'SKIP');
-
-                targetList.push(newItem);
-            };
+            const addDataToPrepared = (targetList, rawRow, col, options = {}) =>
+                importCsvFeature.addDataToPrepared(targetList, rawRow, col, options);
 
 
             const midiManagerExpandedGroups = reactive(new Set())
@@ -1713,237 +892,19 @@ if (typeof window !== 'undefined') {
             });
 
 // 触发定向导入 (复用之前的 input，但这次我们已经知道是哪个项目了)
-            const triggerMidiImportForProject = () => {
-                // 复用之前的 input 元素
-                const input = document.getElementById('midi-import-input');
-                if (input) {
-                    input.value = '';
-                    input.click();
-                }
-            };
+            const triggerMidiImportForProject = () => importMidiFeature.triggerMidiImportForProject();
 
             // 在 setup() 内部靠前位置添加
 
 // ... 其他 refs ...
 
 // 🟢 MIDI 导入相关逻辑
-            const triggerMidiImport = () => {
-                const input = document.getElementById('midi-import-input');
-                if (input) {
-                    input.value = '';
-                    input.click();
-                }
-            };
+            const triggerMidiImport = () => importMidiFeature.triggerMidiImport();
 
-            const handleMidiFile = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                // 🟢 [修复] 自动关联项目逻辑补全
-                if (!managingProject.value) {
-                    if (settings.projects.length > 0) {
-                        // 默认关联到第一个项目，并初始化 midiData
-                        managingProject.value = settings.projects[0];
-                        if (!managingProject.value.midiData) {
-                            managingProject.value.midiData = {};
-                        }
-                        // 可选：提示用户关联了哪个项目
-                        // console.log("Auto-associated with project:", managingProject.value.name);
-                    } else {
-                        // 如果连一个项目都没有，无法导入，必须报错
-                        openAlertModal("无法导入", "请先至少创建一个项目 (Project) 后再导入 MIDI。");
-                        e.target.value = '';
-                        return;
-                    }
-                }
-
-                processMidiFile(file);
-                e.target.value = '';
-            };
+            const handleMidiFile = (e) => importMidiFeature.handleMidiFile(e);
 
 // 🟢 [重写] processMidiFile - 满足三大核心需求
-            const processMidiFile = (file) => {
-                // 检查库
-                if (typeof JZZ === 'undefined' || typeof JZZ.MIDI.SMF === 'undefined') {
-                    openAlertModal('库丢失', 'JZZ MIDI 库未加载，请检查网络。');
-                    return;
-                }
-
-                // 🟢 辅助函数：获取用于匹配 ID 的名称
-                // 规则：只去除末尾的阿拉伯数字 (1, 2, 3...)，保留罗马数字 (I, II, V...)
-                const getMatchName = (name) => {
-                    if (!name) return "";
-                    // 解释：
-                    // [_\s-]* 匹配前面的空格、下划线或横杠
-                    // \d+      匹配一个或多个数字
-                    // $        匹配字符串结尾
-                    // 这样 "Horn 1" -> "Horn", "Horn 2" -> "Horn"
-                    // 但是 "Violin I" -> "Violin I" (因为 I 不是数字 \d)
-                    return name.replace(/[_\s-]*\d+$/, '').trim();
-                };
-
-                const reader = new FileReader();
-                reader.readAsBinaryString(file);
-
-                reader.onload = async (ev) => {
-                    try {
-                        const data = ev.target.result;
-                        const smf = JZZ.MIDI.SMF(data);
-
-                        const tempoMap = buildTempoMap(smf);
-                        const timeSigs = buildTimeSigMap(smf);
-
-                        // 🟢 [新增] 保存到全局 Ref，供 Group 计算使用
-                        midiTempoMap.value = tempoMap;
-                        midiTimeSigs.value = timeSigs;
-
-                        const firstTempo = tempoMap.events.find(e => e.bpm) || { bpm: 120 };
-                        midiBpm.value = Math.round(60000000 / firstTempo.mpb);
-                        midiTimeSig.value = timeSigs[0].timeSignature;
-
-                        // 🟢 1. 物理合并容器：Key = 轨道原始名称
-                        // 这样 "Piano" 和 "Piano" 会落入同一个 Key (合并)
-                        // "Horn 1" 和 "Horn 2" 会落入不同 Key (不合并)
-                        const mergedMap = {};
-
-                        // ...
-                        smf.forEach((track, index) => {
-                            // A. 获取名称
-                            let rawName = '';
-                            track.forEach(e => { if (e.ff === 0x03) rawName = e.dd; });
-                            if (!rawName) rawName = `Track ${index + 1}`;
-
-                            // 🟢 [修复] 在这里统一清洗显示名称
-                            let displayName = rawName.replace(/\0/g, '').trim();
-
-                            displayName = displayName
-                                // 处理 " Flat", "-Flat", "Flat" (忽略大小写) -> "b"
-                                // 例如: "Clarinet (B Flat)" -> "Clarinet (Bb)"
-                                .replace(/[\s\-_]?Flat/gi, 'b')
-
-                                // 处理 " Sharp", "-Sharp", "Sharp" (忽略大小写) -> "#"
-                                .replace(/[\s\-_]?Sharp/gi, '#')
-
-                                // 处理 Unicode 符号
-                                .replace(/♭/g, 'b')
-                                .replace(/♯/g, '#');
-
-                            // B. 提取音符
-                            const trackNotes = extractNotesFromJZZTrack(track);
-
-                            // 空轨且无名则跳过
-                            if (trackNotes.length === 0 && !displayName) return;
-
-                            // C. 归并逻辑 (完全同名才合并)
-                            if (!mergedMap[displayName]) {
-                                mergedMap[displayName] = {
-                                    name: displayName,
-                                    notes: [],
-                                    firstTrackIndex: index, // 记录排序用
-                                    trackCount: 0
-                                };
-                            }
-
-                            mergedMap[displayName].notes.push(...trackNotes);
-                            mergedMap[displayName].trackCount++;
-                        });
-
-                        const processedTracks = [];
-                        let uniqueIdCounter = 0;
-
-                        // --- 第二轮遍历：生成最终列表并进行【智能匹配】 ---
-                        for (const name in mergedMap) {
-                            const groupData = mergedMap[name];
-                            const notes = groupData.notes;
-
-                            // 🟢 核心匹配逻辑
-
-                            // 1. 准备两个用于查找的名字
-                            // A: 原始名 (例如 "Violin I", "Horn 1")
-                            const exactName = normalizeForMatch(groupData.name);
-                            // B. 去掉数字的名 (例如 "Violin I"->"Violin I", "Horn 1"->"Horn")
-                            const strippedName = normalizeForMatch(getMatchName(groupData.name));
-
-                            let matchedInstId = '';
-                            let matchedGroup = findGroupSmart(groupData.name); // 智能猜分组
-
-                            // 2. 尝试在库里找
-                            // 优先级 A: 精确匹配 (库里有 "Horn 1" 就用 "Horn 1")
-                            let found = settings.instruments.find(inst => normalizeForMatch(inst.name) === exactName);
-
-                            // 优先级 B: 去掉数字匹配 (库里没有 "Horn 1"，但有 "Horn"，则匹配 "Horn")
-                            // 注意：对于 "Violin I"，strippedName 还是 "Violin I"，所以它只会去库里找 "Violin I"，不会匹配到 "Violin"
-                            if (!found) {
-                                found = settings.instruments.find(inst => normalizeForMatch(inst.name) === strippedName);
-                            }
-
-                            // 优先级 C: 模糊包含 (兜底)
-                            if (!found) {
-                                found = settings.instruments.find(inst => {
-                                    const iName = normalizeForMatch(inst.name);
-                                    // 确保不是简单的包含 (防止 "Violin" 匹配到 "Violin I")
-                                    return iName.includes(strippedName) && strippedName.length > 2;
-                                });
-                            }
-
-                            if (found) {
-                                matchedInstId = found.id;
-                                // 如果库里有定义分组，优先用库里的
-                                if (found.group) matchedGroup = found.group;
-                            }
-
-                            // 3. 计算时长
-                            let analysis = { seconds: 0, rawSeconds: 0, bars: 0 }; // 🟢 初始化增加 bars
-                            if (notes.length > 0) {
-                                analysis = calculateBarQuantizedDuration(notes, tempoMap, timeSigs);
-                            }
-
-                            const isTechnicalEmpty = notes.length === 0;
-
-// 🟢 [新增] 智能生成建议名称：去掉末尾的空格和数字 (例如 "Horn (F) 1" -> "Horn (F)")
-// 这样在创建新乐器时，多个分轨会自动归并到同一个乐器名下
-                            const cleanNameForCreation = groupData.name.replace(/\s+\d+$/, '').trim();
-
-                            processedTracks.push({
-                                id: uniqueIdCounter++,
-                                name: groupData.name,
-                                originalName: groupData.name,
-                                suggestedInstName: cleanNameForCreation,
-                                instrumentId: matchedInstId,
-                                createNew: !matchedInstId && !isTechnicalEmpty,
-
-                                notes: notes,
-
-                                rawDuration: analysis.rawSeconds,
-                                quantizedDuration: analysis.seconds,
-
-                                bars: analysis.bars, // 🟢 修复: 将原来的 0 改为 analysis.bars
-
-                                noteCount: notes.length,
-                                group: matchedGroup || 'Unassigned',
-                                selected: !isTechnicalEmpty,
-                                description: groupData.trackCount > 1 ? `Merged ${groupData.trackCount} duplicate tracks` : '',
-                                _sortIndex: groupData.firstTrackIndex
-                            });
-                        }
-
-                        // 保持原始 MIDI 顺序
-                        processedTracks.sort((a, b) => a._sortIndex - b._sortIndex);
-
-                        if (processedTracks.length === 0) {
-                            openAlertModal('无数据', '未解析到任何有效轨道。');
-                            return;
-                        }
-
-                        midiImportData.value = processedTracks;
-                        showMidiImportModal.value = true;
-
-                    } catch (e) {
-                        console.error("JZZ Parse Error:", e);
-                        openAlertModal('解析错误', '文件解析失败: ' + e.message);
-                    }
-                };
-            };
+            const processMidiFile = (file) => importMidiFeature.processMidiFile(file);
 
             // --- 🟢 MIDI Group 状态管理 ---
             const midiGroupExpanded = reactive(new Set()); // 存储已展开的组名
@@ -1957,125 +918,20 @@ if (typeof window !== 'undefined') {
             };
 
 // 🟢 [新增] 判断某组是否全选 (用于分组 Checkbox 状态)
-            const isGroupSelected = (rows) => {
-                return rows.length > 0 && rows.every(r => r.selected);
-            };
+            const isGroupSelected = (rows) => importCsvFeature.isGroupSelected(rows);
 
             // 🟢 [新增] 切换某组的全选状态
-            const toggleGroupSelection = (group, isChecked) => {
-                group.rows.forEach(row => {
-                    row.selected = isChecked;
-                });
-            };
-
-            // 🟢 [新增] 全局全选状态 (计算属性：检查当前视图下所有可见行)
-            const isAllSelected = computed(() => {
-                if (groupedCsvData.value.length === 0) return false;
-                return groupedCsvData.value.every(group =>
-                    group.rows.every(r => r.selected)
-                );
-            });
+            const toggleGroupSelection = (group, isChecked) => importCsvFeature.toggleGroupSelection(group, isChecked);
 
             // 🟢 [修复] 全局全选切换 (只操作当前视图可见的行)
-            const toggleAllRows = (isChecked) => {
-                groupedCsvData.value.forEach(group => {
-                    group.rows.forEach(row => {
-                        row.selected = isChecked;
-                    });
-                });
-            };
+            const toggleAllRows = (isChecked) => importCsvFeature.toggleAllRows(isChecked);
 
 // 🟢 [修复] midiGroupData: 修复 Group 视图下 Bars 显示为 0 的问题
-            const midiGroupData = computed(() => {
-                const tracks = midiImportData.value;
-                const groupsMap = {};
-
-                // 1. Grouping (分组逻辑保持不变)
-                tracks.forEach(t => {
-                    if (t.group && t.group.trim() !== '') {
-                        if (!groupsMap[t.group]) {
-                            groupsMap[t.group] = { name: t.group, items: [] };
-                        }
-                        groupsMap[t.group].items.push(t);
-                    } else {
-                        if (!groupsMap['Unassigned']) {
-                            groupsMap['Unassigned'] = { name: 'Unassigned', items: [] };
-                        }
-                        groupsMap['Unassigned'].items.push(t);
-                    }
-                });
-
-                // 2. Aggregation (聚合计算逻辑)
-                return Object.values(groupsMap).map(g => {
-                    const selectedItems = g.items.filter(t => t.selected);
-                    const hasSelection = selectedItems.length > 0;
-
-                    let finalDuration = 0;
-                    let totalNotes = 0;
-                    let maxBars = 0; // 🟢 初始化 maxBars
-
-                    // 如果有选中的轨道，且具备 Tempo/TimeSig 数据，进行精确合并计算
-                    if (hasSelection && midiTempoMap.value && midiTimeSigs.value) {
-                        let allGroupNotes = [];
-                        selectedItems.forEach(t => {
-                            totalNotes += t.noteCount;
-                            if (t.notes) allGroupNotes.push(...t.notes);
-                        });
-
-                        if (allGroupNotes.length > 0) {
-                            // 将所有音符按时间排序
-                            allGroupNotes.sort((a, b) => a.ticks - b.ticks);
-
-                            // 调用之前修复过的 calculateBarQuantizedDuration 函数
-                            // 它可以正确返回合并后的总小节数
-                            const analysis = calculateBarQuantizedDuration(allGroupNotes, midiTempoMap.value, midiTimeSigs.value);
-
-                            finalDuration = analysis.seconds;
-                            maxBars = analysis.bars; // 🟢 关键修复 1: 从分析结果中获取 bars
-                        }
-                    } else {
-                        // 简单回退模式 (如果没有选中或没有 Tempo 数据)
-                        selectedItems.forEach(t => {
-                            finalDuration = Math.max(finalDuration, t.quantizedDuration);
-                            totalNotes += t.noteCount;
-
-                            // 🟢 关键修复 2: 取所有子轨道中最大的 Bars
-                            maxBars = Math.max(maxBars, t.bars || 0);
-                        });
-                    }
-
-                    const genericInst = settings.instruments.find(i =>
-                        i.name.toLowerCase() === g.name.toLowerCase() ||
-                        (i.group === g.name && i.name.toLowerCase().includes('section'))
-                    );
-
-                    return {
-                        id: `GRP_${g.name}`,
-                        name: g.name,
-                        originalName: g.name,
-                        instrumentId: genericInst ? genericInst.id : '',
-                        createNew: !genericInst,
-                        quantizedDuration: finalDuration,
-                        bars: maxBars, // 🟢 赋值计算出的小节数
-                        noteCount: totalNotes,
-                        group: g.name,
-                        selected: hasSelection,
-                        items: g.items,
-                        isGroup: true,
-                        description: `${selectedItems.length} / ${g.items.length} tracks`
-                    };
-                }).sort((a, b) => {
-                    if (a.name === 'Unassigned') return 1;
-                    if (b.name === 'Unassigned') return -1;
-                    return a.name.localeCompare(b.name, 'zh-CN');
-                });
-            });
+            // midiGroupData 由 importMidiFeature 注册后注入
 
 
             // 🟢 [新增] 根据模式返回当前显示的列表
-            const currentMidiDisplayList = computed(() => {
-                return midiViewMode.value === 'groups' ? midiGroupData.value : midiImportData.value;
-            });
+            // currentMidiDisplayList 由 importMidiFeature 注册后注入
 
             const findGroupFromLibrary = (cleanName) => {
                 const target = cleanName.toLowerCase();
@@ -2253,129 +1109,15 @@ if (typeof window !== 'undefined') {
             };
 
             // 🟢 [修改] 获取所有可用分组 (合并系统设置 + 当前导入界面的临时分组)
-            const availableInstrumentGroups = computed(() => {
-                const groups = new Set(['Unassigned']);
-
-                // 1. 来自系统现有的乐器设置
-                settings.instruments.forEach(i => {
-                    if (i.group) groups.add(i.group);
-                });
-
-                // 2. 常用预设
-                ['Strings', 'Brass', 'Woodwinds', 'Percussion', 'Keys', 'Plucks', 'Vocal', 'Synth'].forEach(g => groups.add(g));
-
-                // 3. 🟢 [新增] 实时抓取 MIDI 导入界面中刚刚输入的新分组
-                // 这样你在 Track 1 输入了 "My New Group"，Track 2 的下拉列表里马上就能选到它
-                if (showMidiImportModal.value) {
-                    midiImportData.value.forEach(t => {
-                        if (t.group && t.group.trim()) {
-                            groups.add(t.group.trim());
-                        }
-                    });
-                }
-
-                return Array.from(groups).sort();
-            });
+            // availableInstrumentGroups 由 importMidiFeature 注册后注入
 
             // 🟢 [新增] 当用户改变乐器选择时，自动更新 Group
-            const onImportInstChange = (track) => {
-                track.createNew = false;
-                if (track.instrumentId) {
-                    const inst = settings.instruments.find(i => i.id === track.instrumentId);
-                    if (inst) track.group = inst.group || 'Unassigned';
-                }
-            };
+            const onImportInstChange = (track) => importMidiFeature.onImportInstChange(track);
 
-            const getSmartName = (row) => {
-                if (!row) return 'New Instrument';
-                // 如果是分组行(Group)，直接返回名字
-                if (row.isGroup) return row.name;
-
-                // 如果是轨道行(Track)，且用户改过名字，显示新名字
-                if (row.name !== row.originalName) return row.name;
-
-                // 否则显示建议名字(去掉数字的)
-                return row.suggestedInstName || row.name;
-            };
+            const getSmartName = (row) => importMidiFeature.getSmartName(row);
 
             // 🟢 [修改] confirmMidiImport: 支持存储多条轨道数据 (Flute 1, Flute 2)
-            const confirmMidiImport = () => {
-                if (!managingProject.value) {
-                    openAlertModal("错误", "未找到关联的项目，无法保存数据。");
-                    return;
-                }
-                // 初始化
-                if (!managingProject.value.midiData) managingProject.value.midiData = {};
-
-                let count = 0;
-                const sourceList = midiViewMode.value === 'groups' ? midiGroupData.value : midiImportData.value;
-
-                // 1. 临时存储，用于处理同一个乐器 ID 下的多条数据
-                const tempMap = {};
-
-                sourceList.forEach(row => {
-                    if (!row.selected) return;
-
-                    let targetInstId = row.instrumentId;
-
-                    // 新建乐器逻辑 (保持不变)
-                    if (!targetInstId && row.createNew) {
-                        const finalName = (row.name !== row.originalName)
-                            ? row.name
-                            : (row.suggestedInstName || row.name);
-
-                        const existing = settings.instruments.find(i => i.name === finalName);
-                        if (existing) {
-                            targetInstId = existing.id;
-                        } else {
-                            const newId = generateUniqueId('I');
-                            const newInst = {
-                                id: newId,
-                                name: finalName, // 🟢 修复：使用 finalName 替代 nameToUse
-                                group: row.group || 'Unassigned',
-                                color: generateRandomHexColor()
-                            };
-                            settings.instruments.push(newInst);
-                            targetInstId = newId;
-                        }
-                    }
-
-                    if (targetInstId) {
-                        // 🟢 核心修改: 不直接覆盖，而是收集到临时列表
-                        if (!tempMap[targetInstId]) tempMap[targetInstId] = [];
-
-                        tempMap[targetInstId].push({
-                            name: row.name, // 保留原始名字 (e.g. "Flute 1")
-                            duration: formatSecs(row.quantizedDuration), // 保留特定时长
-                            // 可以加一个 sortIndex 方便后续排序
-                            _sortIndex: row._sortIndex || 0
-                        });
-
-                        count++;
-                    }
-                });
-
-                // 2. 将临时列表写入项目数据 (替换旧数据，或者合并)
-                // 这里采用：覆盖该乐器的旧数据 (以本次导入为准)，并按 MIDI 里的顺序排序
-                for (const [instId, items] of Object.entries(tempMap)) {
-                    // 按原始轨道顺序排序，确保 Flute 1 在 Flute 2 前面
-                    items.sort((a, b) => a._sortIndex - b._sortIndex);
-
-                    // 🟢 关键修改: 保存时保留 order 字段
-                    const cleanItems = items.map(item => ({
-                        name: item.name,
-                        duration: item.duration,
-                        order: item._sortIndex // <--- 新增这行，持久化保存排序权重
-                    }));
-
-                    managingProject.value.midiData[instId] = cleanItems;
-                }
-
-                pushHistory();
-                window.triggerTouchHaptic('Success');
-                showMidiImportModal.value = false;
-                openAlertModal('导入成功', `已导入 ${count} 条轨道数据 (支持分部)。`);
-            };
+            const confirmMidiImport = () => importMidiFeature.confirmMidiImport();
 
             // 1. 周视图 -> 月视图 (双击表头)
             const handleHeaderDoubleTap = (e) => {
@@ -8955,220 +7697,14 @@ if (typeof window !== 'undefined') {
             };
 
             // 2. 辅助函数：解析 CSV 单行 (处理引号包裹的情况)
-            const parseCSVLine = (text) => {
-                const result = [];
-                let cell = '';
-                let inQuotes = false;
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i];
-                    if (char === '"') {
-                        inQuotes = !inQuotes;
-                    } else if (char === ',' && !inQuotes) {
-                        result.push(cell.trim().replace(/^"|"$/g, '')); // 去除包裹的引号
-                        cell = '';
-                    } else {
-                        cell += char;
-                    }
-                }
-                result.push(cell.trim().replace(/^"|"$/g, ''));
-                return result;
-            };
+            const parseCSVLine = (text) => importCsvFeature.parseCSVLine(text);
 
             // CSV 核心解析引擎 (解析双引号、换行符等复杂情况)
-            const parseCSVRobust = (text) => {
-                const rows = []; let currentRow = []; let currentCell = ''; let insideQuote = false;
-                for (let i = 0; i < text.length; i++) {
-                    const char = text[i]; const nextChar = text[i + 1];
-                    if (char === '"') {
-                        if (insideQuote && nextChar === '"') { currentCell += '"'; i++; }
-                        else { insideQuote = !insideQuote; }
-                    }
-                    else if (char === ',' && !insideQuote) { currentRow.push(currentCell.trim()); currentCell = ''; }
-                    else if ((char === '\r' || char === '\n') && !insideQuote) {
-                        if (char === '\r' && nextChar === '\n') i++;
-                        currentRow.push(currentCell.trim()); rows.push(currentRow); currentRow = []; currentCell = '';
-                    } else { currentCell += char; }
-                }
-                if (currentCell || currentRow.length > 0) { currentRow.push(currentCell.trim()); rows.push(currentRow); }
-                return rows;
-            };
+            const parseCSVRobust = (text) => importCsvFeature.parseCSVRobust(text);
 
-            const handleCSVImport = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.readAsText(file, 'UTF-8');
-                reader.onload = (e) => {
-                    const csvText = e.target.result;
+            const handleCSVImport = (event) => importCsvFeature.handleCSVImport(event);
 
-                    // 1. 使用你原有的解析引擎 (parseCSVRobust)
-                    const allRows = parseCSVRobust(csvText);
-                    const headerIndex = allRows.findIndex(row =>
-                        row.some(cell => (cell.includes('PID') || cell.includes('项目') || cell.includes('Project')))
-                    );
-
-                    if (headerIndex === -1) { alert("未找到表头"); return; }
-
-                    // 2. 映射表头索引
-                    const headers = allRows[headerIndex].map(h => h.replace(/^"|"$/g, '').trim());
-                    csvHeadersMap.value = {
-                        project: headers.findIndex(h => h.includes('PID') || h.includes('项目') || h.includes('Project')),
-                        instFamily: headers.findIndex(h => h.includes('Inst Family') || h.includes('乐器分类')),
-                        instName: headers.findIndex(h => h.includes('Inst Name') || h === '乐器' || h.includes('乐器名称')),
-                        playerName: headers.findIndex(h => h.includes('Player Name') || h === 'Player' || h.includes('人员')),
-                        duration: headers.findIndex(h => h.includes('Duration') || h.includes('时长')),
-
-                        // [REC] 录音相关
-                        recDate: headers.findIndex(h => h.includes('[REC] Date') || h.includes('录音日期')),
-                        recStart: headers.findIndex(h => h.includes('[REC] Starting Time') || h.includes('录音开始时间')),
-                        recEnd: headers.findIndex(h => h.includes('[REC] Ending Time') || h.includes('录音结束时间')),
-                        recStudio: headers.findIndex(h => (h.includes('[REC] Studio') && !h.includes('Time')) || h.includes('录音棚')),
-                        recEngineer: headers.findIndex(h => h.includes('[REC] Engineer') || h.includes('录音师')),
-                        recOperator: headers.findIndex(h => h.includes('[REC] Operator') || h.includes('录音助理')),
-                        recAssistant: headers.findIndex(h => h.includes('[REC] Assistant')),
-                        recComments: headers.findIndex(h => h.includes('[REC] Comments') || h.includes('备注')),
-
-                        orchestration: headers.findIndex(h => h.includes('Orchestration') || h.includes('编制')),
-
-                        // 🟢 [新增] [EDT] 编辑日程相关
-                        edtDate: headers.findIndex(h => h.includes('[EDT] Date')),
-                        edtStart: headers.findIndex(h => h.includes('[EDT] Starting Time')),
-                        edtEnd: headers.findIndex(h => h.includes('[EDT] Ending Time')),
-                        edtRest: headers.findIndex(h => h.includes('[EDT] Rest Time')),
-                        edtEngineer: headers.findIndex(h => h.includes('[EDT] Engineer')),
-                        edtStudio: headers.findIndex(h => h.includes('[EDT] Studio')&& !h.includes('Time')),
-
-                        mixEngineer: headers.findIndex(h => h.includes('[MIX] Engineer')),
-                        mixStudio: headers.findIndex(h => h.includes('[MIX] Studio') && !h.includes('Time')),
-                        masEngineer: headers.findIndex(h => h.includes('[MAS] Engineer')),
-                        masStudio: headers.findIndex(h => h.includes('[MAS] Studio') && !h.includes('Time')),
-                    };
-
-                    // 3. 保存原始数据并显示模态框
-                    rawCsvRows.value = allRows.slice(headerIndex + 1).filter(r => {
-                        // 只有当 项目名 或 乐器名/录音师 等关键列有值时，才视为有效行
-                        // 避免导入全是逗号的空行
-                        const hasProject = csvHeadersMap.value.project > -1 && r[csvHeadersMap.value.project]?.trim();
-                        const hasInst = csvHeadersMap.value.instName > -1 && r[csvHeadersMap.value.instName]?.trim();
-                        const hasDate = csvHeadersMap.value.edtDate > -1 && r[csvHeadersMap.value.edtDate]?.trim(); // 针对编辑日程
-                        const hasRecDate = csvHeadersMap.value.recDate > -1 && r[csvHeadersMap.value.recDate]?.trim(); // 针对录音日程
-
-                        // 只要有任意关键信息，就保留
-                        return hasProject || hasInst || hasDate || hasRecDate;
-                    });
-
-                    // 4. 调用刷新预览函数（见第三步）
-                    refreshCsvPreview();
-                    showCsvImportModal.value = true;
-                };
-            };
-
-            const refreshCsvPreview = () => {
-                const rows = rawCsvRows.value;
-                const col = csvHeadersMap.value;
-                const strategy = csvImportConfig.nameStrategy;
-
-                const preparedData = [];
-                const orchGroupsMap = {};
-                const processedIndices = new Set();
-                const instNameCounter = {}; // 计数器 { "ProjectA|Flute": 1 }
-
-                const instTotalCounts = {};
-
-                rows.forEach(row => {
-                    const proj = row[col.project] || '未命名项目';
-                    const rawName = row[col.instName] || '未命名乐器';
-                    const cleanName = rawName.replace(/\s+\d+$/, '').trim();
-                    const key = `${proj}|${cleanName}`;
-                    instTotalCounts[key] = (instTotalCounts[key] || 0) + 1;
-                });
-
-                // 1. 扫描合并组 (Strings/Brass 等) - 保持不变
-                rows.forEach((row, index) => {
-                    const pid = row[col.project] || '未命名项目';
-                    const pPlayer = (row[col.playerName] || '').toLowerCase();
-                    let groupType = '';
-                    if (pPlayer.includes('string')) groupType = 'Strings';
-                    else if (pPlayer.includes('brass')) groupType = 'Brass';
-                    else if (pPlayer.includes('wood') || pPlayer.includes('wind')) groupType = 'Woodwinds';
-                    if (col.playerName > -1 && (!row[col.playerName] || !row[col.playerName].trim())) {
-                        return;
-                    }
-
-                    if (groupType) {
-                        const key = `${pid}|${groupType}`;
-                        if (!orchGroupsMap[key]) {
-                            orchGroupsMap[key] = { firstRow: row, instNames: [], maxDuration: '00:00' };
-                        }
-                        orchGroupsMap[key].instNames.push(row[col.instName] || '');
-                        if ((row[col.duration] || '00:00') > orchGroupsMap[key].maxDuration) {
-                            orchGroupsMap[key].maxDuration = row[col.duration];
-                        }
-                        processedIndices.add(index);
-                    }
-                });
-
-                // 2. 处理单独乐器 (关键修改)
-                rows.forEach((row, index) => {
-                    if (strategy === 'merge' && processedIndices.has(index)) return;
-                    if (col.playerName > -1 && (!row[col.playerName] || !row[col.playerName].trim())) {
-                        return;
-                    }
-
-                    const proj = row[col.project] || '未命名项目';
-                    const rawName = row[col.instName] || '未命名乐器';
-
-                    // A. 提取“纯净”名称 (去掉 CSV 里可能自带的数字，比如把 "Flute 2" 变成 "Flute")
-                    const cleanName = rawName.replace(/\s+\d+$/, '').trim();
-
-                    // B. 计算序号 (仅用于预览显示)
-                    const countKey = `${proj}|${cleanName}`;
-                    instNameCounter[countKey] = (instNameCounter[countKey] || 0) + 1;
-                    const seqNum = instNameCounter[countKey];
-
-                    // C. 生成“显示名称” (带序号)
-                    // 🟢 修改：只有当该项目下该乐器数量 > 1 时，才加序号
-                    let displayName = cleanName;
-                    if ((instTotalCounts[countKey] || 0) > 1) {
-                        displayName = `${cleanName} ${seqNum}`;
-                    }
-
-                    addDataToPrepared(preparedData, row, col, {
-                        displayCsvName: displayName, // 🟢 UI显示用：Flute 1
-                        realCsvName: cleanName       // 🟢 实际导入用：Flute
-                    });
-                });
-
-                // 3. 处理合并组 - 保持不变
-                if (strategy === 'merge') {
-                    Object.keys(orchGroupsMap).forEach(key => {
-                        const [pid, groupName] = key.split('|');
-                        const groupData = orchGroupsMap[key];
-                        addDataToPrepared(preparedData, groupData.firstRow, col, {
-                            forceName: groupName,
-                            realCsvName: groupName,    // 🟢 修复: 强制乐器名也为组名 (创建/关联 "Strings" 乐器)
-                            displayCsvName: groupName, // 🟢 修复: 显示名也同步
-                            injectedOrch: getOrchString(groupData.instNames),
-                            overrideDuration: groupData.maxDuration
-                        });
-                    });
-                }
-
-                csvImportData.value = preparedData;
-            };
-
-// 如果你想让勾选框开关也即时生效（虽然通常是导入时判断），也可以监听它们
-            // 监听全局导入类型开关
-            watch(() => csvImportConfig.importTypes, () => {
-                refreshCsvStatus(); // 开关一变，立刻重算所有行的状态文本
-            }, { deep: true });
-
-            // 🟢 监听策略变化，一旦切换单选框，立即重算列表
-            watch(() => csvImportConfig.nameStrategy, () => {
-                if (rawCsvRows.value.length > 0) {
-                    refreshCsvPreview();
-                }
-            });
+            const refreshCsvPreview = () => importCsvFeature.refreshCsvPreview();
 
             // 🔍 辅助：根据名字查找 ID (仅查找，不创建)
             const findSettingId = (type, name) => {
@@ -11402,6 +9938,77 @@ if (typeof window !== 'undefined') {
                     autoUpdateEfficiency,
                 },
             });
+
+            importCsvFeature = registerImportCsvFeature({
+                refs: {
+                    csvSearchQuery,
+                    csvImportData,
+                    csvImportConfig,
+                    activeImportTab,
+                    collapsedProjects,
+                    rawCsvRows,
+                    csvHeadersMap,
+                    showCsvImportModal,
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    formatSecs,
+                    parseTime,
+                    normalizeDate,
+                    getOrchString,
+                    getNameById,
+                    getOrCreateSettingItem,
+                    calculateEstTime,
+                    generateUniqueId,
+                },
+                actions: {
+                    pushHistory,
+                    openAlertModal,
+                    autoUpdateEfficiency,
+                    autoResizeSchedules,
+                },
+            });
+
+            importMidiFeature = registerImportMidiFeature({
+                refs: {
+                    settings,
+                    managingProject,
+                    showMidiImportModal,
+                    midiImportData,
+                    midiBpm,
+                    midiTempoMap,
+                    midiTimeSigs,
+                    midiViewMode,
+                    midiTimeSig,
+                },
+                utils: {
+                    buildTempoMap,
+                    buildTimeSigMap,
+                    extractNotesFromJZZTrack,
+                    calculateBarQuantizedDuration,
+                    normalizeForMatch,
+                    findGroupSmart,
+                    generateUniqueId,
+                    generateRandomHexColor,
+                    formatSecs,
+                },
+                actions: {
+                    openAlertModal,
+                    pushHistory,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+
+            groupedCsvData = importCsvFeature.groupedCsvData;
+            isAllSelected = importCsvFeature.isAllSelected;
+            availableInstrumentGroups = importMidiFeature.availableInstrumentGroups;
+            midiGroupData = importMidiFeature.midiGroupData;
+            currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
 
             // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
             const calculateGroupStats = (sourceList, filterKey) => {
