@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "verify:modularization": "node tests/modularization-smoke.mjs",
-    "test": "npm run verify:modularization"
+    "verify:split-state": "node tests/rec-edit-split-state.mjs",
+    "test": "npm run verify:modularization && npm run verify:split-state"
   },
   "repository": {
     "type": "git",

@@ -427,6 +427,7 @@ export function registerAuthFeature(context) {
   async function bootSessionData(options = {}) {
     const {
       isSidebarOpen,
+      skipHistory = false,
     } = options;
 
     const { data } = await supabaseService.getSession();
@@ -465,7 +466,9 @@ export function registerAuthFeature(context) {
       }
     }
 
-    pushHistory();
+    if (!skipHistory) {
+      pushHistory();
+    }
   }
 
   return {

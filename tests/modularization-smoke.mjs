@@ -20,9 +20,15 @@ assert.equal(
 );
 
 assert.equal(
+    packageJson.scripts?.['verify:split-state'],
+    'node tests/rec-edit-split-state.mjs',
+    'package.json must expose a reusable verify:split-state script'
+);
+
+assert.equal(
     packageJson.scripts?.test,
-    'npm run verify:modularization',
-    'npm test must delegate to the modularization smoke check'
+    'npm run verify:modularization && npm run verify:split-state',
+    'npm test must run both the modularization smoke check and the split-state regression'
 );
 
 for (const href of [
@@ -49,6 +55,7 @@ const requiredFiles = [
     'app/scripts/utils/id.js',
     'app/scripts/utils/midi.js',
     'app/scripts/utils/csv.js',
+    'app/scripts/utils/split-state.js',
     'app/scripts/services/storage-service.js',
     'app/scripts/services/supabase-service.js',
     'app/scripts/services/device-service.js',

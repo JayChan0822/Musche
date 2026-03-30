@@ -2,6 +2,22 @@ import { parseTime, timeToMinutes, addMinutesToTime as addMinutesToTimeValue, ad
 import { formatDate, formatSecs } from './utils/format.js';
 import { generateUniqueId } from './utils/id.js';
 import {
+    createHiddenSplitState,
+    deactivateItemInView,
+    ensureItemSplitViews,
+    getConnectedSplitItemIds,
+    getItemSplitState,
+    hasVisibleSplitStateInAnyView,
+    isItemVisibleInView,
+    normalizeSplitViewType,
+    peekItemSplitState,
+    peekItemVisibilityInView,
+    rebalanceSplitFamilyDuration,
+    setItemSplitState,
+    syncFamilyTotalDuration,
+    syncLegacySplitFields,
+} from './utils/split-state.js';
+import {
     calculateBarQuantizedDuration,
     buildTempoMap,
     buildTimeSigMap,
@@ -112,12 +128,31 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
             const resizing = ref(null);
             const isSearchFocused = ref(false);
             const localDataVersion = ref(0);
+            const isBootstrappingData = ref(false);
             const showSplitModal = ref(false);
             // --- 🟢 新增：CSV 导入模式控制 ---
             const csvImportMode = ref('tasks'); // 'tasks', 'time', 'orch'
             // --- 🟢 Credit 导出逻辑 ---
             const showCreditModal = ref(false);
             const generatedCreditText = ref('');
+
+            const syncItemForView = (item, viewType = 'musician') => {
+                ensureItemSplitViews(item);
+                syncLegacySplitFields(item, viewType);
+                return item;
+            };
+            const syncItemsForView = (items, viewType = 'musician') => {
+                items.forEach(item => syncItemForView(item, viewType));
+                return items;
+            };
+            const isItemVisibleForView = (item, viewType = 'musician') => {
+                return peekItemVisibilityInView(item, viewType);
+            };
+            const getSplitViewState = (item, viewType = 'musician') => getItemSplitState(item, viewType);
+            const peekSplitViewState = (item, viewType = 'musician') => peekItemSplitState(item, viewType);
+            const getCurrentSplitView = () => normalizeSplitViewType(
+                (trackListData.value && trackListData.value.viewType) || sidebarTab.value || 'musician'
+            );
             const visibleTopDate = ref(new Date()); // 用于存储滚动模式下当前视口顶部的日期
             const monthObserver = ref(null); // 观察器实例
             const monthRefs = ref([]);
@@ -1582,12 +1617,16 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)
             const checkCanDeleteSplit = (item) => {
+                const viewType = getCurrentSplitView();
                 // 1. 检查是否有任何任务的 splitFromId 指向当前任务
                 // 如果有，说明当前任务是"父级" (例如它是 Part 2，且存在 Part 3)，则不能删
-                const directChild = itemPool.value.find(t => t.splitFromId === item.id);
+                const directChild = itemPool.value.find(t => (
+                    isItemVisibleForView(t, viewType) &&
+                    getSplitViewState(t, viewType).splitFromId === item.id
+                ));
 
                 if (directChild) {
-                    const childName = directChild.splitTag || '后续部分';
+                    const childName = getSplitViewState(directChild, viewType).splitTag || '后续部分';
                     openAlertModal(
                         '无法删除',
                         `检测到后续任务 ${childName} 存在。\n\n为了保证时间计算正确，请务必按顺序先删除最后一个 Part，才能逐级归还时间。`
@@ -1603,16 +1642,20 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [新增] 辅助函数：计算某个任务及其所有分身的总时长
             const getFamilyTotalDuration = (targetItem) => {
+                const viewType = getCurrentSplitView();
                 // 1. 找到根节点 ID (如果是子任务，取 splitFromId；如果是根任务，取自身 ID)
-                const rootId = targetItem.splitFromId || targetItem.id;
+                const rootId = getSplitViewState(targetItem, viewType).splitFromId || targetItem.id;
 
                 // 2. 在任务池中找到整个家族 (根节点 + 所有子节点)
                 // 注意：这里只筛选 ID 匹配，不筛选 Session，因为 splitFromId 是跨 Session 唯一的
-                const familyMembers = itemPool.value.filter(i => i.id === rootId || i.splitFromId === rootId);
+                const familyMembers = itemPool.value.filter(i => (
+                    isItemVisibleForView(i, viewType) &&
+                    (i.id === rootId || getSplitViewState(i, viewType).splitFromId === rootId)
+                ));
 
                 // 3. 累加所有成员的 musicDuration
                 const totalSeconds = familyMembers.reduce((sum, item) => {
-                    return sum + parseTime(item.musicDuration || '00:00');
+                    return sum + parseTime(getSplitViewState(item, viewType).musicDuration || '00:00');
                 }, 0);
 
                 return totalSeconds;
@@ -2874,8 +2917,12 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [增强版] 检查是否允许拆分 (自动寻找并提示最后一个 Part)
             const checkCanSplit = (item) => {
+                const viewType = getCurrentSplitView();
                 // 1. 检查是否有直接子节点
-                const directChild = itemPool.value.find(t => t.splitFromId === item.id);
+                const directChild = itemPool.value.find(t => (
+                    isItemVisibleForView(t, viewType) &&
+                    getSplitViewState(t, viewType).splitFromId === item.id
+                ));
 
                 if (directChild) {
                     // 2. 如果有孩子，说明当前不是末端。开始顺藤摸瓜找“孙子”...直到找到最后一代
@@ -2884,7 +2931,10 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     let safeGuard = 0;
 
                     while (safeGuard < 100) {
-                        const nextChild = itemPool.value.find(t => t.splitFromId === lastNode.id);
+                        const nextChild = itemPool.value.find(t => (
+                            isItemVisibleForView(t, viewType) &&
+                            getSplitViewState(t, viewType).splitFromId === lastNode.id
+                        ));
                         if (nextChild) {
                             lastNode = nextChild; // 还有下一代，继续往下找
                         } else {
@@ -2894,7 +2944,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     }
 
                     // 3. 获取末端节点的名称 (优先显示 splitTag，如 "Part 3")
-                    const targetName = lastNode.splitTag || '最后一个部分';
+                    const targetName = getSplitViewState(lastNode, viewType).splitTag || '最后一个部分';
 
                     openAlertModal(
                         '禁止拆分',
@@ -2911,11 +2961,13 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 // 1. 🔍 新增：父级检查
                 if (!checkCanSplit(item)) return;
 
-                const totalMusicStr = item.musicDuration;
+                const viewType = getCurrentSplitView();
+                const totalMusicStr = getSplitViewState(item, viewType).musicDuration;
                 if (!totalMusicStr || totalMusicStr === '00:00') {
                     return openAlertModal('无法拆分', '该曲目没有设置谱面时长。');
                 }
 
+                syncItemForView(item, viewType);
                 splitState.task = item;
                 splitState.totalSec = parseTime(totalMusicStr);
 
@@ -2942,6 +2994,8 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [修复版] 确认拆分 (修复：建立链式父子关系，支持逐级归还)
             const confirmSplitSlider = () => {
+                const viewType = getCurrentSplitView();
+                const hiddenState = createHiddenSplitState();
                 const item = splitState.task;
                 const doneStr = splitState.part1Str;
                 const remainingStr = splitState.part2Str;
@@ -2952,42 +3006,71 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
                 // 1. 智能计算 Part 编号
                 let baseNum = 1;
-                if (item.splitTag) {
-                    const match = String(item.splitTag).match(/Part\s*(\d+)/i);
+                const itemState = getSplitViewState(item, viewType);
+                if (itemState.splitTag) {
+                    const match = String(itemState.splitTag).match(/Part\s*(\d+)/i);
                     if (match && match[1]) baseNum = parseInt(match[1], 10);
                 }
 
                 // A. 更新当前任务 (变为父级)
-                item.musicDuration = doneStr;
-                item.splitTag = `Part ${baseNum}`;
+                setItemSplitState(item, viewType, {
+                    active: true,
+                    musicDuration: doneStr,
+                    estDuration: calculateEstTime(doneStr, item.ratio || 20),
+                    splitTag: `Part ${baseNum}`,
+                });
+                syncLegacySplitFields(item, viewType);
 
                 // B. 创建新任务 (变为子级)
                 const newRatio = item.ratio || 20;
                 const newEst = calculateEstTime(remainingStr, newRatio);
+                const nextSectionIndex = showTrackList.value && trackListData.value.schedules
+                    ? (() => {
+                        const currentIdx = trackListData.value.currentSectionIndex;
+                        const currentSchedule = trackListData.value.schedules[currentIdx];
+                        const nextSchedule = trackListData.value.schedules[currentIdx + 1];
+
+                        if (nextSchedule) return currentIdx + 1;
+                        if (currentSchedule) return currentIdx + 1;
+                        return 0;
+                    })()
+                    : 0;
 
                 const newTask = {
                     id: generateUniqueId('T'),
-
-                    // 🚩 核心修复：始终指向当前 item 为父级，建立 Part 1 -> Part 2 -> Part 3 的链条
-                    // 原代码的 `|| item.splitFromId` 会导致扁平化，跳过中间层级
-                    splitFromId: item.id,
-
-                    splitTag: `Part ${baseNum + 1}`,
                     sessionId: item.sessionId || currentSessionId.value,
                     projectId: item.projectId,
                     instrumentId: item.instrumentId,
                     musicianId: item.musicianId,
-                    musicDuration: remainingStr,
                     ratio: newRatio,
-                    estDuration: newEst,
                     group: item.group || '',
                     recordingInfo: item.recordingInfo ? JSON.parse(JSON.stringify(item.recordingInfo)) : {},
+                    editInfo: item.editInfo ? JSON.parse(JSON.stringify(item.editInfo)) : {},
                     // 🟢【在此处添加修复代码】复制编制和名单
                     orchestration: item.orchestration || '',
-                    roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {}
+                    roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {},
+                    musicDuration: remainingStr,
+                    estDuration: newEst,
+                    sectionIndex: nextSectionIndex,
+                    splitTag: `Part ${baseNum + 1}`,
+                    splitFromId: item.id,
                 };
 
                 ensureItemRecords(newTask);
+                setItemSplitState(newTask, viewType, {
+                    active: true,
+                    splitFromId: item.id,
+                    splitTag: `Part ${baseNum + 1}`,
+                    musicDuration: remainingStr,
+                    estDuration: newEst,
+                    sectionIndex: nextSectionIndex,
+                });
+                setItemSplitState(
+                    newTask,
+                    viewType === 'project' ? 'musician' : 'project',
+                    hiddenState
+                );
+                syncLegacySplitFields(newTask, viewType);
                 itemPool.value.push(newTask);
 
                 // --- C. 自动排期逻辑 ---
@@ -2998,7 +3081,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
                     // 1. 存在下一个日程 -> 直接加入
                     if (nextSchedule) {
-                        newTask.sectionIndex = currentIdx + 1;
+                        setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
                     }
                     // 2. 没有下一个日程 -> 紧接当前日程新建一个
                     else if (currentSchedule) {
@@ -3027,13 +3110,14 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                             sound: 'default'
                         };
                         scheduledTasks.value.push(scheduleEntry);
-                        newTask.sectionIndex = currentIdx + 1;
+                        setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
                         trackListData.value.schedules.push(scheduleEntry);
                         trackListData.value.totalSections++;
                     } else {
-                        newTask.sectionIndex = 0;
+                        setItemSplitState(newTask, viewType, { sectionIndex: 0 });
                     }
 
+                    syncLegacySplitFields(newTask, viewType);
                     trackListData.value.items.push(newTask);
                     autoSortTrackList();
                 }
@@ -3050,7 +3134,8 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 // 1. 🔍 新增：父级检查
                 if (!checkCanSplit(item)) return;
 
-                const totalMusicStr = item.musicDuration;
+                const viewType = getCurrentSplitView();
+                const totalMusicStr = getSplitViewState(item, viewType).musicDuration;
                 if (!totalMusicStr || totalMusicStr === '00:00') {
                     return openAlertModal('无法拆分', '该曲目没有设置谱面时长。');
                 }
@@ -3060,6 +3145,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     '',
                     '请输入 剩余 谱面时长 (例如 01:30)',
                     (remainingStr) => {
+                        const hiddenState = createHiddenSplitState();
                         // ... (原有的确认逻辑保持不变)
                         if (!/^\d{1,2}:\d{2}$/.test(remainingStr)) {
                             return openAlertModal('格式错误', '请输入正确的时间格式 (MM:SS)');
@@ -3084,35 +3170,56 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                         const doneStr = formatSecs(doneSec);
 
                         let baseNum = 1;
-                        if (item.splitTag) {
-                            const match = String(item.splitTag).match(/Part\s*(\d+)/i);
+                        const itemState = getSplitViewState(item, viewType);
+                        if (itemState.splitTag) {
+                            const match = String(itemState.splitTag).match(/Part\s*(\d+)/i);
                             if (match && match[1]) baseNum = parseInt(match[1], 10);
                         }
 
-                        item.musicDuration = doneStr;
-                        item.splitTag = `Part ${baseNum}`;
+                        setItemSplitState(item, viewType, {
+                            active: true,
+                            musicDuration: doneStr,
+                            estDuration: calculateEstTime(doneStr, item.ratio || 20),
+                            splitTag: `Part ${baseNum}`,
+                        });
+                        syncLegacySplitFields(item, viewType);
 
                         const newRatio = item.ratio || 20;
                         const newEst = calculateEstTime(remainingStr, newRatio);
 
                         const newTask = {
                             id: generateUniqueId('T'),
-                            splitFromId: item.id, // 链式指向
-                            splitTag: `Part ${baseNum + 1}`,
                             sessionId: item.sessionId || currentSessionId.value,
                             projectId: item.projectId,
                             instrumentId: item.instrumentId,
                             musicianId: item.musicianId,
-                            musicDuration: remainingStr,
                             ratio: newRatio,
-                            estDuration: newEst,
                             group: item.group || '',
                             recordingInfo: item.recordingInfo ? JSON.parse(JSON.stringify(item.recordingInfo)) : {},
+                            editInfo: item.editInfo ? JSON.parse(JSON.stringify(item.editInfo)) : {},
                             // 🟢【在此处添加修复代码】
                             orchestration: item.orchestration || '',
-                            roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {}
+                            roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {},
+                            musicDuration: remainingStr,
+                            estDuration: newEst,
+                            splitTag: `Part ${baseNum + 1}`,
+                            splitFromId: item.id,
                         };
                         ensureItemRecords(newTask);
+                        setItemSplitState(newTask, viewType, {
+                            active: true,
+                            splitFromId: item.id,
+                            splitTag: `Part ${baseNum + 1}`,
+                            musicDuration: remainingStr,
+                            estDuration: newEst,
+                            sectionIndex: 0,
+                        });
+                        setItemSplitState(
+                            newTask,
+                            viewType === 'project' ? 'musician' : 'project',
+                            hiddenState
+                        );
+                        syncLegacySplitFields(newTask, viewType);
                         itemPool.value.push(newTask);
 
                         // 自动排期逻辑
@@ -3121,7 +3228,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                             const currentSchedule = trackListData.value.schedules[currentIdx];
                             const nextSchedule = trackListData.value.schedules[currentIdx + 1];
                             if (nextSchedule) {
-                                newTask.sectionIndex = currentIdx + 1;
+                                setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
                             } else if (currentSchedule) {
                                 const startMins = timeToMinutes(currentSchedule.startTime);
                                 const durMins = parseTime(currentSchedule.estDuration) / 60;
@@ -3144,12 +3251,13 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                                     musicDuration: newTask.musicDuration
                                 };
                                 scheduledTasks.value.push(scheduleEntry);
-                                newTask.sectionIndex = currentIdx + 1;
+                                setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
                                 trackListData.value.schedules.push(scheduleEntry);
                                 trackListData.value.totalSections++;
                             } else {
-                                newTask.sectionIndex = 0;
+                                setItemSplitState(newTask, viewType, { sectionIndex: 0 });
                             }
+                            syncLegacySplitFields(newTask, viewType);
                             trackListData.value.items.push(newTask);
                             autoSortTrackList();
                         }
@@ -3164,31 +3272,42 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [重写] 归还时间 (无限链式版：逐级归还 + 标签智能清理)
             const restoreSplitTime = (taskInput) => {
+                const viewType = getCurrentSplitView();
                 // 1. 获取最新的 Live 对象 (因为传入的可能是弹窗里的副本)
                 const taskToDelete = itemPool.value.find(i => i.id === taskInput.id);
 
                 // 如果找不到父级，说明它是根节点，直接返回
-                if (!taskToDelete || !taskToDelete.splitFromId) return;
+                if (!taskToDelete || !getSplitViewState(taskToDelete, viewType).splitFromId) return false;
 
                 // 2. 找到直接父级 (上一环)
-                const parent = itemPool.value.find(i => i.id === taskToDelete.splitFromId);
-                if (!parent) return;
+                const parent = itemPool.value.find(i => i.id === getSplitViewState(taskToDelete, viewType).splitFromId);
+                if (!parent) return false;
 
                 // 3. 执行时间归还 (合并时长)
-                const parentSec = parseTime(parent.musicDuration);
-                const childSec = parseTime(taskToDelete.musicDuration);
+                const parentState = getSplitViewState(parent, viewType);
+                const childState = getSplitViewState(taskToDelete, viewType);
+                const parentSec = parseTime(parentState.musicDuration);
+                const childSec = parseTime(childState.musicDuration);
 
                 if (parentSec > 0 && childSec > 0) {
                     const newTotal = formatSecs(parentSec + childSec);
-                    parent.musicDuration = newTotal;
+                    setItemSplitState(parent, viewType, {
+                        musicDuration: newTotal,
+                        estDuration: calculateEstTime(newTotal, parent.ratio || 20),
+                    });
+                    syncLegacySplitFields(parent, viewType);
 
                     // 🟢 4. 链条修补 (把孙子过继给爷爷)
                     // 如果我删的是 Part 2，且 Part 2 后面还有 Part 3
                     // 我们必须把 Part 3 的父亲改成 Part 1 (即当前的 parent)
-                    const orphans = itemPool.value.filter(i => i.splitFromId === taskToDelete.id);
+                    const orphans = itemPool.value.filter(i => (
+                        isItemVisibleForView(i, viewType) &&
+                        getSplitViewState(i, viewType).splitFromId === taskToDelete.id
+                    ));
                     if (orphans.length > 0) {
                         orphans.forEach(orphan => {
-                            orphan.splitFromId = parent.id;
+                            setItemSplitState(orphan, viewType, { splitFromId: parent.id });
+                            syncLegacySplitFields(orphan, viewType);
                         });
                     }
 
@@ -3196,26 +3315,28 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     // 规则：只有当父级是【绝对根节点】且【没有其他孩子】时，才清除标签。
                     // 如果父级本身也是个 Part (有 splitFromId)，说明我们在合并中间层级，父级标签必须保留。
 
-                    const isParentAlsoChild = !!parent.splitFromId;
+                    const isParentAlsoChild = !!getSplitViewState(parent, viewType).splitFromId;
 
                     if (isParentAlsoChild) {
                         // === 情况 A: 父级是中间节点 (如 Part 2) ===
                         // 合并后它还是 Part 2，只是时间变长了，标签保留
                         openAlertModal(
                             '时间已归还',
-                            `当前任务已逐级合并回上一层 (${parent.splitTag})。`
+                            `当前任务已逐级合并回上一层 (${getSplitViewState(parent, viewType).splitTag})。`
                         );
                     } else {
                         // === 情况 B: 父级是根节点 (Part 1 / Source) ===
                         // 检查根节点名下是否还有其他分身
                         const hasChildren = itemPool.value.some(i =>
                             i.id !== taskToDelete.id && // 排除当前正在删的
-                            i.splitFromId === parent.id // 检查是否还有其他孩子
+                            isItemVisibleForView(i, viewType) &&
+                            getSplitViewState(i, viewType).splitFromId === parent.id // 检查是否还有其他孩子
                         );
 
                         if (!hasChildren) {
                             // 真的没孩子了，彻底自由，清除 Part 1 标签
-                            delete parent.splitTag;
+                            setItemSplitState(parent, viewType, { splitTag: '' });
+                            syncLegacySplitFields(parent, viewType);
                             openAlertModal(
                                 '合并完成',
                                 `拆分任务已全部合并回原任务。\n现有时长: ${newTotal}`
@@ -3231,7 +3352,14 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     }
 
                     window.triggerTouchHaptic('Success');
+                    deactivateItemInView(taskToDelete, viewType);
+                    if (hasVisibleSplitStateInAnyView(taskToDelete)) {
+                        syncLegacySplitFields(taskToDelete, viewType === 'project' ? 'musician' : 'project');
+                        return false;
+                    }
+                    return true;
                 }
+                return false;
             };
 
             // --- 🟢 新增：自定义颜色选择器逻辑 ---
@@ -5540,10 +5668,12 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 if (!checkCanDeleteSplit(itemToDelete)) return;
 
                 // 🟢 2. 尝试归还时间
-                restoreSplitTime(itemToDelete);
+                const shouldRemoveTask = restoreSplitTime(itemToDelete);
 
                 // 3. 从全局任务池中删除
-                itemPool.value = itemPool.value.filter(i => i.id !== itemToDelete.id);
+                if (shouldRemoveTask) {
+                    itemPool.value = itemPool.value.filter(i => i.id !== itemToDelete.id);
+                }
 
                 // 4. 从当前弹窗列表中删除
                 trackListData.value.items = trackListData.value.items.filter(i => i.id !== itemToDelete.id);
@@ -6706,16 +6836,29 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                         let list = [];
                         // 如果是按项目查看，就筛选同项目的任务
                         if (viewType === 'project') {
-                            list = itemPool.value.filter(i => i.projectId === trackListData.value.taskRef.projectId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.projectId === trackListData.value.taskRef.projectId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         }
                         // 如果是按乐器查看
                         else if (viewType === 'instrument') {
-                            list = itemPool.value.filter(i => i.instrumentId === trackListData.value.taskRef.instrumentId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.instrumentId === trackListData.value.taskRef.instrumentId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         }
                         // 默认按演奏员查看
                         else {
-                            list = itemPool.value.filter(i => i.musicianId === trackListData.value.taskRef.musicianId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.musicianId === trackListData.value.taskRef.musicianId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         }
+                        syncItemsForView(list, viewType);
 
                         // 2. 🟢 关键修复: 使用完整的排序逻辑 (先分段，后时间)
                         list.sort((a, b) => {
@@ -6756,12 +6899,25 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
                         let list = [];
                         if (viewType === 'project') {
-                            list = itemPool.value.filter(i => i.projectId === trackListData.value.taskRef.projectId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.projectId === trackListData.value.taskRef.projectId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         } else if (viewType === 'instrument') {
-                            list = itemPool.value.filter(i => i.instrumentId === trackListData.value.taskRef.instrumentId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.instrumentId === trackListData.value.taskRef.instrumentId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         } else {
-                            list = itemPool.value.filter(i => i.musicianId === trackListData.value.taskRef.musicianId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                            list = itemPool.value.filter(i =>
+                                i.musicianId === trackListData.value.taskRef.musicianId &&
+                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                                isItemVisibleForView(i, viewType)
+                            );
                         }
+                        syncItemsForView(list, viewType);
 
                         // 🟢 关键修复: 同样的排序逻辑
                         list.sort((a, b) => {
@@ -6939,9 +7095,16 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 // ---------------------------------------------------------
                 // 🟢 核心数据加载逻辑开始
                 // ---------------------------------------------------------
-                await authFeature.bootSessionData({
-                    isSidebarOpen,
-                });
+                isBootstrappingData.value = true;
+                try {
+                    await authFeature.bootSessionData({
+                        isSidebarOpen,
+                        skipHistory: true,
+                    });
+                } finally {
+                    await nextTick();
+                    isBootstrappingData.value = false;
+                }
             });
 
             onUnmounted(() => {
@@ -6952,6 +7115,8 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
             });
 
             watch([itemPool, scheduledTasks, settings, currentSessionId], () => {
+                if (isBootstrappingData.value) return;
+
                 if (user.value) {
                     // 只要数据一变，立刻变橙色
                     if (saveStatus.value !== 'saving') {
@@ -7073,19 +7238,58 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
             };
 
             // 🟢 [新增] 同步家族编制信息
-            const syncFamilyOrchestration = (item, newOrch) => {
-                // 1. 找到根 ID (如果自己是子任务，取 splitFromId；否则取自己的 ID)
-                const rootId = item.splitFromId || item.id;
+            const getSplitFamilyMembers = (item) => {
+                const connectedIds = getConnectedSplitItemIds(itemPool.value, item.id);
+                return itemPool.value.filter(member => connectedIds.has(member.id));
+            };
 
-                // 2. 找到所有家族成员 (根节点 + 所有子节点)
-                // 注意：只匹配 ID，不匹配 Session，因为编制信息应该是跨 Session 统一的
-                const familyMembers = itemPool.value.filter(i => i.id === rootId || i.splitFromId === rootId);
+            const syncFamilyLegacyFields = (item, viewType) => {
+                getSplitFamilyMembers(item).forEach(member => syncLegacySplitFields(member, viewType));
+            };
+
+            const syncFamilySharedIdentity = (item, fields) => {
+                const familyMembers = getSplitFamilyMembers(item);
+                familyMembers.forEach(member => {
+                    if (fields.projectId !== undefined) member.projectId = fields.projectId;
+                    if (fields.instrumentId !== undefined) member.instrumentId = fields.instrumentId;
+                    if (fields.musicianId !== undefined) member.musicianId = fields.musicianId;
+                    if (fields.group !== undefined) member.group = fields.group;
+                });
+
+                const familyIds = new Set(familyMembers.map(member => member.id));
+                scheduledTasks.value.forEach(task => {
+                    if (!familyIds.has(task.templateId)) return;
+                    if (fields.projectId !== undefined) task.projectId = fields.projectId;
+                    if (fields.instrumentId !== undefined) task.instrumentId = fields.instrumentId;
+                    if (fields.musicianId !== undefined) task.musicianId = fields.musicianId;
+                });
+            };
+
+            const syncFamilyOrchestration = (item, newOrch) => {
+                const familyMembers = getSplitFamilyMembers(item);
 
                 // 3. 批量更新
                 familyMembers.forEach(member => {
                     if (member.orchestration !== newOrch) {
                         member.orchestration = newOrch;
                     }
+                });
+            };
+
+            const syncScheduledDurationsFromFamily = (item) => {
+                const familyMembers = getSplitFamilyMembers(item);
+                const familyById = new Map(familyMembers.map(member => [member.id, member]));
+
+                scheduledTasks.value.forEach(task => {
+                    const template = familyById.get(task.templateId);
+                    if (!template) return;
+
+                    const taskViewType = task.projectId ? 'project' : 'musician';
+                    const taskState = peekSplitViewState(template, taskViewType);
+
+                    task.musicDuration = taskState.musicDuration || template.musicDuration;
+                    task.estDuration = taskState.estDuration || template.estDuration;
+                    task.ratio = template.ratio;
                 });
             };
 
@@ -8468,7 +8672,12 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                         // ... (原有的删除逻辑) ...
                         selectedPoolIds.value.forEach(id => {
                             const task = itemPool.value.find(i => i.id === id);
-                            if (task) restoreSplitTime(task);
+                            if (task) {
+                                const shouldRemoveTask = restoreSplitTime(task);
+                                if (!shouldRemoveTask) {
+                                    selectedPoolIds.value.delete(id);
+                                }
+                            }
                         });
                         scheduledTasks.value = scheduledTasks.value.filter(t => !selectedPoolIds.value.has(t.templateId));
                         itemPool.value = itemPool.value.filter(i => !selectedPoolIds.value.has(i.id));
@@ -8575,7 +8784,9 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
                     // 3. 筛选任务池 (Pool Items)
                     // 根据 blockType 决定筛选条件
+                    const viewType = normalizeSplitViewType(blockType);
                     const poolItems = itemPool.value.filter(i => {
+                        if (!isItemVisibleForView(i, viewType)) return false;
                         if ((i.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
                         if (blockType === 'musician') return i.musicianId === filterId;
                         if (blockType === 'project') return i.projectId === filterId;
@@ -8586,6 +8797,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     // 初始化分段
                     poolItems.forEach(i => {
                         ensureItemRecords(i);
+                        syncItemForView(i, viewType);
                         if (i.sectionIndex === undefined) i.sectionIndex = 0;
                         if (i.sectionIndex >= totalSections) i.sectionIndex = totalSections - 1;
                     });
@@ -8877,6 +9089,8 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [修改] ensureItemRecords: 修复“自动跟随”失效的问题
             const ensureItemRecords = (item) => {
+                ensureItemSplitViews(item);
+
                 // 1. 初始化时间记录 records (保持不变)
                 if (!item.records) {
                     item.records = { musician: {}, project: {}, instrument: {} };
@@ -9201,6 +9415,10 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
             };
             const openEditModal = (i, s) => {
                 editingItem.value = JSON.parse(JSON.stringify(i));
+                ensureItemSplitViews(editingItem.value);
+                if (s === 'pool') {
+                    syncLegacySplitFields(editingItem.value, sidebarTab.value);
+                }
 
                 // 🟢 关键修改：如果倍率为空或0，默认设为 getDefaultRatio
                 if (!editingItem.value.ratio || editingItem.value.ratio <= 0) {
@@ -9220,30 +9438,135 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     editingItem.value.ratio = getDefaultRatio(editingItem.value.musicianId);
                 }
 
+                const editViewType = normalizeSplitViewType(
+                    editingSource.value === 'pool'
+                        ? sidebarTab.value
+                        : ((trackListData.value && trackListData.value.viewType) || sidebarTab.value)
+                );
+
                 // 核心修复：确保乐曲时长和倍数更新后，估算时长也会更新
                 editingItem.value.estDuration = calculateEstTime(editingItem.value.musicDuration, editingItem.value.ratio);
-                // 🟢【新增】保存时，自动同步编制信息给所有关联的 Part
-                syncFamilyOrchestration(editingItem.value, editingItem.value.orchestration);
+                setItemSplitState(editingItem.value, editViewType, {
+                    active: true,
+                    splitFromId: getSplitViewState(editingItem.value, editViewType).splitFromId,
+                    splitTag: editingItem.value.splitTag || '',
+                    musicDuration: editingItem.value.musicDuration,
+                    estDuration: editingItem.value.estDuration,
+                    sectionIndex: editingItem.value.sectionIndex || 0,
+                });
+                syncLegacySplitFields(editingItem.value, editViewType);
+                const estimateDurationForItem = (item, musicDuration) => calculateEstTime(
+                    musicDuration,
+                    item.ratio || getDefaultRatio(item.musicianId)
+                );
 
                 if (editingSource.value === 'pool') {
                     const idx = itemPool.value.findIndex(x => x.id === editingItem.value.id);
                     if (idx !== -1) {
+                        const previousItem = itemPool.value[idx];
+                        const previousSnapshot = JSON.parse(JSON.stringify(previousItem));
+                        const sharedIdentityChanged = (
+                            previousItem.projectId !== editingItem.value.projectId ||
+                            previousItem.instrumentId !== editingItem.value.instrumentId ||
+                            previousItem.musicianId !== editingItem.value.musicianId ||
+                            previousItem.group !== editingItem.value.group
+                        );
+                        const orchestrationChanged = previousItem.orchestration !== editingItem.value.orchestration;
+
                         // 更新任务模板
                         itemPool.value[idx] = editingItem.value;
+                        const savedItem = itemPool.value[idx];
+                        const rebalanceResult = rebalanceSplitFamilyDuration(
+                            itemPool.value,
+                            savedItem.id,
+                            editViewType,
+                            savedItem.id,
+                            editingItem.value.musicDuration,
+                            estimateDurationForItem
+                        );
+                        if (!rebalanceResult.ok) {
+                            itemPool.value[idx] = previousSnapshot;
+                            openAlertModal(
+                                '超过总时长',
+                                `当前拆分任务的总时长固定为 ${rebalanceResult.totalMusicDuration}，不能设置得更长。`
+                            );
+                            return;
+                        }
+                        syncFamilyLegacyFields(savedItem, editViewType);
+                        if (sharedIdentityChanged) {
+                            syncFamilySharedIdentity(savedItem, {
+                                projectId: editingItem.value.projectId,
+                                instrumentId: editingItem.value.instrumentId,
+                                musicianId: editingItem.value.musicianId,
+                                group: editingItem.value.group,
+                            });
+                        }
+                        // 🟢【新增】保存时，自动同步编制信息给所有关联的 Part
+                        if (orchestrationChanged) {
+                            syncFamilyOrchestration(savedItem, editingItem.value.orchestration);
+                        }
+                        syncFamilyTotalDuration(itemPool.value, savedItem.id, editViewType, estimateDurationForItem);
+                        syncScheduledDurationsFromFamily(savedItem);
                         // 如果是模板，同时更新所有已排期的实例
                         scheduledTasks.value.filter(st => st.templateId === editingItem.value.id).forEach(st => {
-                            st.projectId = editingItem.value.projectId;
-                            st.instrumentId = editingItem.value.instrumentId;
-                            st.musicianId = editingItem.value.musicianId;
                             st.musicDuration = editingItem.value.musicDuration;
                             st.ratio = editingItem.value.ratio;
                             st.estDuration = editingItem.value.estDuration;
+                            if (sharedIdentityChanged) {
+                                if (st.projectId) st.projectId = editingItem.value.projectId;
+                                if (st.instrumentId) st.instrumentId = editingItem.value.instrumentId;
+                                if (st.musicianId) st.musicianId = editingItem.value.musicianId;
+                            }
                         });
                     }
                 } else {
                     const idx = scheduledTasks.value.findIndex(x => x.scheduleId === editingItem.value.scheduleId);
+                    const previousScheduleSnapshot = idx !== -1
+                        ? JSON.parse(JSON.stringify(scheduledTasks.value[idx]))
+                        : null;
                     if (idx !== -1) {
                         scheduledTasks.value[idx] = editingItem.value;
+                    }
+                    if (editingItem.value.templateId) {
+                        const poolIdx = itemPool.value.findIndex(x => x.id === editingItem.value.templateId);
+                        if (poolIdx !== -1) {
+                            const poolItem = itemPool.value[poolIdx];
+                            const previousPoolSnapshot = JSON.parse(JSON.stringify(poolItem));
+                            const poolState = getSplitViewState(poolItem, editViewType);
+                            setItemSplitState(poolItem, editViewType, {
+                                active: true,
+                                splitFromId: poolState.splitFromId,
+                                splitTag: poolState.splitTag || '',
+                                musicDuration: editingItem.value.musicDuration,
+                                estDuration: estimateDurationForItem(poolItem, editingItem.value.musicDuration),
+                                sectionIndex: poolState.sectionIndex || 0,
+                            });
+                            syncLegacySplitFields(poolItem, editViewType);
+                            const rebalanceResult = rebalanceSplitFamilyDuration(
+                                itemPool.value,
+                                poolItem.id,
+                                editViewType,
+                                poolItem.id,
+                                editingItem.value.musicDuration,
+                                estimateDurationForItem
+                            );
+                            if (!rebalanceResult.ok) {
+                                itemPool.value[poolIdx] = previousPoolSnapshot;
+                                if (idx !== -1 && previousScheduleSnapshot) {
+                                    scheduledTasks.value[idx] = previousScheduleSnapshot;
+                                }
+                                openAlertModal(
+                                    '超过总时长',
+                                    `当前拆分任务的总时长固定为 ${rebalanceResult.totalMusicDuration}，不能设置得更长。`
+                                );
+                                return;
+                            }
+                            syncFamilyLegacyFields(poolItem, editViewType);
+                            syncFamilyTotalDuration(itemPool.value, poolItem.id, editViewType, estimateDurationForItem);
+                            syncScheduledDurationsFromFamily(poolItem);
+                        }
+                    }
+                    if (idx !== -1) {
                         updateTaskNotification(scheduledTasks.value[idx]);
                     }
                 }
@@ -9273,11 +9596,13 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     if (!checkCanDeleteSplit(editingItem.value)) return;
 
                     // 🟢 核心修复: 在物理删除前，尝试将时间归还给父任务 (Part 1)
-                    restoreSplitTime(editingItem.value);
+                    const shouldRemoveTask = restoreSplitTime(editingItem.value);
 
                     // 删除任务池逻辑
                     scheduledTasks.value = scheduledTasks.value.filter(t => t.templateId !== editingItem.value.id);
-                    itemPool.value = itemPool.value.filter(i => i.id !== editingItem.value.id);
+                    if (shouldRemoveTask) {
+                        itemPool.value = itemPool.value.filter(i => i.id !== editingItem.value.id);
+                    }
                     cleanupEmptySchedules();
                 } else {
                     // === 删除日程表逻辑 (保持不变) ===
@@ -9459,16 +9784,28 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 
             // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
             const calculateGroupStats = (sourceList, filterKey) => {
-                const currentSessionItems = itemPool.value.filter(t =>
-                    (t.sessionId || 'S_DEFAULT') === currentSessionId.value
-                );
-
                 const recordTypeMap = {
                     'musicianId': 'musician',
                     'projectId': 'project',
                     'instrumentId': 'instrument'
                 };
                 const currentRecordType = recordTypeMap[filterKey] || 'musician';
+                const currentSessionItems = itemPool.value
+                    .filter(t =>
+                        (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+                        isItemVisibleForView(t, currentRecordType)
+                    )
+                    .map(t => {
+                        const splitState = peekSplitViewState(t, currentRecordType);
+                        return {
+                            ...t,
+                            splitFromId: splitState.splitFromId,
+                            splitTag: splitState.splitTag,
+                            musicDuration: splitState.musicDuration,
+                            estDuration: splitState.estDuration,
+                            sectionIndex: splitState.sectionIndex,
+                        };
+                    });
 
                 // --- 1. 准备搜索条件 ---
                 const rawQuery = globalSearchQuery.value.trim().toLowerCase();
@@ -9555,7 +9892,6 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     let groupTotalMusic = 0;
 
                     poolItems.forEach(item => {
-                        ensureItemRecords(item);
                         const rec = item.records ? item.records[currentRecordType] : null;
                         if (rec && rec.actualDuration && item.musicDuration) {
                             const act = parseTime(rec.actualDuration);
@@ -9585,8 +9921,6 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                     let effectiveCount = 0;
 
                     const displayItems = poolItems.map(rawItem => {
-                        ensureItemRecords(rawItem);
-
                         const rec = rawItem.records ? rawItem.records[currentRecordType] : null;
                         const actualDur = (rec && rec.actualDuration) ? rec.actualDuration : null;
 
