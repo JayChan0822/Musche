@@ -3,7 +3,8 @@ name: Supabase Keepalive
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * 3'
+    # GitHub Actions only supports standard cron, so this approximates every 3 days by day-of-month.
+    - cron: '0 3 */3 * *'
 
 permissions:
   contents: read
