@@ -9,13 +9,13 @@ const rootDir = resolve(__dirname, '..');
 const scriptPath = resolve(rootDir, 'scripts/supabase-keepalive.mjs');
 const workflowPath = resolve(rootDir, '.github/workflows/supabase-keepalive.yml');
 
-test('keepalive workflow schedules a weekly run and executes the keepalive script', () => {
+test('keepalive workflow schedules a near-every-three-days run and executes the keepalive script', () => {
   assert.ok(existsSync(workflowPath), 'keepalive workflow should exist');
 
   const workflow = readFileSync(workflowPath, 'utf8');
 
   assert.match(workflow, /workflow_dispatch:/, 'workflow should support manual dispatch');
-  assert.match(workflow, /cron:\s*["']0 3 \* \* 3["']/, 'workflow should run every Wednesday at 03:00 UTC');
+  assert.match(workflow, /cron:\s*["']0 3 \*\/3 \* \*["']/, 'workflow should run at 03:00 UTC on every third day-of-month');
   assert.match(workflow, /node scripts\/supabase-keepalive\.mjs/, 'workflow should run the keepalive script');
 });
 
