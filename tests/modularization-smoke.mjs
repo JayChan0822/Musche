@@ -26,9 +26,15 @@ assert.equal(
 );
 
 assert.equal(
+    packageJson.scripts?.['verify:supabase-keepalive'],
+    'node --test tests/supabase-keepalive.test.mjs',
+    'package.json must expose a reusable verify:supabase-keepalive script'
+);
+
+assert.equal(
     packageJson.scripts?.test,
-    'npm run verify:modularization && npm run verify:split-state',
-    'npm test must run both the modularization smoke check and the split-state regression'
+    'npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive',
+    'npm test must run the modularization smoke check, split-state regression, and keepalive verification'
 );
 
 for (const href of [
@@ -64,7 +70,8 @@ const requiredFiles = [
     'app/scripts/features/import-csv.js',
     'app/scripts/features/import-midi.js',
     'app/scripts/features/auth.js',
-    'app/scripts/features/mobile-ui.js'
+    'app/scripts/features/mobile-ui.js',
+    'scripts/supabase-keepalive.mjs'
 ];
 
 for (const relativePath of requiredFiles) {

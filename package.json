@@ -5,7 +5,8 @@
   "scripts": {
     "verify:modularization": "node tests/modularization-smoke.mjs",
     "verify:split-state": "node tests/rec-edit-split-state.mjs",
-    "test": "npm run verify:modularization && npm run verify:split-state"
+    "verify:supabase-keepalive": "node --test tests/supabase-keepalive.test.mjs",
+    "test": "npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive"
   },
   "repository": {
     "type": "git",
