@@ -2612,6 +2612,29 @@
                     </div>
                 </div>
 
+                <!-- 任务类型 REC / EDT -->
+                <div class="bg-black/[0.03] dark:bg-white/[0.04] rounded-xl p-3.5">
+                    <div class="text-xs font-bold opacity-60 mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-tags"></i> 任务类型
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="toggleFilterItem('types', 'REC')"
+                                class="flex-1 py-2 rounded-lg text-sm font-bold transition border flex items-center justify-center gap-2"
+                                :class="exportFilter.types.has('REC')
+                                    ? 'bg-teal-500 text-white border-teal-500'
+                                    : 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10 opacity-40 hover:opacity-70'">
+                            <i class="fa-solid fa-microphone-lines"></i> REC 录音
+                        </button>
+                        <button @click="toggleFilterItem('types', 'EDT')"
+                                class="flex-1 py-2 rounded-lg text-sm font-bold transition border flex items-center justify-center gap-2"
+                                :class="exportFilter.types.has('EDT')
+                                    ? 'bg-orange-500 text-white border-orange-500'
+                                    : 'bg-white dark:bg-white/10 border-black/10 dark:border-white/10 opacity-40 hover:opacity-70'">
+                            <i class="fa-solid fa-sliders"></i> EDT 编辑
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 项目筛选 -->
                 <div class="bg-black/[0.03] dark:bg-white/[0.04] rounded-xl p-3.5">
                     <div class="flex items-center justify-between mb-2.5">
