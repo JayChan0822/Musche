@@ -28,7 +28,15 @@
     "@capacitor/core": "^7.4.4",
     "@capacitor/haptics": "^7.0.2",
     "@capacitor/ios": "^7.4.4",
-    "@capacitor/local-notifications": "^7.0.3"
+    "@capacitor/local-notifications": "^7.0.3",
+    "@supabase/supabase-js": "^2.105.4",
+    "cropperjs": "^2.1.1",
+    "driver.js": "^1.4.0",
+    "jzz": "^1.9.6",
+    "jzz-midi-smf": "^1.9.9",
+    "pinyin-pro": "^3.28.1",
+    "vue": "^3.5.34",
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",

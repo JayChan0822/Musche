@@ -1,5 +1,7 @@
-export function createSupabaseService({ url, key, supabase = window.supabase } = {}) {
-  const client = supabase.createClient(url, key);
+import { createClient } from '@supabase/supabase-js';
+
+export function createSupabaseService({ url, key } = {}) {
+  const client = createClient(url, key);
 
   return {
     client,

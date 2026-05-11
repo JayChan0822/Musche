@@ -29,6 +29,14 @@ import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
 import { createStorageService } from './services/storage-service.js';
 import { createSupabaseService } from './services/supabase-service.js';
 import { createDeviceService } from './services/device-service.js';
+import { createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick } from 'vue';
+import { match as pinyinMatch } from 'pinyin-pro';
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
+import JZZ from 'jzz';
+import 'jzz-midi-smf';
+import XLSX from 'xlsx-js-style';
+import Cropper from 'cropperjs';
 import { registerScheduleFeature } from './features/schedule.js';
 import { registerSettingsFeature } from './features/settings.js';
 import { registerImportCsvFeature } from './features/import-csv.js';
@@ -37,11 +45,12 @@ import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
-
-    const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
     const deviceService = createDeviceService();
+    window.JZZ = JZZ;
+    window.XLSX = XLSX;
+    window.Cropper = Cropper;
     let scheduleFeature;
     let settingsFeature;
     let importCsvFeature;
@@ -2012,8 +2021,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 // 2. 去空格包含 (匹配英文名如 "Yi Li" -> "yili")
                 if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
                 // 3. 拼音匹配
-                if (window.pinyinPro && window.pinyinPro.match) {
-                    return !!window.pinyinPro.match(text, keyword, { continuous: true });
+                if (pinyinMatch) {
+                    return !!pinyinMatch(text, keyword, { continuous: true });
                 }
                 return false;
             };
@@ -2394,8 +2403,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     const lowerText = text.toLowerCase();
                     if (lowerText.includes(keyword)) return true;
                     if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
-                    if (window.pinyinPro && window.pinyinPro.match) {
-                        return !!window.pinyinPro.match(text, keyword, { continuous: true });
+                    if (pinyinMatch) {
+                        return !!pinyinMatch(text, keyword, { continuous: true });
                     }
                     return false;
                 };
@@ -2856,7 +2865,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // ----------------------------------------------------------------
             // 🟢 新增: 3. 初始化 Driver 实例 (空配置)
             // ----------------------------------------------------------------
-            const driverObj = window.driver.js.driver({
+            const driverObj = driver({
                 showProgress: true,
                 animate: true,
                 allowClose: true,
@@ -4179,7 +4188,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 };
 
                 // --- D. 滚动到位 ---
-                Vue.nextTick(() => {
+                nextTick(() => {
                     scrollToValue(pickerMinRef.value, m);
                     scrollToValue(pickerSecRef.value, s);
                 });
@@ -5417,7 +5426,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 showInputModal.value = true;
 
                 // 自动聚焦输入框
-                Vue.nextTick(() => {
+                nextTick(() => {
                     if (universalInputRef.value) universalInputRef.value.focus();
                     if (universalInputRef.value) universalInputRef.value.select(); // 全选文本方便修改
                 });
@@ -5547,7 +5556,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     cropImgSrc.value = e.target.result;
                     showCropModal.value = true;
 
-                    Vue.nextTick(() => {
+                    nextTick(() => {
                         // 1. 先彻底销毁旧实例
                         if (cropper) {
                             cropper.destroy();
