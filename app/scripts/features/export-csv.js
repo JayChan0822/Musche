@@ -131,7 +131,7 @@ export function registerExportCsvFeature(context) {
 
       const makeRow = (item) => {
         const projectName = safeGet(item?.projectId || schedule.projectId, 'project');
-        const projectType = type === 'REC' ? 'C Projects' : 'P Projects';
+        const projectType = type === 'REC' ? 'REC' : 'EDT';
 
         return {
           type,
