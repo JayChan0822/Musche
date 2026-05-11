@@ -1,6 +1,5 @@
-const { ref, reactive, computed } = Vue;
-
 export function registerExportCsvFeature(context) {
+  const { ref, reactive, computed } = Vue;
   const { refs, state, utils, actions } = context;
   const { itemPool, scheduledTasks, currentSessionId } = refs;
   const { settings } = state;
@@ -21,7 +20,7 @@ export function registerExportCsvFeature(context) {
     searchInstrument: '',
   });
 
-  /* ── available options (computed from scheduledTasks) ── */
+  /* ── available options (only recompute from settings/tasks) ── */
   const exportSessionOptions = computed(() => {
     const ids = new Set();
     scheduledTasks.value.forEach((t) => ids.add(t.sessionId || 'S_DEFAULT'));
@@ -353,7 +352,11 @@ export function registerExportCsvFeature(context) {
       o.name.toLowerCase().includes(q) || (o.group || '').toLowerCase().includes(q));
   });
 
-  const exportPreviewCount = computed(() => collectFilteredRows().length);
+  /* preview count: only compute when modal is open to avoid heavy work during init */
+  const exportPreviewCount = computed(() => {
+    if (!showExportModal.value) return 0;
+    return collectFilteredRows().length;
+  });
 
   return {
     showExportModal,
