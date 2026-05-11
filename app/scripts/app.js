@@ -36,10 +36,9 @@ import { registerImportMidiFeature } from './features/import-midi.js';
 import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
+import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
-    const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzYnVlZ21jbml2d2trbHhzeXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxMTMzMDksImV4cCI6MjA4NzY4OTMwOX0.TRmEAgLBzexlh4Ii1JD-lDpYi5kp_i3P8oG4sDXoHjk';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
     const deviceService = createDeviceService();
