@@ -6982,18 +6982,10 @@ import { registerExportCsvFeature } from './features/export-csv.js';
             };
 
             const exportCSV = () => exportCsvFeature.exportCSV();
-            const showExportModal = exportCsvFeature.showExportModal;
-            const exportFilter = exportCsvFeature.exportFilter;
-            const exportSessionOptions = exportCsvFeature.exportSessionOptions;
-            const filteredExportProjects = exportCsvFeature.filteredExportProjects;
-            const filteredExportMusicians = exportCsvFeature.filteredExportMusicians;
-            const filteredExportInstruments = exportCsvFeature.filteredExportInstruments;
-            const exportDateRange = exportCsvFeature.exportDateRange;
-            const exportPreviewCount = exportCsvFeature.exportPreviewCount;
-            const openExportModal = exportCsvFeature.openExportModal;
-            const toggleFilterItem = exportCsvFeature.toggleFilterItem;
-            const toggleFilterAll = exportCsvFeature.toggleFilterAll;
-            const confirmExport = exportCsvFeature.confirmExport;
+            const openExportModal = () => exportCsvFeature.openExportModal();
+            const toggleFilterItem = (...args) => exportCsvFeature.toggleFilterItem(...args);
+            const toggleFilterAll = (...args) => exportCsvFeature.toggleFilterAll(...args);
+            const confirmExport = () => exportCsvFeature.confirmExport();
 
             // 🟢 修改后的 exportJSON
             const exportJSON = () => {
@@ -9735,6 +9727,14 @@ import { registerExportCsvFeature } from './features/export-csv.js';
                     openInputModal,
                 },
             });
+            const showExportModal = exportCsvFeature.showExportModal;
+            const exportFilter = exportCsvFeature.exportFilter;
+            const exportSessionOptions = exportCsvFeature.exportSessionOptions;
+            const filteredExportProjects = exportCsvFeature.filteredExportProjects;
+            const filteredExportMusicians = exportCsvFeature.filteredExportMusicians;
+            const filteredExportInstruments = exportCsvFeature.filteredExportInstruments;
+            const exportDateRange = exportCsvFeature.exportDateRange;
+            const exportPreviewCount = exportCsvFeature.exportPreviewCount;
 
             importMidiFeature = registerImportMidiFeature({
                 refs: {
