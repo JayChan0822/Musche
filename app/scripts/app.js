@@ -38,6 +38,7 @@ import 'jzz-midi-smf';
 import XLSX from 'xlsx-js-style';
 import Cropper from 'cropperjs';
 import { registerScheduleFeature } from './features/schedule.js';
+import { createMuscheStore } from './store/index.js';
 import { registerSettingsFeature } from './features/settings.js';
 import { registerImportCsvFeature } from './features/import-csv.js';
 import { registerImportMidiFeature } from './features/import-midi.js';
@@ -88,64 +89,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
     createApp({
         setup() {
-            const itemPool = ref([]);
-            const scheduledTasks = ref([]);
-            const slotHeight = ref(window.innerWidth < 800 ? 30 : 40);
-            const pxPerMin = computed(() => slotHeight.value / 30);
-            const currentView = ref('month');      // 默认直接进入月视图
-            const monthViewMode = ref('scrolled'); // 默认直接使用滚动模式
-            const viewDate = ref(new Date());
-            const selectedTaskId = ref(null);
-            const selectedSource = ref(null);
-            const selectedPoolIds = ref(new Set()); // 存储任务池多选的 ID
-            // V10.2 新增：左侧栏宽度调节状态 (请添加到其他 ref 变量附近)
-            const savedSidebarWidth = storageService.getItem('musche_sidebar_width');
-            const sidebarWidth = ref(savedSidebarWidth ? Number(savedSidebarWidth) : 350);
-            const lastPoolClickId = ref(null);      // 记录上一次点击的 ID (用于 Shift 范围选择)
-            const lastPoolFocusId = ref(null);      // 新增：记录键盘/鼠标最后交互的 ID (作为键盘导航的起点)
-            const showSettings = ref(false);
-            const showProjectInfoModal = ref(false);
-            const showMetadataManager = ref(false);
-            const showEditor = ref(false);
-            const showTrackList = ref(false);
-            const trackListData = ref({name: '', items: []});
-            const editingItem = ref({});
-            const editingSource = ref('');
-            const weekContainer = ref(null);
-            const flashingTaskId = ref(null); // 控制哪个任务正在闪烁
-            const statClickIndexMap = reactive({}); // 记录每个演奏员点击循环到了第几个任务
-            const showProfileMenu = ref(false);
-            const tempAvatarUrl = ref(''); // 用于输入框临时存储
-            const initialTouchY = ref(0);         // 记录起始 Y 坐标，用于判断长按后是否移动
-            // --- 🟢 新增: 气泡选择器逻辑 ---
-            const showDurationPicker = ref(false);
-            const tempDuration = reactive({m: 0, s: 0});
-            const pickerMinRef = ref(null);
-            const pickerSecRef = ref(null);
-            const pickerPos = reactive({top: 0, left: 0}); // 🟢 新增：存储弹窗坐标
-            const showMobileTaskInput = ref(false);
-            const trackListContainerRef = ref(null);
-            const draggingSectionIndex = ref(null);
-            const savedWidth = storageService.getItem('musche_day_width');
-            const dayColWidth = ref(savedWidth ? Number(savedWidth) : 52);
-            const isResizingMobile = ref(false);
-            const mobileResizeState = reactive({task: null, startY: 0, startHeight: 0});
-            const saveStatus = ref('saved'); // 'saved', 'saving', 'unsaved'
-            // --- 🟢 新增: 全局搜索状态 ---
-            const globalSearchQuery = ref('');
-            const lastTapState = reactive({ id: null, time: 0 });
-            const currentSearchIndex = ref(0);
-            const resizing = ref(null);
-            const isSearchFocused = ref(false);
-            const localDataVersion = ref(0);
-            const isBootstrappingData = ref(false);
-            const showSplitModal = ref(false);
-            // --- 🟢 新增：CSV 导入模式控制 ---
-            const csvImportMode = ref('tasks'); // 'tasks', 'time', 'orch'
-            // --- 🟢 Credit 导出逻辑 ---
-            const showCreditModal = ref(false);
-            const generatedCreditText = ref('');
-
+            const store = createMuscheStore(storageService);
+            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery } = store;
             const syncItemForView = (item, viewType = 'musician') => {
                 ensureItemSplitViews(item);
                 syncLegacySplitFields(item, viewType);
@@ -163,60 +108,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const getCurrentSplitView = () => normalizeSplitViewType(
                 (trackListData.value && trackListData.value.viewType) || sidebarTab.value || 'musician'
             );
-            const visibleTopDate = ref(new Date()); // 用于存储滚动模式下当前视口顶部的日期
-            const monthObserver = ref(null); // 观察器实例
-            const monthRefs = ref([]);
-            const showMidiManager = ref(false);
-            const managingProject = ref(null);
             // --- 🎹 MIDI 高级导入逻辑 ---
-            const showMidiImportModal = ref(false);
+            
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
             // 1. 定义状态变量 (已适配你文件的变量命名习惯)
-            const showCsvImportModal = ref(false);
-            const csvImportData = ref([]);
-            const csvColumnMap = reactive({}); // 🟢 新增：用于存储 CSV 列索引映射
-            // 🟢 修改后的配置对象
-            const csvImportConfig = reactive({
-                importTypes: {
-                    tasks: true,
-                    time: true,
-                    orch: true
-                },
-                nameStrategy: 'merge', // 🟢 必须加回这个，默认 'merge' (合并) 或 'csv' (原名)
-                showSkipRows: true // 🟢 新增：控制是否显示状态为 SKIP 的行
-            });
-
-            const midiImportData = ref([]); // 暂存解析后的轨道数据
-            const midiBpm = ref(120); // 暂存 MIDI 的基础速度
-            const midiTempoMap = ref(null);
-            const midiTimeSigs = ref(null);
-            // 🟢 [新增] 存储分组后的聚合数据
-            // 🟢 [新增] MIDI 弹窗的显示模式: 'tracks' (默认) 或 'groups'
-            const midiViewMode = ref('tracks');
-            const midiTimeSig = ref([4, 4]); // 拍号
-            const activeMidiGroupRow = ref(null);
-            // [新增] 存储 MIDI 分组下拉菜单的坐标位置
-            const midiGroupPos = reactive({ top: 0, left: 0, width: 0 });
-            // 🟢 [新增] MIDI 导入界面的下拉菜单状态
-            const activeImportMenu = reactive({ rowId: null, type: null }); // type: 'inst' | 'group'
-            const importMenuPos = reactive({ top: 0, left: 0, width: 0 });
-            const importSearchQuery = ref('');
-            // 🟢 [新增] MIDI Manager 分组下拉菜单的搜索状态
-            const midiGroupSearchQuery = ref('');
-            const trackListSearchQuery = ref('');
-            // 🟢 [新增] 记录搜索状态，用于回车循环跳转
-            const trackSearchIndex = ref(-1);
-            const lastTrackSearchQuery = ref('');
-            const lastHighlightedTrackId = ref(null); // 🟢 记录上一个高光的元素 ID
-            const searchHighlightTimer = ref(null); // 🟢 [新增] 用于存储定时器ID
-            // 在 setup() 内部
-            const rawCsvRows = ref([]);      // 存储 CSV 除去表头后的所有原始行
-            const csvHeadersMap = ref({});   // 存储表头列的索引 (例如 {project: 0, instName: 2, ...})
-            const collapsedProjects = reactive(new Set());
-            const activeImportTab = ref('rec');
-            const csvSearchQuery = ref('')
-
-
             let dividerDragState = null;
             let trackListScrollTimer = null;
             let pickerCallback = null;
@@ -5249,9 +5144,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 return (actualSec / musicSec).toFixed(1);
             };
 
-            // --- V11.7 Session 状态 ---
-            const currentSessionId = ref('');
-
             // --- V11.9 Session UI 辅助逻辑 ---
 
             // 1. 获取当前 Session 名称 (用于显示在按钮上)
@@ -5311,16 +5203,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 activeDropdown.value = null;
             };
 
-            // --- 🟢 顶部菜单与主题逻辑 ---
-            const showMobileMenu = ref(false);
-
             // 🟢 核心修改: 引入三态主题管理 (Auto / Light / Dark)
-
-            // 1. 定义状态: 优先读取本地存储，没有则默认为 'auto'
-            const themeMode = ref(storageService.getItem('theme_mode') || 'auto');
-
-            // isDark 依然保留，作为"当前实际生效颜色"的计算结果，供界面其他部分(如图表颜色)使用
-            const isDark = ref(document.documentElement.classList.contains('dark'));
 
             // 2. 应用主题的核心函数
             const applyTheme = () => mobileUiFeature.applyTheme();
@@ -5331,27 +5214,9 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 4. 获取当前模式的显示名称和图标 (供 HTML 使用)
             let getThemeLabel;
 
-            // --- 🟢 头像裁剪与上传逻辑 ---
-            const showCropModal = ref(false);
-            const cropImgSrc = ref('');
-            const cropImgRef = ref(null); // 绑定到 <img> 标签
             let cropper = null; // 存放 Cropper 实例
 
             // --- 🟢 通用确认/提示弹窗状态 (Universal Confirm/Alert) ---
-            const showConfirmModal = ref(false);
-            const confirmModalConfig = reactive({
-                title: '',
-                content: '',
-                confirmText: '确定',
-                cancelText: '取消',
-                isAlert: false,      // true=只有确定按钮, false=有确定和取消
-                isDestructive: false,// true=按钮变红(用于删除等危险操作)
-                onConfirm: null,
-                onCancel: null // <--- 🟢 新增这一行
-            });
-
-
-
             // 1. 打开提示框 (替代 alert)
             const openAlertModal = (title, content, callback) => {
                 confirmModalConfig.title = title;
@@ -5406,16 +5271,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             };
 
             // --- 🟢 通用输入弹窗状态 (Universal Input Modal) ---
-            const showInputModal = ref(false);
-            const universalInputRef = ref(null);
-            const inputModalConfig = reactive({
-                title: '',
-                value: '',
-                placeholder: '',
-                hint: '',
-                callback: null // 存储点击确定后的回调函数
-            });
-
             // 打开弹窗的通用方法
             const openInputModal = (title, initialValue, placeholder, callback, hint = '') => {
                 inputModalConfig.title = title;
@@ -5448,11 +5303,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
                 closeInputModal();
             };
-
-            // 🟢 新增: 快速添加弹窗的状态
-            const showQuickAddModal = ref(false);
-            const quickAddType = ref(''); // 'project', 'instrument', 'musician'
-            const quickAddForm = reactive({name: '', group: '', defaultRatio: 20});
 
             // 🟢 新增: 计算属性，专门用于 Quick Add 弹窗的分组列表
             // 这能确保当 quickAddType 变化或 settings 数据变化时，列表能自动更新
@@ -6167,9 +6017,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 计算当前显示的头像 (优先读取 user_metadata)
             let userAvatar;
 
-            // --- 🟢 新增: 昵称管理逻辑 ---
-            const tempNickname = ref('');
-
             // 计算显示名称 (优先显示 full_name，否则显示邮箱前缀)
             let userDisplayName;
 
@@ -6322,11 +6169,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const saveToCloud = async (force = false) => authFeature.saveToCloud(handleManualSync, force);
 
             // --- V11.8 自定义下拉菜单状态 ---
-            const activeDropdown = ref(null); // 当前打开的菜单: 'project' | 'instrument' | 'musician' | null
             const dropdownSearch = ref('');   // 下拉菜单内的搜索词
-
-            // 1. 设置弹窗的分组状态
-            const settingsExpandedGroups = reactive(new Set()); // 默认空Set，即全部折叠
 
             // 2. 下拉菜单的分组状态
             const dropdownExpandedGroups = reactive(new Set()); // 默认空Set，即全部折叠
@@ -6529,21 +6372,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             // V9.7.4: sortKey/activeColorKey 可以是 projectId
             // 修改：默认分组改为 'projectId' (项目)
-            const sortKey = ref('projectId');
-            const activeColorKey = ref('projectId');
             // 改用 expandedGroups：存谁展开了，没存的就是折叠的 (默认全空=全折叠)
-            const expandedGroups = reactive(new Set());
-
             // --- V10.3 排序状态管理 ---
             const sortField = ref('status'); // 'name' | 'duration'
             const sortAsc = ref(true);     // true=正序(A-Z, 小-大), false=倒序(Z-A, 大-小)
-
-            // 1. 新建项目的临时状态
-            const newSettingsItem = reactive({
-                instrument: {name: '', group: ''},
-                musician: {name: '', group: ''},
-                project: {name: '', group: ''}
-            });
 
             // --- 🟢 新增: 录音元数据管理逻辑 (Settings页面用) ---
             const newRecInputs = reactive({
@@ -6603,8 +6435,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             };
 
             // --- 🟢 分组选择器状态管理 ---
-            const showGroupSuggestions = ref(false); // 用于 Quick Add 弹窗
-            const settingsGroupFocus = ref(null);    // 用于 Settings 弹窗，存储当前聚焦的类型 ('instrument'/'musician'/'project')
 
             // 2. 获取分组后的列表 (核心逻辑) - 🟢 修复: 启用 numeric: true 自然排序
             const getSettingsGroupedList = (type) => settingsFeature.getSettingsGroupedList(type);
@@ -6743,15 +6573,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const calculateEstTime = (d, r) => formatSecs(parseTime(d) * (r || 1));
 
-            // --- History & Persistence ---
-            // --- History & Persistence ---
-            const history = ref([]);
-            const historyIndex = ref(-1);
-
-            const user = ref(null);
-            const showAuthModal = ref(false);
-            const authLoading = ref(false);
-            const authForm = reactive({email: '', password: ''});
             const authPasswordRef = ref(null);
             let syncTimeout = null; // 用于防抖保存
 
