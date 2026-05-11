@@ -5,23 +5,28 @@ export function registerExportCsvFeature(context) {
   const { parseTime, getNameById } = utils;
   const { openAlertModal, openInputModal } = actions;
 
+  const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
   const HEADERS = [
-    '类型',
-    '日期',
-    '开始时间',
-    '结束时间',
-    '项目',
-    '乐器分类',
-    '乐器',
-    '演奏员',
-    '谱面时长',
-    '编制',
-    '录音棚/工作室',
-    '工程师',
-    '操作员',
-    '助理',
-    '备注',
+    '日期', '星期', '开始时间', '预计时长', '演奏者', '声部 / 乐组',
+    '项目', '项目类型', '备注',
   ];
+
+  const HEADER_STYLE = {
+    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+    fill: { fgColor: { rgb: '2E7D6F' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      bottom: { style: 'thin', color: { rgb: '1B5E50' } },
+    },
+  };
+
+  const REC_EVEN = { fill: { fgColor: { rgb: 'E8F4F2' } } };
+  const REC_ODD = { fill: { fgColor: { rgb: 'F5FAF9' } } };
+  const EDT_EVEN = { fill: { fgColor: { rgb: 'FFF0E6' } } };
+  const EDT_ODD = { fill: { fgColor: { rgb: 'FFF8F2' } } };
+
+  const CENTER = { alignment: { horizontal: 'center', vertical: 'center' } };
 
   function buildScheduleIndexMap() {
     const groups = {};
@@ -67,14 +72,6 @@ export function registerExportCsvFeature(context) {
     });
   }
 
-  function addMinutesFormatted(startTime, seconds) {
-    const [h, m] = startTime.split(':').map(Number);
-    const totalMin = h * 60 + m + seconds / 60;
-    const eh = Math.floor(totalMin / 60);
-    const em = Math.floor(totalMin % 60);
-    return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
-  }
-
   function getInstrumentFamily(instrumentId) {
     if (!instrumentId) return '';
     const inst = settings.instruments.find((i) => i.id == instrumentId);
@@ -85,6 +82,34 @@ export function registerExportCsvFeature(context) {
     const name = getNameById(id, type);
     const fallbacks = ['未知项目', '未知乐器', '未知演奏员', '未选择'];
     return fallbacks.includes(name) ? '' : name;
+  }
+
+  function formatEstDuration(seconds) {
+    if (!seconds || seconds <= 0) return '';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  function getWeekday(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    return Number.isNaN(d.getTime()) ? '' : WEEKDAYS[d.getDay()];
+  }
+
+  function buildInstLabel(item) {
+    const instName = item
+      ? (item.name || getNameById(item.instrumentId, 'instrument'))
+      : '';
+    const fallbacks = ['未知乐器', '未选择'];
+    const clean = fallbacks.includes(instName) ? '' : instName;
+    const family = getInstrumentFamily(item?.instrumentId);
+    const splitTag = item?.splitTag || '';
+    let label = family ? `${family} ${clean}` : clean;
+    if (splitTag) label += ` (${splitTag})`;
+    return label.trim();
   }
 
   function collectAllRows() {
@@ -100,34 +125,24 @@ export function registerExportCsvFeature(context) {
 
       const type = schedule.musicianId ? 'REC' : schedule.projectId ? 'EDT' : 'OTHER';
       const items = getItemsForSchedule(schedule, idxInfo);
-      const endTime = addMinutesFormatted(schedule.startTime, parseTime(schedule.estDuration));
       const recInfo = schedule.recordingInfo || {};
       const editInfo = schedule.editInfo || {};
+      const estDurSec = parseTime(schedule.estDuration);
 
       const makeRow = (item) => {
-        const instRaw = item
-          ? item.name || getNameById(item.instrumentId, 'instrument')
-          : safeGet(schedule.instrumentId, 'instrument');
-        const splitTag = item?.splitTag || '';
-        const instName = splitTag ? `${instRaw} (${splitTag})` : instRaw;
-        const fallbacks = ['未知乐器', '未选择'];
-        const cleanInstName = fallbacks.includes(instName) ? '' : instName;
+        const projectName = safeGet(item?.projectId || schedule.projectId, 'project');
+        const projectType = type === 'REC' ? 'C Projects' : 'P Projects';
 
         return {
           type,
           date: schedule.date || '',
+          weekday: getWeekday(schedule.date),
           startTime: schedule.startTime || '',
-          endTime,
-          project: safeGet(item?.projectId || schedule.projectId, 'project'),
-          instFamily: getInstrumentFamily(item?.instrumentId || schedule.instrumentId),
-          instName: cleanInstName,
+          estDuration: formatEstDuration(estDurSec),
           musician: safeGet(item?.musicianId || schedule.musicianId, 'musician'),
-          duration: item?.musicDuration || schedule.musicDuration || '',
-          orchestration: item?.orchestration || '',
-          studio: type === 'EDT' ? (editInfo.studio || '') : (recInfo.studio || ''),
-          engineer: type === 'EDT' ? (editInfo.engineer || '') : (recInfo.engineer || ''),
-          operator: type === 'REC' ? (recInfo.operator || '') : '',
-          assistant: type === 'REC' ? (recInfo.assistant || '') : '',
+          instLabel: item ? buildInstLabel(item) : buildInstLabel(null),
+          project: projectName,
+          projectType,
           notes: type === 'REC' ? (recInfo.notes || '') : '',
         };
       };
@@ -144,38 +159,65 @@ export function registerExportCsvFeature(context) {
 
   function rowToArray(row) {
     return [
-      row.type,
-      row.date,
-      row.startTime,
-      row.endTime,
-      row.project,
-      row.instFamily,
-      row.instName,
-      row.musician,
-      row.duration,
-      row.orchestration,
-      row.studio,
-      row.engineer,
-      row.operator,
-      row.assistant,
-      row.notes,
+      row.date, row.weekday, row.startTime, row.estDuration,
+      row.musician, row.instLabel, row.project, row.projectType, row.notes,
     ];
+  }
+
+  function applyRowStyle(ws, rowIdx, baseStyle) {
+    const colCount = HEADERS.length;
+    for (let c = 0; c < colCount; c++) {
+      const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
+      if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+      const isCentered = c <= 3 || c === 7;
+      ws[addr].s = {
+        ...baseStyle,
+        alignment: isCentered ? CENTER.alignment : { vertical: 'center' },
+        border: {
+          bottom: { style: 'hair', color: { rgb: 'D0D0D0' } },
+        },
+      };
+    }
   }
 
   function buildSheet(rows) {
     const data = [HEADERS, ...rows.map(rowToArray)];
     const ws = XLSX.utils.aoa_to_sheet(data);
 
-    const colWidths = HEADERS.map((h, i) => {
-      let max = h.length * 2;
-      rows.forEach((row) => {
-        const val = rowToArray(row)[i] || '';
-        const len = String(val).length * 1.5;
-        if (len > max) max = len;
-      });
-      return { wch: Math.min(Math.max(max, 8), 40) };
+    for (let c = 0; c < HEADERS.length; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (ws[addr]) ws[addr].s = HEADER_STYLE;
+    }
+
+    rows.forEach((row, i) => {
+      const rowIdx = i + 1;
+      const isEven = i % 2 === 0;
+      const style = row.type === 'EDT'
+        ? (isEven ? EDT_EVEN : EDT_ODD)
+        : (isEven ? REC_EVEN : REC_ODD);
+      applyRowStyle(ws, rowIdx, style);
     });
+
+    const colWidths = [
+      { wch: 12 },  // 日期
+      { wch: 6 },   // 星期
+      { wch: 9 },   // 开始时间
+      { wch: 10 },  // 预计时长
+      { wch: 28 },  // 演奏者
+      { wch: 22 },  // 声部/乐组
+      { wch: 10 },  // 项目
+      { wch: 11 },  // 项目类型
+      { wch: 40 },  // 备注
+    ];
     ws['!cols'] = colWidths;
+
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: HEADERS.length - 1 } }) };
+
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    const lastRow = rows.length;
+    const lastCol = HEADERS.length - 1;
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastCol } });
 
     return ws;
   }
@@ -211,7 +253,7 @@ export function registerExportCsvFeature(context) {
       );
 
       const byInstrument = [...allRows].sort(
-        (a, b) => a.instFamily.localeCompare(b.instFamily) || a.instName.localeCompare(b.instName) || a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime),
+        (a, b) => a.instLabel.localeCompare(b.instLabel) || a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime),
       );
 
       const byMusician = [...allRows].sort(
