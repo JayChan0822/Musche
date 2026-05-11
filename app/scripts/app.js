@@ -45,6 +45,7 @@ import { registerImportMidiFeature } from './features/import-midi.js';
 import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
+import { registerSearchFeature } from './features/search.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -59,6 +60,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     let authFeature;
     let mobileUiFeature;
     let exportCsvFeature;
+    let searchFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -225,90 +227,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 
             const midiManagerExpandedGroups = reactive(new Set())
-
-            // 监听弹窗关闭，清空搜索词
-            watch(showTrackList, (val) => {
-                if(!val) trackListSearchQuery.value = '';
-            });
-
-            const handleTrackListSearchAction = (isEnter = false) => {
-                const query = trackListSearchQuery.value.trim().toLowerCase();
-
-                // 1. 清理：无论搜没搜到，先清除上一次的定时器和高光
-                if (searchHighlightTimer.value) {
-                    clearTimeout(searchHighlightTimer.value);
-                    searchHighlightTimer.value = null;
-                }
-
-                // 移除上一个元素的高光样式
-                if (lastHighlightedTrackId.value) {
-                    const prevEl = document.getElementById('track-item-' + lastHighlightedTrackId.value);
-                    if (prevEl) {
-                        prevEl.classList.remove('ring-2', 'ring-[#007aff]', 'bg-blue-50', 'dark:bg-white/20', 'z-50');
-                    }
-                    lastHighlightedTrackId.value = null;
-                }
-
-                // 如果搜索框为空，直接返回
-                if (!query) {
-                    trackSearchIndex.value = -1;
-                    lastTrackSearchQuery.value = '';
-                    return;
-                }
-
-                // 2. 查找匹配项
-                const items = trackListData.value.items;
-                const matchedIndices = [];
-
-                items.forEach((item, index) => {
-                    const text = [
-                        item.name,
-                        getNameById(item.musicianId, 'musician'),
-                        getNameById(item.instrumentId, 'instrument'),
-                        getNameById(item.projectId, 'project'),
-                        item.splitTag || '',
-                        item.orchestration || ''
-                    ].join(' ').toLowerCase();
-
-                    if (text.includes(query)) matchedIndices.push(index);
-                });
-
-                if (matchedIndices.length === 0) return;
-
-                // 3. 计算索引
-                if (isEnter && query === lastTrackSearchQuery.value) {
-                    trackSearchIndex.value = (trackSearchIndex.value + 1) % matchedIndices.length;
-                } else {
-                    trackSearchIndex.value = 0;
-                }
-                lastTrackSearchQuery.value = query;
-
-                // 4. 高亮新目标
-                const targetItemIndex = matchedIndices[trackSearchIndex.value];
-                const targetItem = items[targetItemIndex];
-
-                if (targetItem) {
-                    const el = document.getElementById('track-item-' + targetItem.id);
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                        // 添加高光
-                        el.classList.add('ring-2', 'ring-[#007aff]', 'bg-blue-50', 'dark:bg-white/20', 'z-50');
-                        lastHighlightedTrackId.value = targetItem.id;
-
-                        // 🟢 设置新的定时器 (关键修正：使用变量存储timer，方便下次清除)
-                        searchHighlightTimer.value = setTimeout(() => {
-                            el.classList.remove('ring-2', 'ring-[#007aff]', 'bg-blue-50', 'dark:bg-white/20', 'z-50');
-                            // 只有当当前记录的ID还是自己时，才置空ID (防止快速切换时的竞态)
-                            if (lastHighlightedTrackId.value === targetItem.id) {
-                                lastHighlightedTrackId.value = null;
-                            }
-                        }, 2000); // 2秒持续时间
-
-                        if (isMobile.value) window.triggerTouchHaptic('Light');
-                    }
-                }
-            };
 
             const toggleMidiManagerGroup = (name) => {
                 if (midiManagerExpandedGroups.has(name)) {
@@ -1945,36 +1863,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
             };
 
-            // 添加一个处理失焦的函数 (加一点延迟，防止点击"清除"按钮时还没触发就跑了)
-            const handleSearchBlur = () => {
-                // 延迟 100ms，如果只是点了清除按钮，不要立刻收回去
-                setTimeout(() => {
-                    // 只有当 globalSearchQuery 为空时，才收回底部
-                    // 或者你可以选择：只要失焦就收回 (根据你的喜好，这里推荐只要失焦就收回)
-                    isSearchFocused.value = false;
-
-                    // 失焦时强制收起键盘
-                    if (document.activeElement instanceof HTMLElement) {
-                        document.activeElement.blur();
-                    }
-                }, 100);
-            };
-
-            const onSearchFocus = () => {
-                isSearchFocused.value = true;
-
-                // ⚡️ 强力修正: 延迟一下，等键盘弹出来那一刻，把页面按回去
-                setTimeout(() => {
-                    window.scrollTo(0, 0);
-                    document.body.scrollTop = 0;
-                }, 100);
-
-                // 双重保险: 300ms 后再按一次 (对应某些慢速动画)
-                setTimeout(() => {
-                    window.scrollTo(0, 0);
-                }, 300);
-            };
-
             // 1. 开始拖拽任务 (修复版: 分割条也会避让)
             const startTrackDrag = (e, item) => {
                 // A. 🛡️ 防误触检测
@@ -2406,55 +2294,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 });
             });
 
-            // 🟢 [简化] 侧边栏列表 (过滤逻辑已移至 core stats calculation)
-            const filteredSidebarList = computed(() => {
-                // 直接返回计算好的结果，它们已经是响应式且过滤过的了
-                if (sidebarTab.value === 'project') return projectStats.value;
-                if (sidebarTab.value === 'instrument') return instrumentStats.value;
-                return musicianStats.value;
-            });
-
-            // 🟢 [修改] 搜索回车跳转逻辑 (支持循环定位)
-            const handleSearchEnter = () => {
-                const tasks = filteredScheduledTasks.value; // 获取所有匹配的任务
-
-                if (tasks.length > 0) {
-                    // 1. 确保按时间顺序排列 (从早到晚，跨天优先按日期)
-                    const sorted = [...tasks].sort((a, b) => {
-                        if (a.date !== b.date) return a.date.localeCompare(b.date);
-                        return a.startTime.localeCompare(b.startTime);
-                    });
-
-                    // 2. 安全检查: 防止索引越界 (比如刚才删了一个任务)
-                    if (currentSearchIndex.value >= sorted.length) {
-                        currentSearchIndex.value = 0;
-                    }
-
-                    // 3. 获取目标任务
-                    const target = sorted[currentSearchIndex.value];
-
-                    // 4. 执行跳转
-                    smartScrollToTask(target);
-                    window.triggerTouchHaptic('Success');
-
-                    // 5. 计算下一次的索引 (取模实现循环: 0 -> 1 -> 2 -> 0 ...)
-                    const nextIndex = (currentSearchIndex.value + 1) % sorted.length;
-                    currentSearchIndex.value = nextIndex;
-
-                    // (可选) 可以在控制台打印一下，方便调试
-                    // console.log(`Searching: Jumping to ${currentSearchIndex.value + 1} / ${sorted.length}`);
-
-                } else {
-                    // 如果日程表里没有，检查一下侧边栏有没有
-                    const sidebarItems = filteredSidebarList.value;
-                    if (sidebarItems.length > 0) {
-                        openAlertModal("查找结果", "日程表中未找到匹配项，但在任务池(Sidebar)中找到了相关任务。");
-                    } else {
-                        window.triggerTouchHaptic('Error');
-                    }
-                }
-            };
-
             const showRecInfoModal = ref(false);
             const recInfoForm = reactive({
                 studio: '',
@@ -2514,10 +2353,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 window.triggerTouchHaptic('Success');
                 showRecInfoModal.value = false;
             };
-
-            watch(globalSearchQuery, () => {
-                currentSearchIndex.value = 0;
-            });
 
             const savedSidebarState = storageService.getItem('musche_sidebar_open');
             // 🟢 修改: 默认为 true (打开状态)
@@ -5546,19 +5381,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 // 震动反馈
                 window.triggerTouchHaptic('Medium');
             };
-
-            // 🟢 新增: 监听 TrackList 弹窗关闭
-            // 当弹窗关闭时，统一执行一次全局清理，移除那些变空的日程块
-            watch(showTrackList, (isOpen) => {
-                if (!isOpen) {
-                    // 弹窗刚关闭 -> 执行清理
-                    cleanupEmptySchedules();
-
-                    // 可选：保存一次历史，确保清理后的状态被记录
-                    // pushHistory();
-                }
-            });
-
 
             // 🟢 新增: 自动计算时间差
             const autoCalcDuration = () => {
@@ -9981,6 +9803,38 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 if (sidebarTab.value === 'instrument') return instrumentStats.value;
                 return musicianStats.value;
             });
+
+            searchFeature = registerSearchFeature({
+                refs: {
+                    globalSearchQuery,
+                    currentSearchIndex,
+                    searchHighlightTimer,
+                    lastHighlightedTrackId,
+                    lastTrackSearchQuery,
+                    trackSearchIndex,
+                    trackListSearchQuery,
+                    trackListData,
+                    filteredScheduledTasks,
+                    sidebarList: currentSidebarList,
+                    showTrackList,
+                    isSearchFocused,
+                    isMobile,
+                },
+                utils: {
+                    getNameById,
+                },
+                actions: {
+                    openAlertModal,
+                    smartScrollToTask,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+
+            const filteredSidebarList = searchFeature.filteredSidebarList;
+            const handleSearchEnter = searchFeature.handleSearchEnter;
+            const handleSearchBlur = searchFeature.handleSearchBlur;
+            const onSearchFocus = searchFeature.onSearchFocus;
+            const handleTrackListSearchAction = searchFeature.handleTrackListSearchAction;
 
             // V10.0 新增：计算演奏员统计数据
             // --- V10.4 新增：统计卡片展开状态 ---
