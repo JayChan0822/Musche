@@ -35,6 +35,7 @@ import { registerImportCsvFeature } from './features/import-csv.js';
 import { registerImportMidiFeature } from './features/import-midi.js';
 import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
+import { registerExportCsvFeature } from './features/export-csv.js';
 
     const {createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick} = Vue;
     const SUPABASE_URL = 'https://qsbuegmcnivwkklxsyqj.supabase.co';
@@ -48,6 +49,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
     let importMidiFeature;
     let authFeature;
     let mobileUiFeature;
+    let exportCsvFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -6979,6 +6981,8 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 });
             };
 
+            const exportCSV = () => exportCsvFeature.exportCSV();
+
             // 🟢 修改后的 exportJSON
             const exportJSON = () => {
                 // 自动生成默认文件名
@@ -9701,6 +9705,25 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 },
             });
 
+            exportCsvFeature = registerExportCsvFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    parseTime,
+                    getNameById,
+                },
+                actions: {
+                    openAlertModal,
+                    openInputModal,
+                },
+            });
+
             importMidiFeature = registerImportMidiFeature({
                 refs: {
                     settings,
@@ -10495,6 +10518,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
                 getGroupColor,
                 getTextColor,
 
+                exportCSV,
                 exportJSON,
                 importJSON,
                 handleJSONFile,
