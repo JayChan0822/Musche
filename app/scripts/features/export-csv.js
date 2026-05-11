@@ -13,6 +13,7 @@ export function registerExportCsvFeature(context) {
     projects: new Set(),
     musicians: new Set(),
     instruments: new Set(),
+    types: new Set(['REC', 'EDT']),
     dateFrom: '',
     dateTo: '',
     searchProject: '',
@@ -185,6 +186,7 @@ export function registerExportCsvFeature(context) {
       if (idxInfo === undefined) return;
 
       const type = schedule.musicianId ? 'REC' : schedule.projectId ? 'EDT' : 'OTHER';
+      if (exportFilter.types.size > 0 && !exportFilter.types.has(type)) return;
       const items = getItemsForSchedule(schedule, idxInfo);
       const recInfo = schedule.recordingInfo || {};
       const estDurSec = parseTime(schedule.estDuration);
@@ -276,6 +278,7 @@ export function registerExportCsvFeature(context) {
     }
 
     exportFilter.sessions = new Set([currentSessionId.value]);
+    exportFilter.types = new Set(['REC', 'EDT']);
     exportFilter.projects = new Set();
     exportFilter.musicians = new Set();
     exportFilter.instruments = new Set();
