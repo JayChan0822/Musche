@@ -6,7 +6,10 @@
     "verify:modularization": "node tests/modularization-smoke.mjs",
     "verify:split-state": "node tests/rec-edit-split-state.mjs",
     "verify:supabase-keepalive": "node --test tests/supabase-keepalive.test.mjs",
-    "test": "npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive && node --test tests/utils-time.test.mjs tests/utils-midi.test.mjs tests/utils-csv.test.mjs"
+    "test": "npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive && node --test tests/utils-time.test.mjs tests/utils-midi.test.mjs tests/utils-csv.test.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "repository": {
     "type": "git",
@@ -26,5 +29,8 @@
     "@capacitor/haptics": "^7.0.2",
     "@capacitor/ios": "^7.4.4",
     "@capacitor/local-notifications": "^7.0.3"
+  },
+  "devDependencies": {
+    "vite": "^8.0.12"
   }
 }

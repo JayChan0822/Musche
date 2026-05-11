@@ -1108,7 +1108,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
                 // 4. 最终转换：将量化后的小节结束点 (currentTick) 转为秒
                 // midi.header.ticksToSeconds 会利用 Tempo Map 自动处理所有变速
-                const quantizedSeconds = midi.header.ticksToSeconds(currentTick);
+                let quantizedSeconds = midi.header.ticksToSeconds(currentTick);
 
                 // 原始音符结束时间的秒数 (用于对比)
                 const rawSeconds = midi.header.ticksToSeconds(lastNoteOffTick);
