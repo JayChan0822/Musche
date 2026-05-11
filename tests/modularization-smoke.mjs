@@ -33,8 +33,8 @@ assert.equal(
 
 assert.equal(
     packageJson.scripts?.test,
-    'npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive',
-    'npm test must run the modularization smoke check, split-state regression, and keepalive verification'
+    'npm run verify:modularization && npm run verify:split-state && npm run verify:supabase-keepalive && node --test tests/utils-time.test.mjs tests/utils-midi.test.mjs tests/utils-csv.test.mjs',
+    'npm test must run the modularization smoke check, split-state regression, keepalive verification, and utility tests'
 );
 
 for (const href of [

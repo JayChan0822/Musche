@@ -164,9 +164,9 @@ export function extractNotesFromJZZTrack(track) {
 export function cleanMidiTrackName(name) {
   if (!name) return '';
   return name
+    .replace(/[_-]\d+$/, '')
     .replace(/\s*\d+$/, '')
     .replace(/\s+(I{1,3}|IV|V|VI)$/i, '')
-    .replace(/[_-]\d+$/, '')
     .trim();
 }
 
