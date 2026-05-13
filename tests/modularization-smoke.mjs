@@ -11,6 +11,7 @@ const packageJsonPath = resolve(rootDir, 'package.json');
 const indexHtmlPath = resolve(rootDir, 'app/index.html');
 const appScriptPath = resolve(rootDir, 'app/scripts/app.js');
 const viteConfigPath = resolve(rootDir, 'vite.config.mjs');
+const vercelConfigPath = resolve(rootDir, 'vercel.json');
 
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const indexHtml = readFileSync(indexHtmlPath, 'utf8');
@@ -129,6 +130,10 @@ assert.match(
     /\.menu-shortcuts-dropdown\s*\{[\s\S]*min-width:\s*12rem[\s\S]*\}/,
     'components.css must give the top-left shortcuts dropdown a fixed minimum width so it does not collapse to button width'
 );
+
+assert.ok(existsSync(vercelConfigPath), 'vercel.json must exist to pin deployment output settings');
+const vercelConfig = JSON.parse(readFileSync(vercelConfigPath, 'utf8'));
+assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point Vercel at app/dist');
 
 const requiredFiles = [
     'app/scripts/app.js',
