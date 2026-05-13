@@ -1,4 +1,4 @@
-const { computed } = Vue;
+import { computed } from 'vue';
 
 export function registerMobileUiFeature(context) {
   const { refs, services, actions } = context;
