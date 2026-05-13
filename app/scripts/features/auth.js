@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+const { computed } = Vue;
 
 export function registerAuthFeature(context) {
   const { refs, state, utils, services, actions } = context;
