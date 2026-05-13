@@ -1,6 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
 
 export function createSupabaseService({ url, key } = {}) {
+  if (!url || !key) {
+    const createConfigError = () => ({
+      message: 'Supabase is not configured. Copy app/config.local.example.js to app/config.local.js and fill in supabaseUrl and supabaseKey.',
+    });
+
+    const rejectWithConfigError = async () => ({
+      data: null,
+      error: createConfigError(),
+    });
+
+    return {
+      client: null,
+      signInWithPassword: rejectWithConfigError,
+      signUp: rejectWithConfigError,
+      resetPasswordForEmail: rejectWithConfigError,
+      updateUser: rejectWithConfigError,
+      getUser: rejectWithConfigError,
+      getSession: async () => ({
+        data: { session: null },
+        error: null,
+      }),
+      signOut: async () => ({
+        error: null,
+      }),
+      uploadAvatar: rejectWithConfigError,
+      getAvatarPublicUrl() {
+        return {
+          data: { publicUrl: null },
+          error: createConfigError(),
+        };
+      },
+      loadUserData: rejectWithConfigError,
+      fetchUserDataVersion: rejectWithConfigError,
+      saveUserData: rejectWithConfigError,
+      deleteUserData: rejectWithConfigError,
+    };
+  }
+
   const client = createClient(url, key);
 
   return {
