@@ -1,4 +1,4 @@
-const { computed } = Vue;
+import { computed } from 'vue';
 
 export function registerImportMidiFeature(context) {
   const { refs, state, utils, actions } = context;

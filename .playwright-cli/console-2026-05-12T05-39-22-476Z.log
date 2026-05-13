@@ -1,0 +1,21 @@
+[   30320ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://fonts.googleapis.com/css2?family=Chango&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Noto+Serif+SC:wght@200..900&family=Noto+Serif:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&display=swap:0
+[   30558ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[   31581ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  392841ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5174/@vite/client:968
+[  393445ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  394124ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  561052ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  561410ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  577407ms] Identifier 'getFamilyTotalDuration' has already been declared
+[  577407ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  577415ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  659517ms] Identifier 'syncFamilyOrchestration' has already been declared
+[  659540ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  659771ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  690718ms] Identifier 'getOrchSize' has already been declared
+[  690735ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  690748ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  708545ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  708632ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  901715ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  901812ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0

@@ -1,4 +1,4 @@
-const { computed, watch } = Vue;
+import { computed, watch } from 'vue';
 
 export function registerImportCsvFeature(context) {
   const { refs, state, utils, actions } = context;

@@ -17,6 +17,10 @@ export function createMuscheStore(storageService) {
   const selectedPoolIds = ref(new Set());
   const savedSidebarWidth = getItem('musche_sidebar_width');
   const sidebarWidth = ref(savedSidebarWidth ? Number(savedSidebarWidth) : 350);
+  const savedSidebarState = getItem('musche_sidebar_open');
+  const isSidebarOpen = ref(savedSidebarState !== null ? JSON.parse(savedSidebarState) : true);
+  const sidebarTab = ref('musician');
+  const isMobile = ref(window.innerWidth < 800);
   const lastPoolClickId = ref(null);
   const lastPoolFocusId = ref(null);
   const showSettings = ref(false);
@@ -160,6 +164,9 @@ export function createMuscheStore(storageService) {
     selectedSource,
     selectedPoolIds,
     sidebarWidth,
+    isSidebarOpen,
+    sidebarTab,
+    isMobile,
     lastPoolClickId,
     lastPoolFocusId,
     showSettings,

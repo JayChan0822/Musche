@@ -1,0 +1,10 @@
+[    1024ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css:0
+[    1269ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[   31109ms] [ERROR] Failed to load resource: net::ERR_TIMED_OUT @ https://fonts.gstatic.com/s/chango/v29/2V0cKI0OB5U7WaJCyHe5blYKAg.woff2:0
+[   31794ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[   66004ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css:0
+[   66108ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[   66836ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[   68886ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css:0
+[   68997ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[   69724ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0

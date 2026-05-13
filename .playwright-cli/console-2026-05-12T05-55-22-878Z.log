@@ -1,0 +1,49 @@
+[     798ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[     934ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  372603ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  372914ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  390228ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  390247ms] [WARNING] [Vue warn]: Unhandled error during execution of setup function 
+  at <App> @ http://127.0.0.1:5174/@vite/client:509
+[  390250ms] ReferenceError: dragElClone is not defined
+    at setup (http://127.0.0.1:5174/scripts/app.js?t=1778565712776:9270:17)
+    at callWithErrorHandling (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:1953:17)
+    at setupStatefulComponent (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:6800:23)
+    at setupComponent (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:6776:35)
+    at mountComponent (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:5572:3)
+    at processComponent (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:5562:8)
+    at patch (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:5357:28)
+    at render (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:5985:10)
+    at mount (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:4586:11)
+    at app.mount (http://127.0.0.1:5174/@fs/Users/jaychan/Documents/GitHub/Musche/node_modules/.vite/deps/vue.js?v=5ff73be0:8754:17)
+[  390257ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  408015ms] Identifier 'startTrackDrag' has already been declared
+[  408037ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  408054ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  540545ms] Identifier 'handleTrackListAutoScroll' has already been declared
+[  540569ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  540607ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  556951ms] Identifier 'handleTouchStart' has already been declared
+[  556965ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  556977ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  612983ms] Identifier 'handleTouchStart' has already been declared
+[  613008ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[  613027ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  696067ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  696202ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  770893ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  770991ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  772204ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  772295ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  842760ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  842858ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  906730ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  906820ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  911957ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  912047ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  931710ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  931804ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  942982ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  943075ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[  980135ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[  980257ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
