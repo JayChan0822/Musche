@@ -136,6 +136,12 @@ assert.match(
     'components.css must give the top-left shortcuts dropdown a fixed minimum width so it does not collapse to button width'
 );
 
+assert.match(
+    indexHtml,
+    /fa-magnifying-glass absolute left-3[\s\S]*class="glass-input h-9 pl-10 pr-8/,
+    'desktop search input must leave enough left padding so the search icon and placeholder text do not overlap'
+);
+
 assert.ok(existsSync(vercelConfigPath), 'vercel.json must exist to pin deployment output settings');
 const vercelConfig = JSON.parse(readFileSync(vercelConfigPath, 'utf8'));
 assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point Vercel at app/dist');
