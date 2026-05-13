@@ -71,7 +71,7 @@ const requiredFiles = [
     'app/scripts/features/import-midi.js',
     'app/scripts/features/auth.js',
     'app/scripts/features/mobile-ui.js',
-    'scripts/supabase-keepalive.mjs'
+    'ci/supabase-keepalive.mjs'
 ];
 
 for (const relativePath of requiredFiles) {
