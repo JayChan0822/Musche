@@ -92,7 +92,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     createApp({
         setup() {
             const store = createMuscheStore(storageService);
-            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery } = store;
+            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery, currentSessionId, activeDropdown, showMobileMenu, tempNickname, settingsExpandedGroups, newSettingsItem, user, showAuthModal, authLoading, authForm, history, historyIndex, showConfirmModal, confirmModalConfig, showInputModal, universalInputRef, inputModalConfig, showQuickAddModal, quickAddType, quickAddForm, showCropModal, cropImgSrc, cropImgRef, showGroupSuggestions, settingsGroupFocus, sortKey, activeColorKey, expandedGroups, themeMode, isDark } = store;
             const syncItemForView = (item, viewType = 'musician') => {
                 ensureItemSplitViews(item);
                 syncLegacySplitFields(item, viewType);
@@ -9804,6 +9804,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 return musicianStats.value;
             });
 
+            const isMobile = ref(window.innerWidth < 800);
+
             searchFeature = registerSearchFeature({
                 refs: {
                     globalSearchQuery,
@@ -10089,7 +10091,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             // --- 🟢 手机端适配逻辑 ---
             // --- 🟢 手机端适配 & 布局自动修复 ---
-            const isMobile = ref(window.innerWidth < 800);
             const isContextSwitching = ref(false); // 🟢 [新增] 上下文切换锁
             const mobileTab = ref('schedule');
 

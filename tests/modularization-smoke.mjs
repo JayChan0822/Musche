@@ -9,9 +9,14 @@ const rootDir = resolve(__dirname, '..');
 
 const packageJsonPath = resolve(rootDir, 'package.json');
 const indexHtmlPath = resolve(rootDir, 'app/index.html');
+const appScriptPath = resolve(rootDir, 'app/scripts/app.js');
+const viteConfigPath = resolve(rootDir, 'vite.config.mjs');
 
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 const indexHtml = readFileSync(indexHtmlPath, 'utf8');
+const appScript = readFileSync(appScriptPath, 'utf8');
+const viteConfig = readFileSync(viteConfigPath, 'utf8');
+const componentsCss = readFileSync(resolve(rootDir, 'app/styles/components.css'), 'utf8');
 
 assert.equal(
     packageJson.scripts?.['verify:modularization'],
@@ -53,6 +58,77 @@ assert.match(
 );
 
 assert.ok(!/<style[\s>]/i.test(indexHtml), 'index.html should not contain an inline style block');
+
+const requiredBootstrapStoreRefs = [
+    'currentSessionId',
+    'activeDropdown',
+    'showMobileMenu',
+    'tempNickname',
+    'settingsExpandedGroups',
+    'newSettingsItem',
+    'user',
+    'showAuthModal',
+    'authLoading',
+    'authForm',
+    'history',
+    'historyIndex',
+    'showConfirmModal',
+    'confirmModalConfig',
+    'showInputModal',
+    'universalInputRef',
+    'inputModalConfig',
+    'showQuickAddModal',
+    'quickAddType',
+    'quickAddForm',
+    'showCropModal',
+    'cropImgSrc',
+    'cropImgRef',
+    'showGroupSuggestions',
+    'settingsGroupFocus',
+    'sortKey',
+    'activeColorKey',
+    'expandedGroups',
+    'themeMode',
+    'isDark',
+];
+
+for (const refName of requiredBootstrapStoreRefs) {
+    assert.match(
+        appScript,
+        new RegExp(`const \\{[\\s\\S]*\\b${refName}\\b[\\s\\S]*\\} = store;`),
+        `app.js must destructure ${refName} from the store before using it during bootstrap`
+    );
+}
+
+const searchFeatureIndex = appScript.indexOf('searchFeature = registerSearchFeature({');
+const isMobileDeclarationIndex = appScript.indexOf('const isMobile = ref(');
+assert.ok(searchFeatureIndex !== -1, 'app.js must register the search feature');
+assert.ok(isMobileDeclarationIndex !== -1, 'app.js must declare isMobile');
+assert.ok(
+    isMobileDeclarationIndex < searchFeatureIndex,
+    'app.js must declare isMobile before passing it to search feature setup'
+);
+
+const usesRuntimeDomTemplate = /@click|v-if|v-for|:class|\{\{/.test(indexHtml);
+if (usesRuntimeDomTemplate) {
+    assert.match(
+        viteConfig,
+        /alias\s*:\s*\{[\s\S]*\bvue\b\s*:\s*['"]vue\/dist\/vue\.esm-bundler\.js['"][\s\S]*\}/,
+        'vite.config.mjs must alias vue to the compiler-included build when app/index.html uses runtime DOM templates'
+    );
+}
+
+assert.match(
+    indexHtml,
+    /class="menu-shortcuts-dropdown custom-dropdown-menu/,
+    'app/index.html must tag the top-left shortcuts menu with a dedicated class'
+);
+
+assert.match(
+    componentsCss,
+    /\.menu-shortcuts-dropdown\s*\{[\s\S]*min-width:\s*12rem[\s\S]*\}/,
+    'components.css must give the top-left shortcuts dropdown a fixed minimum width so it does not collapse to button width'
+);
 
 const requiredFiles = [
     'app/scripts/app.js',

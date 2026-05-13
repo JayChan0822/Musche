@@ -649,6 +649,12 @@ html.dark .settings-item-input {
     transform: translate3d(0, 0, 0);
 }
 
+.menu-shortcuts-dropdown {
+    width: 12rem !important;
+    min-width: 12rem !important;
+    max-width: min(18rem, calc(100vw - 24px)) !important;
+}
+
 html.dark .custom-dropdown-menu {
     background-color: rgba(30, 30, 30, 0.99) !important;
     border: 1px solid rgba(255, 255, 255, 0.1);
