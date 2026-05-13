@@ -1,0 +1,44 @@
+[71640697ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/project-info.js:0
+[71640698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/credit.js:0
+[71640698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/rec-info.js:0
+[71640698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/midi-import-ui.js?t=1778655587418:0
+[71640698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/drag-drop.js:0
+[71640698ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/calendar-view.js:0
+[71640700ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[71640890ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/credit.js?t=1778655587679:0
+[71640890ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/project-info.js?t=1778655587680:0
+[71640892ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[71640893ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/rec-info.js?t=1778655587677:0
+[71640894ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/midi-import-ui.js?t=1778655587418:0
+[71640895ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/drag-drop.js?t=1778655587719:0
+[71640896ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/calendar-view.js?t=1778655587678:0
+[71642162ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[71649693ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/midi-import-ui.js?t=1778655587418:0
+[71649715ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[71649722ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/project-info.js?t=1778655587680:0
+[71649722ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/rec-info.js?t=1778655587677:0
+[71649722ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/credit.js?t=1778655587679:0
+[71649722ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/percussion.js?t=1778655596972:0
+[71649722ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/drag-drop.js?t=1778655587719:0
+[71649723ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://127.0.0.1:5174/scripts/features/calendar-view.js?t=1778655587678:0
+[71650322ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[71655799ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[71655801ms] ReferenceError: Vue is not defined
+    at http://127.0.0.1:5174/scripts/features/import-csv.js:1:29
+[71655813ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[71656402ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[72767084ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[72767084ms] ReferenceError: Vue is not defined
+    at http://127.0.0.1:5174/scripts/features/import-csv.js:1:29
+[72767109ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[72767731ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[72862475ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[72862476ms] ReferenceError: Vue is not defined
+    at http://127.0.0.1:5174/scripts/features/import-csv.js:1:29
+[72862499ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[72863234ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[73067781ms] [WARNING] Module "stream" has been externalized for browser compatibility. Cannot access "stream.Readable" in client code. See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details. @ http://127.0.0.1:5174/@vite/client:509
+[73067782ms] ReferenceError: Vue is not defined
+    at http://127.0.0.1:5174/scripts/features/import-csv.js:1:29
+[73067788ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
+[73068383ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
