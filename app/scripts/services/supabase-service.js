@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 export function createSupabaseService({ url, key } = {}) {
   if (!url || !key) {
     const createConfigError = () => ({
-      message: 'Supabase is not configured. Copy app/config.local.example.js to app/config.local.js and fill in supabaseUrl and supabaseKey.',
+      message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY for hosted builds, or fill app/config.local.js for local-only development.',
     });
 
     const rejectWithConfigError = async () => ({

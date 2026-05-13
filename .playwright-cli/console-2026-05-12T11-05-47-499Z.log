@@ -103,3 +103,4 @@ For more details, see https://link.vuejs.org/feature-flags. @ http://127.0.0.1:5
     at http://127.0.0.1:5174/scripts/features/import-csv.js?t=1778658106909:1:29
 [74171718ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/:0
 [74172270ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_CLOSED @ https://gdpsiinrxhpmxvgvgxeh.supabase.co/storage/v1/object/public/avatars/icon.png:0
+[81187895ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:5174/@vite/client:968

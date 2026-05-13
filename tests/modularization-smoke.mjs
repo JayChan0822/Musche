@@ -57,6 +57,11 @@ assert.match(
     /<script type="module" src="\.\/scripts\/app\.js"><\/script>/,
     'index.html must load the module app entrypoint'
 );
+assert.doesNotMatch(
+    indexHtml,
+    /<script src="\.\/config\.local\.js"><\/script>/,
+    'index.html should not hard-load config.local.js because hosted builds must rely on Vite environment variables'
+);
 
 assert.ok(!/<style[\s>]/i.test(indexHtml), 'index.html should not contain an inline style block');
 
