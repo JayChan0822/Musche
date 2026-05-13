@@ -1,36 +1,22 @@
-# Supabase key rotation warning
+# Supabase Key Rotation Notice
 
 Date: 2026-05-11
 
-## Why this exists
-
-The previous Supabase anon key was committed into git history. That means the key must be treated as exposed and rotated in the Supabase dashboard.
+The old Supabase anon key has been present in public git history and must be rotated manually in the Supabase console.
 
 ## Required human actions
 
-1. Rotate the old anon key in the Supabase console.
-2. Update the local `app/config.local.js` with the new `supabaseUrl` and `supabaseKey`.
-3. Keep `app/config.local.js` untracked.
-4. Review and enforce RLS before exposing any table to the client.
+1. Rotate the anon key in Supabase.
+2. Update the local `app/config.local.js` file with the new `supabaseUrl` and `supabaseKey`.
+3. Review and enable RLS policies for every table that needs public access.
+4. Audit the repository history for the old key reference:
+   ```bash
+   git log -S "qsbuegmcnivwkklxsyqj"
+   ```
 
-## Current data surface to review
+## Current data surfaces observed in code
 
-Tables found in the codebase:
+- `user_data` table
+- `avatars` storage bucket
 
-- `user_data`
-
-Related storage bucket used by the app:
-
-- `avatars`
-
-## Suggested audit command
-
-Use this to inspect historical references to the leaked key:
-
-```bash
-git log -S "qsbuegmcnivwkklxsyqj" --oneline --all
-```
-
-## RLS reminder
-
-After rotation, review policies for `user_data` and any future client-facing tables so reads and writes are constrained to the owning user.
+Please review the live Supabase project for any additional tables or storage objects that are not referenced in the codebase.

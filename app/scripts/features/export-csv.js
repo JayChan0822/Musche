@@ -1,6 +1,5 @@
-import { computed, reactive, ref } from 'vue';
-
 export function registerExportCsvFeature(context) {
+  const { ref, reactive, computed } = Vue;
   const { refs, state, utils, actions } = context;
   const { itemPool, scheduledTasks, currentSessionId } = refs;
   const { settings } = state;

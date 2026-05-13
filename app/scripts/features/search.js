@@ -43,7 +43,6 @@ export function registerSearchFeature(context) {
     }
 
     if (lastHighlightedTrackId.value) {
-      // TODO(Task 5.1): replace direct DOM lookup with a template ref map.
       const prevEl = document.getElementById('track-item-' + lastHighlightedTrackId.value);
       if (prevEl) {
         prevEl.classList.remove('ring-2', 'ring-[#007aff]', 'bg-blue-50', 'dark:bg-white/20', 'z-50');
@@ -86,7 +85,6 @@ export function registerSearchFeature(context) {
     const targetItem = items[targetItemIndex];
 
     if (targetItem) {
-      // TODO(Task 5.1): replace direct DOM lookup with a template ref map.
       const el = document.getElementById('track-item-' + targetItem.id);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });

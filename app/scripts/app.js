@@ -42,19 +42,6 @@ import { createMuscheStore } from './store/index.js';
 import { registerSettingsFeature } from './features/settings.js';
 import { registerImportCsvFeature } from './features/import-csv.js';
 import { registerImportMidiFeature } from './features/import-midi.js';
-import {
-    findGroupFromLibrary,
-    findGroupSmart,
-    instrumentLibrary,
-    registerMidiImportUiFeature,
-    sortedLibrary,
-} from './features/midi-import-ui.js';
-import { registerProjectInfoFeature } from './features/project-info.js';
-import { registerCreditFeature } from './features/credit.js';
-import { registerRecInfoFeature } from './features/rec-info.js';
-import { registerPercussionFeature } from './features/percussion.js';
-import { registerDragDropFeature } from './features/drag-drop.js';
-import { registerCalendarViewFeature } from './features/calendar-view.js';
 import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
@@ -70,12 +57,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     let settingsFeature;
     let importCsvFeature;
     let importMidiFeature;
-    let projectInfoFeature;
-    let creditFeature;
-    let recInfoFeature;
-    let percussionFeature;
-    let dragDropFeature;
-    let calendarViewFeature;
     let authFeature;
     let mobileUiFeature;
     let exportCsvFeature;
@@ -111,7 +92,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     createApp({
         setup() {
             const store = createMuscheStore(storageService);
-            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, isSidebarOpen, sidebarTab, isMobile, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery, currentSessionId, activeDropdown, showMobileMenu, tempNickname, settingsExpandedGroups, newSettingsItem, user, showAuthModal, authLoading, authForm, authPasswordRef, history, historyIndex, showConfirmModal, confirmModalConfig, showInputModal, universalInputRef, inputModalConfig, showQuickAddModal, quickAddType, quickAddForm, showCropModal, cropImgSrc, cropImgRef, showGroupSuggestions, settingsGroupFocus, sortKey, activeColorKey, expandedGroups, themeMode, isDark } = store;
+            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery } = store;
             const syncItemForView = (item, viewType = 'musician') => {
                 ensureItemSplitViews(item);
                 syncLegacySplitFields(item, viewType);
@@ -134,13 +115,35 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
             // 1. 定义状态变量 (已适配你文件的变量命名习惯)
             let dividerDragState = null;
+            let trackListScrollTimer = null;
             let pickerCallback = null;
+            let dragElClone = null;       // 拖拽时的克隆体
+            let dragSourceTask = null;    // 源任务数据
+            let dragStartDate = null;     // 源日期
+            let longPressTimeout = null;  // 长按定时器
             let isDraggingMouse = false;
             let startMouseY = 0;
             let startScrollTop = 0;
             let activeColRef = null; // 当前拖动的滚轮 DOM 引用
+            let startX = 0, startY = 0;   // 触摸起始位置
+            let cloneOffsetX = 0, cloneOffsetY = 0; // 手指在元素内的偏移
+            let activeDropSlot = null;    // 当前手指下的放置目标
+            let dragSourceEl = null; // 用于记录被拖拽的原始 DOM 元素
+            let touchOffsetMinutes = 0;
+            let dragClickOffsetY = 0;
+            let dragSourceType = 'schedule';
+            let autoScrollInterval = null;
+            let monthSwitchTimer = null;
             let trackSaveTimer = null; // 用于录音时间保存的防抖计时器
+            let isScrollingProgrammatically = false;
+            let resizeRaf = null; // 用于 requestAnimationFrame 防抖
+            // --- 🟢 新增变量: 拖拽定时器 (用于手机长按) ---
+            // --- 🟢 新增变量: 拖拽定时器 (用于手机长按) ---
+            let trackDragTimer = null;
+            let trackDragState = null;
             // --- 🟢 新增：iOS 视图切换双击检测辅助变量 ---
+            let lastHeaderTap = 0; // 记录周视图表头上次点击时间
+            let lastMonthTap = { time: 0, date: null };
 
 
 
@@ -158,86 +161,56 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             let availableInstrumentGroups;
             let midiGroupData;
             let currentMidiDisplayList;
-            let projectInfoForm;
-            let openProjectInfoModal;
-            let saveProjectInfo;
-            let openCreditModal;
-            let copyCreditText;
-            let showRecInfoModal;
-            let recInfoForm;
-            let openRecInfoModal;
-            let saveRecInfo;
-            let activeRecDropdown;
-            let recDropdownSearch;
-            let filteredRecOptions;
-            let selectRecOption;
-            let createRecOption;
-            let newRecInputs;
-            let addRecItem;
-            let removeRecItem;
-            let hasRecordingInfo;
-            let activeOrchPresets;
-            let orchTemplates;
-            let parsedRoster;
-            let getRosterName;
-            let updateRosterName;
-            let showOrchestrationField;
-            let percKeywords;
-            let percState;
-            let isPercussionMode;
-            let scanPercussionTags;
-            let addPercPlayer;
-            let removePercPlayer;
-            let togglePercTagSelect;
-            let assignTagsToPlayer;
-            let updatePercOrchestration;
-            let getNameWithGroup;
-            let getFamilyTotalDuration;
-            let syncFamilyOrchestration;
-            let getOrchSize;
-            let isOrchestraGroup;
-            let isPercussionGroup;
-            let isStringGroup;
-            let dragElClone;
-            let dragSourceType;
-            let startTrackDrag;
-            let handleTrackListAutoScroll;
-            let stopTrackListAutoScroll;
-            let handleTouchStart;
-            let handleTouchMove;
-            let handleTouchEnd;
-            let handlePoolTouchStart;
-            let startAutoScroll;
-            let stopAutoScroll;
-            let updateAutoScrollDirection;
-            let initMobileResize;
-            let handleMobileResizeMove;
-            let handleMobileResizeEnd;
-            let viewTransitionName;
-            let dateTransitionName;
-            let isZooming;
-            let onBeforeLeave;
-            let onAfterLeave;
-            let isMouseViewDrag;
-            let onMainMouseDown;
-            let onMainMouseUp;
-            let onMainWheel;
-            let onMainTouchStart;
-            let onMainTouchEnd;
-            let switchView;
-            let changeDate;
-            let currentWeekDays;
-            let currentMonthDays;
-            let currentDateLabel;
-            let flatScrolledDays;
-            let generateMonthGrid;
-            let setMonthRef;
-            let scrollToMonthDate;
-            let handleInfiniteScroll;
-            let handleHeaderDoubleTap;
-            let handleMonthCellDoubleTap;
-            let switchToWeek;
 
+
+            // 初始化表单数据
+            const projectInfoForm = reactive({
+                id: null, // 用于定位当前编辑的项目
+                title: '',
+                composer: '',
+                arranger: '',
+                producer: '',
+                mixingEngineer: '',
+                mixingStudio: '',
+                masteringEngineer: '',
+                masteringStudio: '',
+                dolbyStudio: '',
+                publishedBy: '',
+                producedBy: ''
+            });
+
+            // 打开项目信息弹窗
+            const openProjectInfoModal = (project) => {
+                projectInfoForm.id = project.id;
+                // 如果已有数据则回填，否则为空；Title默认回填项目名称
+                projectInfoForm.title = project.title || project.name || '';
+                projectInfoForm.composer = project.composer || '';
+                projectInfoForm.arranger = project.arranger || '';
+                projectInfoForm.producer = project.producer || '';
+                projectInfoForm.mixingEngineer = project.mixingEngineer || '';
+                projectInfoForm.mixingStudio = project.mixingStudio || '';
+                projectInfoForm.masteringEngineer = project.masteringEngineer || '';
+                projectInfoForm.masteringStudio = project.masteringStudio || '';
+                projectInfoForm.dolbyStudio = project.dolbyStudio || '';
+                projectInfoForm.publishedBy = project.publishedBy || '';
+                projectInfoForm.producedBy = project.producedBy || '';
+
+                showProjectInfoModal.value = true;
+            };
+
+// 保存项目信息
+            const saveProjectInfo = () => {
+                const target = settings.projects.find(p => p.id === projectInfoForm.id);
+                if (target) {
+                    // 将表单数据合并回项目对象
+                    Object.assign(target, { ...projectInfoForm });
+                    // 如果想让项目列表显示的名称也同步更新，可以解开下面这行：
+                    // target.name = projectInfoForm.title;
+
+                    window.triggerTouchHaptic('Success');
+                    showProjectInfoModal.value = false;
+                }
+            };
 
             // 1. [新增] 提取通用的状态计算逻辑
             const calculateRowStatusText = (row) => importCsvFeature.calculateRowStatusText(row);
@@ -299,6 +272,195 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     // projectMidiGroups.value.forEach(g => midiManagerExpandedGroups.add(g.name));
                 }
             });
+
+            // 1. 扩展乐器库 (增加常见缩写和变体)
+            const instrumentLibrary = {
+                "Brass": [
+                    "Horn", "French Horn", "Hn", "Trumpet", "Tpt", "Cornet", "Trombone", "Tbn",
+                    "Bass Trombone", "B.Tbn", "Tuba", "Tba", "Euphonium", "Brass"
+                ],
+                "Woodwinds": [
+                    "Flute", "Fl", "Piccolo", "Picc", "Oboe", "Ob", "English Horn", "Cor Anglais", "E.H",
+                    "Clarinet", "Cl", "Bass Clarinet", "B.Cl", "Bassoon", "Bsn", "Contrabassoon", "C.Bsn",
+                    "Saxophone", "Sax", "Recorder", "Woodwinds"
+                ],
+                "Strings": [
+                    "Violin", "Vln", "Viola", "Vla", "Cello", "Violoncello", "Vc",
+                    "Double Bass", "Contrabass", "Db", "Cb", "Bass", // 注意：Bass 在这里，但我们会用正则防止 Bassoon 误判
+                    "Strings", "Str"
+                ],
+                "Percussion": [
+                    "Timpani", "Timp", "Snare", "SD", "Bass Drum", "BD", "Cymbals", "Cym", "Piatti",
+                    "Triangle", "Tri", "Tambourine", "Tamb", "Glockenspiel", "Glock", "Xylophone", "Xyl",
+                    "Vibraphone", "Vib", "Marimba", "Mar", "Tubular Bells", "Chimes", "Drum", "Percussion", "Perc"
+                ],
+                "Keys": [
+                    "Piano", "Pno", "Celesta", "Cel", "Harpsichord", "Organ", "Accordion"
+                ],
+                "Plucks": [
+                    "Harp", "Hp", "Guitar", "Gtr", "Mandolin", "Lute"
+                ],
+                "Vocal": [
+                    "Soprano", "Alto", "Tenor", "Baritone", "Bass Voice", "Choir", "Voice", "Vocal"
+                ]
+            };
+
+            // 2. 生成排序后的搜索列表 (按长度降序，确保 "Bass Trombone" 先于 "Trombone" 被匹配)
+            const sortedLibrary = (() => {
+                const list = [];
+                for (const [group, names] of Object.entries(instrumentLibrary)) {
+                    names.forEach(name => {
+                        list.push({ name, group });
+                    });
+                }
+                // 按字符串长度降序排序 (Longest First)
+                return list.sort((a, b) => b.name.length - a.name.length);
+            })();
+
+// 核心：查找分组
+            const findGroupSmart = (trackName) => {
+                // A. 预处理轨道名
+                const cleanName = normalizeForMatch(trackName);
+
+                // B. 遍历库
+                for (const item of sortedLibrary) {
+                    const libName = normalizeForMatch(item.name);
+
+                    // 🔴 核心修复：使用正则单词边界 (\b)
+                    // 这意味着 "Bass" 只能匹配 "Bass" 或 "Double Bass"，
+                    // 而不会匹配 "Bassoon" (因为 Bassoon 里的 bass 后面没有边界)
+
+                    // 转义正则特殊字符 (如 +)
+                    const escapedLibName = libName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+                    // 构造正则：全字匹配 或 单词边界匹配
+                    // 例子：/bass/ 会匹配 bassoon，但 /\bbass\b/ 不会匹配 bassoon
+                    const regex = new RegExp(`\\b${escapedLibName}\\b`, 'i');
+
+                    if (regex.test(cleanName)) {
+                        return item.group;
+                    }
+
+                    // 兜底逻辑：对于很短的缩写 (如 "Fl", "Ob")，如果正则失败，尝试直接包含
+                    // 前提是缩写长度小于3，且不是常见的单词前缀
+                    if (libName.length < 3 && cleanName === libName) {
+                        return item.group;
+                    }
+                }
+
+                // 5. 兜底猜测 (如果库里没找到)
+                if (cleanName.includes('string') || cleanName.includes('vln') || cleanName.includes('vla') || cleanName.includes('cello')) return 'Strings';
+                if (cleanName.includes('brass') || cleanName.includes('horn') || cleanName.includes('tpt')) return 'Brass';
+                if (cleanName.includes('wood') || cleanName.includes('flute') || cleanName.includes('oboe')) return 'Woodwinds';
+                if (cleanName.includes('perc') || cleanName.includes('drum')) return 'Percussion';
+
+                return "";
+            };
+
+            // 打开导入界面的下拉菜单
+            const openImportMenu = (e, rowId, type) => {
+                // 如果点击同一个，则关闭
+                if (activeImportMenu.rowId === rowId && activeImportMenu.type === type) {
+                    activeImportMenu.rowId = null;
+                    activeImportMenu.type = null;
+                    return;
+                }
+
+                // 计算位置
+                const rect = e.currentTarget.getBoundingClientRect();
+                importMenuPos.top = rect.bottom + 5;
+                importMenuPos.left = rect.left;
+                importMenuPos.width = rect.width;
+
+                activeImportMenu.rowId = rowId;
+                activeImportMenu.type = type;
+                importSearchQuery.value = ''; // 重置搜索
+
+                // 自动聚焦搜索框
+                nextTick(() => {
+                    const input = document.getElementById('midi-import-search');
+                    if (input) input.focus();
+                });
+            };
+
+            // 关闭导入菜单
+            const closeImportMenu = () => {
+                activeImportMenu.rowId = null;
+                activeImportMenu.type = null;
+            };
+
+            // 在导入界面选择乐器
+            const selectImportInst = (track, inst) => {
+                track.instrumentId = inst.id;
+
+                // 🟢 FIX: 只有在非分组视图下才自动更新分组
+                // 这样在 'Group View' 下修改乐器时，条目不会因为分组变化而瞬间跳走
+                if (inst.group && midiViewMode.value !== 'groups') {
+                    track.group = inst.group;
+                }
+
+                track.createNew = false;
+                closeImportMenu();
+            };
+
+            // 在导入界面选择新建乐器
+            const selectImportNewInst = (track) => {
+                track.instrumentId = ""; // 空 ID 代表新建
+                track.createNew = true;
+                closeImportMenu();
+                // 自动聚焦名字输入框 (可选优化)
+            };
+
+            // 在导入界面选择分组
+            const selectImportGroup = (track, groupName) => {
+                track.group = groupName;
+                closeImportMenu();
+            };
+
+            // 获取导入菜单的过滤列表
+            const filteredImportOptions = computed(() => {
+                const search = importSearchQuery.value.toLowerCase();
+
+                if (activeImportMenu.type === 'inst') {
+                    // 乐器列表
+                    return sortedInstruments.value.filter(i =>
+                        i.name.toLowerCase().includes(search) ||
+                        (i.group && i.group.toLowerCase().includes(search))
+                    );
+                } else if (activeImportMenu.type === 'group') {
+                    // 分组列表
+                    return availableInstrumentGroups.value.filter(g =>
+                        g.toLowerCase().includes(search)
+                    );
+                }
+                return [];
+            });
+
+            // 🟢 [修改] 打开分组下拉菜单 (重置搜索词)
+            const openMidiGroupDropdown = (e, instId) => {
+                if (activeMidiGroupRow.value === instId) {
+                    activeMidiGroupRow.value = null;
+                    return;
+                }
+                const rect = e.currentTarget.getBoundingClientRect();
+                midiGroupPos.top = rect.bottom + 5;
+                midiGroupPos.left = rect.left;
+                midiGroupPos.width = rect.width;
+
+                activeMidiGroupRow.value = instId;
+                midiGroupSearchQuery.value = ''; // 重置搜索
+
+                // 自动聚焦输入框
+                nextTick(() => {
+                    const input = document.getElementById('midi-group-search-input');
+                    if (input) input.focus();
+                });
+            };
+
+            const selectMidiGroup = (instId, groupName) => {
+                updateInstrumentGroup(instId, groupName); // 调用之前的更新函数
+                activeMidiGroupRow.value = null; // 关闭菜单
+            };
 
             // 🟢 [新算法] 判断两个区间是否重叠 (辅助函数)
             // 用于判断音符是否出现在某个小节内
@@ -563,6 +725,15 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
             };
 
+            // 🟢 [新增] 过滤分组列表 (用于下拉菜单显示)
+            const filteredMidiGroups = computed(() => {
+                const query = midiGroupSearchQuery.value.toLowerCase().trim();
+                // 复用已有的 availableInstrumentGroups (在之前代码中已定义)
+                return availableInstrumentGroups.value.filter(g =>
+                    g.toLowerCase().includes(query)
+                );
+            });
+
 // 触发定向导入 (复用之前的 input，但这次我们已经知道是哪个项目了)
             const triggerMidiImportForProject = () => importMidiFeature.triggerMidiImportForProject();
 
@@ -604,6 +775,27 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             // 🟢 [新增] 根据模式返回当前显示的列表
             // currentMidiDisplayList 由 importMidiFeature 注册后注入
+
+            const findGroupFromLibrary = (cleanName) => {
+                const target = cleanName.toLowerCase();
+
+                // 遍历所有分组
+                for (const [groupName, instruments] of Object.entries(instrumentLibrary)) {
+                    // 检查该分组下的乐器是否匹配
+                    const match = instruments.find(inst => {
+                        const libInst = inst.toLowerCase();
+                        // 匹配逻辑：
+                        // 1. 全字匹配 (最准确)
+                        if (libInst === target) return true;
+                        // 2. 包含匹配 (如库里是 "Piano", 轨道叫 "Piano (L)")
+                        if (target.includes(libInst)) return true;
+                        return false;
+                    });
+
+                    if (match) return groupName;
+                }
+                return "";
+            };
 
             // 🟢 辅助：计算基于 Tick 的精确时长 (核心算法)
             const calculateAccurateDuration = (midi, track) => {
@@ -770,7 +962,483 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 [修改] confirmMidiImport: 支持存储多条轨道数据 (Flute 1, Flute 2)
             const confirmMidiImport = () => importMidiFeature.confirmMidiImport();
 
-            // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)            // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)
+            // 1. 周视图 -> 月视图 (双击表头)
+            const handleHeaderDoubleTap = (e) => {
+                const now = Date.now();
+                // 如果两次点击间隔小于 300ms
+                if (now - lastHeaderTap < 300) {
+                    e.preventDefault(); // 阻止默认行为（如缩放）
+                    switchView('month');
+                }
+                lastHeaderTap = now;
+            };
+
+            // 2. 月视图 -> 周视图 (双击日期格)
+            const handleMonthCellDoubleTap = (e, dateStr) => {
+                // 如果点到了任务条(Task)，不要触发视图切换，让任务条自己的逻辑处理
+                if (e.target.closest('.task-block') || e.target.closest('.text-\\[11px\\]')) {
+                    return;
+                }
+
+                const now = Date.now();
+                // 必须是同一个日期格子，且间隔小于 300ms
+                if (now - lastMonthTap.time < 300 && lastMonthTap.date === dateStr) {
+                    e.preventDefault();
+                    window.triggerTouchHaptic('Light');
+                    switchToWeek(dateStr);
+                }
+                lastMonthTap.time = now;
+                lastMonthTap.date = dateStr;
+            };
+
+            // 🟢 [新增] 无限滚动范围控制
+            const renderedRange = reactive({
+                past: 6,   // 初始往回看 6 个月
+                future: 18 // 初始往后看 18 个月
+            });
+            const isLoadingMore = ref(false); // 防抖锁
+
+            // 辅助：配合 v-for 收集 DOM 引用
+            const setMonthRef = (el) => {
+                if (el) monthRefs.value.push(el);
+            };
+
+            const initMonthObserver = () => {
+                if (monthObserver.value) monthObserver.value.disconnect();
+                monthRefs.value = []; // 清空旧引用
+
+                const options = {
+                    root: document.getElementById('main-content'),
+                    rootMargin: '0px 0px -90% 0px', // 判定线调整到顶部
+                    threshold: 0
+                };
+
+                monthObserver.value = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            // 读取单元格上的 data-month-start
+                            const dateStr = entry.target.dataset.monthStart;
+                            if (dateStr) {
+                                visibleTopDate.value = new Date(dateStr);
+                            }
+                        }
+                    });
+                }, options);
+
+                // 等待 DOM 渲染后观察所有“1号”的格子
+                setTimeout(() => {
+                    // monthRefs 在模板渲染时会自动填充
+                    monthRefs.value.forEach((el) => {
+                        monthObserver.value.observe(el);
+                    });
+                }, 100);
+            };
+
+// 监听视图模式切换：切到滚动模式时启动观察器
+            watch(monthViewMode, (newMode) => {
+                if (newMode === 'scrolled') {
+                    visibleTopDate.value = viewDate.value; // 重置为当前 viewDate
+                    nextTick(() => initMonthObserver());
+                } else {
+                    if (monthObserver.value) monthObserver.value.disconnect();
+                }
+            });
+
+
+            const openCreditModal = () => {
+                const sessId = currentSessionId.value;
+
+                // 1. 初始化数据容器
+                const projectDataMap = {};
+
+                const getProjData = (pid) => {
+                    if (!projectDataMap[pid]) {
+                        projectDataMap[pid] = {
+                            name: getNameById(pid, 'project'), // 获取项目基础名称
+                            // --- 管弦乐部分 ---
+                            orch: {
+                                strings: new Set(),
+                                woodwinds: {},
+                                brass: {},
+                                percussion: {},
+                                others: {}
+                            },
+                            orchTech: {
+                                studios: new Set(), engineers: new Set(),
+                                operators: new Set(), assistants: new Set()
+                            },
+                            // --- 普通乐器部分 ---
+                            solo: {},
+                            soloTech: {
+                                studios: new Set(), engineers: new Set(),
+                                operators: new Set(), assistants: new Set()
+                            },
+                            editors: new Set()
+                        };
+                    }
+                    return projectDataMap[pid];
+                };
+
+                // --- 核心函数：判断乐器分类 ---
+                const getOrchCategory = (instName, musName) => {
+                    const i = (instName || '').toLowerCase();
+                    const m = (musName || '').toLowerCase();
+
+                    if (/\b(violin|viola|cello|double\s*bass|contrabass)\b/.test(i)) return 'strings';
+                    if (/\b(flute|piccolo|oboe|english\s*horn|cor\s*anglais|clarinet|bassoon|contrabassoon)\b/.test(i)) return 'woodwinds';
+                    if (/\b(horn|trumpet|trombone|tuba|euphonium)\b/.test(i)) return 'brass';
+                    if (/\b(timpani|snare|cymbal|gong|mark\s*tree|glockenspiel|xylophone|marimba|vibraphone|chimes|tubular\s*bells)\b/.test(i)) return 'percussion';
+                    if (/\b(harp|celesta|celeste|piano|organ|harpsichord)\b/.test(i)) return 'others';
+
+                    if (m.includes('string')) return 'strings';
+                    if (m.includes('woodwind')) return 'woodwinds';
+                    if (m.includes('brass')) return 'brass';
+                    if (m.includes('percussion') || m.includes('perc ')) return 'percussion';
+
+                    return null;
+                };
+
+                const addToMap = (targetMap, instrumentLabel, playerName) => {
+                    if (!playerName || playerName === '未知演奏员' || playerName === '未选择') return;
+
+                    // 🟢 [修正] 加入 \r 和 \n
+                    const names = playerName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
+
+                    names.forEach(name => {
+                        if (!targetMap[instrumentLabel]) targetMap[instrumentLabel] = new Set();
+                        targetMap[instrumentLabel].add(name);
+                    });
+                };
+
+                const addTechInfo = (targetTech, info) => {
+                    if (!info) return;
+                    const splitAndAdd = (str, set) => {
+                        if (!str) return;
+
+                        // 🟢 [修正] 加入 \r 和 \n 确保所有类型的换行都能切分
+                        const parts = str.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
+
+                        parts.forEach(p => set.add(p));
+                    };
+                    // ... 后面的代码不变
+                    splitAndAdd(info.studio, targetTech.studios);
+                    splitAndAdd(info.engineer, targetTech.engineers);
+                    splitAndAdd(info.operator, targetTech.operators);
+                    splitAndAdd(info.assistant, targetTech.assistants);
+                };
+
+                // 2. 遍历曲目 (ItemPool)
+                const sessionItems = itemPool.value.filter(i => (i.sessionId || 'S_DEFAULT') === sessId);
+
+                if (sessionItems.length === 0 && scheduledTasks.value.length === 0) {
+                    openAlertModal("无数据", "当前日程表为空，无法生成名单。");
+                    return;
+                }
+
+                sessionItems.forEach(item => {
+                    if (item.isSkipped) return;
+
+                    const pid = item.projectId || 'Unassigned';
+                    const pData = getProjData(pid);
+
+                    const instId = item.instrumentId;
+                    const systemInstName = getNameById(instId, 'instrument');
+                    const musId = item.musicianId;
+                    const musName = getNameById(musId, 'musician');
+
+                    const category = getOrchCategory(systemInstName, musName);
+                    let hasDetailedInfo = false;
+
+                    if (category) {
+                        // Orchestra
+                        if (category === 'percussion') {
+                            const musicianSettings = settings.musicians.find(m => m.id === musId);
+                            if (musicianSettings && musicianSettings.percConfig && musicianSettings.percConfig.tags.length > 0) {
+                                musicianSettings.percConfig.tags.forEach(tag => {
+                                    if (tag.assignedTo) {
+                                        const assignedPlayer = musicianSettings.percConfig.players.find(p => p.id === tag.assignedTo);
+                                        if (assignedPlayer) {
+                                            addToMap(pData.orch.percussion, tag.name, assignedPlayer.name);
+                                            hasDetailedInfo = true;
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+                        if (!hasDetailedInfo && item.roster && Object.keys(item.roster).length > 0) {
+                            let targetMap = pData.orch[category];
+                            Object.entries(item.roster).forEach(([key, playerName]) => {
+                                if (!playerName || !playerName.trim()) return;
+                                let instrumentLabel = key.split(/[._\d]/)[0].trim();
+                                if (!instrumentLabel) instrumentLabel = systemInstName;
+
+                                if (category === 'strings') {
+                                    // 🟢 [修正]
+                                    const names = playerName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
+                                    names.forEach(n => pData.orch.strings.add(n));
+                                } else {
+                                    addToMap(targetMap, instrumentLabel, playerName.trim());
+                                }
+                                hasDetailedInfo = true;
+                            });
+                        }
+
+                        if (!hasDetailedInfo) {
+                            if (category === 'strings') {
+                                if (musName) {
+                                    // 🟢 [修正]
+                                    const names = musName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
+                                    names.forEach(n => pData.orch.strings.add(n));
+                                }
+                            } else {
+                                addToMap(pData.orch[category], systemInstName, musName);
+                            }
+                        }
+
+                    } else {
+                        // Solo Instruments
+                        addToMap(pData.solo, systemInstName, musName);
+                    }
+                });
+
+                // 3. 遍历日程 (ScheduledTasks)
+                const sessionTasks = scheduledTasks.value.filter(t => (t.sessionId || 'S_DEFAULT') === sessId);
+
+                sessionTasks.forEach(task => {
+                    // 1. 确定项目归属
+                    const currentTaskProjectIds = new Set();
+                    if (task.projectId) {
+                        currentTaskProjectIds.add(task.projectId);
+                    } else {
+                        if (task.musicianId) {
+                            sessionItems.filter(i => i.musicianId === task.musicianId)
+                                .forEach(i => i.projectId && currentTaskProjectIds.add(i.projectId));
+                        }
+                        if (task.instrumentId) {
+                            sessionItems.filter(i => i.instrumentId === task.instrumentId)
+                                .forEach(i => i.projectId && currentTaskProjectIds.add(i.projectId));
+                        }
+                    }
+
+                    // 2. 处理 Edit Info (音频编辑)
+                    if (task.editInfo) {
+                        const edName = task.editInfo.engineer || task.editInfo.EditEngineer;
+                        if (edName) {
+                            currentTaskProjectIds.forEach(pid => {
+                                const pData = getProjData(pid);
+                                const names = edName.split(/[\/,]/);
+                                names.forEach(n => {
+                                    if (n && n.trim()) pData.editors.add(n.trim());
+                                });
+                            });
+                        }
+                    }
+
+                    // 3. 处理 Recording Info (录音技术人员)
+                    const info = task.recordingInfo;
+                    if (!info) return;
+
+                    let isOrchTask = false;
+                    const relatedItems = sessionItems.filter(i => {
+                        if (task.musicianId) return i.musicianId === task.musicianId;
+                        if (task.instrumentId) return i.instrumentId === task.instrumentId;
+                        return false;
+                    });
+
+                    if (relatedItems.length > 0) {
+                        isOrchTask = relatedItems.some(i => {
+                            const iName = getNameById(i.instrumentId, 'instrument');
+                            const mName = getNameById(i.musicianId, 'musician');
+                            return !!getOrchCategory(iName, mName);
+                        });
+                    } else {
+                        const iName = getNameById(task.instrumentId, 'instrument');
+                        const mName = getNameById(task.musicianId, 'musician');
+                        isOrchTask = !!getOrchCategory(iName, mName);
+                    }
+
+                    currentTaskProjectIds.forEach(pid => {
+                        const pData = getProjData(pid);
+                        if (isOrchTask) {
+                            addTechInfo(pData.orchTech, info);
+                        } else {
+                            addTechInfo(pData.soloTech, info);
+                        }
+                    });
+                });
+
+                // 4. 生成文本
+                const finalLines = [];
+                const sortedPids = Object.keys(projectDataMap).sort((a, b) =>
+                    projectDataMap[a].name.localeCompare(projectDataMap[b].name, 'zh-CN')
+                );
+
+                // 辅助输出函数
+                const printTechBlock = (techData) => {
+                    const join = (set) => Array.from(set).join(' / ');
+                    if (techData.studios.size > 0) finalLines.push(`录音棚 Recording Studio：${join(techData.studios)}`);
+                    if (techData.engineers.size > 0) finalLines.push(`录音工程师 Recording Engineer：${join(techData.engineers)}`);
+                    if (techData.operators.size > 0) finalLines.push(`录音操作员 Recording Operator：${join(techData.operators)}`);
+                    if (techData.assistants.size > 0) finalLines.push(`录音师助理 Recording Assistant：${join(techData.assistants)}`);
+                };
+
+                const printInstMap = (title, map) => {
+                    const keys = Object.keys(map).sort();
+                    if (keys.length > 0) {
+                        if(title) {
+                            finalLines.push("");
+                            finalLines.push(`${title}：`);
+                        }
+                        keys.forEach(inst => {
+                            const names = Array.from(map[inst]).join(' / ');
+                            finalLines.push(`${inst}：${names}`);
+                        });
+                    }
+                };
+
+                sortedPids.forEach(pid => {
+                    const d = projectDataMap[pid];
+
+                    // 🟢 获取项目详细元数据 (Project Info)
+                    const projectMeta = settings.projects.find(p => p.id === pid) || {};
+
+                    // 判断是否有内容需要输出 (如果是一个空项目，什么都没录，也没有设置信息，则跳过)
+                    const hasSolo = Object.keys(d.solo).length > 0;
+                    const isOrchEmpty = d.orch.strings.size === 0 &&
+                        Object.keys(d.orch.woodwinds).length === 0 &&
+                        Object.keys(d.orch.brass).length === 0 &&
+                        Object.keys(d.orch.percussion).length === 0 &&
+                        Object.keys(d.orch.others).length === 0;
+
+                    // 如果是 Unassigned 且没有录音内容，或者有ID但没内容且没元数据，则跳过
+                    if ((pid === 'Unassigned' && !hasSolo && isOrchEmpty) ||
+                        (!hasSolo && isOrchEmpty && !projectMeta.title)) {
+                        // 允许有title但没录音的项目显示，作为占位
+                        if(!projectMeta.title) return;
+                    }
+
+                    // --- 1. Header (Title, Composer, Arranger) ---
+                    // 使用 Project Info 中的 Title，如果没有则使用项目名
+                    const displayTitle = projectMeta.title || d.name;
+                    finalLines.push(`曲目名称 Title：${displayTitle}`);
+                    finalLines.push("");
+
+                    if (projectMeta.composer) {
+                        finalLines.push(`作曲 Composer：${projectMeta.composer}`);
+                        finalLines.push("");
+                    }
+                    if (projectMeta.arranger) {
+                        finalLines.push(`编曲 Arranger：${projectMeta.arranger}`);
+                        finalLines.push("");
+                    }
+
+                    // --- 2. Orchestra Recording ---
+                    if (!isOrchEmpty) {
+                        finalLines.push("管弦乐队录制（Orchestra Recording）");
+                        finalLines.push("");
+                        // 这里目前没有 Orchestra Name 字段，如果将来加了可以在这里输出
+                        // finalLines.push(`乐队 Orchestra：${projectMeta.orchestraName || '...'}`);
+                        finalLines.push("指挥 Conductor：[请填写]");
+
+                        if (d.orch.strings.size > 0) {
+                            finalLines.push("");
+                            finalLines.push("弦乐组 Strings：");
+                            d.orch.strings.forEach(s => finalLines.push(s));
+                        }
+
+                        printInstMap("木管组 Woodwinds", d.orch.woodwinds);
+                        printInstMap("铜管组 Brass", d.orch.brass);
+                        printInstMap("打击乐组 Percussion", d.orch.percussion);
+                        printInstMap("色彩乐器 Keyboards & Harp", d.orch.others);
+
+                        finalLines.push("");
+                        printTechBlock(d.orchTech);
+                        finalLines.push("");
+                    }
+
+                    // --- 3. Instruments Recording ---
+                    if (hasSolo) {
+                        finalLines.push("乐器录制（Instruments Recording）");
+                        finalLines.push("");
+                        printInstMap("", d.solo); // 乐器名：人名
+
+                        finalLines.push("");
+                        printTechBlock(d.soloTech);
+                        finalLines.push("");
+                    }
+
+                    // --- 4. Post Production (Mixing, Mastering, Editing) ---
+                    // 检查是否有任何后期信息
+                    const hasPostInfo = (d.editors && d.editors.size > 0) ||
+                        projectMeta.mixingEngineer ||
+                        projectMeta.mixingStudio ||
+                        projectMeta.masteringEngineer ||
+                        projectMeta.masteringStudio ||
+                        projectMeta.dolbyStudio;
+
+                    if (hasPostInfo) {
+                        finalLines.push(""); // 与上文隔开
+                        finalLines.push("声音后期制作（Editing, Mixing & Mastering）");
+                        finalLines.push("");
+
+                        // 音频编辑 (来自 Edit Info 弹窗)
+                        if (d.editors && d.editors.size > 0) {
+                            finalLines.push(`音频编辑 Audio Editor：${[...d.editors].join(' / ')}`);
+                        }
+
+                        // 混音 & 母带 (来自 Project Info 弹窗)
+                        if (projectMeta.mixingEngineer) finalLines.push(`混音工程师 Mixing Engineer：${projectMeta.mixingEngineer}`);
+                        if (projectMeta.mixingStudio) finalLines.push(`混音工作室 Mixing Studio：${projectMeta.mixingStudio}`);
+
+                        if (projectMeta.masteringEngineer) finalLines.push(`母带工程师 Mastering Engineer：${projectMeta.masteringEngineer}`);
+                        if (projectMeta.masteringStudio) finalLines.push(`母带工作室 Mastering Studio：${projectMeta.masteringStudio}`);
+
+                        if (projectMeta.dolbyStudio) finalLines.push(`杜比全景声母带工作室 Dolby Atmos Mastering Studio：${projectMeta.dolbyStudio}`);
+                    }
+
+                    // --- 5. Production & Publishing ---
+                    if (projectMeta.producer) {
+                        finalLines.push("");
+                        finalLines.push("音乐制作人（Music Producer）");
+                        finalLines.push(projectMeta.producer);
+                    }
+
+                    if (projectMeta.publishedBy) {
+                        finalLines.push("");
+                        finalLines.push("发行（Published by）");
+                        finalLines.push(projectMeta.publishedBy);
+                    }
+
+                    if (projectMeta.producedBy) {
+                        finalLines.push("");
+                        finalLines.push("出品（Produced by）");
+                        finalLines.push(projectMeta.producedBy);
+                    }
+
+                    finalLines.push("------------------------------------------------");
+                    finalLines.push("");
+                });
+
+                generatedCreditText.value = finalLines.join('\n');
+                showCreditModal.value = true;
+            };
+
+            const copyCreditText = () => {
+                if (!generatedCreditText.value) return;
+                navigator.clipboard.writeText(generatedCreditText.value).then(() => {
+                    window.triggerTouchHaptic('Success');
+                    // 按钮文字变一下反馈 (可选)
+                    const btn = document.querySelector('.modal-window button i.fa-copy')?.parentNode;
+                    if(btn) {
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fa-solid fa-check"></i> 已复制';
+                        setTimeout(() => btn.innerHTML = originalText, 2000);
+                    }
+                });
+            };
+
+            // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)
             const checkCanDeleteSplit = (item) => {
                 const viewType = getCurrentSplitView();
                 // 1. 检查是否有任何任务的 splitFromId 指向当前任务
@@ -791,6 +1459,370 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
 
                 return true; // 允许删除
+            };
+
+
+
+            // 🟢 [新增] 辅助函数：计算某个任务及其所有分身的总时长
+            const getFamilyTotalDuration = (targetItem) => {
+                const viewType = getCurrentSplitView();
+                // 1. 找到根节点 ID (如果是子任务，取 splitFromId；如果是根任务，取自身 ID)
+                const rootId = getSplitViewState(targetItem, viewType).splitFromId || targetItem.id;
+
+                // 2. 在任务池中找到整个家族 (根节点 + 所有子节点)
+                // 注意：这里只筛选 ID 匹配，不筛选 Session，因为 splitFromId 是跨 Session 唯一的
+                const familyMembers = itemPool.value.filter(i => (
+                    isItemVisibleForView(i, viewType) &&
+                    (i.id === rootId || getSplitViewState(i, viewType).splitFromId === rootId)
+                ));
+
+                // 3. 累加所有成员的 musicDuration
+                const totalSeconds = familyMembers.reduce((sum, item) => {
+                    return sum + parseTime(getSplitViewState(item, viewType).musicDuration || '00:00');
+                }, 0);
+
+                return totalSeconds;
+            };
+
+            // 🟢 [修改] 编制预设 (改为显式名称格式)
+            const activeOrchPresets = computed(() => {
+                const instId = editingItem.value.instrumentId;
+                // 默认木管配置
+                if (!instId) return { full: '2 Fl, 2 Ob, 2 Cl, 2 Bsn', std: '1 Fl, 1 Ob, 1 Cl, 1 Bsn' };
+
+                const inst = settings.instruments.find(i => i.id === instId);
+                const text = inst ? `${inst.name} ${inst.group || ''}`.toLowerCase() : '';
+
+                // 1. Strings (弦乐)
+                if (/string|str|vln|vla|vc|db|violin|cello|viola/.test(text)) {
+                    return {
+                        full: '12 Vln1, 10 Vln2, 8 Vla, 8 Vc, 6 Db',
+                        std: '8 Vln1, 6 Vln2, 4 Vla, 4 Vc, 3 Db'
+                    };
+                }
+
+                // 2. Brass (铜管)
+                if (/brass|hn|tpt|tbn|tba|horn|trumpet|trombone|tuba/.test(text)) {
+                    return {
+                        full: '4 Hn, 3 Tpt, 3 Tbn, 1 Tba',
+                        std: '4 Hn, 2 Tpt, 2 Tbn'
+                    };
+                }
+
+                // 3. Woodwinds (木管 - 默认)
+                return {
+                    full: '3 Fl, 3 Ob, 3 Cl, 3 Bsn',
+                    std: '2 Fl, 2 Ob, 2 Cl, 2 Bsn'
+                };
+            });
+
+
+            const orchTemplates = {
+                'Brass': ['Hn', 'Tpt', 'Tbn', 'B. Tbn', 'Tba'],
+                'Woodwinds':['Fl', 'Picc', 'Ob', 'E. H.', 'Cl', 'B. Cl', 'Bsn', 'C. Bsn'],
+                'Strings': ['Vln1', 'Vln2', 'Vla', 'Vc', 'Db']
+            };
+
+            // 🟢 [修改] 解析编制字符串 (动态模式)
+            // 输入: "4 Fl, 2 Ob, 12 Vln1"
+            // 输出: 动态生成对应数量的输入框
+            const parsedRoster = computed(() => {
+                const code = editingItem.value.orchestration || '';
+
+                // 1. 分割字符串：支持逗号(,) 加号(+) 或分号(;) 分隔
+                // 过滤掉空字符串
+                const parts = code.split(/[,+;]/).map(s => s.trim()).filter(s => s);
+
+                const result = [];
+
+                parts.forEach((part, index) => {
+                    // 2. 正则匹配：以数字开头，后面跟着名称
+                    // 捕获组 1: 数字 (\d+)
+                    // 捕获组 2: 名称 (剩下的部分)
+                    const match = part.match(/^(\d+)\s*(.*)$/);
+
+                    if (match) {
+                        const count = parseInt(match[1], 10);
+                        // 如果没有写名字(例如只写了"4")，则使用默认名称 "Player"
+                        const label = match[2].trim() || 'Player';
+
+                        if (count > 0) {
+                            result.push({
+                                label: label,
+                                count: count,
+                                // 使用 label 作为前缀，确保 rosters 对象中的 key 唯一
+                                // 例如: "Fl._1", "Fl._2"
+                                startIndex: 0
+                            });
+                        }
+                    }
+                });
+
+                return result;
+            });
+
+            // 初始化/获取人员名单对象
+            const getRosterName = (sectionLabel, index) => {
+                if (!editingItem.value.roster) editingItem.value.roster = {};
+                const key = `${sectionLabel}_${index + 1}`;
+                return editingItem.value.roster[key] || '';
+            };
+
+            // 更新人员名单
+            const updateRosterName = (sectionLabel, index, value) => {
+                if (!editingItem.value.roster) editingItem.value.roster = {};
+                const key = `${sectionLabel}_${index + 1}`;
+                editingItem.value.roster[key] = value;
+            };
+
+            // --- 🟢 新增：判断是否显示编制/名单输入框 ---
+            const showOrchestrationField = computed(() => {
+                const instId = editingItem.value.instrumentId;
+                if (!instId) return false;
+
+                // 1. 找到当前乐器对象
+                const inst = settings.instruments.find(i => i.id === instId);
+                if (!inst) return false;
+
+                // 2. 拼接 名称 和 分组 (转小写)
+                const text = `${inst.name} ${inst.group || ''}`.toLowerCase();
+
+                // 3. 关键词匹配 (支持 Brass, Woodwind, String, Wind, Str 等)
+                // 只要名称或分组里包含这些词，就显示
+                return /brass|woodwind|string|str|wind/.test(text);
+            });
+
+            // --- 🥁 智能打击乐处理逻辑 (Smart Percussion) ---
+
+            // 1. 定义打击乐关键词映射表 (根据你的截图大幅扩充)
+            const percKeywords = {
+                // 基础类
+                'Snare': 'SD', 'Drum': 'Dr', 'Bass': 'BD', 'Kick': 'BD',
+                'Cymbal': 'Cym', 'Piatti': 'Piatti', 'Crash': 'Cym', 'Sus': 'SusCym',
+                'Timpani': 'Timp', 'Gong': 'Gong', 'Tam': 'Tam', 'Tubular':'TB',
+
+                // 你的截图特定乐器
+                'Anvil': 'Anv',       // 铁砧
+                'Cabasa': 'Cab',      // 卡巴萨
+                'Castanets': 'Cast',  // 响板
+                'Bell': 'Bell',       // 各种铃 (China Bell, LP Bell, SL Bell)
+                'Cowbell': 'CB',      // 牛铃
+                'Guiro': 'Guiro',     // 刮瓜
+                'Mark Tree': 'Tree',  // 音树
+                'Ratchet': 'Ratch',   // 棘轮
+                'Whistle': 'Whis',    // 哨子 (Samba Whistle)
+                'Shaker': 'Shk',      // 沙锤 (Plastic, Metal, Wooden)
+                'Shells': 'Shells',   // 贝壳风铃
+                'Sleigh': 'SlBell',   // 雪橇铃
+                'Whip': 'Whip',       // 鞭响
+                'Wood Block': 'WB',   // 木鱼/木盒
+                'Block': 'Blk',
+                'Tamb': 'Tamb',       // 铃鼓
+                'Tri': 'Tri',         // 三角铁
+                'Vib': 'Vib', 'Xylo': 'Xyl', 'Glock': 'Glk', 'Chime': 'Chm',
+                'Crot': 'Crot', 'Stick': 'Stk', 'Clap': 'Clap'
+            };
+
+            // 1. 状态变量
+            const percState = reactive({
+                tags: [],
+                players: [],
+                selectedTagIndices: new Set()
+            });
+
+            // 3. 判断当前是否为打击乐编辑模式 (修正: 检查范围更广)
+            const isPercussionMode = computed(() => {
+                const instName = getNameById(editingItem.value.instrumentId, 'instrument').toLowerCase();
+                const musicianName = getNameById(editingItem.value.musicianId, 'musician').toLowerCase();
+                const groupName = (settings.instruments.find(i => i.id === editingItem.value.instrumentId)?.group || '').toLowerCase();
+
+                // 触发词：只要命中这些词，就视为打击乐任务，开启分部面板
+                // 包含了 "Percussion" (匹配你的 SPO Percussion Player)
+                const triggers = ['perc'];
+
+                return triggers.some(t => instName.includes(t) || musicianName.includes(t) || groupName.includes(t));
+            });
+
+            // 4. 核心：扫描并生成/恢复标签 (修复: 读取演奏员存档实现持久化)
+            const scanPercussionTags = () => {
+                // 1. 获取当前演奏员对象 (作为配置的存储载体)
+                const musician = settings.musicians.find(m => m.id === editingItem.value.musicianId);
+
+                // 初始化临时列表
+                let currentTags = [];
+                let currentPlayers = [];
+
+                // 2. 尝试读取该演奏员已保存的配置
+                if (musician && musician.percConfig) {
+                    // 深拷贝以断开引用，防止修改未保存时污染源数据
+                    currentTags = JSON.parse(JSON.stringify(musician.percConfig.tags));
+                    currentPlayers = JSON.parse(JSON.stringify(musician.percConfig.players));
+                } else {
+                    // 如果没有存档，初始化默认演奏员
+                    currentPlayers = [{ id: 1, name: 'Perc 1', tags: [] }];
+                }
+
+                // 3. 扫描当前 Session 下该人的所有任务，找出所有涉及的乐器
+                // (目的是发现新添加的任务/乐器，并合并到现有配置中)
+                let relatedItems = [];
+                if (sidebarTab.value === 'musician' && editingItem.value.musicianId) {
+                    relatedItems = itemPool.value.filter(i => i.musicianId === editingItem.value.musicianId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                } else if (editingItem.value.instrumentId) {
+                    relatedItems = itemPool.value.filter(i => i.instrumentId === editingItem.value.instrumentId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
+                }
+
+                relatedItems.forEach(item => {
+                    const rawName = getNameById(item.instrumentId, 'instrument');
+
+                    // 检查这个乐器是否已经在 tags 里了
+                    // 🟢 修复: 只有当它是新乐器时才添加
+                    if (rawName && !currentTags.some(t => t.fullName === rawName)) {
+                        currentTags.push({
+                            name: rawName,
+                            fullName: rawName,
+                            assignedTo: null // 新乐器默认未分配
+                        });
+                    }
+                });
+
+                // 4. 排序 (让界面整洁)
+                currentTags.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+                // 5. 赋值给响应式状态
+                percState.tags = currentTags;
+                percState.players = currentPlayers;
+                percState.selectedTagIndices.clear();
+            };
+
+            // 5. 添加演奏员
+            const addPercPlayer = () => {
+                const id = percState.players.length + 1;
+                percState.players.push({
+                    id: id,
+                    name: `Perc ${id}`,
+                    tags: []
+                });
+            };
+
+            // 6. 移除演奏员
+            const removePercPlayer = (idx) => {
+                const player = percState.players[idx];
+                // 把该人的标签释放回未分配状态
+                percState.tags.forEach(t => {
+                    if (t.assignedTo === player.id) t.assignedTo = null;
+                });
+                percState.players.splice(idx, 1);
+
+                // 🟢 触发保存和同步
+                updatePercOrchestration();
+            };
+
+            // 7. 分配逻辑：点击标签
+            const togglePercTagSelect = (index) => {
+                if (percState.selectedTagIndices.has(index)) {
+                    percState.selectedTagIndices.delete(index);
+                } else {
+                    percState.selectedTagIndices.add(index);
+                }
+            };
+
+            // 8. 分配逻辑：点击演奏员 (将选中的标签给这个人)
+            const assignTagsToPlayer = (playerId) => {
+                if (percState.selectedTagIndices.size === 0) return;
+
+                percState.selectedTagIndices.forEach(idx => {
+                    const tag = percState.tags[idx];
+                    tag.assignedTo = playerId;
+                });
+
+                percState.selectedTagIndices.clear(); // 清空选择
+                window.triggerTouchHaptic('Medium');
+                updatePercOrchestration();
+            };
+
+            // 9. 更新最终字符串并同步给同组所有任务 (修复: 持久化存储 + 全局同步)
+            const updatePercOrchestration = () => {
+                // A. 生成 Roster 对象和摘要字符串
+                const newRoster = {};
+                const summaryParts = [];
+
+                percState.players.forEach(p => {
+                    // 找到归属该人的标签
+                    const myTags = percState.tags
+                        .filter(t => t.assignedTo === p.id)
+                        .map(t => t.name);
+
+                    const uniqueTags = [...new Set(myTags)];
+                    const tagStr = uniqueTags.length > 0 ? ` (${uniqueTags.join(', ')})` : '';
+
+                    newRoster[`Player_${p.id}`] = p.name;
+                    summaryParts.push(`${p.name}${tagStr}`);
+                });
+
+                const finalOrchString = summaryParts.join(', ');
+
+                // B. 更新当前正在编辑的任务 (UI显示)
+                editingItem.value.roster = newRoster;
+                editingItem.value.orchestration = finalOrchString;
+
+                // C. 🟢 核心修复: 保存配置到演奏员对象 (持久化)
+                const musician = settings.musicians.find(m => m.id === editingItem.value.musicianId);
+                if (musician) {
+                    musician.percConfig = {
+                        tags: JSON.parse(JSON.stringify(percState.tags)),
+                        players: JSON.parse(JSON.stringify(percState.players))
+                    };
+                }
+
+                // D. 🟢 核心修复: 同步更新该演奏员的所有任务 (同步化)
+                // 这样你在一个任务里分好了，其他任务卡片上的文字也会跟着变
+                if (musician) {
+                    // 1. 更新任务池
+                    itemPool.value.forEach(item => {
+                        if (item.musicianId === musician.id && (item.sessionId || 'S_DEFAULT') === currentSessionId.value) {
+                            item.orchestration = finalOrchString;
+                            item.roster = JSON.parse(JSON.stringify(newRoster));
+                        }
+                    });
+
+                    // 2. 更新日程表
+                    scheduledTasks.value.forEach(task => {
+                        if (task.musicianId === musician.id && (task.sessionId || 'S_DEFAULT') === currentSessionId.value) {
+                            // 注意: 日程表里的任务可能没有 roster 字段结构，主要更新 orchestration 用于显示
+                            task.orchestration = finalOrchString;
+                            // task.roster = ... (如果需要的话也可以存)
+                        }
+                    });
+                }
+
+                // E. 保存历史
+                // (注意：这里如果频繁触发可能会导致历史记录过多，可以考虑加个防抖，或者只在关闭弹窗时 pushHistory)
+                // pushHistory();
+            };
+
+            // 10. 监听 Modal 打开，如果是打击乐且没有数据，自动扫描
+            watch(() => showEditor.value, (val) => {
+                if (val && isPercussionMode.value) {
+                    // 如果 Orchestration 是空的，或者看起来不像已经手动编辑过的，就自动扫描
+                    if (!editingItem.value.orchestration) {
+                        scanPercussionTags();
+                    }
+                }
+            });
+
+            // 🟢 [辅助函数] 获取带分组的完整名称 (用于搜索)
+            const getNameWithGroup = (id, type) => {
+                if (!id) return '';
+                let list = [];
+                // 根据类型获取对应列表
+                if (type === 'project') list = settings.projects;
+                else if (type === 'instrument') list = settings.instruments;
+                else list = settings.musicians;
+
+                // 使用 loose equality (==) 兼容字符串/数字 ID
+                const item = list.find(i => i.id == id);
+                // 返回 "名称 + 分组"
+                return item ? `${item.name} ${item.group || ''}` : '';
             };
 
             // --- 🟢 搜索辅助函数 (放在 setup 内部靠前的位置) ---
@@ -829,6 +1861,295 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
                 // 组合所有相关文本
                 return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
+            };
+
+            // 1. 开始拖拽任务 (修复版: 分割条也会避让)
+            const startTrackDrag = (e, item) => {
+                // A. 🛡️ 防误触检测
+                if (e.target.closest('input, button, select, i.fa-trash-can, i.fa-scissors, i.fa-eraser, .cursor-pointer')) {
+                    return;
+                }
+
+                if (trackDragState || dividerDragState) return;
+
+                const isTouch = e.type === 'touchstart';
+                const triggerEl = e.currentTarget; // 被拖拽的卡片
+                const touch = isTouch ? e.touches[0] : e;
+
+                const executeDrag = () => {
+                    // 1. 视觉反馈：原元素彻底透明
+                    triggerEl.style.setProperty('opacity', '0', 'important');
+
+                    const rect = triggerEl.getBoundingClientRect();
+                    const container = trackListContainerRef.value;
+                    const initialScrollTop = container ? container.scrollTop : 0;
+
+                    // 🟢 关键修改 1: 获取所有“可移动元素” (包含卡片 和 分割条)
+                    // 注意: Tailwind 的 group/divider 类名中有斜杠，需要转义
+                    const allMovableEls = Array.from(container.querySelectorAll('.track-card, .group\\/divider'));
+
+                    // 找到自己在 DOM 中的索引 (Visual Index)
+                    const domStartIndex = allMovableEls.indexOf(triggerEl);
+                    if (domStartIndex === -1) return;
+
+                    // 找到自己在 Data 数组中的索引 (Data Index)
+                    const dataStartIndex = trackListData.value.items.findIndex(i => i.id === item.id);
+
+                    // 计算所有元素的高度 (含margin)
+                    const elementHeights = allMovableEls.map(el => {
+                        const style = window.getComputedStyle(el);
+                        return el.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+                    });
+
+                    // 2. 创建替身
+                    const ghost = triggerEl.cloneNode(true);
+                    ghost.style.opacity = '1';
+                    ghost.classList.remove('hover:border-white/10', 'group');
+                    Object.assign(ghost.style, {
+                        position: 'fixed', top: `${rect.top}px`, left: `${rect.left}px`,
+                        width: `${rect.width}px`, height: `${rect.height}px`,
+                        zIndex: '10000',
+                        backgroundColor: isDark.value ? '#2c2c2e' : '##F4F4F5',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                        transform: 'scale(1.02)',
+                        transition: 'none',
+                        pointerEvents: 'none',
+                        borderRadius: '8px'
+                    });
+                    document.body.appendChild(ghost);
+
+                    // 3. 初始化状态
+                    trackDragState = {
+                        item,
+                        targetEl: triggerEl,
+                        ghost,
+
+                        allMovableEls,      // 🟢 存储所有元素(卡片+分割条)
+                        elementHeights,     // 🟢 存储所有高度
+                        itemHeight: elementHeights[domStartIndex], // 当前被拖元素的高度
+
+                        fingerOffset: touch.clientY - rect.top,
+                        lastClientY: touch.clientY,
+                        lastScrollTop: initialScrollTop,
+                        cumulativeDelta: 0,
+
+                        domStartIndex,      // 初始 DOM 索引
+                        virtualDomIndex: domStartIndex, // 当前视觉所在的 DOM 索引
+
+                        dataStartIndex,     // 初始数据索引 (用于最终 splice)
+                        virtualDataIndex: dataStartIndex // 当前数据所在的索引
+                    };
+
+                    window.triggerTouchHaptic('Medium');
+                };
+
+                if (isTouch) {
+                    trackDragTimer = setTimeout(() => executeDrag(), 300);
+                    trackDragState = { preStartX: touch.clientX, preStartY: touch.clientY };
+                    window.addEventListener('touchmove', onTrackDragMove, {passive: false});
+                    window.addEventListener('touchend', onTrackDragEnd);
+                    window.addEventListener('touchcancel', onTrackDragEnd);
+                } else {
+                    e.preventDefault();
+                    executeDrag();
+                    window.addEventListener('mousemove', onTrackDragMove);
+                    window.addEventListener('mouseup', onTrackDragEnd);
+                }
+            };
+
+            // 2. 拖拽过程 (修复版: 逻辑通用化)
+            const onTrackDragMove = (e) => {
+                if (!trackDragState || !trackDragState.ghost) {
+                    if (trackDragTimer && e.type === 'touchmove') {
+                        const touch = e.touches[0];
+                        const moveY = Math.abs(touch.clientY - trackDragState.preStartY);
+                        if (moveY > 10) {
+                            clearTimeout(trackDragTimer);
+                            trackDragTimer = null;
+                            trackDragState = null;
+                        }
+                    }
+                    return;
+                }
+
+                if (e.cancelable) e.preventDefault();
+
+                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+                // 解构新状态变量
+                const { ghost, fingerOffset, lastClientY, lastScrollTop, itemHeight, elementHeights, allMovableEls } = trackDragState;
+
+                // A. 移动替身
+                ghost.style.top = `${clientY - fingerOffset}px`;
+
+                // B. 计算滚动增量
+                const container = trackListContainerRef.value;
+                const currentScrollTop = container ? container.scrollTop : 0;
+                const dy = clientY - lastClientY;
+                const dScroll = currentScrollTop - lastScrollTop;
+
+                trackDragState.lastClientY = clientY;
+                trackDragState.lastScrollTop = currentScrollTop;
+                trackDragState.cumulativeDelta += (dy + dScroll);
+
+                let indexChanged = false;
+
+                // 🟢 核心修改: 使用 virtualDomIndex 和 allMovableEls 进行判断
+                // 这样无论是卡片还是分割条，只要高度符合阈值，都会触发交换逻辑
+
+                // 向下移动
+                while (trackDragState.cumulativeDelta > 0) {
+                    // 到底了
+                    if (trackDragState.virtualDomIndex >= elementHeights.length - 1) break;
+
+                    const nextDomIndex = trackDragState.virtualDomIndex + 1;
+                    const threshold = elementHeights[nextDomIndex] / 2 + itemHeight / 2;
+
+                    if (trackDragState.cumulativeDelta > threshold) {
+                        trackDragState.cumulativeDelta -= elementHeights[nextDomIndex]; // 减去被跨越元素的高度
+                        trackDragState.virtualDomIndex++;
+
+                        // 🟢 只有跨越的是卡片时，数据索引才+1；跨越分割条时，数据索引不变
+                        if (allMovableEls[nextDomIndex].classList.contains('track-card')) {
+                            trackDragState.virtualDataIndex++;
+                        }
+
+                        indexChanged = true;
+                    } else break;
+                }
+
+                // 向上移动
+                while (trackDragState.cumulativeDelta < 0) {
+                    if (trackDragState.virtualDomIndex <= 0) break;
+
+                    const prevDomIndex = trackDragState.virtualDomIndex - 1;
+                    // 计算阈值时使用上一个元素的高度
+                    const threshold = elementHeights[prevDomIndex] / 2 + itemHeight / 2;
+
+                    if (trackDragState.cumulativeDelta < -threshold) {
+                        trackDragState.cumulativeDelta += elementHeights[prevDomIndex];
+                        trackDragState.virtualDomIndex--;
+
+                        // 🟢 只有跨越的是卡片时，数据索引才-1
+                        if (allMovableEls[prevDomIndex].classList.contains('track-card')) {
+                            trackDragState.virtualDataIndex--;
+                        }
+
+                        indexChanged = true;
+                    } else break;
+                }
+
+                // C. 应用视觉变换 (对所有 allMovableEls 生效)
+                if (indexChanged || true) {
+                    if (indexChanged) window.triggerTouchHaptic('Light');
+
+                    const vDomIdx = trackDragState.virtualDomIndex;
+                    const domStartIdx = trackDragState.domStartIndex;
+
+                    trackDragState.allMovableEls.forEach((el, i) => {
+                        // 跳过自己
+                        if (i === domStartIdx) return;
+
+                        let translateY = 0;
+                        // 逻辑与之前相同，只是现在 i 代表 DOM 索引
+                        if (domStartIdx < vDomIdx) {
+                            // 向下拖：中间的元素向上移
+                            if (i > domStartIdx && i <= vDomIdx) translateY = -itemHeight;
+                        } else if (domStartIdx > vDomIdx) {
+                            // 向上拖：中间的元素向下移
+                            if (i >= vDomIdx && i < domStartIdx) translateY = itemHeight;
+                        }
+
+                        el.style.transform = translateY !== 0 ? `translate3d(0, ${translateY}px, 0)` : '';
+                        el.style.transition = 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)';
+                    });
+                }
+
+                handleTrackListAutoScroll(clientY);
+            };
+
+            // 3. 拖拽结束 (修复版: 完美支持分割条跨越检测)
+            const onTrackDragEnd = () => {
+                if (trackDragTimer) {
+                    clearTimeout(trackDragTimer);
+                    trackDragTimer = null;
+                }
+
+                if (!trackDragState || !trackDragState.ghost) {
+                    trackDragState = null;
+                    window.removeEventListener('touchmove', onTrackDragMove);
+                    window.removeEventListener('touchend', onTrackDragEnd);
+                    window.removeEventListener('touchcancel', onTrackDragEnd);
+                    return;
+                }
+
+                const { targetEl, ghost, allMovableEls, dataStartIndex, virtualDataIndex, domStartIndex, virtualDomIndex, item } = trackDragState;
+
+                // 1. 恢复显示 & 清理
+                if (targetEl) targetEl.style.opacity = '';
+                if (ghost && document.body.contains(ghost)) document.body.removeChild(ghost);
+
+                allMovableEls.forEach(el => {
+                    el.style.transform = '';
+                    el.style.transition = '';
+                });
+                stopTrackListAutoScroll();
+
+                // 🟢 关键修改: 只要视觉位置变了(跨越了分割条) OR 数据位置变了，都要处理
+                if (domStartIndex !== virtualDomIndex || dataStartIndex !== virtualDataIndex) {
+                    const items = trackListData.value.items;
+
+                    // A. 执行数据移动 (如果跨越了其他任务)
+                    // 注意：如果只跨越了分割条，virtualDataIndex 可能等于 dataStartIndex，此时数组不需变动
+                    if (dataStartIndex !== virtualDataIndex) {
+                        items.splice(dataStartIndex, 1);
+                        items.splice(virtualDataIndex, 0, item);
+                    }
+
+                    // B. 计算新的 SectionIndex (核心修复逻辑)
+                    // 我们需要模拟一下 DOM 移动后的状态，看看“我的头上是谁”
+                    const tempDomArray = [...allMovableEls];
+                    const movedEl = tempDomArray.splice(domStartIndex, 1)[0];
+                    tempDomArray.splice(virtualDomIndex, 0, movedEl);
+
+                    const prevEl = tempDomArray[virtualDomIndex - 1]; // 我上面的元素
+
+                    if (prevEl && prevEl.id && prevEl.id.startsWith('sec-divider-')) {
+                        // 🟢 情况1: 头上是分割条 -> 说明我被拖到了该分割条的下方 -> 继承该分割条的 Section
+                        // ID 格式为 "sec-divider-2"，取出最后的数字
+                        const newSection = parseInt(prevEl.id.replace('sec-divider-', ''));
+                        item.sectionIndex = newSection;
+                    } else {
+                        // 🟢 情况2: 头上是普通任务 或 没东西(在顶部) -> 走标准继承逻辑
+                        if (items.length > 1) {
+                            let newSectionIndex = 0;
+
+                            if (virtualDataIndex === 0) {
+                                // 如果插在队首，尝试继承原来队首(现在是老二)的 section
+                                // (防止队首就是 section 0 的情况)
+                                newSectionIndex = items[1].sectionIndex;
+                            } else {
+                                // 否则继承前一个任务的 section
+                                newSectionIndex = items[virtualDataIndex - 1].sectionIndex;
+                            }
+                            item.sectionIndex = newSectionIndex;
+                        }
+                    }
+
+                    // 保存 & 反馈
+                    pushHistory();
+                    window.triggerTouchHaptic('Success');
+
+                    // 强制重新排序以刷新分割条位置 (Vue 响应式有时候需要这一下)
+                    // autoSortTrackList();
+                }
+
+                trackDragState = null;
+
+                window.removeEventListener('touchmove', onTrackDragMove);
+                window.removeEventListener('touchend', onTrackDragEnd);
+                window.removeEventListener('touchcancel', onTrackDragEnd);
+                window.removeEventListener('mousemove', onTrackDragMove);
+                window.removeEventListener('mouseup', onTrackDragEnd);
             };
 
             // 🟢 [重写] 过滤日程 (修复搜索定位问题)
@@ -973,7 +2294,70 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 });
             });
 
-            // 3. 监听变化并自动保存 (记忆功能)            // 3. 监听变化并自动保存 (记忆功能)
+            const showRecInfoModal = ref(false);
+            const recInfoForm = reactive({
+                studio: '',
+                engineer: '',
+                operator: '',
+                assistant: '', // 🟢 新增
+                notes: ''
+            });
+
+            const openRecInfoModal = () => {
+                const task = trackListData.value.taskRef;
+                if (!task) return;
+
+                // 判断当前模式 (根据侧边栏 Tab)
+                const isEditMode = sidebarTab.value === 'project';
+
+                // 如果是编辑模式，读 editInfo；否则读 recordingInfo
+                const info = isEditMode ? (task.editInfo || {}) : (task.recordingInfo || {});
+
+                recInfoForm.studio = info.studio || '';
+                recInfoForm.engineer = info.engineer || ''; // 这里可能是 Edit Engineer
+                recInfoForm.operator = info.operator || '';
+                recInfoForm.assistant = info.assistant || '';
+                recInfoForm.notes = info.notes || '';
+
+                showRecInfoModal.value = true;
+            };
+
+            // 保存录音信息
+            const saveRecInfo = () => {
+                const task = trackListData.value.taskRef;
+                if (!task) return;
+
+                const isEditMode = sidebarTab.value === 'project';
+
+                const newData = {
+                    studio: recInfoForm.studio.trim(),
+                    engineer: recInfoForm.engineer.trim(),
+                    operator: recInfoForm.operator.trim(),
+                    assistant: recInfoForm.assistant.trim(),
+                    notes: recInfoForm.notes.trim()
+                };
+
+                if (isEditMode) {
+                    task.editInfo = newData; // ✅ 存入编辑信息
+                } else {
+                    task.recordingInfo = newData; // ✅ 存入录音信息
+                }
+
+                // 强制更新视图
+                const idx = scheduledTasks.value.findIndex(t => t.scheduleId === task.scheduleId);
+                if (idx !== -1) {
+                    scheduledTasks.value[idx] = { ...task };
+                }
+
+                pushHistory();
+                window.triggerTouchHaptic('Success');
+                showRecInfoModal.value = false;
+            };
+
+            const savedSidebarState = storageService.getItem('musche_sidebar_open');
+            // 🟢 修改: 默认为 true (打开状态)
+            const isSidebarOpen = ref(savedSidebarState !== null ? JSON.parse(savedSidebarState) : true);
+            // 3. 监听变化并自动保存 (记忆功能)
             watch([isSidebarOpen, sidebarWidth], ([open, width]) => {
                 storageService.setItem('musche_sidebar_open', open);
                 storageService.setItem('musche_sidebar_width', width);
@@ -1859,6 +3243,11 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
             };
 
+            // --- 🟢 新增: 视图切换动画与手势逻辑 ---
+            const viewTransitionName = ref('view-slide-left'); // 默认动画方向
+            const touchStartX = ref(0);
+            const touchStartY = ref(0);
+
             // --- 🟢 新增: 侧边栏(任务池) 滑动切换 Tab ---
             const sidebarTouchStartX = ref(0);
             const sidebarTouchStartY = ref(0);
@@ -2065,6 +3454,26 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 window.triggerTouchHaptic('Success');
             };
 
+            // 修改 switchView 函数
+            const switchView = (targetView) => {
+                if (targetView === currentView.value) return;
+
+                if (targetView === 'month') {
+                    viewTransitionName.value = 'zoom-out';
+                    currentView.value = targetView;
+
+                    // 🟢 [新增] 如果是切到滚动模式，自动定位到当前月份
+                    if (monthViewMode.value === 'scrolled') {
+                        scrollToMonthDate(viewDate.value);
+                    }
+                } else {
+                    viewTransitionName.value = 'zoom-in';
+                    currentView.value = targetView;
+                    // 切回周视图时可能也需要类似的定位逻辑，这里暂略
+                }
+                window.triggerTouchHaptic('Light');
+            };
+
             const resetAutoHide = () => {
                 // 强制显示
                 showMobileSlider.value = true;
@@ -2078,6 +3487,118 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     showMobileSlider.value = true;
                 }, 1000);
             };
+
+            // --- 🟢 新增: 电脑端鼠标滑动翻页 (模拟触摸体验) ---
+            const isMouseViewDrag = ref(false);
+            const mouseStartX = ref(0);
+            const mouseStartY = ref(0);
+
+            const onMainMouseDown = (e) => {
+                // 1. 如果是手机端，直接忽略 (交给 Touch 事件处理)
+                if (isMobile.value) return;
+
+                // 2. 只响应鼠标左键
+                if (e.button !== 0) return;
+
+                // 3. 智能避让: 如果点到了任务块、调整手柄或滚动条，不触发翻页
+                if (e.target.closest('.task-block') || e.target.closest('.resize-handle')) return;
+
+                isMouseViewDrag.value = true;
+                mouseStartX.value = e.clientX;
+                mouseStartY.value = e.clientY;
+            };
+
+            const onMainMouseUp = (e) => {
+                if (!isMouseViewDrag.value) return;
+                isMouseViewDrag.value = false;
+
+                const diffX = e.clientX - mouseStartX.value;
+                const diffY = e.clientY - mouseStartY.value;
+
+                // 4. 判定阈值 (逻辑同手机端: 水平距离 > 垂直距离的1.5倍 且 距离 > 50px)
+                if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 50) {
+                    const dir = diffX < 0 ? 1 : -1; // 左滑=下翻(1), 右滑=上翻(-1)
+                    changeDate(dir);
+                }
+            };
+
+            // --- 🟢 新增: 触控板左右滑动切换 (防抖动处理) ---
+            let isWheelLocked = false; // 锁定状态，防止连续触发
+
+            const onMainWheel = (e) => {
+                // 1. 如果正在动画锁定中，或者按住了 Ctrl/Cmd (可能是缩放)，则忽略
+                if (isWheelLocked || e.ctrlKey || e.metaKey) return;
+
+                // 2. 判断是否为水平滑动 (X轴移动量 > Y轴移动量)
+                // 且移动力度足够大 (阈值设为 30，避免轻微误触)
+                if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 30) {
+
+                    // 3. 阻止浏览器默认的“前进/后退”手势
+                    e.preventDefault();
+
+                    // 4. 判断方向
+                    // deltaX > 0 通常代表向右滚动(看右边的内容) -> 下一周
+                    // deltaX < 0 通常代表向左滚动(看左边的内容) -> 上一周
+                    const dir = e.deltaX > 0 ? 1 : -1;
+
+                    // 5. 执行切换
+                    changeDate(dir);
+
+                    // 6. 上锁 (800ms 内不接受新的切换，等待动画完成)
+                    isWheelLocked = true;
+                    setTimeout(() => {
+                        isWheelLocked = false;
+                    }, 800);
+                }
+            };
+
+            // 触摸开始 (记录起点)
+            const onMainTouchStart = (e) => {
+                // 如果正在拖拽任务，不触发滑屏切换
+                if (dragElClone || isResizingMobile.value) return;
+
+                touchStartX.value = e.touches[0].clientX;
+                touchStartY.value = e.touches[0].clientY;
+            };
+
+            // 🟢 修复: 触摸结束 (判定更宽松，X > Y * 1.5 即可)
+            const onMainTouchEnd = (e) => {
+                // 如果正在拖拽任务或调整大小，不触发视图切换
+                if (dragElClone || isResizingMobile.value) return;
+
+                const endX = e.changedTouches[0].clientX;
+                const endY = e.changedTouches[0].clientY;
+
+                const diffX = endX - touchStartX.value;
+                const diffY = endY - touchStartY.value;
+
+                // 优化: 水平距离 > 垂直距离的 1.5 倍 (比之前的 2 倍更灵敏) 且距离 > 50px
+                if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 50) {
+
+                    let dir = 0;
+                    if (diffX < 0) dir = 1;  // 左划 -> 下一周
+                    if (diffX > 0) dir = -1; // 右划 -> 上一周
+
+                    if (dir !== 0) {
+                        // A. 周视图 (仅窄屏模式下允许)
+                        if (currentView.value === 'week') {
+                            if (dayColWidth.value < 60) {
+                                changeDate(dir);
+                            }
+                        }
+                        // B. 月视图 (始终允许)
+                        else if (currentView.value === 'month') {
+                            changeDate(dir);
+                        }
+                    }
+                }
+
+                // 归零
+                touchStartX.value = 0;
+                touchStartY.value = 0;
+            };
+
+            const currentScrollSpeed = {x: 0, y: 0};
 
             // 🟢 [修改] 图标逻辑：根据视图类型显示不同图标
             const widthIcon = computed(() => {
@@ -2667,6 +4188,46 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 // 🟢 新增: 手动同步函数
             const handleManualSync = async () => authFeature.handleManualSync();
 
+            // 4. 自动滚动逻辑 (稍微调整了一下参数以配合 fixed 定位的 ghost)
+            const handleTrackListAutoScroll = (clientY) => {
+                const container = trackListContainerRef.value;
+                if (!container) return;
+
+                const rect = container.getBoundingClientRect();
+                const edgeSize = 60;
+                const maxSpeed = 15;
+
+                stopTrackListAutoScroll();
+
+                let scrollSpeed = 0;
+                // 只有当替身在容器范围内时才触发滚动，防止无限滚
+                if (clientY < rect.top + edgeSize && clientY > rect.top - 50) {
+                    const intensity = Math.max(0, (rect.top + edgeSize - clientY) / edgeSize);
+                    scrollSpeed = -maxSpeed * intensity;
+                } else if (clientY > rect.bottom - edgeSize && clientY < rect.bottom + 50) {
+                    const intensity = Math.max(0, (clientY - (rect.bottom - edgeSize)) / edgeSize);
+                    scrollSpeed = maxSpeed * intensity;
+                }
+
+                if (scrollSpeed !== 0) {
+                    trackListScrollTimer = requestAnimationFrame(function scrollLoop() {
+                        if (scrollSpeed !== 0 && container) {
+                            container.scrollTop += scrollSpeed;
+                            // 注意：因为 Ghost 是 fixed 定位，它不受容器 scroll 影响，
+                            // 所以这里不需要像之前那样补偿 startY，视觉上是解耦的。
+                            trackListScrollTimer = requestAnimationFrame(scrollLoop);
+                        }
+                    });
+                }
+            };
+
+            const stopTrackListAutoScroll = () => {
+                if (trackListScrollTimer) {
+                    cancelAnimationFrame(trackListScrollTimer);
+                    trackListScrollTimer = null;
+                }
+            };
+
             const confirmDurationPicker = () => {
                 if (pickerCallback) pickerCallback(false);
                 showDurationPicker.value = false;
@@ -2676,6 +4237,613 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const resetDuration = () => {
                 if (pickerCallback) pickerCallback(true); // 传 true 清空
                 showDurationPicker.value = false;
+            };
+
+            // 1. 触摸开始 (修改为记录像素偏移)
+            const handleTouchStart = (e, task, dateStr) => {
+                if (!isMobile.value) return;
+
+                dragSourceType = 'schedule';
+
+                const touch = e.touches[0];
+                const targetEl = e.currentTarget;
+
+                startX = touch.clientX;
+                startY = touch.clientY;
+                dragSourceTask = task;
+                dragStartDate = dateStr;
+
+                const rect = targetEl.getBoundingClientRect();
+                cloneOffsetX = touch.clientX - rect.left;
+                cloneOffsetY = touch.clientY - rect.top;
+                dragClickOffsetY = touch.clientY - rect.top;
+
+                longPressTimeout = setTimeout(() => {
+                    // 🟢 修改: 只有非幽灵任务才允许拖拽
+                    // 幽灵任务虽然不能拖拽，但前面的代码已经记录了 dragSourceTask
+                    // 所以 touchend 里的双击检测依然有效
+                    if (!isTaskGhost(task)) {
+                        startMobileDrag(targetEl, touch);
+                    }
+                }, 300);
+            };
+
+            // 🟢 修复: 触摸开始 (防误触 + 智能状态判断)
+            const handlePoolTouchStart = (e, item, type = 'pool') => {
+                if (!isMobile.value) return;
+
+                // 🛑 1. 彻底禁止小卡片拖动 (防止列表滑动误触)
+                if (type === 'pool') return;
+
+                // 🛑 2. 大卡片 (aggregate) 状态检查
+                if (type === 'aggregate') {
+                    // 如果已完成或已排满 -> 禁止拖动，只给拒绝反馈
+                    if (item.statusKey === 'completed' || item.statusKey === 'full' || item.statusKey === 'in-progress') {
+                        // 📳 震动两下，提示用户“此人已搞定，无需安排”
+                        //window.triggerTouchHaptic('Medium');
+                        //setTimeout(() => window.triggerTouchHaptic('Medium'), 150);
+                        return;
+                    }
+                }
+
+                // --- 以下是允许拖动的情况 (大卡片 && 时间不足/未排期) ---
+                dragSourceType = type;
+
+                const touch = e.touches[0];
+                const targetEl = e.currentTarget;
+
+                startX = touch.clientX;
+                startY = touch.clientY;
+                dragSourceTask = item;
+
+                const rect = targetEl.getBoundingClientRect();
+                cloneOffsetX = touch.clientX - rect.left;
+                cloneOffsetY = touch.clientY - rect.top;
+                dragClickOffsetY = touch.clientY - rect.top;
+
+                // 启动长按计时器
+                longPressTimeout = setTimeout(() => {
+                    startMobileDrag(targetEl, touch);
+
+                    mobileTab.value = 'schedule'; // 跳转到日程表
+                    window.triggerTouchHaptic('Heavy'); // 成功触发震动
+                }, 300);
+            };
+
+            // 🟢 修改: handleTouchMove (增加周视图边缘翻页功能)
+            const handleTouchMove = (e) => {
+                const touch = e.touches[0];
+
+                // A. 如果还在长按检测阶段
+                if (longPressTimeout && !dragElClone) {
+                    const deltaX = Math.abs(touch.clientX - startX);
+                    const deltaY = Math.abs(touch.clientY - startY);
+
+                    // 如果手指移动超过 10px，视为用户想滚动屏幕，取消长按
+                    if (deltaX > 10 || deltaY > 10) {
+                        clearTimeout(longPressTimeout);
+                        longPressTimeout = null;
+                    }
+                    return;
+                }
+
+                // B. 如果已经开始拖拽
+                if (dragElClone) {
+                    // 禁用屏幕滚动
+                    if (e.cancelable) e.preventDefault();
+
+                    // 1. 移动克隆体
+                    const x = touch.clientX - cloneOffsetX;
+                    const y = touch.clientY - cloneOffsetY;
+                    dragElClone.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+
+                    // 2. 视图自动滚动与翻页检测
+                    const scrollContainer = weekContainer.value;
+
+                    // --- 周视图逻辑 ---
+                    if (currentView.value === 'week' && scrollContainer) {
+                        // [Part A] 现有的全向自动滚动 (保持不变)
+                        let vx = 0, vy = 0;
+                        if (isMobile.value) {
+                            const topZone = 500;
+                            const bottomZone = window.innerHeight - 150;
+                            const leftZone = 60;
+                            const rightZone = window.innerWidth - 60;
+                            const ramp = 80;
+
+                            if (touch.clientY < topZone) vy = -Math.min(1, (topZone - touch.clientY) / ramp);
+                            else if (touch.clientY > bottomZone) vy = Math.min(1, (touch.clientY - bottomZone) / ramp);
+
+                            if (touch.clientX < leftZone) vx = -Math.min(1, (leftZone - touch.clientX) / ramp);
+                            else if (touch.clientX > rightZone) vx = Math.min(1, (touch.clientX - rightZone) / ramp);
+                        }
+
+                        if (Math.abs(vx) > 0.05 || Math.abs(vy) > 0.05) {
+                            if (!autoScrollInterval) startAutoScroll(vx, vy, scrollContainer, scrollContainer);
+                            else updateAutoScrollDirection(vx, vy);
+                        } else {
+                            stopAutoScroll();
+                        }
+
+                        // [Part B] 新增: 周视图边缘翻页 (仿月视图逻辑)
+                        const edgeThreshold = 50; // 边缘触发区域大小
+                        let switchDir = 0;
+
+                        // 检测左右边缘
+                        if (touch.clientX < edgeThreshold) {
+                            switchDir = -1; // 上一周
+                        } else if (touch.clientX > window.innerWidth - edgeThreshold) {
+                            switchDir = 1;  // 下一周
+                        }
+
+                        if (switchDir !== 0) {
+                            // 如果手指在边缘，且没有正在等待的翻页定时器
+                            if (!monthSwitchTimer) {
+                                monthSwitchTimer = setTimeout(() => {
+                                    changeDate(switchDir); // 执行翻页 (changeDate 会自动处理 +7/-7 天)
+                                    window.triggerTouchHaptic('Medium'); // 震动反馈
+
+                                    // 翻页后重置定时器，允许连续翻页
+                                    monthSwitchTimer = null;
+                                }, 800); // 停留 800ms 后触发
+                            }
+                        } else {
+                            // 离开边缘，取消定时器
+                            if (monthSwitchTimer) {
+                                clearTimeout(monthSwitchTimer);
+                                monthSwitchTimer = null;
+                            }
+                        }
+                    }
+
+                    // --- 月视图逻辑 (保持不变) ---
+                    else if (currentView.value === 'month' && isMobile.value) {
+                        const edgeThreshold = 50;
+                        let switchDir = 0;
+                        if (touch.clientX < edgeThreshold) switchDir = -1;
+                        else if (touch.clientX > window.innerWidth - edgeThreshold) switchDir = 1;
+
+                        if (switchDir !== 0) {
+                            if (!monthSwitchTimer) {
+                                monthSwitchTimer = setTimeout(() => {
+                                    changeDate(switchDir);
+                                    window.triggerTouchHaptic('Medium');
+                                    monthSwitchTimer = null;
+                                }, 800);
+                            }
+                        } else {
+                            if (monthSwitchTimer) {
+                                clearTimeout(monthSwitchTimer);
+                                monthSwitchTimer = null;
+                            }
+                        }
+                    }
+
+                    // 3. 高亮显示下方的格子
+                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (activeDropSlot) activeDropSlot.classList.remove('drag-over');
+                    activeDropSlot = null;
+
+                    if (target) {
+                        const slot = target.closest('.grid-slot, .droppable-slot');
+                        if (slot) {
+                            activeDropSlot = slot;
+                            activeDropSlot.classList.add('drag-over');
+                        }
+                    }
+                }
+            };
+
+            // 🟢 修改: handleTouchEnd
+            const handleTouchEnd = (e) => {
+                if (longPressTimeout) {
+                    clearTimeout(longPressTimeout);
+                    longPressTimeout = null;
+
+                    // --- 双击检测逻辑 START ---
+                    if (!dragElClone && dragSourceType === 'schedule' && dragSourceTask) {
+                        const now = Date.now();
+
+                        // 如果点击的是同一个任务，且间隔小于 300ms (判定为双击)
+                        if (lastTapState.id === dragSourceTask.scheduleId && (now - lastTapState.time) < 300) {
+
+                            // 🟢 核心修复: 阻止浏览器继续触发原生的 click/dblclick
+                            // 否则原生 dblclick 会在 Session 切换完成后再次触发，导致误判为非幽灵任务从而打开弹窗
+                            if (e.cancelable) e.preventDefault();
+
+                            // 🟢 修复: 手机端双击幽灵任务时，强制执行跳转逻辑，不打开详情页
+                            if (isTaskGhost(dragSourceTask)) {
+                                jumpToGhostContext(dragSourceTask);
+                            } else {
+                                handleTaskDblClick(e, dragSourceTask);
+                            }
+
+                            lastTapState.id = null;
+                            lastTapState.time = 0;
+                        } else {
+                            // 第一次点击 (判定为单击)
+                            lastTapState.id = dragSourceTask.scheduleId;
+                            lastTapState.time = now;
+
+                            // 🟢 核心修复: 在这里手动触发选中！
+                            selectTask(dragSourceTask.scheduleId, 'schedule');
+                        }
+                    }
+                    // --- 🟢 新增: 双击检测逻辑 END ---
+                }
+
+                stopAutoScroll();
+
+                if (monthSwitchTimer) {
+                    clearTimeout(monthSwitchTimer);
+                    monthSwitchTimer = null;
+                }
+
+                if (dragElClone) {
+                    document.body.removeChild(dragElClone);
+                    dragElClone = null;
+                    if (activeDropSlot) activeDropSlot.classList.remove('drag-over');
+
+                    const touch = e.changedTouches[0];
+                    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                    const dropColumn = targetEl ? targetEl.closest('[data-date-str]') : null;
+                    const dropMonthCell = targetEl ? targetEl.closest('[data-date]') : null;
+
+                    // --- 情况 A: 放置在周视图 ---
+                    if (dropColumn) {
+                        const dateStr = dropColumn.dataset.dateStr;
+                        const timeGridContainer = dropColumn.querySelector('.relative[style*="min-height"]');
+
+                        if (timeGridContainer && dragSourceTask) {
+                            // 1. 计算目标时间
+                            const gridRect = timeGridContainer.getBoundingClientRect();
+                            const touchYInContainer = touch.clientY - gridRect.top;
+                            const taskTopPixel = touchYInContainer - dragClickOffsetY;
+                            const minsFromStart = taskTopPixel / pxPerMin.value;
+                            let totalMins = (settings.startHour * 60) + minsFromStart;
+                            const snappedMins = Math.round(totalMins / 30) * 30;
+                            const minMins = settings.startHour * 60;
+                            const maxMins = settings.endHour * 60 - 30;
+                            const finalMins = Math.max(minMins, Math.min(maxMins, snappedMins));
+                            const h = Math.floor(finalMins / 60);
+                            const m = finalMins % 60;
+                            const newTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+                            // 2. 准备检测参数
+                            let checkType = 'musician';
+                            let checkDuration = '';
+                            let excludeId = null;
+
+                            // 判断类型和时长
+                            if (dragSourceType === 'aggregate') {
+                                checkType = sidebarTab.value;
+                                const item = dragSourceTask;
+                                const remainingSecs = item.totalSeconds - item.scheduledSeconds;
+                                if (remainingSecs <= 0) return; // 没时间了，直接退出
+                                let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
+                                if (remainingMins === 0) remainingMins = 30;
+                                checkDuration = formatSecs(remainingMins * 60);
+                            } else if (dragSourceType === 'pool') {
+                                const item = dragSourceTask;
+                                if (item.projectId) checkType = 'project';
+                                else if (item.instrumentId) checkType = 'instrument';
+                                else checkType = 'musician';
+                                checkDuration = item.estDuration;
+                            } else {
+                                // schedule
+                                const item = dragSourceTask;
+                                if (item.projectId) checkType = 'project';
+                                else if (item.instrumentId) checkType = 'instrument';
+                                else checkType = 'musician';
+                                checkDuration = item.estDuration;
+                                excludeId = item.scheduleId; // 排除自己，移动时不算冲突
+                            }
+
+                            // 3. 执行冲突检测
+                            if (checkOverlap(dateStr, newTime, checkDuration, excludeId, checkType)) {
+                                openAlertModal('时间冲突', '该时间段已有重叠的安排。');
+                                window.triggerTouchHaptic('Error');
+                                if (dragSourceEl) dragSourceEl.style.opacity = '';
+                                dragSourceEl = null;
+                                activeDropSlot = null;
+                                return; // ⛔️ 发生冲突，终止操作
+                            }
+
+                            // 4. 通过检测，执行放置
+                            if (dragSourceType === 'aggregate') {
+                                const item = dragSourceTask;
+                                // 时长逻辑上面已经算过一次，这里复用
+                                const remainingSecs = item.totalSeconds - item.scheduledSeconds;
+                                let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
+                                if (remainingMins === 0) remainingMins = 30;
+
+                                const nt = {
+                                    scheduleId: Date.now(),
+                                    sessionId: currentSessionId.value,
+                                    musicianId: sidebarTab.value === 'musician' ? item.id : '',
+                                    projectId: sidebarTab.value === 'project' ? item.id : '',
+                                    instrumentId: sidebarTab.value === 'instrument' ? item.id : '',
+                                    date: dateStr,
+                                    startTime: newTime,
+                                    estDuration: formatSecs(remainingMins * 60),
+                                    trackCount: item.trackCount,
+                                    ratio: item.defaultRatio || 20,
+                                    reminderMinutes: 15,
+                                    sound: 'default'
+                                };
+                                scheduledTasks.value.push(nt);
+                                window.triggerTouchHaptic('Success');
+                                pushHistory();
+                            } else if (dragSourceType === 'pool') {
+                                const newTask = {
+                                    scheduleId: Date.now(),
+                                    sessionId: currentSessionId.value,
+                                    projectId: dragSourceTask.projectId,
+                                    instrumentId: dragSourceTask.instrumentId,
+                                    musicianId: dragSourceTask.musicianId,
+                                    musicDuration: dragSourceTask.musicDuration,
+                                    ratio: dragSourceTask.ratio,
+                                    estDuration: dragSourceTask.estDuration,
+                                    date: dateStr,
+                                    startTime: newTime,
+                                    reminderMinutes: 15,
+                                    sound: 'default'
+                                };
+                                scheduledTasks.value.push(newTask);
+                                window.triggerTouchHaptic('Success');
+                                pushHistory();
+                            } else {
+                                // 日程内部移动
+                                if (dragSourceTask.startTime !== newTime || dragSourceTask.date !== dateStr) {
+                                    dragSourceTask.startTime = newTime;
+                                    dragSourceTask.date = dateStr;
+                                    window.triggerTouchHaptic('Success');
+                                    pushHistory();
+                                }
+                            }
+                        }
+                    }
+                    // --- 情况 B: 放置在月视图 ---
+                    else if (dropMonthCell && dragSourceTask) {
+                        const dateStr = dropMonthCell.dataset.date;
+
+                        if (dragSourceType === 'schedule') {
+                            if (dragSourceTask.date !== dateStr) {
+                                dragSourceTask.date = dateStr;
+                                window.triggerTouchHaptic('Success');
+                                pushHistory();
+                            }
+                        } else if (dragSourceType === 'aggregate' || dragSourceType === 'pool') {
+                            const item = dragSourceTask;
+                            let mId = '', pId = '', iId = '';
+                            let ratio = 20;
+                            let estDur = '00:30';
+                            let tCount = 0;
+                            let musDur = '';
+                            let checkType = 'musician';
+
+                            if (dragSourceType === 'pool') {
+                                mId = item.musicianId;
+                                pId = item.projectId;
+                                iId = item.instrumentId;
+                                ratio = item.ratio;
+                                estDur = item.estDuration;
+                                musDur = item.musicDuration;
+                                if (pId) checkType = 'project'; else if (iId) checkType = 'instrument';
+                            } else {
+                                if (sidebarTab.value === 'musician') mId = item.id;
+                                else if (sidebarTab.value === 'project') {
+                                    pId = item.id;
+                                    checkType = 'project';
+                                } else if (sidebarTab.value === 'instrument') {
+                                    iId = item.id;
+                                    checkType = 'instrument';
+                                }
+                                ratio = item.defaultRatio || 20;
+                                estDur = item.estDuration || '00:30';
+                                tCount = item.trackCount || 0;
+                            }
+
+                            // 默认插在开头，检测冲突
+                            const defaultStart = settings.startHour + ':00';
+                            if (checkOverlap(dateStr, defaultStart, estDur, null, checkType)) {
+                                openAlertModal('冲突', '该日期已有安排，请切换到周视图查看详情。');
+                                window.triggerTouchHaptic('Error');
+                            } else {
+                                const nt = {
+                                    scheduleId: Date.now(),
+                                    sessionId: currentSessionId.value,
+                                    musicianId: mId, projectId: pId, instrumentId: iId,
+                                    date: dateStr, startTime: defaultStart,
+                                    estDuration: estDur, trackCount: tCount, ratio: ratio, musicDuration: musDur
+                                };
+                                scheduledTasks.value.push(nt);
+                                window.triggerTouchHaptic('Success');
+                                pushHistory();
+                            }
+                        }
+                    }
+                }
+
+                if (dragSourceEl) {
+                    dragSourceEl.style.opacity = '';
+                    dragSourceEl = null;
+                }
+                activeDropSlot = null;
+            };
+
+            // 1. 启动滚动
+            const startAutoScroll = (vx, vy, xContainer, yContainer) => {
+                if (autoScrollInterval) return;
+
+                currentScrollSpeed.x = vx;
+                currentScrollSpeed.y = vy;
+
+                // 🟢 最大极速 (像素/帧)
+                // 因为 vx/vy 现在是 0~1 的小数，这里设大一点，比如 20
+                const maxSpeed = 25;
+
+                autoScrollInterval = setInterval(() => {
+                    isScrollingProgrammatically = true;
+
+                    // --- 垂直滚动 (Y) ---
+                    // 速度 = 向量值 * 最大极速
+                    if (Math.abs(currentScrollSpeed.y) > 0 && yContainer) {
+                        yContainer.scrollTop += currentScrollSpeed.y * maxSpeed;
+                    }
+
+                    // --- 水平滚动 (X) ---
+                    if (Math.abs(currentScrollSpeed.x) > 0 && xContainer) {
+                        xContainer.scrollLeft += currentScrollSpeed.x * maxSpeed;
+                    }
+
+                    setTimeout(() => {
+                        isScrollingProgrammatically = false;
+                    }, 50);
+
+                }, 16); // 约 60fps
+            };
+
+            const updateAutoScrollDirection = (vx, vy) => {
+                currentScrollSpeed.x = vx;
+                currentScrollSpeed.y = vy;
+            };
+
+            // stopAutoScroll 保持不变
+            const stopAutoScroll = () => {
+                if (autoScrollInterval) {
+                    clearInterval(autoScrollInterval);
+                    autoScrollInterval = null;
+                    currentScrollSpeed.x = 0;
+                    currentScrollSpeed.y = 0;
+                    isScrollingProgrammatically = false;
+                }
+            };
+
+            // 1. 初始化拖动
+            const initMobileResize = (e, task) => {
+                if (!isMobile.value) return;
+
+                // 阻止冒泡
+                e.stopPropagation();
+                // 震动反馈
+                window.triggerTouchHaptic('Heavy');
+
+                const touch = e.touches[0];
+                const taskEl = e.target.closest('.task-block');
+                const rect = taskEl.getBoundingClientRect();
+
+                // 初始化状态
+                isResizingMobile.value = true;
+                mobileResizeState.task = task;
+                mobileResizeState.taskEl = taskEl;
+                mobileResizeState.startY = touch.clientY;
+                mobileResizeState.startHeight = rect.height; // 记录初始高度
+                mobileResizeState.originalDuration = task.estDuration; // 记录原始时长
+
+                // 绑定事件
+                // 🟢 关键修改：不需要 capture，因为 touchmove 没有被阻止
+                window.addEventListener('touchmove', handleMobileResizeMove, { passive: false });
+
+                // 🟢 核心修复：添加 true (使用捕获模式)
+                // 这样即使底下的元素有 @touchend.stop，window 也能先收到通知！
+                window.addEventListener('touchend', handleMobileResizeEnd, true);
+                window.addEventListener('touchcancel', handleMobileResizeEnd, true);
+            };
+
+            // 🟢 修改: 手机端拖动过程 (吸附到 Grid 绝对时间刻度)
+            const handleMobileResizeMove = (e) => {
+                if (!isResizingMobile.value) return;
+
+                if (e.cancelable) e.preventDefault();
+
+                const touch = e.touches[0];
+                const deltaY = touch.clientY - mobileResizeState.startY;
+
+                // 1. 计算目标高度
+                const targetHeight = Math.max(5, mobileResizeState.startHeight + deltaY);
+
+                // 2. 转换为分钟
+                const rawDurationMins = targetHeight / pxPerMin.value;
+
+                // 3. 计算绝对时间并吸附
+                const startMins = timeToMinutes(mobileResizeState.task.startTime);
+                const rawEndMins = startMins + rawDurationMins;
+
+                // 吸附到 30 分钟网格
+                const snappedEndMins = Math.round(rawEndMins / 30) * 30;
+
+                // 4. 计算新时长
+                let newDurationMins = snappedEndMins - startMins;
+                if (newDurationMins < 5) newDurationMins = 5;
+
+                const newDurationStr = formatSecs(newDurationMins * 60);
+
+                if (mobileResizeState.task.estDuration !== newDurationStr) {
+                    mobileResizeState.task.estDuration = newDurationStr;
+                    window.triggerTouchHaptic('Light'); // 只有数值变化时才震动
+                }
+            };
+
+            // 3. 拖动结束 (核心修正)
+            const handleMobileResizeEnd = (e) => {
+                // 强制立即重置状态 (必须是第一步，以最高优先级清除标志位)
+                const wasResizing = isResizingMobile.value;
+                isResizingMobile.value = false;
+
+                // 强制无条件移除监听器 (必须是第二步)
+                window.removeEventListener('touchmove', handleMobileResizeMove);
+
+                // 🟢 核心修复：移除时也要带上 true (捕获模式)
+                window.removeEventListener('touchend', handleMobileResizeEnd, true);
+                window.removeEventListener('touchcancel', handleMobileResizeEnd, true);
+
+                if (resizeRaf) cancelAnimationFrame(resizeRaf);
+
+                // 延迟一小段时间，执行一次 DOM/CSS 级别的重绘操作
+                requestAnimationFrame(() => {
+                    document.body.style.display = 'none';
+                    document.body.offsetHeight; // 强制浏览器计算
+                    document.body.style.display = '';
+
+                    const taskEl = mobileResizeState.taskEl;
+                    if (taskEl) {
+                        taskEl.style.opacity = '';
+                        taskEl.style.transition = '';
+                    }
+                });
+
+                // 只有确定是拖拽操作时，才执行耗时的冲突检测和数据保存
+                if (wasResizing) {
+                    setTimeout(() => {
+                        const t = mobileResizeState.task;
+                        // 🟢 防御性编程：防止 t 为空导致报错
+                        if (!t) return;
+
+                        const newDurationStr = t.estDuration;
+                        let type = 'musician';
+                        if (t.projectId) type = 'project';
+                        else if (t.instrumentId) type = 'instrument';
+
+                        // 执行冲突检测
+                        if (checkOverlap(t.date, t.startTime, newDurationStr, t.scheduleId, type)) {
+                            t.estDuration = mobileResizeState.originalDuration; // 冲突回退
+                            openAlertModal('冲突', '调整后的时间与现有任务冲突');
+                            window.triggerTouchHaptic('Error');
+                        } else {
+                            // 无冲突则保存
+                            const m = parseTime(t.musicDuration);
+                            const r = parseTime(t.estDuration);
+                            if (m > 0) t.ratio = (r / m).toFixed(1);
+                            pushHistory();
+                            window.triggerTouchHaptic('Success');
+                        }
+
+                        // 确保清除引用
+                        mobileResizeState.task = null;
+                    }, 0);
+                }
             };
 
             // 🟢 修改: calcTrackDiff 支持多维度
@@ -2735,6 +4903,38 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     '这段时间将从总录制时长中扣除'
                 );
             };
+
+            // 4. 辅助函数：启动拖拽模式
+            const startMobileDrag = (originalEl, touch) => {
+                // 1. 记录并变淡原元素
+                dragSourceEl = originalEl;
+                dragSourceEl.style.opacity = '0.3'; // 变淡，提示用户它被“拿”起来了
+
+                window.triggerTouchHaptic('Medium');
+
+                // 2. 创建克隆体 (保持之前的逻辑不变)
+                dragElClone = originalEl.cloneNode(true);
+
+                // 设置克隆体样式 (固定定位，浮在最上层)
+                Object.assign(dragElClone.style, {
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    width: `${originalEl.offsetWidth}px`,
+                    height: `${originalEl.offsetHeight}px`,
+                    zIndex: '9999',
+                    opacity: '0.9',
+                    pointerEvents: 'none', // 关键：让触摸事件穿透克隆体
+                    transform: `translate3d(${touch.clientX - cloneOffsetX}px, ${touch.clientY - cloneOffsetY}px, 0)`,
+                    boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
+                    transition: 'none' // 禁止过渡动画，保证跟随手指无延迟
+                });
+                dragElClone.style.opacity = '0.9';
+
+                // 添加到 Body
+                document.body.appendChild(dragElClone);
+            };
+
 
             // 🟢 存储触摸时的起始点，用于计算偏移量
             const initialTouchCoords = reactive({x: 0, y: 0});
@@ -3429,7 +5629,77 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 assistants: []
             });
 
-            currentSessionId.value = 'S_DEFAULT';            currentSessionId.value = 'S_DEFAULT';
+            // 🟢 [新增] 录音信息弹窗的下拉菜单状态
+            const activeRecDropdown = ref(null); // 'studio', 'engineer', 'operator', 'assistant'
+            const recDropdownSearch = ref('');
+
+            // 🟢 [新增] 获取当前下拉菜单的可选列表 (支持搜索)
+            const filteredRecOptions = computed(() => {
+                const type = activeRecDropdown.value;
+                const search = recDropdownSearch.value.toLowerCase().trim();
+                let list = [];
+
+                if (type === 'studio') list = settings.studios;
+                else if (type === 'engineer') list = settings.engineers;
+                else if (type === 'operator') list = settings.operators;
+                else if (type === 'assistant') list = settings.assistants;
+
+                if (!list) return [];
+
+                // 过滤
+                let result = list.filter(item => item.name.toLowerCase().includes(search));
+
+                // 排序 (按名称)
+                result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }));
+                return result;
+            });
+
+            // 🟢 [新增] 选中下拉项
+            const selectRecOption = (item) => {
+                // 将选中的名字填入 form
+                if (activeRecDropdown.value) {
+                    recInfoForm[activeRecDropdown.value] = item.name;
+                }
+                // 关闭菜单
+                activeRecDropdown.value = null;
+                recDropdownSearch.value = '';
+            };
+
+            // 🟢 [新增] 在下拉中新建条目
+            const createRecOption = () => {
+                const name = recDropdownSearch.value.trim();
+                const type = activeRecDropdown.value;
+                if (!name || !type) return;
+
+                // 1. 存入 settings
+                let list = null;
+                if (type === 'studio') list = settings.studios;
+                else if (type === 'engineer') list = settings.engineers;
+                else if (type === 'operator') list = settings.operators;
+                else if (type === 'assistant') list = settings.assistants;
+
+                if (list) {
+                    // 查重
+                    const exists = list.some(i => i.name.toLowerCase() === name.toLowerCase());
+                    if (!exists) {
+                        list.push({
+                            id: generateUniqueId('REC'), // 简单生成一个ID
+                            name: name
+                        });
+                        pushHistory(); // 保存历史
+                    }
+                }
+
+                // 2. 填入输入框
+                recInfoForm[type] = name;
+
+                // 3. 关闭
+                activeRecDropdown.value = null;
+                recDropdownSearch.value = '';
+                window.triggerTouchHaptic('Success');
+            };
+
+            currentSessionId.value = 'S_DEFAULT';
 
             // 🟢 新增: 通用排序函数 (优先按 Group 排序，分组相同的按 Name 拼音排序)
             const sortSettingsList = (list) => {
@@ -3929,6 +6199,63 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const sortField = ref('status'); // 'name' | 'duration'
             const sortAsc = ref(true);     // true=正序(A-Z, 小-大), false=倒序(Z-A, 大-小)
 
+            // --- 🟢 新增: 录音元数据管理逻辑 (Settings页面用) ---
+            const newRecInputs = reactive({
+                studio: '',
+                engineer: '',
+                operator: '',
+                assistant: ''
+            });
+
+            const addRecItem = (type) => {
+                // 🟢 1. 优先读取输入框中当前填写的文字
+                let val = recInfoForm[type];
+
+                // 如果输入框是空的，才弹窗询问 (作为备选方案)
+                if (!val || !val.trim()) {
+                    val = prompt(`Enter new ${type} name:`);
+                }
+
+                if (val && val.trim()) {
+                    const cleanVal = val.trim();
+                    const listKey = type + 's'; // studios, engineers...
+
+                    // 🟢 2. 检查是否重复
+                    const exists = settings[listKey].some(item => item.name === cleanVal);
+
+                    if (!exists) {
+                        // 保存到元数据列表
+                        settings[listKey].push({
+                            id: Date.now(),
+                            name: cleanVal
+                        });
+                        window.triggerTouchHaptic('Success');
+
+                        // 可选：添加成功后给一点视觉反馈，或者保持下拉框开启以便确认
+                        // alert(`Saved "${cleanVal}" to library.`);
+                    } else {
+                        // 已经在库里了，不做任何事，或者提示已存在
+                    }
+                }
+            };
+
+            const removeRecItem = (type, id) => {
+                let list = null;
+                if (type === 'studio') list = settings.studios;
+                else if (type === 'engineer') list = settings.engineers;
+                else if (type === 'operator') list = settings.operators;
+                else if (type === 'assistant') list = settings.assistants;
+
+                if (list) {
+                    const idx = list.findIndex(i => i.id === id);
+                    if (idx !== -1) {
+                        list.splice(idx, 1);
+                        pushHistory();
+                        window.triggerTouchHaptic('Medium');
+                    }
+                }
+            };
+
             // --- 🟢 分组选择器状态管理 ---
 
             // 2. 获取分组后的列表 (核心逻辑) - 🟢 修复: 启用 numeric: true 自然排序
@@ -3946,6 +6273,17 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             // 🟢 修改：addSettingsItem (支持“移动分组”逻辑)
             const addSettingsItem = (type) => settingsFeature.addSettingsItem(type);
+
+            watch(viewDate, () => {
+                // 重置为默认范围，以新日期为中心
+                renderedRange.past = 6;
+                renderedRange.future = 18;
+
+                // 如果在月视图，需要稍微延迟定位一下 (复用之前的 scrollToMonthDate)
+                if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
+                    scrollToMonthDate(viewDate.value);
+                }
+            });
 
             // 6. 删除项目
             const removeSettingsItem = (type, id) => settingsFeature.removeSettingsItem(type, id);
@@ -4057,6 +6395,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const calculateEstTime = (d, r) => formatSecs(parseTime(d) * (r || 1));
 
+            const authPasswordRef = ref(null);
             let syncTimeout = null; // 用于防抖保存
 
             // 🟢 新增: 动态计算按比例分配的时间配额
@@ -4582,6 +6921,17 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     if (fields.projectId !== undefined) task.projectId = fields.projectId;
                     if (fields.instrumentId !== undefined) task.instrumentId = fields.instrumentId;
                     if (fields.musicianId !== undefined) task.musicianId = fields.musicianId;
+                });
+            };
+
+            const syncFamilyOrchestration = (item, newOrch) => {
+                const familyMembers = getSplitFamilyMembers(item);
+
+                // 3. 批量更新
+                familyMembers.forEach(member => {
+                    if (member.orchestration !== newOrch) {
+                        member.orchestration = newOrch;
+                    }
                 });
             };
 
@@ -6220,6 +8570,43 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 window.triggerTouchHaptic('Medium');
             };
 
+            // 🟢 辅助：计算编制人数 (将 "4.3.2.1" 解析为 10, "4 Hn" 解析为 4)
+            const getOrchSize = (str) => {
+                if (!str) return 0;
+                // 提取所有数字并求和
+                const nums = str.match(/\d+/g);
+                if (!nums) return 0; // 如果没有数字（如 "Solo"），算作 0，或者你可以设为 1
+                return nums.reduce((sum, n) => sum + parseInt(n, 10), 0);
+            };
+
+            // 🟢 辅助：判断是否为管弦乐组 (Brass/String/Woodwind)
+            const isOrchestraGroup = (item) => {
+                const name = getNameById(item.instrumentId, 'instrument').toLowerCase();
+                // 也可以结合 settings 中的 group 字段判断，这里简单匹配常用关键词
+                const group = (settings.instruments.find(i => i.id === item.instrumentId)?.group || '').toLowerCase();
+                const text = name + ' ' + group;
+                return /string|str|brass|wind|wood|hn|tpt|tbn|tuba|vln|vla|vc|db|flute|oboe|clar|bsn/.test(text);
+            };
+
+            // 🟢 辅助：判断是否为打击乐 (Percussion)
+            const isPercussionGroup = (item) => {
+                const name = getNameById(item.musicianId, 'musician').toLowerCase();
+
+                // 只有演奏员名字里带有 "perc" (如 "Percussion", "Perc 1", "SPO Perc") 时，才视为打击乐组
+                // 这样 "Timpani" 或 "Drum Set" 如果名字里没带 Perc，就会正常显示黄色编制标签
+                return /perc/.test(name);
+            };
+
+            // 🟢 修复: 判断是否为弦乐 (V3: 仅检测演奏员名字，只有演奏员叫 "Strings" 时才隐藏)
+            const isStringGroup = (item) => {
+                // 获取【演奏员】的名字，而不是乐器名
+                const name = getNameById(item.musicianId, 'musician').toLowerCase();
+
+                // 只有当演奏员名字里包含 "string", "strings", "str" 时返回 true
+                // 例如: "String Ensemble", "Strings A", "Orch Strings"
+                return /\b(strings?|str)\b/i.test(name);
+            };
+
             // 🟢 [修复版] 手动排序按钮
             const sortTrackList = () => {
                 if (!trackListData.value.items) return;
@@ -6342,7 +8729,24 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 新增: 判断任务是否为"幽灵"状态 (Session不匹配 或 视图类型不匹配)
             const isTaskGhost = (task) => scheduleFeature.isTaskGhost(task);
 
-            // 🟢 [修改] ensureItemRecords: 修复“自动跟随”失效的问题            // 🟢 [修改] ensureItemRecords: 修复“自动跟随”失效的问题
+            const hasRecordingInfo = (task) => {
+                // 定义一个辅助函数来检查对象是否有内容
+                const checkInfo = (info) => {
+                    if (!info) return false;
+                    return !!(
+                        (info.studio && info.studio.trim()) ||
+                        (info.engineer && info.engineer.trim()) ||
+                        (info.operator && info.operator.trim()) ||
+                        (info.assistant && info.assistant.trim()) ||
+                        (info.notes && info.notes.trim())
+                    );
+                };
+
+                // 同时检查录音信息和编辑信息
+                return checkInfo(task.recordingInfo) || checkInfo(task.editInfo);
+            };
+
+            // 🟢 [修改] ensureItemRecords: 修复“自动跟随”失效的问题
             const ensureItemRecords = (item) => {
                 ensureItemSplitViews(item);
 
@@ -6391,6 +8795,255 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const isToday = d => formatDate(new Date()) === d;
 
+            // --- 🟢 日期切换动画控制 ---
+            const dateTransitionName = ref('slide-next'); // 默认方向
+
+            // 🟢 修复: changeDate (修复月视图切换卡顿/跳月问题)
+            const changeDate = (dir) => {
+                // 1. 设置动画方向
+                if (dir > 0) {
+                    dateTransitionName.value = 'slide-next';
+                } else {
+                    dateTransitionName.value = 'slide-prev';
+                }
+
+                const d = new Date(viewDate.value);
+
+                if (currentView.value === 'week') {
+                    // --- 周视图逻辑 ---
+                    // 简单加减 7 天即可
+                    d.setDate(d.getDate() + 7 * dir);
+                } else {
+                    // --- 月视图逻辑 (核心修复) ---
+                    // 1. 先把日期设为 1 号
+                    // (是为了防止如 "1月31日 + 1个月" 变成 "3月3日" 从而跳过2月的问题)
+                    d.setDate(1);
+
+                    // 2. 安全地加减月份
+                    d.setMonth(d.getMonth() + dir);
+                }
+
+                viewDate.value = d;
+                window.triggerTouchHaptic('Light'); // 震动反馈
+            };
+
+            const currentWeekDays = computed(() => {
+                const d = new Date(viewDate.value);
+                const day = d.getDay();
+                const diff = d.getDate() - day;
+                const s = new Date(d.setDate(diff));
+                const r = [];
+                for (let i = 0; i < 7; i++) {
+                    const c = new Date(s);
+                    c.setDate(s.getDate() + i);
+                    r.push({
+                        dateStr: formatDate(c),
+                        weekday: ['日', '一', '二', '三', '四', '五', '六'][c.getDay()],
+                        dateShort: `${c.getMonth() + 1}/${c.getDate()}`
+                    });
+                }
+                return r;
+            });
+
+            // 🟢 [重构] 通用月历生成函数 (支持生成任意月份的数据)
+            const generateMonthGrid = (targetDate) => {
+                const y = targetDate.getFullYear();
+                const m = targetDate.getMonth(); // 0-11
+                const f = new Date(y, m, 1); // 当月第一天
+                const l = new Date(y, m + 1, 0); // 当月最后一天
+                const r = [];
+
+                // 1. 上个月补位
+                for (let i = f.getDay(); i > 0; i--) {
+                    const d = new Date(y, m, 1 - i);
+                    r.push({
+                        fullDate: formatDate(d),
+                        dayNum: d.getDate(),
+                        isCurrentMonth: false,
+                        dateObj: d // 用于后续比较
+                    });
+                }
+
+                // 2. 当月日期
+                for (let i = 1; i <= l.getDate(); i++) {
+                    const d = new Date(y, m, i);
+                    r.push({
+                        fullDate: formatDate(d),
+                        dayNum: i,
+                        isCurrentMonth: true,
+                        dateObj: d
+                    });
+                }
+
+                // 3. 下个月补位 (默认补齐到 35 或 42 格)
+                const targetLen = r.length <= 35 ? 35 : 42;
+                while (r.length < targetLen) {
+                    const nextDateNum = r.length - l.getDate() - f.getDay() + 1;
+                    const d = new Date(y, m + 1, nextDateNum);
+                    r.push({
+                        fullDate: formatDate(d),
+                        dayNum: nextDateNum,
+                        isCurrentMonth: false,
+                        dateObj: d
+                    });
+                }
+                return r;
+            };
+
+// 🟢 [兼容] 保持原有的 currentMonthDays 调用方式 (用于分页模式)
+            const currentMonthDays = computed(() => generateMonthGrid(viewDate.value));
+
+// 🟢 [修改] 生成连续的扁平化天数列表 (动态范围)
+            const flatScrolledDays = computed(() => {
+                const list = [];
+                // 使用响应式变量
+                const bufferMonths = renderedRange.past;
+                const totalMonths = renderedRange.past + renderedRange.future;
+
+                // 起始日期：从 viewDate 往前推
+                const startMonthDate = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() - bufferMonths, 1);
+
+                // 1. 补位 (Padding)
+                const firstDayWeekday = startMonthDate.getDay();
+                for (let i = firstDayWeekday; i > 0; i--) {
+                    const d = new Date(startMonthDate);
+                    d.setDate(d.getDate() - i);
+                    list.push({
+                        fullDate: formatDate(d),
+                        dayNum: d.getDate(),
+                        isCurrentMonth: false,
+                        isPadding: true,
+                        dateObj: d
+                    });
+                }
+
+                // 2. 生成真实日期
+                for (let i = 0; i < totalMonths; i++) {
+                    const currentM = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + i, 1);
+                    const year = currentM.getFullYear();
+                    const month = currentM.getMonth();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                    for (let d = 1; d <= daysInMonth; d++) {
+                        const dateObj = new Date(year, month, d);
+                        list.push({
+                            fullDate: formatDate(dateObj),
+                            dayNum: d,
+                            isCurrentMonth: true,
+                            isFirstDay: d === 1,
+                            dateObj: dateObj
+                        });
+                    }
+                }
+
+                // 3. 尾部补齐
+                const remaining = list.length % 7;
+                if (remaining > 0) {
+                    const lastDate = list[list.length - 1].dateObj;
+                    for (let i = 1; i <= (7 - remaining); i++) {
+                        const d = new Date(lastDate);
+                        d.setDate(d.getDate() + i);
+                        list.push({
+                            fullDate: formatDate(d),
+                            dayNum: d.getDate(),
+                            isCurrentMonth: false,
+                            isPadding: true,
+                            dateObj: d
+                        });
+                    }
+                }
+
+                return list;
+            });
+
+            // 🟢 [新增] 无限滚动处理函数
+            const handleInfiniteScroll = (e) => {
+                // 只在月视图的滚动模式下生效
+                if (currentView.value !== 'month' || monthViewMode.value !== 'scrolled') return;
+                if (isLoadingMore.value) return;
+
+                const el = e.target; //通常是 #main-content
+                const threshold = 800; // 触发阈值 (像素)
+
+                // 1. 向上滚动加载更多历史
+                if (el.scrollTop < threshold) {
+                    isLoadingMore.value = true;
+
+                    // 记录当前的滚动高度和位置
+                    const oldScrollHeight = el.scrollHeight;
+                    const oldScrollTop = el.scrollTop;
+
+                    // 增加 6 个月历史
+                    renderedRange.past += 6;
+
+                    // 等待 DOM 更新后，修正滚动条位置
+                    nextTick(() => {
+                        const newScrollHeight = el.scrollHeight;
+                        // 关键：新的高度 - 旧的高度 = 新增内容的高度
+                        el.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
+                        isLoadingMore.value = false;
+                    });
+                }
+                // 2. 向下滚动加载更多未来
+                else if (el.scrollTop + el.clientHeight > el.scrollHeight - threshold) {
+                    isLoadingMore.value = true;
+                    renderedRange.future += 6; // 增加 6 个月未来
+
+                    nextTick(() => {
+                        isLoadingMore.value = false;
+                    });
+                }
+            };
+
+            // 🟢 [修改] 滚动到指定日期 (并居中显示)
+            const scrollToMonthDate = (targetDate) => {
+                // 1. 格式化目标日期字符串 (YYYY-MM-DD)
+                // 这样我们可以精确定位到“今天”或者“选中的那天”，而不仅仅是月初
+                const targetDateStr = formatDate(targetDate);
+
+                // 2. 稍微延迟，等待 DOM 渲染
+                setTimeout(() => {
+                    // 3. 利用 data-date 属性查找具体的日期格子
+                    // (HTML 模板中已绑定 :data-date="day.fullDate")
+                    const el = document.querySelector(`[data-date="${targetDateStr}"]`);
+
+                    if (el) {
+                        // 4. block: 'center' 将其置于视口垂直居中位置
+                        el.scrollIntoView({ behavior: 'auto', block: 'center' });
+                    } else {
+                        // 兜底：如果找不到具体日期（比如切到了很远的月份），尝试退回找当月1号
+                        const y = targetDate.getFullYear();
+                        const m = String(targetDate.getMonth() + 1).padStart(2, '0');
+                        const monthStartId = `${y}-${m}-01`;
+                        const monthEl = document.querySelector(`[data-month-start="${monthStartId}"]`);
+
+                        if (monthEl) {
+                            monthEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+                        }
+                    }
+                }, 50);
+            };
+
+            // 监听数据变化 (改名了)
+            watch(flatScrolledDays, () => {
+                if (monthViewMode.value === 'scrolled') {
+                    nextTick(() => initMonthObserver());
+                }
+            });
+
+
+
+            // 🟢 [修改] 顶部标题逻辑：根据模式显示不同日期
+            const currentDateLabel = computed(() => {
+                // 1. 如果是月视图-滚动模式，显示 IntersectionObserver 侦测到的日期
+                if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
+                    return `${visibleTopDate.value.getFullYear()}年 ${visibleTopDate.value.getMonth() + 1}月`;
+                }
+
+                // 2. 其他情况 (周视图 或 月视图-分页)，显示选中的 viewDate
+                return `${viewDate.value.getFullYear()}年 ${viewDate.value.getMonth() + 1}月`;
+            });
+
             // 找到原有的 tasksByDateMap 定义，用这段代码替换它
             const tasksByDateMap = computed(() => {
                 const map = {};
@@ -6414,6 +9067,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 辅助函数：仅保留用于模板中仍然需要函数调用的极少数情况 (可选，主要为了兼容)
             const getTasksForDate = (d) => {
                 return tasksByDateMap.value[d] || [];
+            };
+            const switchToWeek = d => {
+                viewDate.value = new Date(d);
+                currentView.value = 'week';
             };
             const openEditModal = (i, s) => {
                 editingItem.value = JSON.parse(JSON.stringify(i));
@@ -6618,6 +9275,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 pushHistory();
             };
 
+            const sidebarTab = ref('musician');
+
             scheduleFeature = registerScheduleFeature({
                 refs: {
                     itemPool,
@@ -6806,151 +9465,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             availableInstrumentGroups = importMidiFeature.availableInstrumentGroups;
             midiGroupData = importMidiFeature.midiGroupData;
             currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
-            const midiImportUiFeature = registerMidiImportUiFeature({
-                refs: {
-                    activeImportMenu,
-                    importMenuPos,
-                    importSearchQuery,
-                    midiViewMode,
-                    activeMidiGroupRow,
-                    midiGroupPos,
-                    midiGroupSearchQuery,
-                },
-                computedRefs: {
-                    sortedInstruments,
-                    availableInstrumentGroups,
-                },
-                actions: {
-                    updateInstrumentGroup,
-                },
-            });
-            const openImportMenu = midiImportUiFeature.openImportMenu;
-            const closeImportMenu = midiImportUiFeature.closeImportMenu;
-            const selectImportInst = midiImportUiFeature.selectImportInst;
-            const selectImportNewInst = midiImportUiFeature.selectImportNewInst;
-            const selectImportGroup = midiImportUiFeature.selectImportGroup;
-            const filteredImportOptions = midiImportUiFeature.filteredImportOptions;
-            const openMidiGroupDropdown = midiImportUiFeature.openMidiGroupDropdown;
-            const filteredMidiGroups = midiImportUiFeature.filteredMidiGroups;
-            const selectMidiGroup = midiImportUiFeature.selectMidiGroup;
-
-            projectInfoFeature = registerProjectInfoFeature({
-                refs: {
-                    showProjectInfoModal,
-                },
-                state: {
-                    settings,
-                },
-                actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
-            projectInfoForm = projectInfoFeature.projectInfoForm;
-            openProjectInfoModal = projectInfoFeature.openProjectInfoModal;
-            saveProjectInfo = projectInfoFeature.saveProjectInfo;
-
-            creditFeature = registerCreditFeature({
-                refs: {
-                    showCreditModal,
-                    generatedCreditText,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    getNameById,
-                },
-                actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                    openAlertModal,
-                },
-            });
-            openCreditModal = creditFeature.openCreditModal;
-            copyCreditText = creditFeature.copyCreditText;
-
-            recInfoFeature = registerRecInfoFeature({
-                refs: {
-                    sidebarTab,
-                    trackListData,
-                    scheduledTasks,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    generateUniqueId,
-                },
-                actions: {
-                    pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
-            showRecInfoModal = recInfoFeature.showRecInfoModal;
-            recInfoForm = recInfoFeature.recInfoForm;
-            openRecInfoModal = recInfoFeature.openRecInfoModal;
-            saveRecInfo = recInfoFeature.saveRecInfo;
-            activeRecDropdown = recInfoFeature.activeRecDropdown;
-            recDropdownSearch = recInfoFeature.recDropdownSearch;
-            filteredRecOptions = recInfoFeature.filteredRecOptions;
-            selectRecOption = recInfoFeature.selectRecOption;
-            createRecOption = recInfoFeature.createRecOption;
-            newRecInputs = recInfoFeature.newRecInputs;
-            addRecItem = recInfoFeature.addRecItem;
-            removeRecItem = recInfoFeature.removeRecItem;
-            hasRecordingInfo = recInfoFeature.hasRecordingInfo;
-
-            percussionFeature = registerPercussionFeature({
-                refs: {
-                    editingItem,
-                    showEditor,
-                    itemPool,
-                    scheduledTasks,
-                    sidebarTab,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime,
-                    getNameById,
-                },
-                split: {
-                    getCurrentSplitView,
-                    getSplitViewState,
-                    isItemVisibleForView,
-                    getSplitFamilyMembers,
-                },
-                actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
-            activeOrchPresets = percussionFeature.activeOrchPresets;
-            orchTemplates = percussionFeature.orchTemplates;
-            parsedRoster = percussionFeature.parsedRoster;
-            getRosterName = percussionFeature.getRosterName;
-            updateRosterName = percussionFeature.updateRosterName;
-            showOrchestrationField = percussionFeature.showOrchestrationField;
-            percKeywords = percussionFeature.percKeywords;
-            percState = percussionFeature.percState;
-            isPercussionMode = percussionFeature.isPercussionMode;
-            scanPercussionTags = percussionFeature.scanPercussionTags;
-            addPercPlayer = percussionFeature.addPercPlayer;
-            removePercPlayer = percussionFeature.removePercPlayer;
-            togglePercTagSelect = percussionFeature.togglePercTagSelect;
-            assignTagsToPlayer = percussionFeature.assignTagsToPlayer;
-            updatePercOrchestration = percussionFeature.updatePercOrchestration;
-            getNameWithGroup = percussionFeature.getNameWithGroup;
-            getFamilyTotalDuration = percussionFeature.getFamilyTotalDuration;
-            syncFamilyOrchestration = percussionFeature.syncFamilyOrchestration;
-            getOrchSize = percussionFeature.getOrchSize;
-            isOrchestraGroup = percussionFeature.isOrchestraGroup;
-            isPercussionGroup = percussionFeature.isPercussionGroup;
-            isStringGroup = percussionFeature.isStringGroup;
-
             userAvatar = authFeature.userAvatar;
             userDisplayName = authFeature.userDisplayName;
 
@@ -7575,6 +10089,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             // --- 🟢 手机端适配逻辑 ---
             // --- 🟢 手机端适配 & 布局自动修复 ---
+            const isMobile = ref(window.innerWidth < 800);
             const isContextSwitching = ref(false); // 🟢 [新增] 上下文切换锁
             const mobileTab = ref('schedule');
 
@@ -7597,111 +10112,11 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             });
             getThemeLabel = mobileUiFeature.getThemeLabel;
 
-            dragDropFeature = registerDragDropFeature({
-                refs: {
-                    isMobile,
-                    trackListData,
-                    trackListContainerRef,
-                    isDark,
-                    weekContainer,
-                    currentView,
-                    mobileTab,
-                    lastTapState,
-                    pxPerMin,
-                    sidebarTab,
-                    currentSessionId,
-                    scheduledTasks,
-                    isResizingMobile,
-                    mobileResizeState,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    formatSecs,
-                    timeToMinutes,
-                    parseTime,
-                },
-                actions: {
-                    getDividerDragState: () => dividerDragState,
-                    pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                    changeDate,
-                    isTaskGhost,
-                    jumpToGhostContext,
-                    handleTaskDblClick,
-                    selectTask,
-                    checkOverlap,
-                    openAlertModal,
-                },
-            });
-            dragElClone = dragDropFeature.dragElClone;
-            dragSourceType = dragDropFeature.dragSourceType;
-            startTrackDrag = dragDropFeature.startTrackDrag;
-            handleTrackListAutoScroll = dragDropFeature.handleTrackListAutoScroll;
-            stopTrackListAutoScroll = dragDropFeature.stopTrackListAutoScroll;
-            handleTouchStart = dragDropFeature.handleTouchStart;
-            handleTouchMove = dragDropFeature.handleTouchMove;
-            handleTouchEnd = dragDropFeature.handleTouchEnd;
-            handlePoolTouchStart = dragDropFeature.handlePoolTouchStart;
-            startAutoScroll = dragDropFeature.startAutoScroll;
-            stopAutoScroll = dragDropFeature.stopAutoScroll;
-            updateAutoScrollDirection = dragDropFeature.updateAutoScrollDirection;
-            initMobileResize = dragDropFeature.initMobileResize;
-            handleMobileResizeMove = dragDropFeature.handleMobileResizeMove;
-            handleMobileResizeEnd = dragDropFeature.handleMobileResizeEnd;
-
-            calendarViewFeature = registerCalendarViewFeature({
-                refs: {
-                    currentView,
-                    monthViewMode,
-                    viewDate,
-                    visibleTopDate,
-                    monthObserver,
-                    monthRefs,
-                    isMobile,
-                    dayColWidth,
-                    dragElClone,
-                    isResizingMobile,
-                },
-                utils: {
-                    formatDate,
-                },
-                actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
-            viewTransitionName = calendarViewFeature.viewTransitionName;
-            dateTransitionName = calendarViewFeature.dateTransitionName;
-            isZooming = calendarViewFeature.isZooming;
-            onBeforeLeave = calendarViewFeature.onBeforeLeave;
-            onAfterLeave = calendarViewFeature.onAfterLeave;
-            isMouseViewDrag = calendarViewFeature.isMouseViewDrag;
-            onMainMouseDown = calendarViewFeature.onMainMouseDown;
-            onMainMouseUp = calendarViewFeature.onMainMouseUp;
-            onMainWheel = calendarViewFeature.onMainWheel;
-            onMainTouchStart = calendarViewFeature.onMainTouchStart;
-            onMainTouchEnd = calendarViewFeature.onMainTouchEnd;
-            switchView = calendarViewFeature.switchView;
-            changeDate = calendarViewFeature.changeDate;
-            currentWeekDays = calendarViewFeature.currentWeekDays;
-            currentMonthDays = calendarViewFeature.currentMonthDays;
-            currentDateLabel = calendarViewFeature.currentDateLabel;
-            flatScrolledDays = calendarViewFeature.flatScrolledDays;
-            generateMonthGrid = calendarViewFeature.generateMonthGrid;
-            setMonthRef = calendarViewFeature.setMonthRef;
-            scrollToMonthDate = calendarViewFeature.scrollToMonthDate;
-            handleInfiniteScroll = calendarViewFeature.handleInfiniteScroll;
-            handleHeaderDoubleTap = calendarViewFeature.handleHeaderDoubleTap;
-            handleMonthCellDoubleTap = calendarViewFeature.handleMonthCellDoubleTap;
-            switchToWeek = calendarViewFeature.switchToWeek;
-
             // 🟢 优化: 增强版布局刷新函数
             const refreshLayout = () => mobileUiFeature.refreshLayout();
 
             onMounted(() => {
                 mobileUiFeature.mountShellLifecycle();
-                calendarViewFeature.initializeCalendarView();
                 // 检查 LocalStorage
                 const hasSeenTour = storageService.getItem('musche_tour_seen');
                 if (!hasSeenTour) {
@@ -7715,8 +10130,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             onUnmounted(() => {
                 mobileUiFeature.unmountShellLifecycle();
-                dragDropFeature.cleanupDragDrop();
-                calendarViewFeature.cleanupCalendarView();
+                // 这里省略了 remove 其他监听，因为这是根组件，销毁即刷新，通常不需要清理
             });
 
 
@@ -7874,9 +10288,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 isSyncing,
                 handleManualSync,
                 viewTransitionName,
-                isZooming,
-                onBeforeLeave,
-                onAfterLeave,
                 switchView,
                 onMainTouchStart,
                 onMainTouchEnd,
