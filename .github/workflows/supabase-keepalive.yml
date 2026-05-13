@@ -30,4 +30,4 @@ jobs:
           node-version: '20'
 
       - name: Ping Supabase auth settings endpoint
-        run: node ci/supabase-keepalive.mjs
+        run: node scripts/supabase-keepalive.mjs

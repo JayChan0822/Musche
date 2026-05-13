@@ -6,7 +6,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = resolve(__dirname, '..');
-const scriptPath = resolve(rootDir, 'ci/supabase-keepalive.mjs');
+const scriptPath = resolve(rootDir, 'scripts/supabase-keepalive.mjs');
 const workflowPath = resolve(rootDir, '.github/workflows/supabase-keepalive.yml');
 
 test('keepalive workflow schedules a near-every-three-days run and executes the keepalive script', () => {
@@ -16,7 +16,7 @@ test('keepalive workflow schedules a near-every-three-days run and executes the 
 
   assert.match(workflow, /workflow_dispatch:/, 'workflow should support manual dispatch');
   assert.match(workflow, /cron:\s*["']0 3 \*\/3 \* \*["']/, 'workflow should run at 03:00 UTC on every third day-of-month');
-  assert.match(workflow, /node ci\/supabase-keepalive\.mjs/, 'workflow should run the keepalive script');
+  assert.match(workflow, /node scripts\/supabase-keepalive\.mjs/, 'workflow should run the keepalive script');
 });
 
 test('runKeepalive requests the configured Supabase auth settings endpoint', async () => {
