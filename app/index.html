@@ -192,11 +192,11 @@
                 </div>
             </div>
 
-            <div class="hidden sm:flex items-center relative ml-4 mr-2 group">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 text-gray-400 text-xs group-focus-within:text-[#007aff] transition-colors"></i>
+            <div class="desktop-search-shell hidden sm:flex items-center relative ml-4 mr-2 group">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 text-gray-400 text-xs group-focus-within:text-[#007aff] transition-colors"></i>
 
                 <input v-model="globalSearchQuery"
-                       @keydown.enter="handleSearchEnter"  class="glass-input h-9 pl-10 pr-8 w-40 focus:w-60 transition-all duration-300 text-xs font-bold bg-white/40 dark:bg-black/20 focus:bg-white dark:focus:bg-white/10 rounded-full"
+                       @keydown.enter="handleSearchEnter"  class="desktop-search-input glass-input h-9 pr-8 w-40 focus:w-60 transition-all duration-300 text-xs font-bold bg-white/40 dark:bg-black/20 focus:bg-white dark:focus:bg-white/10 rounded-full"
                        placeholder="Search..."
                 >
 

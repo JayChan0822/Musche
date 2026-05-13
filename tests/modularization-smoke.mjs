@@ -138,8 +138,8 @@ assert.match(
 
 assert.match(
     indexHtml,
-    /fa-magnifying-glass absolute left-3[\s\S]*class="glass-input h-9 pl-10 pr-8/,
-    'desktop search input must leave enough left padding so the search icon and placeholder text do not overlap'
+    /class="desktop-search-shell hidden sm:flex items-center relative[\s\S]*fa-magnifying-glass absolute left-3\.5[\s\S]*class="desktop-search-input glass-input h-9 pr-8/,
+    'desktop search input must use dedicated classes so the icon and placeholder text spacing can be controlled independently of shared glass-input styles'
 );
 
 assert.ok(existsSync(vercelConfigPath), 'vercel.json must exist to pin deployment output settings');

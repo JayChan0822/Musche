@@ -369,6 +369,10 @@ html.dark .segment-btn.active {
     box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
+.desktop-search-input {
+    padding-left: 2.4rem !important;
+}
+
 html.dark .glass-input {
     background: rgba(255, 255, 255, 0.1);
     color: inherit;
