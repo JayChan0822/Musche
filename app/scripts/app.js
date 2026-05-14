@@ -47,6 +47,7 @@ import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
 import { registerSearchFeature } from './features/search.js';
 import { registerCalendarViewFeature } from './features/calendar-view.js';
+import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -9115,343 +9116,51 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             userAvatar = authFeature.userAvatar;
             userDisplayName = authFeature.userDisplayName;
 
-            // 🟢 [重写] 核心统计函数 (智能搜索优化版：修复 "Part 1" 误搜 "Part 2" 的问题)
-            const calculateGroupStats = (sourceList, filterKey) => {
-                const recordTypeMap = {
-                    'musicianId': 'musician',
-                    'projectId': 'project',
-                    'instrumentId': 'instrument'
-                };
-                const currentRecordType = recordTypeMap[filterKey] || 'musician';
-                const currentSessionItems = itemPool.value
-                    .filter(t =>
-                        (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                        isItemVisibleForView(t, currentRecordType)
-                    )
-                    .map(t => {
-                        const splitState = peekSplitViewState(t, currentRecordType);
-                        return {
-                            ...t,
-                            splitFromId: splitState.splitFromId,
-                            splitTag: splitState.splitTag,
-                            musicDuration: splitState.musicDuration,
-                            estDuration: splitState.estDuration,
-                            sectionIndex: splitState.sectionIndex,
-                        };
-                    });
-
-                // --- 1. 准备搜索条件 ---
-                const rawQuery = globalSearchQuery.value.trim().toLowerCase();
-                const statusDefinitions = {
-                    '完成': ['completed'], 'finished': ['completed'],
-                    '进行中': ['in-progress'], 'ing': ['in-progress'],
-                    '缺时': ['insufficient'], 'missing': ['insufficient'],
-                    '已排': ['full', 'completed'], 'full': ['full', 'completed']
-                };
-
-                const textKeywords = [];
-                const statusFilters = new Set();
-
-                if (rawQuery) {
-                    // 1. 提取状态关键词
-                    // 我们先用空格拆分来检查是否包含状态词 (如 "Part 1 完成")
-                    const tempParts = rawQuery.split(/\s+/).filter(k => k);
-                    const nonStatusParts = [];
-
-                    tempParts.forEach(inputWord => {
-                        let isStatus = false;
-                        for (const [key, statuses] of Object.entries(statusDefinitions)) {
-                            if (key.includes(inputWord) || inputWord.includes(key)) {
-                                statuses.forEach(s => statusFilters.add(s));
-                                isStatus = true;
-                                break;
-                            }
-                        }
-                        if (!isStatus) nonStatusParts.push(inputWord);
-                    });
-
-                    // 2. 生成文本关键词 (智能防拆分逻辑)
-                    // 重新组合剩余的非状态词
-                    const cleanQuery = nonStatusParts.join(' ');
-
-                    if (cleanQuery) {
-                        // 🟢 核心优化: 检测 "单词+空格+数字" 模式 (例如 "Part 1", "Take 2", "Violin 1")
-                        // 如果符合这种模式，强制作为整体匹配，不拆分
-                        const isSequencePattern = /^[a-zA-Z\u4e00-\u9fa5]+\s+\d+$/.test(cleanQuery);
-
-                        if (isSequencePattern) {
-                            textKeywords.push(cleanQuery); // 整体推入，如 ["part 1"]
-                        } else {
-                            // 否则正常拆分，支持 "Violin Mozart" 搜 "Mozart Violin"
-                            textKeywords.push(...cleanQuery.split(/\s+/));
-                        }
-                    }
-                }
-
-                // 是否处于文本搜索模式
-                const isSearchMode = textKeywords.length > 0;
-
-                const stats = sourceList.map(group => {
-                    // 1. 获取该组下的原始任务
-                    let poolItems = currentSessionItems.filter(t => t[filterKey] === group.id);
-
-                    // --- 过滤逻辑 ---
-                    if (isSearchMode) {
-                        poolItems = poolItems.filter(item => {
-                            // 原代码：
-                            // const fullText = getFullSearchText(item, group.name);
-
-                            // 🟢 修改后：将当前大卡片的分组 (group.group) 也拼接到搜索文中
-                            // 这样比如您在乐器视图搜 "Pluck"，属于 Pluck 分组的 "Guitar" 卡片就会被匹配到
-                            const groupContext = `${group.name} ${group.group || ''}`;
-                            const fullText = getFullSearchText(item, groupContext);
-
-                            return textKeywords.every(k => smartMatch(fullText, k));
-                        });
-                    }
-
-                    if (poolItems.length === 0) return null;
-
-                    // 2. 获取该组的日程块
-                    const scheduleItems = scheduledTasks.value.filter(t =>
-                        t[filterKey] === group.id &&
-                        (t.sessionId || 'S_DEFAULT') === currentSessionId.value
-                    );
-                    scheduleItems.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-                    const scheduleCount = scheduleItems.length;
-
-                    // --- A. 计算平均倍率 (基于筛选后的条目) ---
-                    let groupTotalActual = 0;
-                    let groupTotalMusic = 0;
-
-                    poolItems.forEach(item => {
-                        const rec = item.records ? item.records[currentRecordType] : null;
-                        if (rec && rec.actualDuration && item.musicDuration) {
-                            const act = parseTime(rec.actualDuration);
-                            const mus = parseTime(item.musicDuration);
-                            if (act > 0 && mus > 0) {
-                                groupTotalActual += act;
-                                groupTotalMusic += mus;
-                            }
-                        }
-                    });
-
-                    const avgRealRatio = (groupTotalMusic > 0)
-                        ? parseFloat((groupTotalActual / groupTotalMusic).toFixed(1))
-                        : 0;
-
-                    let smartBaseRatio = 20;
-                    if (avgRealRatio > 0) {
-                        smartBaseRatio = avgRealRatio;
-                    } else if (group.defaultRatio && group.defaultRatio > 0) {
-                        smartBaseRatio = parseFloat(group.defaultRatio);
-                    }
-
-                    // --- B. 计算总需时长 (应用智能倍率) ---
-                    let totalSecs = 0;
-                    let totalActualSec = 0;
-                    let recordedCount = 0;
-                    let effectiveCount = 0;
-
-                    const displayItems = poolItems.map(rawItem => {
-                        const rec = rawItem.records ? rawItem.records[currentRecordType] : null;
-                        const actualDur = (rec && rec.actualDuration) ? rec.actualDuration : null;
-
-                        const manualRatio = rawItem.ratios ? rawItem.ratios[currentRecordType] : null;
-                        const rawVal = manualRatio ? parseFloat(manualRatio) : 0;
-                        let validManualRatio = null;
-
-                        if (rawVal > 0 && rawVal !== 20 && rawVal !== smartBaseRatio) {
-                            // 这里增加一个容错：如果 manualRatio 和 defaultRatio 相同，也视为自动
-                            const defaultR = (group.defaultRatio && group.defaultRatio > 0) ? parseFloat(group.defaultRatio) : 20;
-                            if (rawVal !== defaultR) {
-                                validManualRatio = rawVal;
-                            }
-                        }
-
-                        const isManual = (validManualRatio !== null);
-                        const effectiveRatio = isManual ? validManualRatio : smartBaseRatio;
-                        const dynEst = calculateEstTime(rawItem.musicDuration, effectiveRatio);
-
-                        if (!rawItem.isSkipped) {
-                            effectiveCount++;
-                            if (actualDur) {
-                                recordedCount++;
-                                totalActualSec += parseTime(actualDur);
-                            }
-                            totalSecs += parseTime(dynEst || '00:00');
-                        }
-
-                        return {
-                            ...rawItem,
-                            actualDuration: actualDur,
-                            ratio: effectiveRatio,
-                            isManualRatio: isManual,
-                            estDuration: dynEst,
-                            _sortTime: (rec && rec.recStart) ? rec.recStart : '99:99'
-                        };
-                    });
-
-                    // 排序
-                    displayItems.sort((a, b) => {
-                        if (!!a.isSkipped !== !!b.isSkipped) return a.isSkipped ? 1 : -1;
-                        if (sortField.value === 'duration' || sortField.value === 'status') {
-                            const actualA = parseTime(a.actualDuration || '00:00');
-                            const actualB = parseTime(b.actualDuration || '00:00');
-                            if (actualA !== actualB) return sortAsc.value ? (actualB - actualA) : (actualA - actualB);
-                            const estA = parseTime(a.estDuration || '00:00');
-                            const estB = parseTime(b.estDuration || '00:00');
-                            if (estA !== estB) return sortAsc.value ? (estB - estA) : (estA - estB);
-                        } else if (sortField.value === 'name') {
-                            const nameA = filterKey === 'musicianId' ? getNameById(a.projectId, 'project') : getNameById(a.musicianId, 'musician');
-                            const nameB = filterKey === 'musicianId' ? getNameById(b.projectId, 'project') : getNameById(b.musicianId, 'musician');
-
-                            // 🟢 修复：启用自然排序
-                            return sortAsc.value
-                                ? nameA.localeCompare(nameB, 'zh-CN', { numeric: true })
-                                : nameB.localeCompare(nameA, 'zh-CN', { numeric: true });
-                        }
-                        const secA = a.sectionIndex || 0;
-                        const secB = b.sectionIndex || 0;
-                        if (secA !== secB) return secA - secB;
-                        return a._sortTime.localeCompare(b._sortTime);
-                    });
-
-                    // --- C. 计算已排期时长 (搜索模式: 仅累加真实录音时长) ---
-                    let scheduledSecs = 0;
-
-                    if (isSearchMode) {
-                        displayItems.forEach(item => {
-                            if (item.sectionIndex !== undefined && item.sectionIndex >= 0 && item.sectionIndex < scheduleItems.length) {
-                                if (item.actualDuration && item.actualDuration !== '00:00') {
-                                    scheduledSecs += parseTime(item.actualDuration);
-                                }
-                            }
-                        });
-                    } else {
-                        // 普通模式
-                        scheduleItems.forEach((block, blockIndex) => {
-                            const blockTotalSecs = parseTime(block.estDuration);
-                            const itemsInBlock = poolItems.filter(item => {
-                                const sIdx = item.sectionIndex !== undefined ? item.sectionIndex : 0;
-                                return sIdx === blockIndex;
-                            });
-                            const totalBreakSecs = itemsInBlock.reduce((sum, item) => {
-                                const rec = item.records && item.records[currentRecordType];
-                                const bMins = (rec && rec.breakMinutes) ? parseInt(rec.breakMinutes) : 0;
-                                return sum + (bMins * 60);
-                            }, 0);
-                            let totalGapSecs = 0;
-                            const recordedItems = itemsInBlock.filter(item => {
-                                const r = item.records?.[currentRecordType];
-                                return r && r.recStart && r.recEnd;
-                            });
-                            recordedItems.sort((a, b) => {
-                                const tA = a.records[currentRecordType].recStart;
-                                const tB = b.records[currentRecordType].recStart;
-                                return tA.localeCompare(tB);
-                            });
-                            for(let i = 0; i < recordedItems.length - 1; i++) {
-                                const curr = recordedItems[i];
-                                const next = recordedItems[i+1];
-                                const currRec = curr.records[currentRecordType];
-                                const nextRec = next.records[currentRecordType];
-                                const toMins = (t) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-                                let endMins = toMins(currRec.recEnd);
-                                let startMins = toMins(nextRec.recStart);
-                                if (startMins >= endMins) {
-                                    const gap = startMins - endMins;
-                                    if (gap > 0) totalGapSecs += (gap * 60);
-                                }
-                            }
-                            let netBlockDuration = blockTotalSecs - totalBreakSecs - totalGapSecs;
-                            if (netBlockDuration < 0) netBlockDuration = 0;
-                            scheduledSecs += netBlockDuration;
-                        });
-                    }
-
-                    // --- D. 状态判断 ---
-                    const trackCount = poolItems.length;
-                    let statusKey = 'unscheduled';
-
-                    if (trackCount > 0 && effectiveCount === 0) {
-                        statusKey = 'completed';
-                    }
-                    else if (effectiveCount > 0 && recordedCount === effectiveCount) {
-                        statusKey = 'completed';
-                    }
-                    else if (scheduledSecs > 0 && scheduledSecs < totalSecs) {
-                        statusKey = 'insufficient';
-                    }
-                    else if (recordedCount > 0) {
-                        statusKey = 'in-progress';
-                    }
-                    else if (scheduledSecs >= totalSecs && totalSecs > 0) {
-                        statusKey = 'full';
-                    }
-
-                    if (statusFilters.size > 0) {
-                        if (!statusFilters.has(statusKey)) return null;
-                    }
-
-                    return {
-                        ...group,
-                        id: group.id,
-                        items: displayItems,
-                        trackCount,
-                        scheduleCount,
-                        totalDuration: formatSecs(totalSecs),
-                        totalSeconds: totalSecs,
-                        scheduledSeconds: scheduledSecs,
-                        completedSeconds: totalActualSec,
-                        statusKey,
-                        avgRealRatio,
-                        recordedCount,
-                        isFullyScheduled: (statusKey === 'full' || statusKey === 'completed')
-                    };
-                }).filter(Boolean);
-
-                return stats.sort((a, b) => {
-                    if (sortField.value === 'name') {
-                        // 🟢 修复: 启用自然排序
-                        return sortAsc.value
-                            ? a.name.localeCompare(b.name, 'zh-CN', { numeric: true })
-                            : b.name.localeCompare(a.name, 'zh-CN', { numeric: true });
-                    }
-                    if (sortField.value === 'status') {
-                        const statusWeight = { 'completed': 0, 'in-progress': 1, 'insufficient': 2, 'full': 3, 'unscheduled': 4 };
-                        const wA = statusWeight[a.statusKey] ?? 99;
-                        const wB = statusWeight[b.statusKey] ?? 99;
-                        if (wA !== wB) return sortAsc.value ? (wA - wB) : (wB - wA);
-                        return a.name.localeCompare(b.name, 'zh-CN');
-                    }
-                    const valA = a.totalSeconds;
-                    const valB = b.totalSeconds;
-                    if (valA < valB) return sortAsc.value ? -1 : 1;
-                    if (valA > valB) return sortAsc.value ? 1 : -1;
-                    return 0;
-                });
-            };
-
-            // 3. 三个维度的计算属性
-            // 仍然保留 musicianStats 这个名字，以兼容你代码中可能引用它的地方
-            const musicianStats = computed(() => calculateGroupStats(settings.musicians, 'musicianId'));
-            const projectStats = computed(() => calculateGroupStats(settings.projects, 'projectId'));
-            const instrumentStats = computed(() => calculateGroupStats(settings.instruments, 'instrumentId'));
-
-            // 🟢 新增: 统计当前 Session 下的活跃任务总数
-            const activeTaskCount = computed(() => {
-                return itemPool.value.filter(t => (t.sessionId || 'S_DEFAULT') === currentSessionId.value).length;
-            });
-
-            // 4. 当前侧边栏显示的数据源
-            const currentSidebarList = computed(() => {
-                if (sidebarTab.value === 'project') return projectStats.value;
-                if (sidebarTab.value === 'instrument') return instrumentStats.value;
-                return musicianStats.value;
-            });
-
             const isMobile = ref(window.innerWidth < 800);
+
+            const sidebarStatsFeature = registerSidebarStatsFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                    globalSearchQuery,
+                    sidebarTab,
+                    sortField,
+                    sortAsc,
+                    statClickIndexMap,
+                    isMobile,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    parseTime,
+                    formatSecs,
+                    calculateEstTime,
+                    getNameById,
+                    getFullSearchText,
+                    smartMatch,
+                    isItemVisibleForView,
+                    peekSplitViewState,
+                },
+                actions: {
+                    pushHistory,
+                    openAlertModal,
+                    smartScrollToTask,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            const calculateGroupStats = sidebarStatsFeature.calculateGroupStats;
+            const musicianStats = sidebarStatsFeature.musicianStats;
+            const projectStats = sidebarStatsFeature.projectStats;
+            const instrumentStats = sidebarStatsFeature.instrumentStats;
+            const activeTaskCount = sidebarStatsFeature.activeTaskCount;
+            const currentSidebarList = sidebarStatsFeature.currentSidebarList;
+            const expandedStatsIds = sidebarStatsFeature.expandedStatsIds;
+            const toggleStatCollapse = sidebarStatsFeature.toggleStatCollapse;
+            const updateMusicianRatio = sidebarStatsFeature.updateMusicianRatio;
+            const jumpToStatSchedule = sidebarStatsFeature.jumpToStatSchedule;
+            const handleStatCardClick = sidebarStatsFeature.handleStatCardClick;
 
             const calendarViewFeature = registerCalendarViewFeature({
                 refs: {
@@ -9527,18 +9236,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const onSearchFocus = searchFeature.onSearchFocus;
             const handleTrackListSearchAction = searchFeature.handleTrackListSearchAction;
 
-            // V10.0 新增：计算演奏员统计数据
-            // --- V10.4 新增：统计卡片展开状态 ---
-            const expandedStatsIds = reactive(new Set());
-
-            const toggleStatCollapse = (id) => {
-                if (expandedStatsIds.has(id)) {
-                    expandedStatsIds.delete(id);
-                } else {
-                    expandedStatsIds.add(id);
-                }
-            };
-
             // 🟢 新增: 计算当前弹窗内日程块的实时比率
             const getSessionRatio = () => {
                 const actual = trackListData.value.actualDuration;
@@ -9555,48 +9252,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 if (totalMusicSec === 0) return '-';
 
                 return (actualSec / totalMusicSec).toFixed(1);
-            };
-
-            // 🟢 新增: 将真实比值应用为默认比值
-            // 🟢 修复: 更新倍率并重算所有任务时长
-            // 🟢 修改: 移除确认弹窗，直接更新全局倍率
-            // 🟢 修复: 更新效率 (修复日程块缩为0的Bug)
-            const updateMusicianRatio = (stat) => {
-                if (!stat.avgRealRatio || stat.avgRealRatio <= 0) return;
-
-                const newRatio = parseFloat(stat.avgRealRatio);
-
-                // 1. 更新演奏员的全局默认设置
-                const mus = settings.musicians.find(m => m.id === stat.id);
-                if (mus) {
-                    mus.defaultRatio = newRatio;
-                }
-
-                // 2. 更新【任务池】里该演奏员的所有任务
-                // 任务池里的都是模板，肯定有 musicDuration，所以必须更新 estDuration 以便下次拖拽
-                itemPool.value.forEach(item => {
-                    if (item.musicianId === stat.id) {
-                        item.ratio = newRatio;
-                        if (item.musicDuration) {
-                            item.estDuration = calculateEstTime(item.musicDuration, newRatio);
-                        }
-                    }
-                });
-
-                // 3. 更新【日程表】里该演奏员的所有任务
-                scheduledTasks.value.forEach(task => {
-                    if (task.musicianId === stat.id) {
-                        task.ratio = newRatio;
-
-                        // 🟢 关键修复: 只有当任务拥有“谱面时长”时，才根据新倍率重算时长
-                        // 如果是纯时间占位块(没有musicDuration)，则保持原有排期时间不变
-                        if (task.musicDuration) {
-                            task.estDuration = calculateEstTime(task.musicDuration, newRatio);
-                        }
-                    }
-                });
-
-                pushHistory();
             };
 
             const musicianScheduledStats = computed(() => {
@@ -9631,100 +9286,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     saveToCloud(true);
                 }
             };
-
-            // 🟢 新增: 专门用于点击颜色条跳转日程的函数
-            const jumpToStatSchedule = (stat) => {
-                if (isMobile.value) window.triggerTouchHaptic('Medium');
-
-                // 1. 查找相关任务 (根据当前 Tab 类型筛选)
-                let relatedTasks = [];
-                if (sidebarTab.value === 'project') {
-                    relatedTasks = scheduledTasks.value.filter(t => t.projectId === stat.id);
-                } else if (sidebarTab.value === 'instrument') {
-                    relatedTasks = scheduledTasks.value.filter(t => t.instrumentId === stat.id);
-                } else {
-                    relatedTasks = scheduledTasks.value.filter(t => t.musicianId === stat.id);
-                }
-
-                // 2. 过滤掉非当前 Session 的任务
-                relatedTasks = relatedTasks.filter(t => (t.sessionId || 'S_DEFAULT') === currentSessionId.value);
-
-                // 如果没有已排期的任务，无法跳转
-                if (relatedTasks.length === 0) {
-                    openAlertModal("未排期", "该条目下暂时没有已安排的日程。");
-                    return;
-                }
-
-                // 3. 排序 (按时间顺序，确保跳转逻辑符合直觉)
-                relatedTasks.sort((a, b) => {
-                    const dateA = new Date(a.date + 'T' + a.startTime);
-                    const dateB = new Date(b.date + 'T' + b.startTime);
-                    return dateA - dateB;
-                });
-
-                // 4. 循环获取目标任务
-                let currentIndex = statClickIndexMap[stat.id] || 0;
-                if (currentIndex >= relatedTasks.length) currentIndex = 0;
-
-                const targetTask = relatedTasks[currentIndex];
-
-                // 更新下一次点击的索引 (+1)
-                statClickIndexMap[stat.id] = (currentIndex + 1) % relatedTasks.length;
-
-                // 5. 执行跳转
-                smartScrollToTask(targetTask);
-            };
-
-            // 🟢 修复后的 handleStatCardClick (仅在展开时跳转)
-            const handleStatCardClick = (stat) => {
-                if (isMobile.value) window.triggerTouchHaptic('Medium');
-
-                // 1. 切换展开/折叠状态
-                toggleStatCollapse(stat.id);
-
-                // 🛑 核心修改: 检查状态，如果是"收起"操作，直接结束，不跳转
-                /*if (!expandedStatsIds.has(stat.id)) {
-                    return;
-                }
-
-                // --- 以下是展开后的跳转逻辑 ---
-
-                // 2. 查找相关任务
-                let relatedTasks = [];
-                if (sidebarTab.value === 'project') {
-                    relatedTasks = scheduledTasks.value.filter(t => t.projectId === stat.id);
-                } else if (sidebarTab.value === 'instrument') {
-                    relatedTasks = scheduledTasks.value.filter(t => t.instrumentId === stat.id);
-                } else {
-                    relatedTasks = scheduledTasks.value.filter(t => t.musicianId === stat.id);
-                }
-
-                // 过滤掉非当前 Session 的任务
-                relatedTasks = relatedTasks.filter(t => (t.sessionId || 'S_DEFAULT') === currentSessionId.value);
-
-                // 如果该卡片下没有已排期的任务，只展开列表，不跳转
-                if (relatedTasks.length === 0) return;
-
-                // 排序 (按日期和时间)
-                relatedTasks.sort((a, b) => {
-                    const dateA = new Date(a.date + 'T' + a.startTime);
-                    const dateB = new Date(b.date + 'T' + b.startTime);
-                    return dateA - dateB;
-                });
-
-                // 3. 获取目标任务 (循环点击逻辑)
-                let currentIndex = statClickIndexMap[stat.id] || 0;
-                if (currentIndex >= relatedTasks.length) currentIndex = 0;
-
-                const targetTask = relatedTasks[currentIndex];
-
-                // 更新下一次点击的索引
-                statClickIndexMap[stat.id] = (currentIndex + 1) % relatedTasks.length;
-
-                // 4. 执行跳转 (调用上一轮封装好的通用函数)
-                smartScrollToTask(targetTask);*/
-            };
-
 
             // 🟢 修改: 清空列表 (级联删除任务，增加确认弹窗)
             const clearAllInstruments = () => settingsFeature.clearAllInstruments();

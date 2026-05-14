@@ -170,6 +170,7 @@ const requiredFiles = [
     'app/scripts/features/auth.js',
     'app/scripts/features/mobile-ui.js',
     'app/scripts/features/calendar-view.js',
+    'app/scripts/features/sidebar-stats.js',
     'scripts/supabase-keepalive.mjs'
 ];
 
