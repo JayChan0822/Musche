@@ -8231,11 +8231,9 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                         currentView.value = currentView.value === 'week' ? 'month' : 'week';
                         switchView(target);
                     } else {
-                        // 🟢 Tab: 在 人员 -> 项目 -> 乐器 之间循环切换
+                        // 🟢 Tab: 在 REC(乐手) 和 EDIT(项目) 之间循环切换
                         if (sidebarTab.value === 'musician') {
                             sidebarTab.value = 'project';
-                        } else if (sidebarTab.value === 'project') {
-                            sidebarTab.value = 'instrument';
                         } else {
                             sidebarTab.value = 'musician';
                         }

@@ -142,6 +142,12 @@ assert.match(
     'desktop search input must use dedicated classes so the icon and placeholder text spacing can be controlled independently of shared glass-input styles'
 );
 
+assert.doesNotMatch(
+    appScript,
+    /else if \(sidebarTab\.value === 'project'\)\s*\{\s*sidebarTab\.value = 'instrument';\s*\}/,
+    'app.js Tab navigation should no longer cycle into instrument sidebar view'
+);
+
 assert.ok(existsSync(vercelConfigPath), 'vercel.json must exist to pin deployment output settings');
 const vercelConfig = JSON.parse(readFileSync(vercelConfigPath, 'utf8'));
 assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point Vercel at app/dist');
