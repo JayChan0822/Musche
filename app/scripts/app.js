@@ -46,6 +46,7 @@ import { registerAuthFeature } from './features/auth.js';
 import { registerMobileUiFeature } from './features/mobile-ui.js';
 import { registerExportCsvFeature } from './features/export-csv.js';
 import { registerSearchFeature } from './features/search.js';
+import { registerCalendarViewFeature } from './features/calendar-view.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -990,60 +991,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 lastMonthTap.time = now;
                 lastMonthTap.date = dateStr;
             };
-
-            // 🟢 [新增] 无限滚动范围控制
-            const renderedRange = reactive({
-                past: 6,   // 初始往回看 6 个月
-                future: 18 // 初始往后看 18 个月
-            });
-            const isLoadingMore = ref(false); // 防抖锁
-
-            // 辅助：配合 v-for 收集 DOM 引用
-            const setMonthRef = (el) => {
-                if (el) monthRefs.value.push(el);
-            };
-
-            const initMonthObserver = () => {
-                if (monthObserver.value) monthObserver.value.disconnect();
-                monthRefs.value = []; // 清空旧引用
-
-                const options = {
-                    root: document.getElementById('main-content'),
-                    rootMargin: '0px 0px -90% 0px', // 判定线调整到顶部
-                    threshold: 0
-                };
-
-                monthObserver.value = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            // 读取单元格上的 data-month-start
-                            const dateStr = entry.target.dataset.monthStart;
-                            if (dateStr) {
-                                visibleTopDate.value = new Date(dateStr);
-                            }
-                        }
-                    });
-                }, options);
-
-                // 等待 DOM 渲染后观察所有“1号”的格子
-                setTimeout(() => {
-                    // monthRefs 在模板渲染时会自动填充
-                    monthRefs.value.forEach((el) => {
-                        monthObserver.value.observe(el);
-                    });
-                }, 100);
-            };
-
-// 监听视图模式切换：切到滚动模式时启动观察器
-            watch(monthViewMode, (newMode) => {
-                if (newMode === 'scrolled') {
-                    visibleTopDate.value = viewDate.value; // 重置为当前 viewDate
-                    nextTick(() => initMonthObserver());
-                } else {
-                    if (monthObserver.value) monthObserver.value.disconnect();
-                }
-            });
-
 
             const openCreditModal = () => {
                 const sessId = currentSessionId.value;
@@ -6274,17 +6221,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 修改：addSettingsItem (支持“移动分组”逻辑)
             const addSettingsItem = (type) => settingsFeature.addSettingsItem(type);
 
-            watch(viewDate, () => {
-                // 重置为默认范围，以新日期为中心
-                renderedRange.past = 6;
-                renderedRange.future = 18;
-
-                // 如果在月视图，需要稍微延迟定位一下 (复用之前的 scrollToMonthDate)
-                if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-                    scrollToMonthDate(viewDate.value);
-                }
-            });
-
             // 6. 删除项目
             const removeSettingsItem = (type, id) => settingsFeature.removeSettingsItem(type, id);
 
@@ -8708,16 +8644,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
-            // --- Date/View Logic ---
-            const timeSlots = computed(() => {
-                const s = [];
-                for (let i = settings.startHour; i < settings.endHour; i++) {
-                    s.push(`${i}:00`);
-                    s.push(`${i}:30`);
-                }
-                return s;
-            });
-
             // 🟢 修改: getTaskStyle (增加 z-index 控制)
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
 
@@ -8793,283 +8719,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const isToday = d => formatDate(new Date()) === d;
 
-            // --- 🟢 日期切换动画控制 ---
-            const dateTransitionName = ref('slide-next'); // 默认方向
-
-            // 🟢 修复: changeDate (修复月视图切换卡顿/跳月问题)
-            const changeDate = (dir) => {
-                // 1. 设置动画方向
-                if (dir > 0) {
-                    dateTransitionName.value = 'slide-next';
-                } else {
-                    dateTransitionName.value = 'slide-prev';
-                }
-
-                const d = new Date(viewDate.value);
-
-                if (currentView.value === 'week') {
-                    // --- 周视图逻辑 ---
-                    // 简单加减 7 天即可
-                    d.setDate(d.getDate() + 7 * dir);
-                } else {
-                    // --- 月视图逻辑 (核心修复) ---
-                    // 1. 先把日期设为 1 号
-                    // (是为了防止如 "1月31日 + 1个月" 变成 "3月3日" 从而跳过2月的问题)
-                    d.setDate(1);
-
-                    // 2. 安全地加减月份
-                    d.setMonth(d.getMonth() + dir);
-                }
-
-                viewDate.value = d;
-                window.triggerTouchHaptic('Light'); // 震动反馈
-            };
-
-            const currentWeekDays = computed(() => {
-                const d = new Date(viewDate.value);
-                const day = d.getDay();
-                const diff = d.getDate() - day;
-                const s = new Date(d.setDate(diff));
-                const r = [];
-                for (let i = 0; i < 7; i++) {
-                    const c = new Date(s);
-                    c.setDate(s.getDate() + i);
-                    r.push({
-                        dateStr: formatDate(c),
-                        weekday: ['日', '一', '二', '三', '四', '五', '六'][c.getDay()],
-                        dateShort: `${c.getMonth() + 1}/${c.getDate()}`
-                    });
-                }
-                return r;
-            });
-
-            // 🟢 [重构] 通用月历生成函数 (支持生成任意月份的数据)
-            const generateMonthGrid = (targetDate) => {
-                const y = targetDate.getFullYear();
-                const m = targetDate.getMonth(); // 0-11
-                const f = new Date(y, m, 1); // 当月第一天
-                const l = new Date(y, m + 1, 0); // 当月最后一天
-                const r = [];
-
-                // 1. 上个月补位
-                for (let i = f.getDay(); i > 0; i--) {
-                    const d = new Date(y, m, 1 - i);
-                    r.push({
-                        fullDate: formatDate(d),
-                        dayNum: d.getDate(),
-                        isCurrentMonth: false,
-                        dateObj: d // 用于后续比较
-                    });
-                }
-
-                // 2. 当月日期
-                for (let i = 1; i <= l.getDate(); i++) {
-                    const d = new Date(y, m, i);
-                    r.push({
-                        fullDate: formatDate(d),
-                        dayNum: i,
-                        isCurrentMonth: true,
-                        dateObj: d
-                    });
-                }
-
-                // 3. 下个月补位 (默认补齐到 35 或 42 格)
-                const targetLen = r.length <= 35 ? 35 : 42;
-                while (r.length < targetLen) {
-                    const nextDateNum = r.length - l.getDate() - f.getDay() + 1;
-                    const d = new Date(y, m + 1, nextDateNum);
-                    r.push({
-                        fullDate: formatDate(d),
-                        dayNum: nextDateNum,
-                        isCurrentMonth: false,
-                        dateObj: d
-                    });
-                }
-                return r;
-            };
-
-// 🟢 [兼容] 保持原有的 currentMonthDays 调用方式 (用于分页模式)
-            const currentMonthDays = computed(() => generateMonthGrid(viewDate.value));
-
-// 🟢 [修改] 生成连续的扁平化天数列表 (动态范围)
-            const flatScrolledDays = computed(() => {
-                const list = [];
-                // 使用响应式变量
-                const bufferMonths = renderedRange.past;
-                const totalMonths = renderedRange.past + renderedRange.future;
-
-                // 起始日期：从 viewDate 往前推
-                const startMonthDate = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() - bufferMonths, 1);
-
-                // 1. 补位 (Padding)
-                const firstDayWeekday = startMonthDate.getDay();
-                for (let i = firstDayWeekday; i > 0; i--) {
-                    const d = new Date(startMonthDate);
-                    d.setDate(d.getDate() - i);
-                    list.push({
-                        fullDate: formatDate(d),
-                        dayNum: d.getDate(),
-                        isCurrentMonth: false,
-                        isPadding: true,
-                        dateObj: d
-                    });
-                }
-
-                // 2. 生成真实日期
-                for (let i = 0; i < totalMonths; i++) {
-                    const currentM = new Date(startMonthDate.getFullYear(), startMonthDate.getMonth() + i, 1);
-                    const year = currentM.getFullYear();
-                    const month = currentM.getMonth();
-                    const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-                    for (let d = 1; d <= daysInMonth; d++) {
-                        const dateObj = new Date(year, month, d);
-                        list.push({
-                            fullDate: formatDate(dateObj),
-                            dayNum: d,
-                            isCurrentMonth: true,
-                            isFirstDay: d === 1,
-                            dateObj: dateObj
-                        });
-                    }
-                }
-
-                // 3. 尾部补齐
-                const remaining = list.length % 7;
-                if (remaining > 0) {
-                    const lastDate = list[list.length - 1].dateObj;
-                    for (let i = 1; i <= (7 - remaining); i++) {
-                        const d = new Date(lastDate);
-                        d.setDate(d.getDate() + i);
-                        list.push({
-                            fullDate: formatDate(d),
-                            dayNum: d.getDate(),
-                            isCurrentMonth: false,
-                            isPadding: true,
-                            dateObj: d
-                        });
-                    }
-                }
-
-                return list;
-            });
-
-            // 🟢 [新增] 无限滚动处理函数
-            const handleInfiniteScroll = (e) => {
-                // 只在月视图的滚动模式下生效
-                if (currentView.value !== 'month' || monthViewMode.value !== 'scrolled') return;
-                if (isLoadingMore.value) return;
-
-                const el = e.target; //通常是 #main-content
-                const threshold = 800; // 触发阈值 (像素)
-
-                // 1. 向上滚动加载更多历史
-                if (el.scrollTop < threshold) {
-                    isLoadingMore.value = true;
-
-                    // 记录当前的滚动高度和位置
-                    const oldScrollHeight = el.scrollHeight;
-                    const oldScrollTop = el.scrollTop;
-
-                    // 增加 6 个月历史
-                    renderedRange.past += 6;
-
-                    // 等待 DOM 更新后，修正滚动条位置
-                    nextTick(() => {
-                        const newScrollHeight = el.scrollHeight;
-                        // 关键：新的高度 - 旧的高度 = 新增内容的高度
-                        el.scrollTop = oldScrollTop + (newScrollHeight - oldScrollHeight);
-                        isLoadingMore.value = false;
-                    });
-                }
-                // 2. 向下滚动加载更多未来
-                else if (el.scrollTop + el.clientHeight > el.scrollHeight - threshold) {
-                    isLoadingMore.value = true;
-                    renderedRange.future += 6; // 增加 6 个月未来
-
-                    nextTick(() => {
-                        isLoadingMore.value = false;
-                    });
-                }
-            };
-
-            // 🟢 [修改] 滚动到指定日期 (并居中显示)
-            const scrollToMonthDate = (targetDate) => {
-                // 1. 格式化目标日期字符串 (YYYY-MM-DD)
-                // 这样我们可以精确定位到“今天”或者“选中的那天”，而不仅仅是月初
-                const targetDateStr = formatDate(targetDate);
-
-                // 2. 稍微延迟，等待 DOM 渲染
-                setTimeout(() => {
-                    // 3. 利用 data-date 属性查找具体的日期格子
-                    // (HTML 模板中已绑定 :data-date="day.fullDate")
-                    const el = document.querySelector(`[data-date="${targetDateStr}"]`);
-
-                    if (el) {
-                        // 4. block: 'center' 将其置于视口垂直居中位置
-                        el.scrollIntoView({ behavior: 'auto', block: 'center' });
-                    } else {
-                        // 兜底：如果找不到具体日期（比如切到了很远的月份），尝试退回找当月1号
-                        const y = targetDate.getFullYear();
-                        const m = String(targetDate.getMonth() + 1).padStart(2, '0');
-                        const monthStartId = `${y}-${m}-01`;
-                        const monthEl = document.querySelector(`[data-month-start="${monthStartId}"]`);
-
-                        if (monthEl) {
-                            monthEl.scrollIntoView({ behavior: 'auto', block: 'center' });
-                        }
-                    }
-                }, 50);
-            };
-
-            // 监听数据变化 (改名了)
-            watch(flatScrolledDays, () => {
-                if (monthViewMode.value === 'scrolled') {
-                    nextTick(() => initMonthObserver());
-                }
-            });
-
-
-
-            // 🟢 [修改] 顶部标题逻辑：根据模式显示不同日期
-            const currentDateLabel = computed(() => {
-                // 1. 如果是月视图-滚动模式，显示 IntersectionObserver 侦测到的日期
-                if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-                    return `${visibleTopDate.value.getFullYear()}年 ${visibleTopDate.value.getMonth() + 1}月`;
-                }
-
-                // 2. 其他情况 (周视图 或 月视图-分页)，显示选中的 viewDate
-                return `${viewDate.value.getFullYear()}年 ${viewDate.value.getMonth() + 1}月`;
-            });
-
-            // 找到原有的 tasksByDateMap 定义，用这段代码替换它
-            const tasksByDateMap = computed(() => {
-                const map = {};
-                // 🔴 修改点: 这里原来是 scheduledTasks.value，现在改成 filteredScheduledTasks.value
-                for (const task of filteredScheduledTasks.value) {
-                    if (!map[task.date]) {
-                        map[task.date] = [];
-                    }
-                    map[task.date].push(task);
-                }
-
-                for (const date in map) {
-                    map[date].sort((a, b) => {
-                        return a.startTime.localeCompare(b.startTime);
-                    });
-                }
-
-                return map;
-            });
-
-            // 辅助函数：仅保留用于模板中仍然需要函数调用的极少数情况 (可选，主要为了兼容)
-            const getTasksForDate = (d) => {
-                return tasksByDateMap.value[d] || [];
-            };
-            const switchToWeek = d => {
-                viewDate.value = new Date(d);
-                currentView.value = 'week';
-            };
             const openEditModal = (i, s) => {
                 editingItem.value = JSON.parse(JSON.stringify(i));
                 ensureItemSplitViews(editingItem.value);
@@ -9804,6 +9453,48 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const isMobile = ref(window.innerWidth < 800);
 
+            const calendarViewFeature = registerCalendarViewFeature({
+                refs: {
+                    currentView,
+                    monthViewMode,
+                    viewDate,
+                    visibleTopDate,
+                    monthObserver,
+                    monthRefs,
+                    filteredScheduledTasks,
+                    weekContainer,
+                    pxPerMin,
+                    isMobile,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    formatDate,
+                },
+                actions: {
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            const renderedRange = calendarViewFeature.renderedRange;
+            const isLoadingMore = calendarViewFeature.isLoadingMore;
+            const setMonthRef = calendarViewFeature.setMonthRef;
+            const initMonthObserver = calendarViewFeature.initMonthObserver;
+            const timeSlots = calendarViewFeature.timeSlots;
+            const dateTransitionName = calendarViewFeature.dateTransitionName;
+            const changeDate = calendarViewFeature.changeDate;
+            const currentWeekDays = calendarViewFeature.currentWeekDays;
+            const generateMonthGrid = calendarViewFeature.generateMonthGrid;
+            const currentMonthDays = calendarViewFeature.currentMonthDays;
+            const flatScrolledDays = calendarViewFeature.flatScrolledDays;
+            const handleInfiniteScroll = calendarViewFeature.handleInfiniteScroll;
+            const scrollToMonthDate = calendarViewFeature.scrollToMonthDate;
+            const currentDateLabel = calendarViewFeature.currentDateLabel;
+            const tasksByDateMap = calendarViewFeature.tasksByDateMap;
+            const getTasksForDate = calendarViewFeature.getTasksForDate;
+            const switchToWeek = calendarViewFeature.switchToWeek;
+            const jumpToToday = calendarViewFeature.jumpToToday;
+
             searchFeature = registerSearchFeature({
                 refs: {
                     globalSearchQuery,
@@ -9933,52 +9624,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     scheduledFormatted: formatSecs(m.scheduledSeconds)
                 }));
             });
-
-            // 🟢 修复: 跳转回今天 (修复动画方向)
-            const jumpToToday = () => {
-                const now = new Date();
-
-                // 🟢 关键修复: 判断今天是在当前视图的"左边"还是"右边"
-                if (now.getTime() > viewDate.value.getTime()) {
-                    dateTransitionName.value = 'slide-next'; // 今天在未来 -> 左滑
-                } else if (now.getTime() < viewDate.value.getTime()) {
-                    dateTransitionName.value = 'slide-prev'; // 今天在过去 -> 右滑
-                }
-
-                // 1. 重置日期
-                viewDate.value = now;
-
-                // 2. 只有在周视图才需要滚动定位
-                if (currentView.value === 'week') {
-                    setTimeout(() => {
-                        if (weekContainer.value) {
-                            // --- A. 计算垂直位置 (定位到当前时间) ---
-                            const currentMins = now.getHours() * 60 + now.getMinutes();
-                            const startMins = settings.startHour * 60;
-                            // 垂直目标位置 (像素)
-                            const targetTop = (currentMins - startMins) * pxPerMin.value;
-                            // 垂直居中修正
-                            const screenHeight = weekContainer.value.clientHeight;
-                            const scrollTop = Math.max(0, targetTop - (screenHeight / 2));
-
-                            // --- B. 计算水平位置 (定位到今天这一列) ---
-                            const dayIndex = now.getDay();
-                            const timeColWidth = window.innerWidth < 800 ? 40 : 70;
-                            const dayColWidth = 100; // 这里的宽度估算可能需要根据实际 dayColWidth.value 调整，但通常够用
-                            const targetCenterX = timeColWidth + (dayIndex * dayColWidth) + (dayColWidth / 2);
-                            const containerWidth = weekContainer.value.clientWidth;
-                            const scrollLeft = Math.max(0, targetCenterX - (containerWidth / 2));
-
-                            // --- C. 执行双向滚动 ---
-                            weekContainer.value.scrollTo({
-                                top: scrollTop,
-                                left: scrollLeft,
-                                behavior: 'smooth'
-                            });
-                        }
-                    }, 100);
-                }
-            };
 
             const handlePageUnload = () => {
                 if (saveStatus.value === 'unsaved') {

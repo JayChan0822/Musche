@@ -169,6 +169,7 @@ const requiredFiles = [
     'app/scripts/features/import-midi.js',
     'app/scripts/features/auth.js',
     'app/scripts/features/mobile-ui.js',
+    'app/scripts/features/calendar-view.js',
     'scripts/supabase-keepalive.mjs'
 ];
 
