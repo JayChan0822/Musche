@@ -171,6 +171,7 @@ const requiredFiles = [
     'app/scripts/features/mobile-ui.js',
     'app/scripts/features/calendar-view.js',
     'app/scripts/features/sidebar-stats.js',
+    'app/scripts/features/task-editor.js',
     'scripts/supabase-keepalive.mjs'
 ];
 

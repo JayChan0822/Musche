@@ -48,6 +48,7 @@ import { registerExportCsvFeature } from './features/export-csv.js';
 import { registerSearchFeature } from './features/search.js';
 import { registerCalendarViewFeature } from './features/calendar-view.js';
 import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
+import { registerTaskEditorFeature } from './features/task-editor.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -8720,210 +8721,50 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             const isToday = d => formatDate(new Date()) === d;
 
-            const openEditModal = (i, s) => {
-                editingItem.value = JSON.parse(JSON.stringify(i));
-                ensureItemSplitViews(editingItem.value);
-                if (s === 'pool') {
-                    syncLegacySplitFields(editingItem.value, sidebarTab.value);
-                }
-
-                // 🟢 关键修改：如果倍率为空或0，默认设为 getDefaultRatio
-                if (!editingItem.value.ratio || editingItem.value.ratio <= 0) {
-                    editingItem.value.ratio = getDefaultRatio(editingItem.value.musicianId); // 🟢 使用通用默认倍率
-                }
-
-                editingSource.value = s;
-                showEditor.value = true;
-            };
-
-            const saveEdit = () => {
-                if (editingItem.value.orchestration) {
-                    editingItem.value.orchestration = editingItem.value.orchestration.trim();
-                }
-                // 🟢 新增：保存前的最后一道防线，如果为空强制设为 20
-                if (!editingItem.value.ratio || editingItem.value.ratio <= 0) {
-                    editingItem.value.ratio = getDefaultRatio(editingItem.value.musicianId);
-                }
-
-                const editViewType = normalizeSplitViewType(
-                    editingSource.value === 'pool'
-                        ? sidebarTab.value
-                        : ((trackListData.value && trackListData.value.viewType) || sidebarTab.value)
-                );
-
-                // 核心修复：确保乐曲时长和倍数更新后，估算时长也会更新
-                editingItem.value.estDuration = calculateEstTime(editingItem.value.musicDuration, editingItem.value.ratio);
-                setItemSplitState(editingItem.value, editViewType, {
-                    active: true,
-                    splitFromId: getSplitViewState(editingItem.value, editViewType).splitFromId,
-                    splitTag: editingItem.value.splitTag || '',
-                    musicDuration: editingItem.value.musicDuration,
-                    estDuration: editingItem.value.estDuration,
-                    sectionIndex: editingItem.value.sectionIndex || 0,
-                });
-                syncLegacySplitFields(editingItem.value, editViewType);
-                const estimateDurationForItem = (item, musicDuration) => calculateEstTime(
-                    musicDuration,
-                    item.ratio || getDefaultRatio(item.musicianId)
-                );
-
-                if (editingSource.value === 'pool') {
-                    const idx = itemPool.value.findIndex(x => x.id === editingItem.value.id);
-                    if (idx !== -1) {
-                        const previousItem = itemPool.value[idx];
-                        const previousSnapshot = JSON.parse(JSON.stringify(previousItem));
-                        const sharedIdentityChanged = (
-                            previousItem.projectId !== editingItem.value.projectId ||
-                            previousItem.instrumentId !== editingItem.value.instrumentId ||
-                            previousItem.musicianId !== editingItem.value.musicianId ||
-                            previousItem.group !== editingItem.value.group
-                        );
-                        const orchestrationChanged = previousItem.orchestration !== editingItem.value.orchestration;
-
-                        // 更新任务模板
-                        itemPool.value[idx] = editingItem.value;
-                        const savedItem = itemPool.value[idx];
-                        const rebalanceResult = rebalanceSplitFamilyDuration(
-                            itemPool.value,
-                            savedItem.id,
-                            editViewType,
-                            savedItem.id,
-                            editingItem.value.musicDuration,
-                            estimateDurationForItem
-                        );
-                        if (!rebalanceResult.ok) {
-                            itemPool.value[idx] = previousSnapshot;
-                            openAlertModal(
-                                '超过总时长',
-                                `当前拆分任务的总时长固定为 ${rebalanceResult.totalMusicDuration}，不能设置得更长。`
-                            );
-                            return;
-                        }
-                        syncFamilyLegacyFields(savedItem, editViewType);
-                        if (sharedIdentityChanged) {
-                            syncFamilySharedIdentity(savedItem, {
-                                projectId: editingItem.value.projectId,
-                                instrumentId: editingItem.value.instrumentId,
-                                musicianId: editingItem.value.musicianId,
-                                group: editingItem.value.group,
-                            });
-                        }
-                        // 🟢【新增】保存时，自动同步编制信息给所有关联的 Part
-                        if (orchestrationChanged) {
-                            syncFamilyOrchestration(savedItem, editingItem.value.orchestration);
-                        }
-                        syncFamilyTotalDuration(itemPool.value, savedItem.id, editViewType, estimateDurationForItem);
-                        syncScheduledDurationsFromFamily(savedItem);
-                        // 如果是模板，同时更新所有已排期的实例
-                        scheduledTasks.value.filter(st => st.templateId === editingItem.value.id).forEach(st => {
-                            st.musicDuration = editingItem.value.musicDuration;
-                            st.ratio = editingItem.value.ratio;
-                            st.estDuration = editingItem.value.estDuration;
-                            if (sharedIdentityChanged) {
-                                if (st.projectId) st.projectId = editingItem.value.projectId;
-                                if (st.instrumentId) st.instrumentId = editingItem.value.instrumentId;
-                                if (st.musicianId) st.musicianId = editingItem.value.musicianId;
-                            }
-                        });
-                    }
-                } else {
-                    const idx = scheduledTasks.value.findIndex(x => x.scheduleId === editingItem.value.scheduleId);
-                    const previousScheduleSnapshot = idx !== -1
-                        ? JSON.parse(JSON.stringify(scheduledTasks.value[idx]))
-                        : null;
-                    if (idx !== -1) {
-                        scheduledTasks.value[idx] = editingItem.value;
-                    }
-                    if (editingItem.value.templateId) {
-                        const poolIdx = itemPool.value.findIndex(x => x.id === editingItem.value.templateId);
-                        if (poolIdx !== -1) {
-                            const poolItem = itemPool.value[poolIdx];
-                            const previousPoolSnapshot = JSON.parse(JSON.stringify(poolItem));
-                            const poolState = getSplitViewState(poolItem, editViewType);
-                            setItemSplitState(poolItem, editViewType, {
-                                active: true,
-                                splitFromId: poolState.splitFromId,
-                                splitTag: poolState.splitTag || '',
-                                musicDuration: editingItem.value.musicDuration,
-                                estDuration: estimateDurationForItem(poolItem, editingItem.value.musicDuration),
-                                sectionIndex: poolState.sectionIndex || 0,
-                            });
-                            syncLegacySplitFields(poolItem, editViewType);
-                            const rebalanceResult = rebalanceSplitFamilyDuration(
-                                itemPool.value,
-                                poolItem.id,
-                                editViewType,
-                                poolItem.id,
-                                editingItem.value.musicDuration,
-                                estimateDurationForItem
-                            );
-                            if (!rebalanceResult.ok) {
-                                itemPool.value[poolIdx] = previousPoolSnapshot;
-                                if (idx !== -1 && previousScheduleSnapshot) {
-                                    scheduledTasks.value[idx] = previousScheduleSnapshot;
-                                }
-                                openAlertModal(
-                                    '超过总时长',
-                                    `当前拆分任务的总时长固定为 ${rebalanceResult.totalMusicDuration}，不能设置得更长。`
-                                );
-                                return;
-                            }
-                            syncFamilyLegacyFields(poolItem, editViewType);
-                            syncFamilyTotalDuration(itemPool.value, poolItem.id, editViewType, estimateDurationForItem);
-                            syncScheduledDurationsFromFamily(poolItem);
-                        }
-                    }
-                    if (idx !== -1) {
-                        updateTaskNotification(scheduledTasks.value[idx]);
-                    }
-                }
-
-                showEditor.value = false;
-
-                // 🟢 修复点：保存后，立即触发效率重算
-                // 因为修改了时长(Music Duration)，会导致分母变化，从而影响平均倍率
-                if (editingItem.value.musicianId) autoUpdateEfficiency(editingItem.value.musicianId, 'musician', false);
-                if (editingItem.value.projectId) autoUpdateEfficiency(editingItem.value.projectId, 'project', false);
-                // 如果需要支持乐器视图的自动更新，也可以加上：
-                // if (editingItem.value.instrumentId) autoUpdateEfficiency(editingItem.value.instrumentId, 'instrument', false);
-
-                pushHistory();
-            };
-
-            // 🟢 [修改] deleteEditingItem
-            const deleteEditingItem = () => {
-                // 1. 如果是删除日程，先取消系统通知 (保持原有逻辑)
-                if (editingSource.value !== 'pool') {
-                    const notifId = editingItem.value.scheduleId % 2147483647;
-                    deviceService.cancelNotification(notifId);
-                }
-
-                if (editingSource.value === 'pool') {
-                    // 🛡️ [新增] 检查是否为末端任务 (仅针对任务池删除)
-                    if (!checkCanDeleteSplit(editingItem.value)) return;
-
-                    // 🟢 核心修复: 在物理删除前，尝试将时间归还给父任务 (Part 1)
-                    const shouldRemoveTask = restoreSplitTime(editingItem.value);
-
-                    // 删除任务池逻辑
-                    scheduledTasks.value = scheduledTasks.value.filter(t => t.templateId !== editingItem.value.id);
-                    if (shouldRemoveTask) {
-                        itemPool.value = itemPool.value.filter(i => i.id !== editingItem.value.id);
-                    }
-                    cleanupEmptySchedules();
-                } else {
-                    // === 删除日程表逻辑 (保持不变) ===
-                    if (editingItem.value.templateId) {
-                        clearPoolRecord(editingItem.value.templateId);
-                    }
-                    scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== editingItem.value.scheduleId);
-                }
-
-                showEditor.value = false;
-                pushHistory();
-            };
-
             const sidebarTab = ref('musician');
+
+            const taskEditorFeature = registerTaskEditorFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    editingItem,
+                    editingSource,
+                    showEditor,
+                    sidebarTab,
+                    trackListData,
+                },
+                split: {
+                    ensureItemSplitViews,
+                    normalizeSplitViewType,
+                    getSplitViewState,
+                    setItemSplitState,
+                    syncLegacySplitFields,
+                    rebalanceSplitFamilyDuration,
+                    syncFamilyLegacyFields,
+                    syncFamilySharedIdentity,
+                    syncFamilyOrchestration,
+                    syncFamilyTotalDuration,
+                    syncScheduledDurationsFromFamily,
+                },
+                utils: {
+                    calculateEstTime,
+                    getDefaultRatio,
+                },
+                actions: {
+                    checkCanDeleteSplit,
+                    restoreSplitTime,
+                    clearPoolRecord,
+                    cleanupEmptySchedules,
+                    openAlertModal,
+                    autoUpdateEfficiency,
+                    updateTaskNotification,
+                    pushHistory,
+                    cancelNotification: (notificationId) => deviceService.cancelNotification(notificationId),
+                },
+            });
+            const openEditModal = taskEditorFeature.openEditModal;
+            const saveEdit = taskEditorFeature.saveEdit;
+            const deleteEditingItem = taskEditorFeature.deleteEditingItem;
 
             scheduleFeature = registerScheduleFeature({
                 refs: {
