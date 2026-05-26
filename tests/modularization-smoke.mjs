@@ -207,6 +207,7 @@ const requiredFiles = [
     'app/scripts/features/task-editor.js',
     'app/scripts/features/track-list.js',
     'app/scripts/features/split-task.js',
+    'app/scripts/features/midi-manager.js',
     'scripts/supabase-keepalive.mjs'
 ];
 

@@ -51,6 +51,7 @@ import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
 import { registerTaskEditorFeature } from './features/task-editor.js';
 import { registerTrackListFeature } from './features/track-list.js';
 import { registerSplitTaskFeature } from './features/split-task.js';
+import { registerMidiManagerFeature } from './features/midi-manager.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -68,6 +69,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     let searchFeature;
     let trackListFeature;
     let splitTaskFeature;
+    let midiManagerFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -230,53 +232,24 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const addDataToPrepared = (targetList, rawRow, col, options = {}) =>
                 importCsvFeature.addDataToPrepared(targetList, rawRow, col, options);
 
-
-            const midiManagerExpandedGroups = reactive(new Set())
-
-            const toggleMidiManagerGroup = (name) => {
-                if (midiManagerExpandedGroups.has(name)) {
-                    midiManagerExpandedGroups.delete(name);
-                } else {
-                    midiManagerExpandedGroups.add(name);
-                }
-            };
-
-            // 将扁平列表转换为分组结构
-            const projectMidiGroups = computed(() => {
-                const flatList = projectMidiList.value; // 复用已有的排序列表
-                if (flatList.length === 0) return [];
-
-                const groups = {};
-                const defaultKey = 'Unassigned';
-
-                flatList.forEach(item => {
-                    // 如果 item.group 为空，归入 Unassigned
-                    const g = (item.group && item.group.trim()) ? item.group : defaultKey;
-                    if (!groups[g]) groups[g] = [];
-                    groups[g].push(item);
-                });
-
-                // 排序分组键名 (Unassigned 放最后)
-                const sortedKeys = Object.keys(groups).sort((a, b) => {
-                    if (a === defaultKey) return 1;
-                    if (b === defaultKey) return -1;
-                    return a.localeCompare(b, 'zh-CN');
-                });
-
-                return sortedKeys.map(key => ({
-                    name: key,
-                    items: groups[key] // items 已经在 projectMidiList 中排好序了
-                }));
-            });
-
-            // 🟢 [辅助] 默认展开所有有数据的分组 (可选，这里设为默认全展开体验更好)
-            watch(showMidiManager, (val) => {
-                if (val) {
-                    // 每次打开弹窗时，重置并展开所有组
-                    midiManagerExpandedGroups.clear();
-                    // projectMidiGroups.value.forEach(g => midiManagerExpandedGroups.add(g.name));
-                }
-            });
+            let midiManagerExpandedGroups;
+            let projectMidiGroups;
+            let projectMidiList;
+            let filteredMidiGroups;
+            const toggleMidiManagerGroup = (...args) => midiManagerFeature.toggleMidiManagerGroup(...args);
+            const openMidiGroupDropdown = (...args) => midiManagerFeature.openMidiGroupDropdown(...args);
+            const selectMidiGroup = (...args) => midiManagerFeature.selectMidiGroup(...args);
+            const openMidiManager = (...args) => midiManagerFeature.openMidiManager(...args);
+            const updateMidiDuration = (...args) => midiManagerFeature.updateMidiDuration(...args);
+            const removeMidiMapping = (...args) => midiManagerFeature.removeMidiMapping(...args);
+            const clearProjectMidi = (...args) => midiManagerFeature.clearProjectMidi(...args);
+            const updateInstrumentGroup = (...args) => midiManagerFeature.updateInstrumentGroup(...args);
+            const isOverlapping = (...args) => midiManagerFeature.isOverlapping(...args);
+            const calculateEffectiveDuration = (...args) => midiManagerFeature.calculateEffectiveDuration(...args);
+            const calculateAccurateDuration = (...args) => midiManagerFeature.calculateAccurateDuration(...args);
+            const convertTicksToSeconds = (...args) => midiManagerFeature.convertTicksToSeconds(...args);
+            const calculateQuantizedDuration = (...args) => midiManagerFeature.calculateQuantizedDuration(...args);
+            const autoFillMidiDuration = (...args) => midiManagerFeature.autoFillMidiDuration(...args);
 
             // 1. 扩展乐器库 (增加常见缩写和变体)
             const instrumentLibrary = {
@@ -441,304 +414,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 return [];
             });
 
-            // 🟢 [修改] 打开分组下拉菜单 (重置搜索词)
-            const openMidiGroupDropdown = (e, instId) => {
-                if (activeMidiGroupRow.value === instId) {
-                    activeMidiGroupRow.value = null;
-                    return;
-                }
-                const rect = e.currentTarget.getBoundingClientRect();
-                midiGroupPos.top = rect.bottom + 5;
-                midiGroupPos.left = rect.left;
-                midiGroupPos.width = rect.width;
-
-                activeMidiGroupRow.value = instId;
-                midiGroupSearchQuery.value = ''; // 重置搜索
-
-                // 自动聚焦输入框
-                nextTick(() => {
-                    const input = document.getElementById('midi-group-search-input');
-                    if (input) input.focus();
-                });
-            };
-
-            const selectMidiGroup = (instId, groupName) => {
-                updateInstrumentGroup(instId, groupName); // 调用之前的更新函数
-                activeMidiGroupRow.value = null; // 关闭菜单
-            };
-
-            // 🟢 [新算法] 判断两个区间是否重叠 (辅助函数)
-            // 用于判断音符是否出现在某个小节内
-            const isOverlapping = (startA, endA, startB, endB) => {
-                return Math.max(startA, startB) < Math.min(endA, endB);
-            };
-
-            // 🟢 [新算法] 计算有效时长 (只计算有音符的小节)
-            const calculateEffectiveDuration = (midi, track) => {
-                // 1. 找到该轨道最后一个音符的结束时间 (Ticks)
-                // 如果没有音符，直接返回 0
-                if (track.notes.length === 0) return { bars: 0, seconds: 0, rawSeconds: 0 };
-
-                let lastNoteOffTick = 0;
-                track.notes.forEach(n => {
-                    const end = n.ticks + n.durationTicks;
-                    if (end > lastNoteOffTick) lastNoteOffTick = end;
-                });
-
-                // 2. 准备拍号表 (Time Signatures)
-                let timeSignatures = midi.header.timeSignatures || [];
-                if (timeSignatures.length === 0) {
-                    timeSignatures = [{ ticks: 0, timeSignature: [4, 4] }];
-                }
-                timeSignatures.sort((a, b) => a.ticks - b.ticks);
-
-                // 3. 准备基础参数
-                const ppq = midi.header.ppq || 480;
-                let currentTick = 0;
-                let sigIndex = 0;
-
-                let validBarsCount = 0; // 有效小节数
-                let validSeconds = 0;   // 有效时长 (秒)
-
-                // 4. [核心循环] 逐个遍历小节，直到覆盖最后一个音符
-                while (currentTick < lastNoteOffTick) {
-                    // A. 获取当前时刻的拍号
-                    while (sigIndex + 1 < timeSignatures.length && timeSignatures[sigIndex + 1].ticks <= currentTick) {
-                        sigIndex++;
-                    }
-                    const currentSig = timeSignatures[sigIndex];
-                    const [num, den] = currentSig.timeSignature;
-
-                    // B. 计算当前小节的长度 (Ticks)
-                    // 公式: (PPQ * 4 / 分母) * 分子
-                    const ticksPerBar = (ppq * 4 / den) * num;
-                    const barStartTick = currentTick;
-                    const barEndTick = currentTick + ticksPerBar;
-
-                    // C. [关键步骤] 检查该小节内是否有音符
-                    // 只要音符的时间范围与当前小节的时间范围有“交集”，就算有效
-                    const hasNote = track.notes.some(n => {
-                        const noteStart = n.ticks;
-                        const noteEnd = n.ticks + n.durationTicks;
-                        return isOverlapping(noteStart, noteEnd, barStartTick, barEndTick);
-                    });
-
-                    // D. 如果有音符，累加时长
-                    if (hasNote) {
-                        validBarsCount++;
-                        // 计算该小节的秒数
-                        // 利用 Tone.js 的 ticksToSeconds 计算绝对时间差，这样能自动处理该小节内部的变速(Tempo Change)
-                        const startSec = midi.header.ticksToSeconds(barStartTick);
-                        const endSec = midi.header.ticksToSeconds(barEndTick);
-                        validSeconds += (endSec - startSec);
-                    }
-
-                    // E. 推进到下一小节
-                    currentTick += ticksPerBar;
-                }
-
-                // 原始绝对时长 (用于对比)
-                const totalRawSeconds = midi.header.ticksToSeconds(lastNoteOffTick);
-
-                // 🛡️ 兜底：如果算出来是 0 但有音符 (极罕见情况)，至少给 1 秒
-                if (validSeconds === 0 && track.notes.length > 0) validSeconds = 1;
-
-                return {
-                    bars: validBarsCount,       // 有效小节数
-                    seconds: validSeconds,      // 有效时长 (秒)
-                    rawSeconds: totalRawSeconds // 原始总时长 (包含空小节)
-                };
-            };
-
-            // 🟢 [修改] projectMidiList: 优先按 MIDI 原始顺序排序
-            const projectMidiList = computed(() => {
-                if (!managingProject.value || !managingProject.value.midiData) return [];
-
-                const list = [];
-                const map = managingProject.value.midiData;
-
-                for (const [instId, data] of Object.entries(map)) {
-                    const inst = settings.instruments.find(i => i.id === instId);
-                    const instName = inst ? inst.name : '未知乐器';
-                    const group = inst ? inst.group : '';
-
-                    if (Array.isArray(data)) {
-                        data.forEach((subItem, idx) => {
-                            list.push({
-                                instId: instId,
-                                instName: subItem.name || `${instName} #${idx + 1}`,
-                                group: group,
-                                duration: subItem.duration,
-                                isSubItem: true,
-                                subIndex: idx,
-                                // 🟢 读取保存的 order，如果没有则设为极大值(沉底)
-                                order: subItem.order !== undefined ? subItem.order : 99999
-                            });
-                        });
-                    } else {
-                        // 旧版本字符串数据的兼容
-                        list.push({
-                            instId: instId,
-                            instName: instName,
-                            group: group,
-                            duration: data,
-                            order: 99999
-                        });
-                    }
-                }
-
-                // 🟢 排序逻辑: 先按 Order (总谱顺序)，Order 相同则按名称
-                return list.sort((a, b) => {
-                    if (a.order !== b.order) {
-                        return a.order - b.order;
-                    }
-                    return a.instName.localeCompare(b.instName, 'zh-CN');
-                });
-            });
-
-            // 打开管理器
-            const openMidiManager = (project) => {
-                managingProject.value = project;
-                // 🟢 Vital: If this project was created before the MIDI update,
-                // it won't have midiData. Initialize it now so reactivity works.
-                if (!project.midiData) {
-                    project.midiData = {};
-                }
-                showMidiManager.value = true;
-            };
-
-// 🟢 [重构] 更新 MIDI 时长 (同步更新已存在的任务)
-            const updateMidiDuration = (instId, subIndex, newVal) => {
-                if (!managingProject.value) return;
-
-                const pid = managingProject.value.id;
-                const data = managingProject.value.midiData[instId];
-
-                // 1. 更新 MIDI Manager 的源数据
-                let updatedDuration = newVal;
-
-                if (Array.isArray(data)) {
-                    if (data[subIndex]) {
-                        data[subIndex].duration = newVal;
-                    }
-                } else {
-                    // 兼容旧数据
-                    if (newVal) {
-                        managingProject.value.midiData[instId] = newVal;
-                    } else {
-                        delete managingProject.value.midiData[instId];
-                        return; // 删除操作不触发同步
-                    }
-                }
-
-                // ---------------------------------------------------------
-                // 🟢 2. 高级功能: 实时同步到任务池 (Task Pool) & 日程表 (Schedule)
-                // ---------------------------------------------------------
-
-                // A. 找到当前 Session 下，属于该项目、该乐器的所有任务
-                const relatedTasks = itemPool.value.filter(t =>
-                    (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                    t.projectId === pid &&
-                    t.instrumentId === instId
-                );
-
-                // B. 定位目标任务
-                // 逻辑: MIDI 里的第 subIndex 条数据，对应任务池里的第 subIndex 个任务
-                // 例如: 修改了 "Flute 2" (index 1) 的时长 -> 更新第 2 个 Flute 任务
-                const targetTask = relatedTasks[subIndex];
-
-                if (targetTask) {
-                    // 更新谱面时长
-                    targetTask.musicDuration = updatedDuration;
-
-                    // 重新计算预估时长 (保持原有倍率)
-                    const currentRatio = targetTask.ratio || 20;
-                    const newEst = calculateEstTime(updatedDuration, currentRatio);
-                    targetTask.estDuration = newEst;
-
-                    // C. 同步更新日程表 (如果有已排期的块)
-                    scheduledTasks.value.forEach(sched => {
-                        if (sched.templateId === targetTask.id) {
-                            sched.musicDuration = updatedDuration;
-                            sched.estDuration = newEst;
-                        }
-                    });
-
-                    if (isMobile.value) window.triggerTouchHaptic('Light');
-                }
-
-                pushHistory();
-            };
-
-// 🟢 [修复] 删除映射 (支持删除数组中的单项)
-            const removeMidiMapping = (instId, subIndex) => {
-                if (!managingProject.value) return;
-
-                const data = managingProject.value.midiData[instId];
-
-                if (Array.isArray(data)) {
-                    // 1. 从数组中移除指定项
-                    // subIndex 是在 projectMidiList 中生成的
-                    if (subIndex !== undefined && subIndex >= 0) {
-                        data.splice(subIndex, 1);
-                    }
-
-                    // 2. 如果数组空了，彻底删除该 Key
-                    if (data.length === 0) {
-                        delete managingProject.value.midiData[instId];
-                    }
-                } else {
-                    // 旧版直接删除 Key
-                    delete managingProject.value.midiData[instId];
-                }
-
-                pushHistory();
-            };
-
-// 清空当前项目所有 MIDI 数据
-            const clearProjectMidi = () => {
-                if (!managingProject.value) return;
-                openConfirmModal(
-                    '清空映射',
-                    `确定要清空项目 "${managingProject.value.name}" 的所有 MIDI 时长数据吗？`,
-                    () => {
-                        managingProject.value.midiData = {};
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    },
-                    true
-                );
-            };
-
-            // 🟢 [增强] 更新乐器分组 (核心逻辑)
-            const updateInstrumentGroup = (instId, newGroup) => {
-                const finalGroup = newGroup.trim();
-                if (!finalGroup) return;
-
-                const inst = settings.instruments.find(i => i.id === instId);
-                if (inst) {
-                    inst.group = finalGroup; // 更新源数据
-
-                    // 1. 自动展开这个新分组 (否则该项移过去后会被折叠起来看不到)
-                    midiManagerExpandedGroups.add(finalGroup);
-
-                    // 2. 保存并关闭菜单
-                    pushHistory();
-                    activeMidiGroupRow.value = null;
-
-                    if (isMobile.value) window.triggerTouchHaptic('Success');
-                }
-            };
-
-            // 🟢 [新增] 过滤分组列表 (用于下拉菜单显示)
-            const filteredMidiGroups = computed(() => {
-                const query = midiGroupSearchQuery.value.toLowerCase().trim();
-                // 复用已有的 availableInstrumentGroups (在之前代码中已定义)
-                return availableInstrumentGroups.value.filter(g =>
-                    g.toLowerCase().includes(query)
-                );
-            });
-
 // 触发定向导入 (复用之前的 input，但这次我们已经知道是哪个项目了)
             const triggerMidiImportForProject = () => importMidiFeature.triggerMidiImportForProject();
 
@@ -800,160 +475,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     if (match) return groupName;
                 }
                 return "";
-            };
-
-            // 🟢 辅助：计算基于 Tick 的精确时长 (核心算法)
-            const calculateAccurateDuration = (midi, track) => {
-                // 1. 获取基础信息
-                const ppq = midi.header.ppq || 480; // 默认 480 ticks per quarter note
-
-                // 2. 获取拍号 (假设大部分情况主拍号在开头，如果中间变拍号需要更复杂的遍历，这里取第一个)
-                const timeSig = midi.header.timeSignatures[0] || { timeSignature: [4, 4] };
-                const [num, den] = timeSig.timeSignature;
-
-                // 计算一个小节有多少 Ticks
-                // 公式: (PPQ * 4 / 分母) * 分子
-                // 例如 4/4: (480 * 1) * 4 = 1920 ticks
-                const ticksPerBar = (ppq * 4 / den) * num;
-
-                // 3. 找到轨道中最后一个音符的结束位置 (Ticks)
-                let maxTick = 0;
-                // 注意：@tonejs/midi 解析后的 note.ticks 是绝对位置，note.durationTicks 是长度
-                track.notes.forEach(n => {
-                    const end = n.ticks + n.durationTicks;
-                    if (end > maxTick) maxTick = end;
-                });
-
-                // 4. 量化：向上取整到下一个小节线
-                const totalBars = Math.ceil(maxTick / ticksPerBar);
-                const quantizedTotalTicks = totalBars * ticksPerBar;
-
-                // 5. 将量化后的 Ticks 转换回秒数 (必须遍历 Tempo Map)
-                const durationSeconds = convertTicksToSeconds(midi, quantizedTotalTicks);
-
-                return {
-                    bars: totalBars,
-                    seconds: durationSeconds,
-                    rawEndTick: maxTick
-                };
-            };
-
-            // 🟢 辅助：利用 Tempo Map 将 Ticks 转为 Seconds
-            const convertTicksToSeconds = (midi, targetTick) => {
-                const tempos = midi.header.tempos || [];
-                // 如果没有速度变化，使用默认 120 BPM
-                if (tempos.length === 0) {
-                    const ppq = midi.header.ppq || 480;
-                    const secondsPerTick = 60 / 120 / ppq;
-                    return targetTick * secondsPerTick;
-                }
-
-                // 遍历 Tempo Map 累加时间
-                let currentTick = 0;
-                let currentTime = 0;
-
-                for (let i = 0; i < tempos.length; i++) {
-                    const tempo = tempos[i];
-                    const nextTempo = tempos[i + 1];
-
-                    // 当前段的结束 tick (要么是下一个变速点，要么是目标 tick)
-                    const segmentEndTick = nextTempo ? Math.min(targetTick, nextTempo.ticks) : targetTick;
-
-                    // 如果当前 tempo 开始点已经在目标之后，停止
-                    if (tempo.ticks >= targetTick) break;
-
-                    // 计算这段区间的长度 (ticks)
-                    // 注意：第一个 tempo 通常从 tick 0 开始，如果不是，前面默认为 120
-                    const startTick = Math.max(currentTick, tempo.ticks);
-                    const deltaTicks = segmentEndTick - startTick;
-
-                    if (deltaTicks > 0) {
-                        const secondsPerTick = 60 / tempo.bpm / midi.header.ppq;
-                        currentTime += deltaTicks * secondsPerTick;
-                        currentTick += deltaTicks;
-                    }
-
-                    // 如果已经到达目标，退出
-                    if (currentTick >= targetTick) break;
-                }
-
-                // 如果遍历完所有 tempo map 还没到 targetTick (说明最后一段是恒速)
-                if (currentTick < targetTick) {
-                    const lastTempo = tempos[tempos.length - 1];
-                    const secondsPerTick = 60 / lastTempo.bpm / midi.header.ppq;
-                    currentTime += (targetTick - currentTick) * secondsPerTick;
-                }
-
-                return currentTime;
-            };
-
-            // 🟢 核心算法：基于拍号/速度表的小节量化计算
-            const calculateQuantizedDuration = (midi, track) => {
-                // 1. 找到所有音符中，最后结束的那个时间点 (Ticks)
-                // 这能有效忽略轨道末尾的空白或非音符事件
-                let lastNoteOffTick = 0;
-                track.notes.forEach(n => {
-                    const end = n.ticks + n.durationTicks;
-                    if (end > lastNoteOffTick) lastNoteOffTick = end;
-                });
-
-                if (lastNoteOffTick === 0) return { bars: 0, seconds: 0, rawEndTick: 0 };
-
-                // 2. 准备拍号表 (按时间排序)
-                // 默认为 4/4 拍
-                let timeSignatures = midi.header.timeSignatures || [];
-                if (timeSignatures.length === 0) {
-                    timeSignatures = [{ ticks: 0, timeSignature: [4, 4] }];
-                }
-                timeSignatures.sort((a, b) => a.ticks - b.ticks);
-
-                // 3. "小节步进" 算法
-                // 我们从 0 开始，一小节一小节地加，直到超过 lastNoteOffTick
-                // 这样做可以完美处理中途变拍号的情况 (e.g. 4/4 -> 3/4 -> 4/4)
-                let currentTick = 0;
-                let barCount = 0;
-                let sigIndex = 0;
-                const ppq = midi.header.ppq || 480;
-
-                while (currentTick < lastNoteOffTick) {
-                    // 检查当前是否进入了新的拍号范围
-                    // 如果下一个拍号变更点的 ticks <= 当前 ticks，说明要切换拍号了
-                    while (sigIndex + 1 < timeSignatures.length && timeSignatures[sigIndex + 1].ticks <= currentTick) {
-                        sigIndex++;
-                    }
-
-                    const currentSig = timeSignatures[sigIndex];
-                    const [num, den] = currentSig.timeSignature;
-
-                    // 计算当前拍号下一小节的长度 (Ticks)
-                    // 公式: (PPQ * 4 / 分母) * 分子
-                    const ticksPerBar = (ppq * 4 / den) * num;
-
-                    currentTick += ticksPerBar;
-                    barCount++;
-                }
-
-                // 4. 最终转换：将量化后的小节结束点 (currentTick) 转为秒
-                // midi.header.ticksToSeconds 会利用 Tempo Map 自动处理所有变速
-                let quantizedSeconds = midi.header.ticksToSeconds(currentTick);
-
-                // 原始音符结束时间的秒数 (用于对比)
-                const rawSeconds = midi.header.ticksToSeconds(lastNoteOffTick);
-
-                // 🛡️ 兜底修复：如果 Tone.js 算出来的秒数是 0 (解析失败)，手动算一下
-                if (quantizedSeconds === 0 && currentTick > 0) {
-                    // 假设 120 BPM, 480 PPQ 的标准情况进行估算
-                    // 60秒 / 120拍 = 0.5秒/拍
-                    // 1拍 = 480 ticks -> 1 tick = 0.5/480 秒
-                    const estimatedSecPerTick = 60 / 120 / 480;
-                    quantizedSeconds = currentTick * estimatedSecPerTick;
-                }
-
-                return {
-                    bars: barCount,
-                    seconds: quantizedSeconds,
-                    rawSeconds: rawSeconds
-                };
             };
 
             // 🟢 [修改] 获取所有可用分组 (合并系统设置 + 当前导入界面的临时分组)
@@ -4618,86 +4139,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // V9.7.4: newItem 现在绑定 projectId
             const newItem = reactive({projectId: '', instrumentId: '', musicianId: '', musicDuration: '', ratio: 20});
 
-            // 🟢 [修复] 自动认领逻辑 (增加重置机制)
-            const autoFillMidiDuration = () => {
-                const newPid = newItem.projectId;
-                const newIid = newItem.instrumentId;
-
-                if (!newPid || !newIid) return;
-
-                const proj = settings.projects.find(p => p.id === newPid);
-
-                // 1. 尝试获取该乐器的 MIDI 数据
-                let midiList = [];
-
-                if (proj && proj.midiData) {
-                    const midiEntry = proj.midiData[newIid];
-                    if (midiEntry) {
-                        if (Array.isArray(midiEntry)) {
-                            midiList = midiEntry;
-                        } else if (typeof midiEntry === 'string') {
-                            midiList = [{ name: getNameById(newIid, 'instrument'), duration: midiEntry }];
-                        }
-                    }
-                }
-
-                // 🟢 2. 核心修复: 如果没有找到 MIDI 数据，必须显式重置！
-                if (midiList.length === 0) {
-                    newItem.musicDuration = '';       // 清空时长
-                    newItem.estDuration = '00:00:00'; // 重置预估
-                    newItem._autoSuggestedName = null;// 清除自动命名建议
-                    return;
-                }
-
-                // --- 以下是有数据时的逻辑 (保持不变) ---
-
-                // 实时计算已存在的任务数量 (认领 Guzheng 1 / 2)
-                const existingTasks = itemPool.value.filter(t =>
-                    (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                    t.projectId === newPid &&
-                    t.instrumentId === newIid
-                );
-
-                let targetIndex = existingTasks.length;
-                if (targetIndex >= midiList.length) {
-                    targetIndex = midiList.length - 1;
-                }
-
-                const targetData = midiList[targetIndex];
-
-                // 填充数据
-                newItem.musicDuration = targetData.duration;
-
-                const baseInstName = getNameById(newIid, 'instrument');
-                if (targetData.name && targetData.name !== baseInstName) {
-                    newItem._autoSuggestedName = targetData.name;
-                } else {
-                    newItem._autoSuggestedName = null;
-                }
-
-                let ratio = 20;
-                if (newItem.musicianId) {
-                    const mus = settings.musicians.find(m => m.id === newItem.musicianId);
-                    if (mus && mus.defaultRatio) ratio = mus.defaultRatio;
-                }
-                newItem.ratio = ratio;
-                newItem.estDuration = calculateEstTime(newItem.musicDuration, ratio);
-            };
-
-            // 🟢 [修改] 监听器 1: 当用户在下拉菜单改变选择时触发
-            watch(() => [newItem.projectId, newItem.instrumentId], () => {
-                autoFillMidiDuration();
-            });
-
-            // 🟢 [新增] 监听器 2: 当新建弹窗打开时，强制重新检查一遍
-            // 解决场景：创建完 Guzheng 1 后关闭弹窗，再打开弹窗想创建 Guzheng 2，
-            // 此时 instrumentId 没变，如果不强制检查，时长还是 1 的。
-            watch(showMobileTaskInput, (isOpen) => {
-                if (isOpen) {
-                    autoFillMidiDuration();
-                }
-            });
-
             // 🟢 修改: 纯粹的登录逻辑 (不再自动跳转注册)
             const handleLogin = async () => authFeature.handleLogin();
 
@@ -7788,6 +7229,38 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             availableInstrumentGroups = importMidiFeature.availableInstrumentGroups;
             midiGroupData = importMidiFeature.midiGroupData;
             currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
+            midiManagerFeature = registerMidiManagerFeature({
+                refs: {
+                    showMidiManager,
+                    managingProject,
+                    activeMidiGroupRow,
+                    midiGroupPos,
+                    midiGroupSearchQuery,
+                    newItem,
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                    showMobileTaskInput,
+                    isMobile,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    calculateEstTime,
+                    getNameById,
+                },
+                actions: {
+                    getAvailableInstrumentGroups: () => availableInstrumentGroups,
+                    openConfirmModal,
+                    pushHistory,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            midiManagerExpandedGroups = midiManagerFeature.midiManagerExpandedGroups;
+            projectMidiList = midiManagerFeature.projectMidiList;
+            projectMidiGroups = midiManagerFeature.projectMidiGroups;
+            filteredMidiGroups = midiManagerFeature.filteredMidiGroups;
             userAvatar = authFeature.userAvatar;
             userDisplayName = authFeature.userDisplayName;
 
