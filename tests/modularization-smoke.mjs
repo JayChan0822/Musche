@@ -136,6 +136,39 @@ assert.match(
     'components.css must give the top-left shortcuts dropdown a fixed minimum width so it does not collapse to button width'
 );
 
+assert.doesNotMatch(
+    componentsCss,
+    /\.modal-overlay\s*\{[^}]*z-index\s*:/,
+    'modal-overlay must not set z-index with normal class specificity because it overrides explicit z-[...] overlay layers'
+);
+
+assert.match(
+    componentsCss,
+    /:where\(\.modal-overlay\)\s*\{[^}]*z-index\s*:\s*9999/,
+    'modal-overlay must use a low-specificity default z-index so explicit z-[...] classes can layer above or below it'
+);
+
+assert.match(
+    indexHtml,
+    /v-if="showMobileTaskInput"\s+class="modal-overlay z-\[1000\]"/,
+    'mobile new-task overlay must stay below stacked dialogs such as quick-add, input, and confirm modals'
+);
+assert.match(
+    indexHtml,
+    /v-if="showQuickAddModal"\s+class="modal-overlay z-\[2000\]"/,
+    'quick-add modal must layer above the mobile new-task overlay'
+);
+assert.match(
+    indexHtml,
+    /v-if="showInputModal"\s+class="modal-overlay z-\[10000\]"/,
+    'input modal must layer above the mobile new-task overlay'
+);
+assert.match(
+    indexHtml,
+    /v-if="showConfirmModal"\s+class="modal-overlay z-\[9999\]"/,
+    'confirm and alert modal must layer above the mobile new-task overlay'
+);
+
 assert.match(
     indexHtml,
     /class="desktop-search-shell hidden sm:flex items-center relative[\s\S]*fa-magnifying-glass absolute left-3\.5[\s\S]*class="desktop-search-input glass-input h-9 pr-8/,

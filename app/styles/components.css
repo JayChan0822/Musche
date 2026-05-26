@@ -285,7 +285,7 @@ html.dark .task-block.is-ghost {
     color: #9ca3af !important;
 }
 
-.modal-overlay {
+:where(.modal-overlay) {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
