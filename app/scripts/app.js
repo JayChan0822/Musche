@@ -50,6 +50,7 @@ import { registerCalendarViewFeature } from './features/calendar-view.js';
 import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
 import { registerTaskEditorFeature } from './features/task-editor.js';
 import { registerTrackListFeature } from './features/track-list.js';
+import { registerSplitTaskFeature } from './features/split-task.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -66,6 +67,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     let exportCsvFeature;
     let searchFeature;
     let trackListFeature;
+    let splitTaskFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -2596,460 +2598,14 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 isSidebarOpen.value = !isSidebarOpen.value;
             };
 
-            const splitState = reactive({
-                task: null,        // 目标任务
-                totalSec: 0,       // 总时长(秒)
-                splitPoint: 0,     // 分割点(秒)，即 Part 1 的时长
-                part1Str: '00:00', // 显示用
-                part2Str: '00:00'  // 显示用
-            });
-
-            // 🟢 [增强版] 检查是否允许拆分 (自动寻找并提示最后一个 Part)
-            const checkCanSplit = (item) => {
-                const viewType = getCurrentSplitView();
-                // 1. 检查是否有直接子节点
-                const directChild = itemPool.value.find(t => (
-                    isItemVisibleForView(t, viewType) &&
-                    getSplitViewState(t, viewType).splitFromId === item.id
-                ));
-
-                if (directChild) {
-                    // 2. 如果有孩子，说明当前不是末端。开始顺藤摸瓜找“孙子”...直到找到最后一代
-                    let lastNode = directChild;
-                    // 为了防止死循环（虽然逻辑上不应该出现），加个最大深度的安全限制
-                    let safeGuard = 0;
-
-                    while (safeGuard < 100) {
-                        const nextChild = itemPool.value.find(t => (
-                            isItemVisibleForView(t, viewType) &&
-                            getSplitViewState(t, viewType).splitFromId === lastNode.id
-                        ));
-                        if (nextChild) {
-                            lastNode = nextChild; // 还有下一代，继续往下找
-                        } else {
-                            break; // 没有下一代了，lastNode 就是链条末端
-                        }
-                        safeGuard++;
-                    }
-
-                    // 3. 获取末端节点的名称 (优先显示 splitTag，如 "Part 3")
-                    const targetName = getSplitViewState(lastNode, viewType).splitTag || '最后一个部分';
-
-                    openAlertModal(
-                        '禁止拆分',
-                        `当前任务已进行过拆分（存在后续 Part），\n请寻找【${targetName}】进行拆分。`
-                    );
-                    window.triggerTouchHaptic('Error');
-                    return false;
-                }
-                return true;
-            };
-
-            // 🟢 [修改版] 打开拆分滑块
-            const openSplitSlider = (item) => {
-                // 1. 🔍 新增：父级检查
-                if (!checkCanSplit(item)) return;
-
-                const viewType = getCurrentSplitView();
-                const totalMusicStr = getSplitViewState(item, viewType).musicDuration;
-                if (!totalMusicStr || totalMusicStr === '00:00') {
-                    return openAlertModal('无法拆分', '该曲目没有设置谱面时长。');
-                }
-
-                syncItemForView(item, viewType);
-                splitState.task = item;
-                splitState.totalSec = parseTime(totalMusicStr);
-
-                // 默认从一半开始
-                splitState.splitPoint = Math.floor(splitState.totalSec / 2);
-
-                updateSplitStrings();
-                showSplitModal.value = true;
-            };
-
-            // 2. 滑块拖动时更新文字
-            const onSplitSliderInput = () => {
-                updateSplitStrings();
-                // 拖动时给一点轻微震动反馈 (节流)
-                window.triggerTouchHaptic('Light');
-            };
-
-            const updateSplitStrings = () => {
-                const p1 = splitState.splitPoint;
-                const p2 = splitState.totalSec - splitState.splitPoint;
-                splitState.part1Str = formatSecs(p1);
-                splitState.part2Str = formatSecs(p2);
-            };
-
-            // 🟢 [修复版] 确认拆分 (修复：建立链式父子关系，支持逐级归还)
-            const confirmSplitSlider = () => {
-                const viewType = getCurrentSplitView();
-                const hiddenState = createHiddenSplitState();
-                const item = splitState.task;
-                const doneStr = splitState.part1Str;
-                const remainingStr = splitState.part2Str;
-
-                if (splitState.splitPoint <= 0 || splitState.splitPoint >= splitState.totalSec) {
-                    return openAlertModal('无效拆分', '请拖动滑块选择一个中间的时间点。');
-                }
-
-                // 1. 智能计算 Part 编号
-                let baseNum = 1;
-                const itemState = getSplitViewState(item, viewType);
-                if (itemState.splitTag) {
-                    const match = String(itemState.splitTag).match(/Part\s*(\d+)/i);
-                    if (match && match[1]) baseNum = parseInt(match[1], 10);
-                }
-
-                // A. 更新当前任务 (变为父级)
-                setItemSplitState(item, viewType, {
-                    active: true,
-                    musicDuration: doneStr,
-                    estDuration: calculateEstTime(doneStr, item.ratio || 20),
-                    splitTag: `Part ${baseNum}`,
-                });
-                syncLegacySplitFields(item, viewType);
-
-                // B. 创建新任务 (变为子级)
-                const newRatio = item.ratio || 20;
-                const newEst = calculateEstTime(remainingStr, newRatio);
-                const nextSectionIndex = showTrackList.value && trackListData.value.schedules
-                    ? (() => {
-                        const currentIdx = trackListData.value.currentSectionIndex;
-                        const currentSchedule = trackListData.value.schedules[currentIdx];
-                        const nextSchedule = trackListData.value.schedules[currentIdx + 1];
-
-                        if (nextSchedule) return currentIdx + 1;
-                        if (currentSchedule) return currentIdx + 1;
-                        return 0;
-                    })()
-                    : 0;
-
-                const newTask = {
-                    id: generateUniqueId('T'),
-                    sessionId: item.sessionId || currentSessionId.value,
-                    projectId: item.projectId,
-                    instrumentId: item.instrumentId,
-                    musicianId: item.musicianId,
-                    ratio: newRatio,
-                    group: item.group || '',
-                    recordingInfo: item.recordingInfo ? JSON.parse(JSON.stringify(item.recordingInfo)) : {},
-                    editInfo: item.editInfo ? JSON.parse(JSON.stringify(item.editInfo)) : {},
-                    // 🟢【在此处添加修复代码】复制编制和名单
-                    orchestration: item.orchestration || '',
-                    roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {},
-                    musicDuration: remainingStr,
-                    estDuration: newEst,
-                    sectionIndex: nextSectionIndex,
-                    splitTag: `Part ${baseNum + 1}`,
-                    splitFromId: item.id,
-                };
-
-                ensureItemRecords(newTask);
-                setItemSplitState(newTask, viewType, {
-                    active: true,
-                    splitFromId: item.id,
-                    splitTag: `Part ${baseNum + 1}`,
-                    musicDuration: remainingStr,
-                    estDuration: newEst,
-                    sectionIndex: nextSectionIndex,
-                });
-                setItemSplitState(
-                    newTask,
-                    viewType === 'project' ? 'musician' : 'project',
-                    hiddenState
-                );
-                syncLegacySplitFields(newTask, viewType);
-                itemPool.value.push(newTask);
-
-                // --- C. 自动排期逻辑 ---
-                if (showTrackList.value && trackListData.value.schedules) {
-                    const currentIdx = trackListData.value.currentSectionIndex;
-                    const currentSchedule = trackListData.value.schedules[currentIdx];
-                    const nextSchedule = trackListData.value.schedules[currentIdx + 1];
-
-                    // 1. 存在下一个日程 -> 直接加入
-                    if (nextSchedule) {
-                        setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
-                    }
-                    // 2. 没有下一个日程 -> 紧接当前日程新建一个
-                    else if (currentSchedule) {
-                        const startMins = timeToMinutes(currentSchedule.startTime);
-                        const durMins = parseTime(currentSchedule.estDuration) / 60;
-                        const endMins = startMins + durMins;
-
-                        const h = Math.floor(endMins / 60);
-                        const m = Math.floor(endMins % 60);
-                        const newStartStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-                        const scheduleEntry = {
-                            scheduleId: Date.now(),
-                            templateId: newTask.id,
-                            sessionId: currentSessionId.value,
-                            musicianId: currentSchedule.musicianId ? newTask.musicianId : '',
-                            projectId: currentSchedule.projectId ? newTask.projectId : '',
-                            instrumentId: currentSchedule.instrumentId ? newTask.instrumentId : '',
-                            date: currentSchedule.date,
-                            startTime: newStartStr,
-                            estDuration: newTask.estDuration,
-                            trackCount: 0,
-                            ratio: newTask.ratio,
-                            musicDuration: newTask.musicDuration,
-                            reminderMinutes: 15,
-                            sound: 'default'
-                        };
-                        scheduledTasks.value.push(scheduleEntry);
-                        setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
-                        trackListData.value.schedules.push(scheduleEntry);
-                        trackListData.value.totalSections++;
-                    } else {
-                        setItemSplitState(newTask, viewType, { sectionIndex: 0 });
-                    }
-
-                    syncLegacySplitFields(newTask, viewType);
-                    trackListData.value.items.push(newTask);
-                    autoSortTrackList();
-                }
-
-                pushHistory();
-                window.triggerTouchHaptic('Success');
-                if (item.musicianId) autoUpdateEfficiency(item.musicianId, 'musician', false);
-
-                showSplitModal.value = false;
-            };
-
-            // 🟢 [修改版] 拆分任务 (输入时长版 - 如果你还保留着这个备用函数的话)
-            const splitTrack = (item) => {
-                // 1. 🔍 新增：父级检查
-                if (!checkCanSplit(item)) return;
-
-                const viewType = getCurrentSplitView();
-                const totalMusicStr = getSplitViewState(item, viewType).musicDuration;
-                if (!totalMusicStr || totalMusicStr === '00:00') {
-                    return openAlertModal('无法拆分', '该曲目没有设置谱面时长。');
-                }
-
-                openInputModal(
-                    '拆分任务 (留待下次)',
-                    '',
-                    '请输入 剩余 谱面时长 (例如 01:30)',
-                    (remainingStr) => {
-                        const hiddenState = createHiddenSplitState();
-                        // ... (原有的确认逻辑保持不变)
-                        if (!/^\d{1,2}:\d{2}$/.test(remainingStr)) {
-                            return openAlertModal('格式错误', '请输入正确的时间格式 (MM:SS)');
-                        }
-
-                        // ... (后续代码不用动，只要开头拦住即可)
-                        // ...
-
-                        // 既然你在这个函数里有一大段逻辑，为了完整性，这里简略表示：
-                        // 这里直接调用 confirmSplitSlider 的核心逻辑或者保留你之前的逻辑
-                        // 重点是上面的 if (!checkCanSplit(item)) return;
-
-                        // 下面是原有的核心逻辑复述，确保你替换时不会丢代码：
-                        const totalSec = parseTime(totalMusicStr);
-                        const remainSec = parseTime(remainingStr);
-
-                        if (remainSec <= 0 || remainSec >= totalSec) {
-                            return openAlertModal('数值错误', '剩余时长必须小于总时长且大于0。');
-                        }
-
-                        const doneSec = totalSec - remainSec;
-                        const doneStr = formatSecs(doneSec);
-
-                        let baseNum = 1;
-                        const itemState = getSplitViewState(item, viewType);
-                        if (itemState.splitTag) {
-                            const match = String(itemState.splitTag).match(/Part\s*(\d+)/i);
-                            if (match && match[1]) baseNum = parseInt(match[1], 10);
-                        }
-
-                        setItemSplitState(item, viewType, {
-                            active: true,
-                            musicDuration: doneStr,
-                            estDuration: calculateEstTime(doneStr, item.ratio || 20),
-                            splitTag: `Part ${baseNum}`,
-                        });
-                        syncLegacySplitFields(item, viewType);
-
-                        const newRatio = item.ratio || 20;
-                        const newEst = calculateEstTime(remainingStr, newRatio);
-
-                        const newTask = {
-                            id: generateUniqueId('T'),
-                            sessionId: item.sessionId || currentSessionId.value,
-                            projectId: item.projectId,
-                            instrumentId: item.instrumentId,
-                            musicianId: item.musicianId,
-                            ratio: newRatio,
-                            group: item.group || '',
-                            recordingInfo: item.recordingInfo ? JSON.parse(JSON.stringify(item.recordingInfo)) : {},
-                            editInfo: item.editInfo ? JSON.parse(JSON.stringify(item.editInfo)) : {},
-                            // 🟢【在此处添加修复代码】
-                            orchestration: item.orchestration || '',
-                            roster: item.roster ? JSON.parse(JSON.stringify(item.roster)) : {},
-                            musicDuration: remainingStr,
-                            estDuration: newEst,
-                            splitTag: `Part ${baseNum + 1}`,
-                            splitFromId: item.id,
-                        };
-                        ensureItemRecords(newTask);
-                        setItemSplitState(newTask, viewType, {
-                            active: true,
-                            splitFromId: item.id,
-                            splitTag: `Part ${baseNum + 1}`,
-                            musicDuration: remainingStr,
-                            estDuration: newEst,
-                            sectionIndex: 0,
-                        });
-                        setItemSplitState(
-                            newTask,
-                            viewType === 'project' ? 'musician' : 'project',
-                            hiddenState
-                        );
-                        syncLegacySplitFields(newTask, viewType);
-                        itemPool.value.push(newTask);
-
-                        // 自动排期逻辑
-                        if (showTrackList.value && trackListData.value.schedules) {
-                            const currentIdx = trackListData.value.currentSectionIndex;
-                            const currentSchedule = trackListData.value.schedules[currentIdx];
-                            const nextSchedule = trackListData.value.schedules[currentIdx + 1];
-                            if (nextSchedule) {
-                                setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
-                            } else if (currentSchedule) {
-                                const startMins = timeToMinutes(currentSchedule.startTime);
-                                const durMins = parseTime(currentSchedule.estDuration) / 60;
-                                const endMins = startMins + durMins;
-                                const h = Math.floor(endMins / 60);
-                                const m = Math.floor(endMins % 60);
-                                const newStartStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                                const scheduleEntry = {
-                                    scheduleId: Date.now(),
-                                    templateId: newTask.id,
-                                    sessionId: currentSessionId.value,
-                                    musicianId: currentSchedule.musicianId ? newTask.musicianId : '',
-                                    projectId: currentSchedule.projectId ? newTask.projectId : '',
-                                    instrumentId: currentSchedule.instrumentId ? newTask.instrumentId : '',
-                                    date: currentSchedule.date,
-                                    startTime: newStartStr,
-                                    estDuration: newTask.estDuration,
-                                    trackCount: 0,
-                                    ratio: newTask.ratio,
-                                    musicDuration: newTask.musicDuration
-                                };
-                                scheduledTasks.value.push(scheduleEntry);
-                                setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
-                                trackListData.value.schedules.push(scheduleEntry);
-                                trackListData.value.totalSections++;
-                            } else {
-                                setItemSplitState(newTask, viewType, { sectionIndex: 0 });
-                            }
-                            syncLegacySplitFields(newTask, viewType);
-                            trackListData.value.items.push(newTask);
-                            autoSortTrackList();
-                        }
-
-                        pushHistory();
-                        window.triggerTouchHaptic('Success');
-                        if (item.musicianId) autoUpdateEfficiency(item.musicianId, 'musician', false);
-                    },
-                    `总长 ${totalMusicStr}。`
-                );
-            };
-
-            // 🟢 [重写] 归还时间 (无限链式版：逐级归还 + 标签智能清理)
-            const restoreSplitTime = (taskInput) => {
-                const viewType = getCurrentSplitView();
-                // 1. 获取最新的 Live 对象 (因为传入的可能是弹窗里的副本)
-                const taskToDelete = itemPool.value.find(i => i.id === taskInput.id);
-
-                // 如果找不到父级，说明它是根节点，直接返回
-                if (!taskToDelete || !getSplitViewState(taskToDelete, viewType).splitFromId) return false;
-
-                // 2. 找到直接父级 (上一环)
-                const parent = itemPool.value.find(i => i.id === getSplitViewState(taskToDelete, viewType).splitFromId);
-                if (!parent) return false;
-
-                // 3. 执行时间归还 (合并时长)
-                const parentState = getSplitViewState(parent, viewType);
-                const childState = getSplitViewState(taskToDelete, viewType);
-                const parentSec = parseTime(parentState.musicDuration);
-                const childSec = parseTime(childState.musicDuration);
-
-                if (parentSec > 0 && childSec > 0) {
-                    const newTotal = formatSecs(parentSec + childSec);
-                    setItemSplitState(parent, viewType, {
-                        musicDuration: newTotal,
-                        estDuration: calculateEstTime(newTotal, parent.ratio || 20),
-                    });
-                    syncLegacySplitFields(parent, viewType);
-
-                    // 🟢 4. 链条修补 (把孙子过继给爷爷)
-                    // 如果我删的是 Part 2，且 Part 2 后面还有 Part 3
-                    // 我们必须把 Part 3 的父亲改成 Part 1 (即当前的 parent)
-                    const orphans = itemPool.value.filter(i => (
-                        isItemVisibleForView(i, viewType) &&
-                        getSplitViewState(i, viewType).splitFromId === taskToDelete.id
-                    ));
-                    if (orphans.length > 0) {
-                        orphans.forEach(orphan => {
-                            setItemSplitState(orphan, viewType, { splitFromId: parent.id });
-                            syncLegacySplitFields(orphan, viewType);
-                        });
-                    }
-
-                    // 🟢 5. 标签清理逻辑
-                    // 规则：只有当父级是【绝对根节点】且【没有其他孩子】时，才清除标签。
-                    // 如果父级本身也是个 Part (有 splitFromId)，说明我们在合并中间层级，父级标签必须保留。
-
-                    const isParentAlsoChild = !!getSplitViewState(parent, viewType).splitFromId;
-
-                    if (isParentAlsoChild) {
-                        // === 情况 A: 父级是中间节点 (如 Part 2) ===
-                        // 合并后它还是 Part 2，只是时间变长了，标签保留
-                        openAlertModal(
-                            '时间已归还',
-                            `当前任务已逐级合并回上一层 (${getSplitViewState(parent, viewType).splitTag})。`
-                        );
-                    } else {
-                        // === 情况 B: 父级是根节点 (Part 1 / Source) ===
-                        // 检查根节点名下是否还有其他分身
-                        const hasChildren = itemPool.value.some(i =>
-                            i.id !== taskToDelete.id && // 排除当前正在删的
-                            isItemVisibleForView(i, viewType) &&
-                            getSplitViewState(i, viewType).splitFromId === parent.id // 检查是否还有其他孩子
-                        );
-
-                        if (!hasChildren) {
-                            // 真的没孩子了，彻底自由，清除 Part 1 标签
-                            setItemSplitState(parent, viewType, { splitTag: '' });
-                            syncLegacySplitFields(parent, viewType);
-                            openAlertModal(
-                                '合并完成',
-                                `拆分任务已全部合并回原任务。\n现有时长: ${newTotal}`
-                            );
-                        } else {
-                            // 还有孩子 (比如删了 Part 2，但 Part 3 被过继过来了)
-                            // 此时根节点仍需保留 "Part 1" 标签
-                            openAlertModal(
-                                '时间已归还',
-                                `时间已合并回 Part 1。\n(标签保留，因为仍有后续部分存在)`
-                            );
-                        }
-                    }
-
-                    window.triggerTouchHaptic('Success');
-                    deactivateItemInView(taskToDelete, viewType);
-                    if (hasVisibleSplitStateInAnyView(taskToDelete)) {
-                        syncLegacySplitFields(taskToDelete, viewType === 'project' ? 'musician' : 'project');
-                        return false;
-                    }
-                    return true;
-                }
-                return false;
-            };
+            let splitState;
+            const checkCanSplit = (...args) => splitTaskFeature.checkCanSplit(...args);
+            const openSplitSlider = (...args) => splitTaskFeature.openSplitSlider(...args);
+            const onSplitSliderInput = (...args) => splitTaskFeature.onSplitSliderInput(...args);
+            const updateSplitStrings = (...args) => splitTaskFeature.updateSplitStrings(...args);
+            const confirmSplitSlider = (...args) => splitTaskFeature.confirmSplitSlider(...args);
+            const splitTrack = (...args) => splitTaskFeature.splitTrack(...args);
+            const restoreSplitTime = (...args) => splitTaskFeature.restoreSplitTime(...args);
 
             // --- 🟢 新增：自定义颜色选择器逻辑 ---
             const showColorPickerModal = ref(false);
@@ -7961,6 +7517,45 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const isToday = d => formatDate(new Date()) === d;
 
             const sidebarTab = ref('musician');
+
+            splitTaskFeature = registerSplitTaskFeature({
+                refs: {
+                    showSplitModal,
+                    itemPool,
+                    scheduledTasks,
+                    trackListData,
+                    currentSessionId,
+                    showTrackList,
+                },
+                split: {
+                    createHiddenSplitState,
+                    deactivateItemInView,
+                    getSplitViewState,
+                    hasVisibleSplitStateInAnyView,
+                    isItemVisibleInView: isItemVisibleForView,
+                    setItemSplitState,
+                    syncLegacySplitFields,
+                },
+                utils: {
+                    parseTime,
+                    timeToMinutes,
+                    formatSecs,
+                    generateUniqueId,
+                    calculateEstTime,
+                },
+                actions: {
+                    getCurrentSplitView,
+                    syncItemForView,
+                    ensureItemRecords,
+                    openAlertModal,
+                    openInputModal,
+                    pushHistory,
+                    autoUpdateEfficiency,
+                    autoSortTrackList,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            splitState = splitTaskFeature.splitState;
 
             const taskEditorFeature = registerTaskEditorFeature({
                 refs: {
