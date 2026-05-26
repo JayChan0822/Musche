@@ -49,6 +49,7 @@ import { registerSearchFeature } from './features/search.js';
 import { registerCalendarViewFeature } from './features/calendar-view.js';
 import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
 import { registerTaskEditorFeature } from './features/task-editor.js';
+import { registerTrackListFeature } from './features/track-list.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -64,6 +65,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     let mobileUiFeature;
     let exportCsvFeature;
     let searchFeature;
+    let trackListFeature;
     const hexToRgb = hex => {
         const bigint = parseInt(hex.slice(1), 16);
         const r = (bigint >> 16) & 255;
@@ -113,12 +115,11 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const getCurrentSplitView = () => normalizeSplitViewType(
                 (trackListData.value && trackListData.value.viewType) || sidebarTab.value || 'musician'
             );
+            const isMobile = ref(window.innerWidth < 800);
             // --- 🎹 MIDI 高级导入逻辑 ---
             
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
             // 1. 定义状态变量 (已适配你文件的变量命名习惯)
-            let dividerDragState = null;
-            let trackListScrollTimer = null;
             let pickerCallback = null;
             let dragElClone = null;       // 拖拽时的克隆体
             let dragSourceTask = null;    // 源任务数据
@@ -137,7 +138,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             let dragSourceType = 'schedule';
             let autoScrollInterval = null;
             let monthSwitchTimer = null;
-            let trackSaveTimer = null; // 用于录音时间保存的防抖计时器
             let isScrollingProgrammatically = false;
             let resizeRaf = null; // 用于 requestAnimationFrame 防抖
             // --- 🟢 新增变量: 拖拽定时器 (用于手机长按) ---
@@ -1819,7 +1819,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     return;
                 }
 
-                if (trackDragState || dividerDragState) return;
+                if (trackDragState || trackListFeature?.isDividerDragging?.()) return;
 
                 const isTouch = e.type === 'touchstart';
                 const triggerEl = e.currentTarget; // 被拖拽的卡片
@@ -3281,127 +3281,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 sidebarTouchStartY.value = 0;
             };
 
-            // 🟢 [修改] 自动分配：修正已录音任务占用空间计算 (优先读取 Actual Duration)
-            const autoDistributeSections = () => {
-                const listData = trackListData.value;
-                const viewType = listData.viewType || 'musician';
-
-                if (!listData.items || !listData.schedules || listData.schedules.length === 0) return;
-
-                // 1. 获取所有日程块的总容量 (秒)
-                const capacities = listData.schedules.map(s => parseTime(s.estDuration));
-                const totalScheduleCapacity = capacities.reduce((a, b) => a + b, 0);
-
-                if (totalScheduleCapacity === 0) {
-                    openAlertModal('无法分配', '日程块的总时长为 0。');
-                    return;
-                }
-
-                // --- 阶段 A: 筛选与分离 ---
-                const lockedItems = [];
-                const movableItems = [];
-
-                const usedTimePerSection = new Array(capacities.length).fill(0);
-                let totalLockedDuration = 0;
-
-                listData.items.forEach(item => {
-                    if (item.isSkipped) return;
-
-                    const rec = item.records?.[viewType];
-                    const hasRecord = rec && (
-                        (rec.actualDuration && rec.actualDuration !== '00:00') ||
-                        (rec.recStart && rec.recStart !== '')
-                    );
-
-                    if (hasRecord) {
-                        lockedItems.push(item);
-
-                        // 🟢 核心修复：计算占用空间时，优先使用【实际录音时长】
-                        // 如果实际时长是 60m，预计是 50m，我们必须按 60m 扣除空间，防止撞车
-                        let occupiedSec = 0;
-                        if (rec.actualDuration && rec.actualDuration !== '00:00') {
-                            occupiedSec = parseTime(rec.actualDuration);
-                        } else {
-                            // 兜底：如果没有算好 actualDuration，就用 estDuration
-                            occupiedSec = parseTime(item.estDuration);
-                        }
-
-                        totalLockedDuration += occupiedSec;
-
-                        if (item.sectionIndex >= 0 && item.sectionIndex < usedTimePerSection.length) {
-                            usedTimePerSection[item.sectionIndex] += occupiedSec;
-                        }
-                    } else {
-                        movableItems.push(item);
-                    }
-                });
-
-                if (movableItems.length === 0) return;
-
-                // --- 阶段 B: 计算“完美填充”的时间配额 ---
-                const totalRemainingCapacity = Math.max(0, totalScheduleCapacity - totalLockedDuration);
-
-                // 2. 计算可移动任务的总谱面时长
-                let totalMovableMusicSec = 0;
-                movableItems.forEach(item => {
-                    totalMovableMusicSec += parseTime(item.musicDuration || '00:00');
-                });
-
-                // 3. 应用配额
-                movableItems.forEach(item => {
-                    let allocatedSec = 0;
-                    const itemMusicSec = parseTime(item.musicDuration || '00:00');
-
-                    if (totalMovableMusicSec > 0 && totalRemainingCapacity > 0) {
-                        allocatedSec = (itemMusicSec / totalMovableMusicSec) * totalRemainingCapacity;
-                    } else {
-                        // 兜底：如果没空间了或者没谱面，给个最小时间
-                        allocatedSec = 30;
-                    }
-
-                    allocatedSec = Math.max(30, Math.floor(allocatedSec));
-                    item.estDuration = formatSecs(allocatedSec);
-
-                    if (itemMusicSec > 0) {
-                        item.ratio = (allocatedSec / itemMusicSec).toFixed(1);
-                    }
-                });
-
-                // --- 阶段 C: 排序 (编制优先) ---
-                movableItems.sort((a, b) => {
-                    const sizeA = isOrchestraGroup(a) ? getOrchSize(a.orchestration) : 0;
-                    const sizeB = isOrchestraGroup(b) ? getOrchSize(b.orchestration) : 0;
-                    return sizeB - sizeA;
-                });
-
-                // --- 阶段 D: 填空分配 ---
-                let currentSection = 0;
-
-                movableItems.forEach(item => {
-                    const itemDuration = parseTime(item.estDuration);
-
-                    while (currentSection < capacities.length - 1) {
-                        const capacity = capacities[currentSection];
-                        const used = usedTimePerSection[currentSection];
-
-                        // 🟢 容错优化：允许 5秒 误差，防止浮点数精度问题导致最后一点塞不进
-                        if (used + itemDuration <= capacity + 5) {
-                            break;
-                        } else {
-                            currentSection++;
-                        }
-                    }
-
-                    item.sectionIndex = currentSection;
-
-                    if (currentSection < usedTimePerSection.length) {
-                        usedTimePerSection[currentSection] += itemDuration;
-                    }
-                });
-
-                pushHistory();
-                window.triggerTouchHaptic('Success');
-            };
+            const autoDistributeSections = () => trackListFeature.autoDistributeSections();
 
             // 修改 switchView 函数
             const switchView = (targetView) => {
@@ -3597,103 +3477,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 新增: 强力扫描并清理当前弹窗内的空日程块
             const pruneEmptySchedules = () => scheduleFeature.pruneEmptySchedules();
 
-            // 🟢 修改: 根据录音记录自动调整日程块 (精确吸附版)
-            // 修改点：移除了 snapToGrid 的 30分钟强制吸附，现在会精确贴合录音时间的边缘
-            const autoResizeScheduleByRecords = (isSilent = false, shouldPushHistory = true) => {
-                // 1. 获取当前弹窗管理的所有日程块 (Sections)
-                const sections = trackListData.value.schedules;
-                const items = trackListData.value.items;
-                const viewType = trackListData.value.viewType || 'musician';
-
-                let hasUpdate = false;
-
-                // 2. 遍历每个日程块 (Section)
-                sections.forEach((scheduleRef, sectionIndex) => {
-                    if (!scheduleRef) return;
-
-                    // 找到属于该 Section 的所有 Tracks
-                    const sectionItems = items.filter(t => (t.sectionIndex || 0) === sectionIndex);
-
-                    if (sectionItems.length === 0) return;
-
-                    let minMins = Infinity;
-                    let maxMins = -Infinity;
-
-                    // 3. 找出该段落内 最早开始 和 最晚结束 的分钟数
-                    sectionItems.forEach(item => {
-                        const rec = item.records[viewType];
-                        if (!rec) return;
-
-                        if (rec.recStart) {
-                            const [h, m] = rec.recStart.split(':').map(Number);
-                            const startVal = h * 60 + m;
-                            if (startVal < minMins) minMins = startVal;
-                        }
-                        if (rec.recEnd) {
-                            const [h, m] = rec.recEnd.split(':').map(Number);
-                            let endVal = h * 60 + m;
-                            // 处理跨天
-                            if (rec.recStart) {
-                                const [sh, sm] = rec.recStart.split(':').map(Number);
-                                if (endVal < (sh * 60 + sm)) endVal += 24 * 60;
-                            }
-                            // 如果结束时间正好等于开始时间(比如0时长)，不应该推大 maxMins，除非它是唯一的记录
-                            if (endVal > maxMins) maxMins = endVal;
-                        }
-                    });
-
-                    // 如果没有有效时间记录，跳过
-                    if (minMins === Infinity || maxMins === -Infinity) return;
-
-                    // 4. [修改点] 精确吸附：不再强制吸附到 00/30 网格
-                    // 直接使用计算出的最早/最晚时间作为日程块的边界
-                    const newStartMins = minMins;
-                    const newEndMins = maxMins;
-
-                    // 计算新时长
-                    const durationMins = newEndMins - newStartMins;
-
-                    // 安全检查：时长必须大于0 (防止误操作导致日程块消失)
-                    if (durationMins <= 0) return;
-
-                    // 5. 更新主数据 scheduledTasks
-                    const taskInMainArray = scheduledTasks.value.find(t => t.scheduleId === scheduleRef.scheduleId);
-
-                    if (taskInMainArray) {
-                        // 转换回 HH:MM 格式
-                        const sh = Math.floor(newStartMins / 60);
-                        const sm = newStartMins % 60;
-                        const newStartTimeStr = `${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}`;
-
-                        // 转换时长为 HH:MM:SS
-                        const newDurationStr = formatSecs(durationMins * 60);
-
-                        // 检查是否有变更，避免无效更新
-                        if (taskInMainArray.startTime !== newStartTimeStr || taskInMainArray.estDuration !== newDurationStr) {
-                            taskInMainArray.startTime = newStartTimeStr;
-                            taskInMainArray.estDuration = newDurationStr;
-                            hasUpdate = true;
-                        }
-                    }
-                });
-
-                if (hasUpdate) {
-                    // 🟢 只有显式要求时才保存
-                    // if (shouldPushHistory) {
-                    //     pushHistory();
-                    // }
-                    // 自动模式下不弹窗，但可以给个轻微震动反馈
-                    if (!isSilent) {
-                        window.triggerTouchHaptic('Success');
-                        // 提示语微调
-                        openAlertModal('自动调整完成', '日程块已根据实际录音时间精确调整。');
-                    }
-                } else {
-                    if (!isSilent) {
-                        openAlertModal('无需调整', '未找到有效的时间记录，或当前日程已匹配。');
-                    }
-                }
-            };
+            const autoResizeScheduleByRecords = (isSilent = false, shouldPushHistory = true) =>
+                trackListFeature.autoResizeScheduleByRecords(isSilent, shouldPushHistory);
 
 
             // 🟢 修复版: 智能跳转 (适配长动画)
@@ -3912,224 +3697,9 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
             };
 
-            // 辅助：精确计算元素占据的物理空间 (含 margin)
-            const getOuterHeight = (el) => {
-                if (!el) return 0;
-                const style = window.getComputedStyle(el);
-                const h = el.offsetHeight;
-                const mt = parseFloat(style.marginTop) || 0;
-                const mb = parseFloat(style.marginBottom) || 0;
-                // 处理 margin collapse (通常取 max，但在 space-y 布局中往往是叠加或固定间距，这里简单相加通常足够精确，
-                // 因为我们是为了计算"跨越这个元素需要走多远")
-                // 在 flex/block 布局中，为了防止 collapse 计算复杂，直接取外边距总和通常更符合直觉手感
-                return h + Math.max(mt, mb);
-            };
-
-            // 1. 开始拖拽
-            const startDividerDrag = (e, sectionIndex) => {
-                if (dividerDragState) return;
-                const isTouch = e.type === 'touchstart';
-                if (e.cancelable) e.preventDefault();
-
-                // 🟢 关键修改: 虽然点击的是胶囊，但我们要操作的是整行分割条
-                const triggerEl = e.currentTarget;
-                const targetEl = triggerEl.closest('.group\\/divider'); // 查找带有 group/divider 类的父容器
-
-                // 如果找不到父容器(理论上不会)，就回退到当前元素
-                const actualTarget = targetEl || triggerEl;
-
-                // 隐藏原始元素
-                actualTarget.style.opacity = '0';
-
-                const rect = actualTarget.getBoundingClientRect();
-                const clientY = isTouch ? e.touches[0].clientY : e.clientY;
-                const container = trackListContainerRef.value;
-                const initialScrollTop = container ? container.scrollTop : 0;
-
-                // 获取所有卡片 DOM
-                const taskEls = Array.from(container.querySelectorAll('.track-card'));
-                // 🟢 2. 计算高度时包含 margin (更精确)
-                const taskHeights = taskEls.map(el => {
-                    const style = window.getComputedStyle(el);
-                    return el.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-                });
-
-                // 计算分割条的真实占据高度 (包含 margin)
-                const dividerStyle = window.getComputedStyle(targetEl);
-                const ghostHeight = targetEl.offsetHeight + parseFloat(dividerStyle.marginTop) + parseFloat(dividerStyle.marginBottom);
-
-                let startIndex = trackListData.value.items.findIndex(item => item.sectionIndex === sectionIndex);
-                if (startIndex === -1) startIndex = trackListData.value.items.length;
-
-                // 创建替身
-                const ghost = actualTarget.cloneNode(true);
-                Object.assign(ghost.style, {
-                    position: 'fixed', top: `${rect.top}px`, left: `${rect.left}px`,
-                    width: `${rect.width}px`, height: `${rect.height}px`,
-                    zIndex: '9999', opacity: '0.95',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                    transform: 'none', transition: 'none', pointerEvents: 'none',
-                    // 替身必须是可见的
-                    opacity: '1'
-                });
-                document.body.appendChild(ghost);
-
-                draggingSectionIndex.value = sectionIndex;
-
-                dividerDragState = {
-                    targetEl: actualTarget, // 🟢 保存引用以便恢复
-                    ghost: ghost,
-                    ghostHeight: ghostHeight,
-                    taskEls: taskEls,
-                    fingerOffset: clientY - rect.top,
-                    lastClientY: clientY,
-                    lastScrollTop: initialScrollTop,
-                    cumulativeDelta: 0,
-                    taskHeights: taskHeights,
-                    virtualIndex: startIndex,
-                    startIndex: startIndex,
-                    sectionIndex: sectionIndex
-                };
-
-                window.triggerTouchHaptic('Medium');
-
-                if (isTouch) {
-                    window.addEventListener('touchmove', onDividerDragMove, {passive: false});
-                    window.addEventListener('touchend', onDividerDragEnd);
-                    window.addEventListener('touchcancel', onDividerDragEnd);
-                } else {
-                    window.addEventListener('mousemove', onDividerDragMove);
-                    window.addEventListener('mouseup', onDividerDragEnd);
-                }
-            };
-
-            // 2. 拖拽过程 (保持不变，确认逻辑无误)
-            const onDividerDragMove = (e) => {
-                if (!dividerDragState) return;
-                if (e.cancelable) e.preventDefault();
-
-                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-
-                // A. 移动替身
-                const newTop = clientY - dividerDragState.fingerOffset;
-                dividerDragState.ghost.style.top = `${newTop}px`;
-
-                const container = trackListContainerRef.value;
-                const currentScrollTop = container ? container.scrollTop : 0;
-                const dy = clientY - dividerDragState.lastClientY;
-                const dScroll = currentScrollTop - dividerDragState.lastScrollTop;
-
-                dividerDragState.lastClientY = clientY;
-                dividerDragState.lastScrollTop = currentScrollTop;
-                dividerDragState.cumulativeDelta += (dy + dScroll);
-
-                const {taskHeights, startIndex, ghostHeight, taskEls} = dividerDragState;
-                let indexChanged = false;
-
-                // 计算 Virtual Index
-                while (dividerDragState.cumulativeDelta < 0) {
-                    if (dividerDragState.virtualIndex <= 0) break;
-                    const targetIndex = dividerDragState.virtualIndex - 1;
-                    const threshold = taskHeights[targetIndex];
-                    if (!threshold || threshold < 10) break;
-
-                    if (dividerDragState.cumulativeDelta < -threshold) {
-                        dividerDragState.cumulativeDelta += threshold;
-                        dividerDragState.virtualIndex--;
-                        indexChanged = true;
-                    } else break;
-                }
-
-                while (dividerDragState.cumulativeDelta > 0) {
-                    if (dividerDragState.virtualIndex >= taskHeights.length) break;
-                    const targetIndex = dividerDragState.virtualIndex;
-                    const threshold = taskHeights[targetIndex];
-                    if (!threshold || threshold < 10) break;
-
-                    if (dividerDragState.cumulativeDelta > threshold) {
-                        dividerDragState.cumulativeDelta -= threshold;
-                        dividerDragState.virtualIndex++;
-                        indexChanged = true;
-                    } else break;
-                }
-
-                if (indexChanged || isMobile.value) {
-                    const vIdx = dividerDragState.virtualIndex;
-                    if (indexChanged) window.triggerTouchHaptic('Light');
-
-                    taskEls.forEach((el, i) => {
-                        let translateY = 0;
-                        // 向下拖：中间的卡片向上移
-                        if (vIdx > startIndex) {
-                            if (i >= startIndex && i < vIdx) translateY = -ghostHeight;
-                        }
-                        // 向上拖：中间的卡片向下移
-                        else if (vIdx < startIndex) {
-                            if (i >= vIdx && i < startIndex) translateY = ghostHeight;
-                        }
-
-                        if (translateY !== 0) {
-                            el.style.transform = `translateY(${translateY}px)`;
-                            el.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                        } else {
-                            el.style.transform = '';
-                            el.style.transition = 'transform 0.2s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                        }
-                    });
-                }
-
-                handleTrackListAutoScroll(clientY);
-            };
-
-            // 3. 结束拖拽 (修复版：彻底清除样式残留)
-            const onDividerDragEnd = () => {
-                if (dividerDragState) {
-                    const {sectionIndex, startIndex, virtualIndex, taskEls, targetEl} = dividerDragState;
-
-                    // 🟢 1. 立即清除所有视觉偏移 (防止 Vue 复用带偏移样式的 DOM)
-                    taskEls.forEach(el => {
-                        el.style.transform = '';
-                        el.style.transition = 'none'; // 禁用动画，立即复位
-                    });
-
-                    // 🟢 2. 恢复原始分割条显示
-                    if (targetEl) targetEl.style.opacity = '';
-
-                    // 3. 移除替身
-                    if (dividerDragState.ghost && document.body.contains(dividerDragState.ghost)) {
-                        document.body.removeChild(dividerDragState.ghost);
-                    }
-
-                    // 🟢 4. 延迟一帧执行数据更新
-                    // 这样可以确保上面的 style.transform = '' 已经生效
-                    // 否则 Vue 可能会复用一个还带有 translateY 的元素，导致位置叠加错误
-                    requestAnimationFrame(() => {
-                        if (virtualIndex !== startIndex) {
-                            const diff = virtualIndex - startIndex;
-                            const direction = diff > 0 ? 'down' : 'up';
-                            const moves = Math.abs(diff);
-
-                            // 批量修改数据
-                            for (let i = 0; i < moves; i++) {
-                                moveDivider(sectionIndex, direction, false);
-                            }
-                            pushHistory();
-                        }
-                    });
-                }
-
-                dividerDragState = null;
-                draggingSectionIndex.value = null;
-                stopTrackListAutoScroll();
-
-                window.removeEventListener('touchmove', onDividerDragMove);
-                window.removeEventListener('touchend', onDividerDragEnd);
-                window.removeEventListener('touchcancel', onDividerDragEnd);
-                window.removeEventListener('mousemove', onDividerDragMove);
-                window.removeEventListener('mouseup', onDividerDragEnd);
-                window.removeEventListener('mousemove', onDividerDragMove);
-                window.removeEventListener('mouseup', onDividerDragEnd);
-            };
+            const startDividerDrag = (...args) => trackListFeature.startDividerDrag(...args);
+            const onDividerDragMove = (...args) => trackListFeature.onDividerDragMove(...args);
+            const onDividerDragEnd = (...args) => trackListFeature.onDividerDragEnd(...args);
 
             // 🟢 新增: 同步状态
             const isSyncing = ref(false);
@@ -4137,45 +3707,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 // 🟢 新增: 手动同步函数
             const handleManualSync = async () => authFeature.handleManualSync();
 
-            // 4. 自动滚动逻辑 (稍微调整了一下参数以配合 fixed 定位的 ghost)
-            const handleTrackListAutoScroll = (clientY) => {
-                const container = trackListContainerRef.value;
-                if (!container) return;
-
-                const rect = container.getBoundingClientRect();
-                const edgeSize = 60;
-                const maxSpeed = 15;
-
-                stopTrackListAutoScroll();
-
-                let scrollSpeed = 0;
-                // 只有当替身在容器范围内时才触发滚动，防止无限滚
-                if (clientY < rect.top + edgeSize && clientY > rect.top - 50) {
-                    const intensity = Math.max(0, (rect.top + edgeSize - clientY) / edgeSize);
-                    scrollSpeed = -maxSpeed * intensity;
-                } else if (clientY > rect.bottom - edgeSize && clientY < rect.bottom + 50) {
-                    const intensity = Math.max(0, (clientY - (rect.bottom - edgeSize)) / edgeSize);
-                    scrollSpeed = maxSpeed * intensity;
-                }
-
-                if (scrollSpeed !== 0) {
-                    trackListScrollTimer = requestAnimationFrame(function scrollLoop() {
-                        if (scrollSpeed !== 0 && container) {
-                            container.scrollTop += scrollSpeed;
-                            // 注意：因为 Ghost 是 fixed 定位，它不受容器 scroll 影响，
-                            // 所以这里不需要像之前那样补偿 startY，视觉上是解耦的。
-                            trackListScrollTimer = requestAnimationFrame(scrollLoop);
-                        }
-                    });
-                }
-            };
-
-            const stopTrackListAutoScroll = () => {
-                if (trackListScrollTimer) {
-                    cancelAnimationFrame(trackListScrollTimer);
-                    trackListScrollTimer = null;
-                }
-            };
+            const handleTrackListAutoScroll = (...args) => trackListFeature.handleTrackListAutoScroll(...args);
+            const stopTrackListAutoScroll = (...args) => trackListFeature.stopTrackListAutoScroll(...args);
 
             const confirmDurationPicker = () => {
                 if (pickerCallback) pickerCallback(false);
@@ -4795,63 +4328,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
             };
 
-            // 🟢 修改: calcTrackDiff 支持多维度
-            const calcTrackDiff = (item) => {
-                // 1. 获取当前视图类型
-                const viewType = trackListData.value.viewType || 'musician';
-
-                // 2. 获取对应记录对象
-                const record = item.records[viewType];
-                if (!record) return;
-
-                if (record.recStart && record.recEnd) {
-                    const [sh, sm] = record.recStart.split(':').map(Number);
-                    const [eh, em] = record.recEnd.split(':').map(Number);
-
-                    let startMins = sh * 60 + sm;
-                    let endMins = eh * 60 + em;
-
-                    if (endMins < startMins) endMins += 24 * 60;
-
-                    let diffMins = endMins - startMins;
-
-                    if (record.breakMinutes && record.breakMinutes > 0) {
-                        diffMins -= parseInt(record.breakMinutes);
-                    }
-
-                    if (diffMins < 0) diffMins = 0;
-                    const diffSecs = diffMins * 60;
-
-                    // 3. 写入对应记录
-                    record.actualDuration = formatSecs(diffSecs);
-
-                    // 触发保存 (注意 saveTrackRecord 也需要修改)
-                    saveTrackRecord(item);
-
-                    autoResizeScheduleByRecords(true);
-
-                    // 3. 🟢 在这里统一保存一次历史 (这是唯一的一次)
-                    // pushHistory();
-                }
-            };
-
-            const setTrackBreak = (item) => {
-                const viewType = trackListData.value.viewType || 'musician';
-                const record = item.records[viewType]; // 获取对应记录
-
-                openInputModal(
-                    '设置中断/休息时长',
-                    record.breakMinutes ? String(record.breakMinutes) : '',
-                    '请输入分钟数',
-                    (val) => {
-                        const mins = parseInt(val);
-                        record.breakMinutes = (isNaN(mins) || mins < 0) ? 0 : mins;
-                        calcTrackDiff(item);
-                        pushHistory();
-                    },
-                    '这段时间将从总录制时长中扣除'
-                );
-            };
+            const calcTrackDiff = (...args) => trackListFeature.calcTrackDiff(...args);
+            const setTrackBreak = (...args) => trackListFeature.setTrackBreak(...args);
 
             // 4. 辅助函数：启动拖拽模式
             const startMobileDrag = (originalEl, touch) => {
@@ -5306,92 +4784,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }, 'image/webp', 0.6); // 使用 webp 格式和 0.6 质量
             };
 
-            // 🟢 修改: 删除列表任务
-            const deleteTrackFromList = (itemToDelete) => {
-                // 🛡️ 1. [新增] 检查是否为末端任务
-                if (!checkCanDeleteSplit(itemToDelete)) return;
-
-                // 🟢 2. 尝试归还时间
-                const shouldRemoveTask = restoreSplitTime(itemToDelete);
-
-                // 3. 从全局任务池中删除
-                if (shouldRemoveTask) {
-                    itemPool.value = itemPool.value.filter(i => i.id !== itemToDelete.id);
-                }
-
-                // 4. 从当前弹窗列表中删除
-                trackListData.value.items = trackListData.value.items.filter(i => i.id !== itemToDelete.id);
-
-                // 5. 如果弹窗还开着，保存历史
-                if (showTrackList.value) {
-                    pushHistory();
-                }
-
-                // 震动反馈
-                window.triggerTouchHaptic('Medium');
-            };
-
-            // 🟢 新增: 自动计算时间差
-            const autoCalcDuration = () => {
-                const start = trackListData.value.actualStart;
-                const end = trackListData.value.actualEnd;
-
-                if (start && end) {
-                    const [sh, sm] = start.split(':').map(Number);
-                    const [eh, em] = end.split(':').map(Number);
-
-                    let startMins = sh * 60 + sm;
-                    let endMins = eh * 60 + em;
-
-                    // 如果结束时间小于开始时间，假设是跨天 (加24小时)
-                    if (endMins < startMins) endMins += 24 * 60;
-
-                    const diffSecs = (endMins - startMins) * 60;
-                    trackListData.value.actualDuration = formatSecs(diffSecs);
-                }
-            };
-
-            // 🟢 修改: 保存录音时间并强制更新视图
-            const saveScheduleActualTime = () => {
-                const currentScheduleId = trackListData.value.taskRef.scheduleId;
-
-                if (!currentScheduleId) return;
-
-                // 1. 更新数据
-                // 使用 map 创建新数组，确保触发 Vue 的响应式更新
-                scheduledTasks.value = scheduledTasks.value.map(task => {
-                    if (task.scheduleId === currentScheduleId) {
-                        return {
-                            ...task, // 复制原对象
-                            actualStartTime: trackListData.value.actualStart,
-                            actualEndTime: trackListData.value.actualEnd,
-                            actualDuration: trackListData.value.actualDuration
-                        };
-                    }
-                    return task;
-                });
-
-                pushHistory();
-
-                // 2. 提示用户
-                openAlertModal("✅ 录音时间已保存！\n该演奏员的「真实平均比值」已在侧边栏自动更新。");
-
-
-            };
-
-            // 🟢 新增: 保存单曲实际用时
-            const saveTrackActual = (item) => {
-                // 找到源数据并更新
-                const task = scheduledTasks.value.find(t => t.scheduleId === item.scheduleId);
-                if (task) {
-                    task.actualDuration = item.actualDuration;
-                    // 强制更新数组以触发 computed 重新计算
-                    scheduledTasks.value = [...scheduledTasks.value];
-
-                    // 保存到历史
-                    // pushHistory(); // 可选：如果不希望每次输入字符都存历史，可以不加
-                }
-            };
+            const deleteTrackFromList = (...args) => trackListFeature.deleteTrackFromList(...args);
+            const autoCalcDuration = (...args) => trackListFeature.autoCalcDuration(...args);
+            const saveScheduleActualTime = (...args) => trackListFeature.saveScheduleActualTime(...args);
+            const saveTrackActual = (...args) => trackListFeature.saveTrackActual(...args);
 
             // 🟢 新增: 检查任务归属的资源是否已完成 (用于保护已完成任务不被误删)
             const isResourceCompleted = (task) => {
@@ -5513,22 +4909,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
             };
 
-            // 🟢 新增：在 TrackList 弹窗中修改提醒时间
-            const onTrackListReminderChange = (task) => {
-                if (!task) return;
-
-                // 1. 调用之前写好的更新通知函数
-                // (确保你之前已经添加了 updateTaskNotification 函数)
-                if (typeof updateTaskNotification === 'function') {
-                    updateTaskNotification(task);
-                }
-
-                // 2. 保存数据到历史记录
-                pushHistory();
-
-                // 3. (可选) 给个轻微震动反馈
-                window.triggerTouchHaptic('Light');
-            };
+            const onTrackListReminderChange = (...args) => trackListFeature.onTrackListReminderChange(...args);
 
             // --- V9.7.4: settings.projects 取代 settings.projectColors ---
             const settings = reactive({
@@ -8453,198 +7834,56 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
             };
 
-            const setTrackNow = (item, type) => {
-                const viewType = trackListData.value.viewType || 'musician';
-                const record = item.records[viewType];
-
-                const now = new Date();
-                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-                if (type === 'start') record.recStart = timeStr;
-                if (type === 'end') record.recEnd = timeStr;
-
-                calcTrackDiff(item);
-                pushHistory();
-            };
+            const setTrackNow = (...args) => trackListFeature.setTrackNow(...args);
 
             // 🟢 修改: checkOverlap (支持分层检测)
             const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
                 scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
 
 
-            const saveTrackRecord = (item) => {
-                if (trackSaveTimer) clearTimeout(trackSaveTimer);
-                trackSaveTimer = setTimeout(() => {
-                    const viewType = trackListData.value.viewType || 'musician';
-                    let targetId = item.musicianId;
-                    if (viewType === 'project') targetId = item.projectId;
-                    else if (viewType === 'instrument') targetId = item.instrumentId;
-
-                    // 🟢 调用新函数
-                    autoUpdateEfficiency(targetId, viewType);
-                }, 1500);
-            };
-
-            const clearTrackTime = (item) => {
-                const viewType = trackListData.value.viewType || 'musician';
-                const record = item.records[viewType];
-
-                record.recStart = '';
-                record.recEnd = '';
-                record.actualDuration = '';
-
-                autoResizeScheduleByRecords(true, false);
-
-                // 🟢 获取正确的 ID 并调用新函数
-                let targetId = item.musicianId;
-                if (viewType === 'project') targetId = item.projectId;
-                else if (viewType === 'instrument') targetId = item.instrumentId;
-
-                autoUpdateEfficiency(targetId, viewType, false);
-
-                pushHistory();
-                window.triggerTouchHaptic('Medium');
-            };
-
-            // 🟢 辅助：计算编制人数 (将 "4.3.2.1" 解析为 10, "4 Hn" 解析为 4)
-            const getOrchSize = (str) => {
-                if (!str) return 0;
-                // 提取所有数字并求和
-                const nums = str.match(/\d+/g);
-                if (!nums) return 0; // 如果没有数字（如 "Solo"），算作 0，或者你可以设为 1
-                return nums.reduce((sum, n) => sum + parseInt(n, 10), 0);
-            };
-
-            // 🟢 辅助：判断是否为管弦乐组 (Brass/String/Woodwind)
-            const isOrchestraGroup = (item) => {
-                const name = getNameById(item.instrumentId, 'instrument').toLowerCase();
-                // 也可以结合 settings 中的 group 字段判断，这里简单匹配常用关键词
-                const group = (settings.instruments.find(i => i.id === item.instrumentId)?.group || '').toLowerCase();
-                const text = name + ' ' + group;
-                return /string|str|brass|wind|wood|hn|tpt|tbn|tuba|vln|vla|vc|db|flute|oboe|clar|bsn/.test(text);
-            };
-
-            // 🟢 辅助：判断是否为打击乐 (Percussion)
-            const isPercussionGroup = (item) => {
-                const name = getNameById(item.musicianId, 'musician').toLowerCase();
-
-                // 只有演奏员名字里带有 "perc" (如 "Percussion", "Perc 1", "SPO Perc") 时，才视为打击乐组
-                // 这样 "Timpani" 或 "Drum Set" 如果名字里没带 Perc，就会正常显示黄色编制标签
-                return /perc/.test(name);
-            };
-
-            // 🟢 修复: 判断是否为弦乐 (V3: 仅检测演奏员名字，只有演奏员叫 "Strings" 时才隐藏)
-            const isStringGroup = (item) => {
-                // 获取【演奏员】的名字，而不是乐器名
-                const name = getNameById(item.musicianId, 'musician').toLowerCase();
-
-                // 只有当演奏员名字里包含 "string", "strings", "str" 时返回 true
-                // 例如: "String Ensemble", "Strings A", "Orch Strings"
-                return /\b(strings?|str)\b/i.test(name);
-            };
-
-            // 🟢 [修复版] 手动排序按钮
-            const sortTrackList = () => {
-                if (!trackListData.value.items) return;
-
-                const viewType = trackListData.value.viewType || 'musician';
-
-                // 1. 执行排序
-                trackListData.value.items = [...trackListData.value.items].sort((a, b) => {
-                    // 优先级 1: 分段索引 (Section) - 必须是最高优先级，确保任务不跨块乱跳
-                    const secA = a.sectionIndex || 0;
-                    const secB = b.sectionIndex || 0;
-                    if (secA !== secB) return secA - secB;
-
-                    // 优先级 2: Skip 状态 - 在同一个日程块内部，把不录的任务排到块内底部
-                    if (!!a.isSkipped !== !!b.isSkipped) return a.isSkipped ? 1 : -1;
-
-                    // 优先级 3: 时间优先 - 块内按具体录音开始时间排序
-                    const recA = a.records?.[viewType];
-                    const recB = b.records?.[viewType];
-                    const tA = (recA && recA.recStart) ? recA.recStart : '99:99';
-                    const tB = (recB && recB.recStart) ? recB.recStart : '99:99';
-                    if (tA !== tB) return tA.localeCompare(tB);
-
-                    // --- 以下是时间相同时的备选逻辑 ---
-
-                    // 优先级 3: 管弦乐团按人数排序
-                    const isOrchA = isOrchestraGroup(a);
-                    const isOrchB = isOrchestraGroup(b);
-                    if (isOrchA && isOrchB && !isPercussionGroup(a) && !isPercussionGroup(b)) {
-                        const sizeA = getOrchSize(a.orchestration);
-                        const sizeB = getOrchSize(b.orchestration);
-                        if (sizeA !== sizeB) return sizeB - sizeA;
-                    }
-
-                    // 优先级 4: 打击乐按名称归类
-                    const nameA = getNameById(a.instrumentId, 'instrument');
-                    const nameB = getNameById(b.instrumentId, 'instrument');
-                    const isPercA = isPercussionGroup(a);
-                    const isPercB = isPercussionGroup(b);
-
-                    if (isPercA && isPercB) {
-                        if (nameA !== nameB) return nameA.localeCompare(nameB, 'zh-CN');
-                    }
-
-                    return 0;
-                });
-
-                // 2. 自动吸附 & 保存
-                autoResizeScheduleByRecords(true, false);
-                pushHistory();
-                window.triggerTouchHaptic('Medium');
-            };
-
-            // 🟢 [修复版] 自动排序逻辑 (与上方保持一致)
-            const autoSortTrackList = () => {
-                if (!trackListData.value.items) return;
-
-                const viewType = trackListData.value.viewType || 'musician';
-
-                trackListData.value.items.sort((a, b) => {
-                    // 0. Skip
-                    if (!!a.isSkipped !== !!b.isSkipped) return a.isSkipped ? 1 : -1;
-
-                    const secA = a.sectionIndex || 0;
-                    const secB = b.sectionIndex || 0;
-                    if (secA !== secB) return secA - secB;
-
-                    // 优先级 2: Skip 状态 - 在同一个日程块内部，把不录的任务排到块内底部
-                    if (!!a.isSkipped !== !!b.isSkipped) return a.isSkipped ? 1 : -1;
-
-                    // 优先级 3: 时间优先 - 块内按具体录音开始时间排序
-                    const recA = a.records?.[viewType];
-                    const recB = b.records?.[viewType];
-                    const tA = (recA && recA.recStart) ? recA.recStart : '99:99';
-                    const tB = (recB && recB.recStart) ? recB.recStart : '99:99';
-                    if (tA !== tB) return tA.localeCompare(tB);
-
-                    // 3. Orchestra Size
-                    const isOrchA = isOrchestraGroup(a);
-                    const isOrchB = isOrchestraGroup(b);
-                    if (isOrchA && isOrchB && !isPercussionGroup(a) && !isPercussionGroup(b)) {
-                        const sizeA = getOrchSize(a.orchestration);
-                        const sizeB = getOrchSize(b.orchestration);
-                        if (sizeA !== sizeB) return sizeB - sizeA;
-                    }
-
-                    // 4. Percussion Grouping
-                    const nameA = getNameById(a.instrumentId, 'instrument');
-                    const nameB = getNameById(b.instrumentId, 'instrument');
-                    const isPercA = isPercussionGroup(a);
-                    const isPercB = isPercussionGroup(b);
-                    if (isPercA && isPercB) {
-                        if (nameA !== nameB) return nameA.localeCompare(nameB, 'zh-CN');
-                    }
-
-                    return 0;
-                });
-            };
+            const saveTrackRecord = (...args) => trackListFeature.saveTrackRecord(...args);
+            const clearTrackTime = (...args) => trackListFeature.clearTrackTime(...args);
+            const getOrchSize = (...args) => trackListFeature.getOrchSize(...args);
+            const isOrchestraGroup = (...args) => trackListFeature.isOrchestraGroup(...args);
+            const isPercussionGroup = (...args) => trackListFeature.isPercussionGroup(...args);
+            const isStringGroup = (...args) => trackListFeature.isStringGroup(...args);
+            const sortTrackList = (...args) => trackListFeature.sortTrackList(...args);
+            const autoSortTrackList = (...args) => trackListFeature.autoSortTrackList(...args);
 
             // 🟢 修改: 增加 shouldSaveHistory 参数，防止拖动时卡顿
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
+
+            trackListFeature = registerTrackListFeature({
+                refs: {
+                    trackListData,
+                    trackListContainerRef,
+                    draggingSectionIndex,
+                    itemPool,
+                    scheduledTasks,
+                    showTrackList,
+                    isMobile,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    parseTime,
+                    formatSecs,
+                    getNameById,
+                },
+                actions: {
+                    openAlertModal,
+                    openInputModal,
+                    pushHistory,
+                    autoUpdateEfficiency,
+                    checkCanDeleteSplit,
+                    restoreSplitTime,
+                    updateTaskNotification,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    moveDivider,
+                },
+            });
 
             // 🟢 修改: getTaskStyle (增加 z-index 控制)
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
@@ -8956,8 +8195,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
             userAvatar = authFeature.userAvatar;
             userDisplayName = authFeature.userDisplayName;
-
-            const isMobile = ref(window.innerWidth < 800);
 
             const sidebarStatsFeature = registerSidebarStatsFeature({
                 refs: {

@@ -205,6 +205,7 @@ const requiredFiles = [
     'app/scripts/features/calendar-view.js',
     'app/scripts/features/sidebar-stats.js',
     'app/scripts/features/task-editor.js',
+    'app/scripts/features/track-list.js',
     'scripts/supabase-keepalive.mjs'
 ];
 
