@@ -1269,7 +1269,7 @@
 
             <h3 class="font-bold text-xl mb-4 shrink-0">Edit Event</h3>
 
-            <div class="space-y-4 text-sm overflow-y-auto flex-1 min-h-0 pr-1 custom-scrollbar">
+            <div class="space-y-4 text-sm flex-1 min-h-0 pr-1 custom-scrollbar edit-event-scroll-area" :class="{ 'overflow-visible': activeDropdown && activeDropdown.startsWith('edit_'), 'overflow-y-auto': !activeDropdown || !activeDropdown.startsWith('edit_') }">
 
                 <div class="grid grid-cols-2 gap-3 relative">
                     <div class="relative transition-all" :class="activeDropdown === 'edit_project' ? 'z-[50]' : 'z-20'">

@@ -49,6 +49,20 @@ export function calculateBarQuantizedDuration(notes, tempoMap, timeSigs) {
   };
 }
 
+export function installJzzSmfPlugin(jzzInstance, installSmf) {
+  if (!jzzInstance || !jzzInstance.MIDI) return false;
+  if (typeof jzzInstance.MIDI.SMF === 'function') return true;
+
+  const installer = typeof installSmf === 'function'
+    ? installSmf
+    : (typeof installSmf?.default === 'function' ? installSmf.default : null);
+
+  if (!installer) return false;
+
+  installer(jzzInstance);
+  return typeof jzzInstance.MIDI.SMF === 'function';
+}
+
 export function buildTempoMap(smf) {
   const ppq = smf.ppqn;
   const tempoEvents = [];

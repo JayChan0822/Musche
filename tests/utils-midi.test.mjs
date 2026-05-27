@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { calculateBarQuantizedDuration, cleanMidiTrackName, normalizeForMatch } from '../app/scripts/utils/midi.js';
+import JZZ from 'jzz';
+import installJzzSmf from 'jzz-midi-smf';
+
+import { calculateBarQuantizedDuration, cleanMidiTrackName, installJzzSmfPlugin, normalizeForMatch } from '../app/scripts/utils/midi.js';
 
 test('normalizeForMatch normalizes case, punctuation, digits, and Unicode flats', () => {
   assert.equal(normalizeForMatch('Viola♭ 2'), 'violab');
@@ -34,4 +37,12 @@ test('calculateBarQuantizedDuration counts active bars across bar boundaries', (
     rawSeconds: 2.5,
     bars: 2,
   });
+});
+
+test('installJzzSmfPlugin explicitly attaches the SMF parser to the imported JZZ instance', () => {
+  delete JZZ.MIDI.SMF;
+
+  assert.equal(typeof JZZ.MIDI.SMF, 'undefined');
+  assert.equal(installJzzSmfPlugin(JZZ, installJzzSmf), true);
+  assert.equal(typeof JZZ.MIDI.SMF, 'function');
 });

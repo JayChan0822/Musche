@@ -23,6 +23,7 @@ export function registerImportMidiFeature(context) {
     generateUniqueId,
     generateRandomHexColor,
     formatSecs,
+    midiSmf,
   } = utils;
   const { openAlertModal, pushHistory, triggerTouchHaptic } = actions;
 
@@ -160,7 +161,7 @@ export function registerImportMidiFeature(context) {
   }
 
   function processMidiFile(file) {
-    if (typeof JZZ === 'undefined' || typeof JZZ.MIDI.SMF === 'undefined') {
+    if (typeof midiSmf !== 'function') {
       openAlertModal('库丢失', 'JZZ MIDI 库未加载，请检查网络。');
       return;
     }
@@ -175,7 +176,7 @@ export function registerImportMidiFeature(context) {
     reader.onload = (loadEvent) => {
       try {
         const data = loadEvent.target.result;
-        const smf = JZZ.MIDI.SMF(data);
+        const smf = midiSmf(data);
 
         const tempoMap = buildTempoMap(smf);
         const timeSigs = buildTimeSigMap(smf);

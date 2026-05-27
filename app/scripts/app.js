@@ -23,7 +23,8 @@ import {
     buildTimeSigMap,
     extractNotesFromJZZTrack,
     cleanMidiTrackName,
-    normalizeForMatch
+    normalizeForMatch,
+    installJzzSmfPlugin
 } from './utils/midi.js';
 import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
 import { createStorageService } from './services/storage-service.js';
@@ -34,7 +35,7 @@ import { match as pinyinMatch } from 'pinyin-pro';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import JZZ from 'jzz';
-import 'jzz-midi-smf';
+import installJzzSmf from 'jzz-midi-smf';
 import XLSX from 'xlsx-js-style';
 import Cropper from 'cropperjs';
 import { registerScheduleFeature } from './features/schedule.js';
@@ -56,6 +57,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
     const deviceService = createDeviceService();
+    installJzzSmfPlugin(JZZ, installJzzSmf);
     window.JZZ = JZZ;
     window.XLSX = XLSX;
     window.Cropper = Cropper;
@@ -1569,6 +1571,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 // 🟢 关键修改: 只要视觉位置变了(跨越了分割条) OR 数据位置变了，都要处理
                 if (domStartIndex !== virtualDomIndex || dataStartIndex !== virtualDataIndex) {
                     const items = trackListData.value.items;
+                    const previousSectionIndex = item.sectionIndex;
 
                     // A. 执行数据移动 (如果跨越了其他任务)
                     // 注意：如果只跨越了分割条，virtualDataIndex 可能等于 dataStartIndex，此时数组不需变动
@@ -1606,6 +1609,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                             item.sectionIndex = newSectionIndex;
                         }
                     }
+
+                    trackListFeature.syncTrackItemScheduleSection(item, previousSectionIndex);
 
                     // 保存 & 反馈
                     pushHistory();
@@ -6879,6 +6884,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     updateTaskNotification,
                     triggerTouchHaptic: window.triggerTouchHaptic,
                     moveDivider,
+                    pruneEmptySchedules,
                 },
             });
 
@@ -7173,6 +7179,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     generateUniqueId,
                     generateRandomHexColor,
                     formatSecs,
+                    midiSmf: JZZ.MIDI.SMF,
                 },
                 actions: {
                     openAlertModal,

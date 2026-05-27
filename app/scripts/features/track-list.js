@@ -21,6 +21,7 @@ export function registerTrackListFeature(context) {
     updateTaskNotification,
     triggerTouchHaptic,
     moveDivider,
+    pruneEmptySchedules,
   } = actions;
 
   let dividerDragState = null;
@@ -571,6 +572,46 @@ export function registerTrackListFeature(context) {
     triggerTouchHaptic('Light');
   };
 
+  const syncTrackItemScheduleSection = (item, previousSectionIndex = null) => {
+    if (!item || !trackListData.value?.schedules) return false;
+
+    let sectionIndex = parseInt(item.sectionIndex, 10);
+    if (Number.isNaN(sectionIndex)) sectionIndex = 0;
+
+    const targetSchedule = trackListData.value.schedules[sectionIndex];
+    if (!targetSchedule) return false;
+
+    let didUpdate = false;
+    const exactSchedule = scheduledTasks.value.find((task) => task.templateId === item.id);
+
+    if (exactSchedule) {
+      if (exactSchedule.date !== targetSchedule.date) {
+        exactSchedule.date = targetSchedule.date;
+        didUpdate = true;
+      }
+      if (exactSchedule.startTime !== targetSchedule.startTime) {
+        exactSchedule.startTime = targetSchedule.startTime;
+        didUpdate = true;
+      }
+
+      if (didUpdate && typeof updateTaskNotification === 'function') {
+        updateTaskNotification(exactSchedule);
+      }
+    }
+
+    if (
+      !exactSchedule &&
+      previousSectionIndex !== null &&
+      previousSectionIndex !== sectionIndex &&
+      typeof pruneEmptySchedules === 'function'
+    ) {
+      pruneEmptySchedules();
+      didUpdate = true;
+    }
+
+    return didUpdate;
+  };
+
   const setTrackNow = (item, type) => {
     const viewType = getViewType();
     const record = item.records[viewType];
@@ -715,6 +756,7 @@ export function registerTrackListFeature(context) {
     saveScheduleActualTime,
     saveTrackActual,
     onTrackListReminderChange,
+    syncTrackItemScheduleSection,
     setTrackNow,
     saveTrackRecord,
     clearTrackTime,

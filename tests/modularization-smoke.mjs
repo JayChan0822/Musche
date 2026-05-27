@@ -18,6 +18,9 @@ const indexHtml = readFileSync(indexHtmlPath, 'utf8');
 const appScript = readFileSync(appScriptPath, 'utf8');
 const viteConfig = readFileSync(viteConfigPath, 'utf8');
 const componentsCss = readFileSync(resolve(rootDir, 'app/styles/components.css'), 'utf8');
+const trackListFeature = readFileSync(resolve(rootDir, 'app/scripts/features/track-list.js'), 'utf8');
+const importMidiFeature = readFileSync(resolve(rootDir, 'app/scripts/features/import-midi.js'), 'utf8');
+const { registerTrackListFeature } = await import('../app/scripts/features/track-list.js');
 
 assert.equal(
     packageJson.scripts?.['verify:modularization'],
@@ -175,6 +178,30 @@ assert.match(
     'desktop search input must use dedicated classes so the icon and placeholder text spacing can be controlled independently of shared glass-input styles'
 );
 
+assert.match(
+    indexHtml,
+    /<div class="space-y-4 text-sm flex-1 min-h-0 pr-1 custom-scrollbar edit-event-scroll-area" :class="\{ 'overflow-visible': activeDropdown && activeDropdown\.startsWith\('edit_'\), 'overflow-y-auto': !activeDropdown \|\| !activeDropdown\.startsWith\('edit_'\) \}">/,
+    'Edit Event body must stop clipping edit dropdowns while a dropdown is open'
+);
+
+assert.doesNotMatch(
+    importMidiFeature,
+    /typeof JZZ|JZZ\.MIDI\.SMF/,
+    'import-midi feature must not read an implicit global JZZ parser; app.js should inject the initialized parser'
+);
+
+assert.match(
+    appScript,
+    /installJzzSmfPlugin\(JZZ,\s*installJzzSmf\)/,
+    'app.js must explicitly install the JZZ SMF plugin on the imported JZZ instance'
+);
+
+assert.match(
+    trackListFeature,
+    /syncTrackItemScheduleSection/,
+    'track-list feature must expose a helper for syncing dragged track sections back to scheduled tasks'
+);
+
 assert.doesNotMatch(
     appScript,
     /else if \(sidebarTab\.value === 'project'\)\s*\{\s*sidebarTab\.value = 'instrument';\s*\}/,
@@ -215,6 +242,68 @@ for (const relativePath of requiredFiles) {
     const absolutePath = resolve(rootDir, relativePath);
     assert.ok(existsSync(absolutePath), `${relativePath} must exist`);
     execFileSync(process.execPath, ['--check', absolutePath], { stdio: 'pipe' });
+}
+
+{
+    const item = { id: 'T1', sectionIndex: 1 };
+    const movedSchedule = {
+        scheduleId: 101,
+        templateId: 'T1',
+        date: '2026-05-27',
+        startTime: '10:00'
+    };
+    const targetSchedule = {
+        scheduleId: 202,
+        date: '2026-06-04',
+        startTime: '11:00'
+    };
+    let notificationTarget = null;
+    let pruneCalled = false;
+
+    const feature = registerTrackListFeature({
+        refs: {
+            trackListData: {
+                value: {
+                    items: [item],
+                    schedules: [
+                        { scheduleId: 101, date: '2026-05-27', startTime: '10:00' },
+                        targetSchedule
+                    ],
+                    viewType: 'musician'
+                }
+            },
+            trackListContainerRef: { value: null },
+            draggingSectionIndex: { value: null },
+            itemPool: { value: [item] },
+            scheduledTasks: { value: [movedSchedule, targetSchedule] },
+            showTrackList: { value: true },
+            isMobile: { value: false }
+        },
+        state: { settings: { instruments: [] } },
+        utils: {
+            parseTime: () => 0,
+            formatSecs: (value) => String(value),
+            getNameById: () => ''
+        },
+        actions: {
+            openAlertModal: () => {},
+            openInputModal: () => {},
+            pushHistory: () => {},
+            autoUpdateEfficiency: () => {},
+            checkCanDeleteSplit: () => true,
+            restoreSplitTime: () => false,
+            updateTaskNotification: (task) => { notificationTarget = task; },
+            triggerTouchHaptic: () => {},
+            moveDivider: () => {},
+            pruneEmptySchedules: () => { pruneCalled = true; }
+        }
+    });
+
+    assert.equal(feature.syncTrackItemScheduleSection(item, 0), true);
+    assert.equal(movedSchedule.date, '2026-06-04');
+    assert.equal(movedSchedule.startTime, '11:00');
+    assert.equal(notificationTarget, movedSchedule);
+    assert.equal(pruneCalled, false, 'moving an individually scheduled track must not prune its old schedule section');
 }
 
 console.log(`modularization smoke passed (${requiredFiles.length} JS modules checked)`);
