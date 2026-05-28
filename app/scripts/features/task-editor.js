@@ -248,7 +248,9 @@ export function registerTaskEditorFeature(context) {
     if (editingSource.value === 'pool') {
       if (!checkCanDeleteSplit(editingItem.value)) return;
 
-      const shouldRemoveTask = restoreSplitTime(editingItem.value);
+      const editViewType = getEditViewType();
+      const isSplitChild = !!getSplitViewState(editingItem.value, editViewType).splitFromId;
+      const shouldRemoveTask = isSplitChild ? restoreSplitTime(editingItem.value) : true;
 
       scheduledTasks.value = scheduledTasks.value.filter(
         (task) => task.templateId !== editingItem.value.id,

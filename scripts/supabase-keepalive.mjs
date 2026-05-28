@@ -1,4 +1,4 @@
-const DEFAULT_KEEPALIVE_PATH = '/auth/v1/settings';
+const DEFAULT_KEEPALIVE_PATH = '/rest/v1/user_data?select=user_id&limit=1';
 
 function normalizeKeepalivePath(path = DEFAULT_KEEPALIVE_PATH) {
   const trimmedPath = typeof path === 'string' ? path.trim() : '';
@@ -33,6 +33,7 @@ export async function runKeepalive({
     method: 'GET',
     headers: {
       apikey: normalizedKey,
+      Authorization: `Bearer ${normalizedKey}`,
     },
   });
 

@@ -19,7 +19,7 @@ test('keepalive workflow schedules a near-every-three-days run and executes the 
   assert.match(workflow, /node scripts\/supabase-keepalive\.mjs/, 'workflow should run the keepalive script');
 });
 
-test('runKeepalive requests the configured Supabase auth settings endpoint', async () => {
+test('runKeepalive requests a database-backed keepalive endpoint without exposing rows', async () => {
   const { runKeepalive } = await import(pathToFileURL(scriptPath));
 
   let request;
@@ -41,9 +41,10 @@ test('runKeepalive requests the configured Supabase auth settings endpoint', asy
     },
   });
 
-  assert.equal(request.url, 'https://example.supabase.co/auth/v1/settings');
+  assert.equal(request.url, 'https://example.supabase.co/rest/v1/user_data?select=user_id&limit=1');
   assert.equal(request.options.method, 'GET');
   assert.equal(request.options.headers.apikey, 'anon-test-key');
+  assert.equal(request.options.headers.Authorization, 'Bearer anon-test-key');
   assert.deepEqual(response.data, { ok: true });
 });
 

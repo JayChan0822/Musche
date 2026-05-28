@@ -53,6 +53,9 @@ import { registerTaskEditorFeature } from './features/task-editor.js';
 import { registerTrackListFeature } from './features/track-list.js';
 import { registerSplitTaskFeature } from './features/split-task.js';
 import { registerMidiManagerFeature } from './features/midi-manager.js';
+import { registerCreditsFeature } from './features/credits.js';
+import { registerProjectInfoFeature } from './features/project-info.js';
+import { registerRecInfoFeature } from './features/rec-info.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
     const storageService = createStorageService();
     const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
@@ -146,10 +149,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             let monthSwitchTimer = null;
             let isScrollingProgrammatically = false;
             let resizeRaf = null; // 用于 requestAnimationFrame 防抖
-            // --- 🟢 新增变量: 拖拽定时器 (用于手机长按) ---
-            // --- 🟢 新增变量: 拖拽定时器 (用于手机长按) ---
-            let trackDragTimer = null;
-            let trackDragState = null;
             // --- 🟢 新增：iOS 视图切换双击检测辅助变量 ---
             let lastHeaderTap = 0; // 记录周视图表头上次点击时间
             let lastMonthTap = { time: 0, date: null };
@@ -170,56 +169,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             let availableInstrumentGroups;
             let midiGroupData;
             let currentMidiDisplayList;
-
-
-            // 初始化表单数据
-            const projectInfoForm = reactive({
-                id: null, // 用于定位当前编辑的项目
-                title: '',
-                composer: '',
-                arranger: '',
-                producer: '',
-                mixingEngineer: '',
-                mixingStudio: '',
-                masteringEngineer: '',
-                masteringStudio: '',
-                dolbyStudio: '',
-                publishedBy: '',
-                producedBy: ''
-            });
-
-            // 打开项目信息弹窗
-            const openProjectInfoModal = (project) => {
-                projectInfoForm.id = project.id;
-                // 如果已有数据则回填，否则为空；Title默认回填项目名称
-                projectInfoForm.title = project.title || project.name || '';
-                projectInfoForm.composer = project.composer || '';
-                projectInfoForm.arranger = project.arranger || '';
-                projectInfoForm.producer = project.producer || '';
-                projectInfoForm.mixingEngineer = project.mixingEngineer || '';
-                projectInfoForm.mixingStudio = project.mixingStudio || '';
-                projectInfoForm.masteringEngineer = project.masteringEngineer || '';
-                projectInfoForm.masteringStudio = project.masteringStudio || '';
-                projectInfoForm.dolbyStudio = project.dolbyStudio || '';
-                projectInfoForm.publishedBy = project.publishedBy || '';
-                projectInfoForm.producedBy = project.producedBy || '';
-
-                showProjectInfoModal.value = true;
-            };
-
-// 保存项目信息
-            const saveProjectInfo = () => {
-                const target = settings.projects.find(p => p.id === projectInfoForm.id);
-                if (target) {
-                    // 将表单数据合并回项目对象
-                    Object.assign(target, { ...projectInfoForm });
-                    // 如果想让项目列表显示的名称也同步更新，可以解开下面这行：
-                    // target.name = projectInfoForm.title;
-
-                    window.triggerTouchHaptic('Success');
-                    showProjectInfoModal.value = false;
-                }
-            };
 
             // 1. [新增] 提取通用的状态计算逻辑
             const calculateRowStatusText = (row) => importCsvFeature.calculateRowStatusText(row);
@@ -517,399 +466,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 }
                 lastMonthTap.time = now;
                 lastMonthTap.date = dateStr;
-            };
-
-            const openCreditModal = () => {
-                const sessId = currentSessionId.value;
-
-                // 1. 初始化数据容器
-                const projectDataMap = {};
-
-                const getProjData = (pid) => {
-                    if (!projectDataMap[pid]) {
-                        projectDataMap[pid] = {
-                            name: getNameById(pid, 'project'), // 获取项目基础名称
-                            // --- 管弦乐部分 ---
-                            orch: {
-                                strings: new Set(),
-                                woodwinds: {},
-                                brass: {},
-                                percussion: {},
-                                others: {}
-                            },
-                            orchTech: {
-                                studios: new Set(), engineers: new Set(),
-                                operators: new Set(), assistants: new Set()
-                            },
-                            // --- 普通乐器部分 ---
-                            solo: {},
-                            soloTech: {
-                                studios: new Set(), engineers: new Set(),
-                                operators: new Set(), assistants: new Set()
-                            },
-                            editors: new Set()
-                        };
-                    }
-                    return projectDataMap[pid];
-                };
-
-                // --- 核心函数：判断乐器分类 ---
-                const getOrchCategory = (instName, musName) => {
-                    const i = (instName || '').toLowerCase();
-                    const m = (musName || '').toLowerCase();
-
-                    if (/\b(violin|viola|cello|double\s*bass|contrabass)\b/.test(i)) return 'strings';
-                    if (/\b(flute|piccolo|oboe|english\s*horn|cor\s*anglais|clarinet|bassoon|contrabassoon)\b/.test(i)) return 'woodwinds';
-                    if (/\b(horn|trumpet|trombone|tuba|euphonium)\b/.test(i)) return 'brass';
-                    if (/\b(timpani|snare|cymbal|gong|mark\s*tree|glockenspiel|xylophone|marimba|vibraphone|chimes|tubular\s*bells)\b/.test(i)) return 'percussion';
-                    if (/\b(harp|celesta|celeste|piano|organ|harpsichord)\b/.test(i)) return 'others';
-
-                    if (m.includes('string')) return 'strings';
-                    if (m.includes('woodwind')) return 'woodwinds';
-                    if (m.includes('brass')) return 'brass';
-                    if (m.includes('percussion') || m.includes('perc ')) return 'percussion';
-
-                    return null;
-                };
-
-                const addToMap = (targetMap, instrumentLabel, playerName) => {
-                    if (!playerName || playerName === '未知演奏员' || playerName === '未选择') return;
-
-                    // 🟢 [修正] 加入 \r 和 \n
-                    const names = playerName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
-
-                    names.forEach(name => {
-                        if (!targetMap[instrumentLabel]) targetMap[instrumentLabel] = new Set();
-                        targetMap[instrumentLabel].add(name);
-                    });
-                };
-
-                const addTechInfo = (targetTech, info) => {
-                    if (!info) return;
-                    const splitAndAdd = (str, set) => {
-                        if (!str) return;
-
-                        // 🟢 [修正] 加入 \r 和 \n 确保所有类型的换行都能切分
-                        const parts = str.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
-
-                        parts.forEach(p => set.add(p));
-                    };
-                    // ... 后面的代码不变
-                    splitAndAdd(info.studio, targetTech.studios);
-                    splitAndAdd(info.engineer, targetTech.engineers);
-                    splitAndAdd(info.operator, targetTech.operators);
-                    splitAndAdd(info.assistant, targetTech.assistants);
-                };
-
-                // 2. 遍历曲目 (ItemPool)
-                const sessionItems = itemPool.value.filter(i => (i.sessionId || 'S_DEFAULT') === sessId);
-
-                if (sessionItems.length === 0 && scheduledTasks.value.length === 0) {
-                    openAlertModal("无数据", "当前日程表为空，无法生成名单。");
-                    return;
-                }
-
-                sessionItems.forEach(item => {
-                    if (item.isSkipped) return;
-
-                    const pid = item.projectId || 'Unassigned';
-                    const pData = getProjData(pid);
-
-                    const instId = item.instrumentId;
-                    const systemInstName = getNameById(instId, 'instrument');
-                    const musId = item.musicianId;
-                    const musName = getNameById(musId, 'musician');
-
-                    const category = getOrchCategory(systemInstName, musName);
-                    let hasDetailedInfo = false;
-
-                    if (category) {
-                        // Orchestra
-                        if (category === 'percussion') {
-                            const musicianSettings = settings.musicians.find(m => m.id === musId);
-                            if (musicianSettings && musicianSettings.percConfig && musicianSettings.percConfig.tags.length > 0) {
-                                musicianSettings.percConfig.tags.forEach(tag => {
-                                    if (tag.assignedTo) {
-                                        const assignedPlayer = musicianSettings.percConfig.players.find(p => p.id === tag.assignedTo);
-                                        if (assignedPlayer) {
-                                            addToMap(pData.orch.percussion, tag.name, assignedPlayer.name);
-                                            hasDetailedInfo = true;
-                                        }
-                                    }
-                                });
-                            }
-                        }
-
-                        if (!hasDetailedInfo && item.roster && Object.keys(item.roster).length > 0) {
-                            let targetMap = pData.orch[category];
-                            Object.entries(item.roster).forEach(([key, playerName]) => {
-                                if (!playerName || !playerName.trim()) return;
-                                let instrumentLabel = key.split(/[._\d]/)[0].trim();
-                                if (!instrumentLabel) instrumentLabel = systemInstName;
-
-                                if (category === 'strings') {
-                                    // 🟢 [修正]
-                                    const names = playerName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
-                                    names.forEach(n => pData.orch.strings.add(n));
-                                } else {
-                                    addToMap(targetMap, instrumentLabel, playerName.trim());
-                                }
-                                hasDetailedInfo = true;
-                            });
-                        }
-
-                        if (!hasDetailedInfo) {
-                            if (category === 'strings') {
-                                if (musName) {
-                                    // 🟢 [修正]
-                                    const names = musName.split(/[\/,\r\n]|\^\|/).map(s => s.trim()).filter(s => s);
-                                    names.forEach(n => pData.orch.strings.add(n));
-                                }
-                            } else {
-                                addToMap(pData.orch[category], systemInstName, musName);
-                            }
-                        }
-
-                    } else {
-                        // Solo Instruments
-                        addToMap(pData.solo, systemInstName, musName);
-                    }
-                });
-
-                // 3. 遍历日程 (ScheduledTasks)
-                const sessionTasks = scheduledTasks.value.filter(t => (t.sessionId || 'S_DEFAULT') === sessId);
-
-                sessionTasks.forEach(task => {
-                    // 1. 确定项目归属
-                    const currentTaskProjectIds = new Set();
-                    if (task.projectId) {
-                        currentTaskProjectIds.add(task.projectId);
-                    } else {
-                        if (task.musicianId) {
-                            sessionItems.filter(i => i.musicianId === task.musicianId)
-                                .forEach(i => i.projectId && currentTaskProjectIds.add(i.projectId));
-                        }
-                        if (task.instrumentId) {
-                            sessionItems.filter(i => i.instrumentId === task.instrumentId)
-                                .forEach(i => i.projectId && currentTaskProjectIds.add(i.projectId));
-                        }
-                    }
-
-                    // 2. 处理 Edit Info (音频编辑)
-                    if (task.editInfo) {
-                        const edName = task.editInfo.engineer || task.editInfo.EditEngineer;
-                        if (edName) {
-                            currentTaskProjectIds.forEach(pid => {
-                                const pData = getProjData(pid);
-                                const names = edName.split(/[\/,]/);
-                                names.forEach(n => {
-                                    if (n && n.trim()) pData.editors.add(n.trim());
-                                });
-                            });
-                        }
-                    }
-
-                    // 3. 处理 Recording Info (录音技术人员)
-                    const info = task.recordingInfo;
-                    if (!info) return;
-
-                    let isOrchTask = false;
-                    const relatedItems = sessionItems.filter(i => {
-                        if (task.musicianId) return i.musicianId === task.musicianId;
-                        if (task.instrumentId) return i.instrumentId === task.instrumentId;
-                        return false;
-                    });
-
-                    if (relatedItems.length > 0) {
-                        isOrchTask = relatedItems.some(i => {
-                            const iName = getNameById(i.instrumentId, 'instrument');
-                            const mName = getNameById(i.musicianId, 'musician');
-                            return !!getOrchCategory(iName, mName);
-                        });
-                    } else {
-                        const iName = getNameById(task.instrumentId, 'instrument');
-                        const mName = getNameById(task.musicianId, 'musician');
-                        isOrchTask = !!getOrchCategory(iName, mName);
-                    }
-
-                    currentTaskProjectIds.forEach(pid => {
-                        const pData = getProjData(pid);
-                        if (isOrchTask) {
-                            addTechInfo(pData.orchTech, info);
-                        } else {
-                            addTechInfo(pData.soloTech, info);
-                        }
-                    });
-                });
-
-                // 4. 生成文本
-                const finalLines = [];
-                const sortedPids = Object.keys(projectDataMap).sort((a, b) =>
-                    projectDataMap[a].name.localeCompare(projectDataMap[b].name, 'zh-CN')
-                );
-
-                // 辅助输出函数
-                const printTechBlock = (techData) => {
-                    const join = (set) => Array.from(set).join(' / ');
-                    if (techData.studios.size > 0) finalLines.push(`录音棚 Recording Studio：${join(techData.studios)}`);
-                    if (techData.engineers.size > 0) finalLines.push(`录音工程师 Recording Engineer：${join(techData.engineers)}`);
-                    if (techData.operators.size > 0) finalLines.push(`录音操作员 Recording Operator：${join(techData.operators)}`);
-                    if (techData.assistants.size > 0) finalLines.push(`录音师助理 Recording Assistant：${join(techData.assistants)}`);
-                };
-
-                const printInstMap = (title, map) => {
-                    const keys = Object.keys(map).sort();
-                    if (keys.length > 0) {
-                        if(title) {
-                            finalLines.push("");
-                            finalLines.push(`${title}：`);
-                        }
-                        keys.forEach(inst => {
-                            const names = Array.from(map[inst]).join(' / ');
-                            finalLines.push(`${inst}：${names}`);
-                        });
-                    }
-                };
-
-                sortedPids.forEach(pid => {
-                    const d = projectDataMap[pid];
-
-                    // 🟢 获取项目详细元数据 (Project Info)
-                    const projectMeta = settings.projects.find(p => p.id === pid) || {};
-
-                    // 判断是否有内容需要输出 (如果是一个空项目，什么都没录，也没有设置信息，则跳过)
-                    const hasSolo = Object.keys(d.solo).length > 0;
-                    const isOrchEmpty = d.orch.strings.size === 0 &&
-                        Object.keys(d.orch.woodwinds).length === 0 &&
-                        Object.keys(d.orch.brass).length === 0 &&
-                        Object.keys(d.orch.percussion).length === 0 &&
-                        Object.keys(d.orch.others).length === 0;
-
-                    // 如果是 Unassigned 且没有录音内容，或者有ID但没内容且没元数据，则跳过
-                    if ((pid === 'Unassigned' && !hasSolo && isOrchEmpty) ||
-                        (!hasSolo && isOrchEmpty && !projectMeta.title)) {
-                        // 允许有title但没录音的项目显示，作为占位
-                        if(!projectMeta.title) return;
-                    }
-
-                    // --- 1. Header (Title, Composer, Arranger) ---
-                    // 使用 Project Info 中的 Title，如果没有则使用项目名
-                    const displayTitle = projectMeta.title || d.name;
-                    finalLines.push(`曲目名称 Title：${displayTitle}`);
-                    finalLines.push("");
-
-                    if (projectMeta.composer) {
-                        finalLines.push(`作曲 Composer：${projectMeta.composer}`);
-                        finalLines.push("");
-                    }
-                    if (projectMeta.arranger) {
-                        finalLines.push(`编曲 Arranger：${projectMeta.arranger}`);
-                        finalLines.push("");
-                    }
-
-                    // --- 2. Orchestra Recording ---
-                    if (!isOrchEmpty) {
-                        finalLines.push("管弦乐队录制（Orchestra Recording）");
-                        finalLines.push("");
-                        // 这里目前没有 Orchestra Name 字段，如果将来加了可以在这里输出
-                        // finalLines.push(`乐队 Orchestra：${projectMeta.orchestraName || '...'}`);
-                        finalLines.push("指挥 Conductor：[请填写]");
-
-                        if (d.orch.strings.size > 0) {
-                            finalLines.push("");
-                            finalLines.push("弦乐组 Strings：");
-                            d.orch.strings.forEach(s => finalLines.push(s));
-                        }
-
-                        printInstMap("木管组 Woodwinds", d.orch.woodwinds);
-                        printInstMap("铜管组 Brass", d.orch.brass);
-                        printInstMap("打击乐组 Percussion", d.orch.percussion);
-                        printInstMap("色彩乐器 Keyboards & Harp", d.orch.others);
-
-                        finalLines.push("");
-                        printTechBlock(d.orchTech);
-                        finalLines.push("");
-                    }
-
-                    // --- 3. Instruments Recording ---
-                    if (hasSolo) {
-                        finalLines.push("乐器录制（Instruments Recording）");
-                        finalLines.push("");
-                        printInstMap("", d.solo); // 乐器名：人名
-
-                        finalLines.push("");
-                        printTechBlock(d.soloTech);
-                        finalLines.push("");
-                    }
-
-                    // --- 4. Post Production (Mixing, Mastering, Editing) ---
-                    // 检查是否有任何后期信息
-                    const hasPostInfo = (d.editors && d.editors.size > 0) ||
-                        projectMeta.mixingEngineer ||
-                        projectMeta.mixingStudio ||
-                        projectMeta.masteringEngineer ||
-                        projectMeta.masteringStudio ||
-                        projectMeta.dolbyStudio;
-
-                    if (hasPostInfo) {
-                        finalLines.push(""); // 与上文隔开
-                        finalLines.push("声音后期制作（Editing, Mixing & Mastering）");
-                        finalLines.push("");
-
-                        // 音频编辑 (来自 Edit Info 弹窗)
-                        if (d.editors && d.editors.size > 0) {
-                            finalLines.push(`音频编辑 Audio Editor：${[...d.editors].join(' / ')}`);
-                        }
-
-                        // 混音 & 母带 (来自 Project Info 弹窗)
-                        if (projectMeta.mixingEngineer) finalLines.push(`混音工程师 Mixing Engineer：${projectMeta.mixingEngineer}`);
-                        if (projectMeta.mixingStudio) finalLines.push(`混音工作室 Mixing Studio：${projectMeta.mixingStudio}`);
-
-                        if (projectMeta.masteringEngineer) finalLines.push(`母带工程师 Mastering Engineer：${projectMeta.masteringEngineer}`);
-                        if (projectMeta.masteringStudio) finalLines.push(`母带工作室 Mastering Studio：${projectMeta.masteringStudio}`);
-
-                        if (projectMeta.dolbyStudio) finalLines.push(`杜比全景声母带工作室 Dolby Atmos Mastering Studio：${projectMeta.dolbyStudio}`);
-                    }
-
-                    // --- 5. Production & Publishing ---
-                    if (projectMeta.producer) {
-                        finalLines.push("");
-                        finalLines.push("音乐制作人（Music Producer）");
-                        finalLines.push(projectMeta.producer);
-                    }
-
-                    if (projectMeta.publishedBy) {
-                        finalLines.push("");
-                        finalLines.push("发行（Published by）");
-                        finalLines.push(projectMeta.publishedBy);
-                    }
-
-                    if (projectMeta.producedBy) {
-                        finalLines.push("");
-                        finalLines.push("出品（Produced by）");
-                        finalLines.push(projectMeta.producedBy);
-                    }
-
-                    finalLines.push("------------------------------------------------");
-                    finalLines.push("");
-                });
-
-                generatedCreditText.value = finalLines.join('\n');
-                showCreditModal.value = true;
-            };
-
-            const copyCreditText = () => {
-                if (!generatedCreditText.value) return;
-                navigator.clipboard.writeText(generatedCreditText.value).then(() => {
-                    window.triggerTouchHaptic('Success');
-                    // 按钮文字变一下反馈 (可选)
-                    const btn = document.querySelector('.modal-window button i.fa-copy')?.parentNode;
-                    if(btn) {
-                        const originalText = btn.innerHTML;
-                        btn.innerHTML = '<i class="fa-solid fa-check"></i> 已复制';
-                        setTimeout(() => btn.innerHTML = originalText, 2000);
-                    }
-                });
             };
 
             // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)
@@ -1337,298 +893,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
             };
 
-            // 1. 开始拖拽任务 (修复版: 分割条也会避让)
-            const startTrackDrag = (e, item) => {
-                // A. 🛡️ 防误触检测
-                if (e.target.closest('input, button, select, i.fa-trash-can, i.fa-scissors, i.fa-eraser, .cursor-pointer')) {
-                    return;
-                }
-
-                if (trackDragState || trackListFeature?.isDividerDragging?.()) return;
-
-                const isTouch = e.type === 'touchstart';
-                const triggerEl = e.currentTarget; // 被拖拽的卡片
-                const touch = isTouch ? e.touches[0] : e;
-
-                const executeDrag = () => {
-                    // 1. 视觉反馈：原元素彻底透明
-                    triggerEl.style.setProperty('opacity', '0', 'important');
-
-                    const rect = triggerEl.getBoundingClientRect();
-                    const container = trackListContainerRef.value;
-                    const initialScrollTop = container ? container.scrollTop : 0;
-
-                    // 🟢 关键修改 1: 获取所有“可移动元素” (包含卡片 和 分割条)
-                    // 注意: Tailwind 的 group/divider 类名中有斜杠，需要转义
-                    const allMovableEls = Array.from(container.querySelectorAll('.track-card, .group\\/divider'));
-
-                    // 找到自己在 DOM 中的索引 (Visual Index)
-                    const domStartIndex = allMovableEls.indexOf(triggerEl);
-                    if (domStartIndex === -1) return;
-
-                    // 找到自己在 Data 数组中的索引 (Data Index)
-                    const dataStartIndex = trackListData.value.items.findIndex(i => i.id === item.id);
-
-                    // 计算所有元素的高度 (含margin)
-                    const elementHeights = allMovableEls.map(el => {
-                        const style = window.getComputedStyle(el);
-                        return el.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-                    });
-
-                    // 2. 创建替身
-                    const ghost = triggerEl.cloneNode(true);
-                    ghost.style.opacity = '1';
-                    ghost.classList.remove('hover:border-white/10', 'group');
-                    Object.assign(ghost.style, {
-                        position: 'fixed', top: `${rect.top}px`, left: `${rect.left}px`,
-                        width: `${rect.width}px`, height: `${rect.height}px`,
-                        zIndex: '10000',
-                        backgroundColor: isDark.value ? '#2c2c2e' : '##F4F4F5',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                        transform: 'scale(1.02)',
-                        transition: 'none',
-                        pointerEvents: 'none',
-                        borderRadius: '8px'
-                    });
-                    document.body.appendChild(ghost);
-
-                    // 3. 初始化状态
-                    trackDragState = {
-                        item,
-                        targetEl: triggerEl,
-                        ghost,
-
-                        allMovableEls,      // 🟢 存储所有元素(卡片+分割条)
-                        elementHeights,     // 🟢 存储所有高度
-                        itemHeight: elementHeights[domStartIndex], // 当前被拖元素的高度
-
-                        fingerOffset: touch.clientY - rect.top,
-                        lastClientY: touch.clientY,
-                        lastScrollTop: initialScrollTop,
-                        cumulativeDelta: 0,
-
-                        domStartIndex,      // 初始 DOM 索引
-                        virtualDomIndex: domStartIndex, // 当前视觉所在的 DOM 索引
-
-                        dataStartIndex,     // 初始数据索引 (用于最终 splice)
-                        virtualDataIndex: dataStartIndex // 当前数据所在的索引
-                    };
-
-                    window.triggerTouchHaptic('Medium');
-                };
-
-                if (isTouch) {
-                    trackDragTimer = setTimeout(() => executeDrag(), 300);
-                    trackDragState = { preStartX: touch.clientX, preStartY: touch.clientY };
-                    window.addEventListener('touchmove', onTrackDragMove, {passive: false});
-                    window.addEventListener('touchend', onTrackDragEnd);
-                    window.addEventListener('touchcancel', onTrackDragEnd);
-                } else {
-                    e.preventDefault();
-                    executeDrag();
-                    window.addEventListener('mousemove', onTrackDragMove);
-                    window.addEventListener('mouseup', onTrackDragEnd);
-                }
-            };
-
-            // 2. 拖拽过程 (修复版: 逻辑通用化)
-            const onTrackDragMove = (e) => {
-                if (!trackDragState || !trackDragState.ghost) {
-                    if (trackDragTimer && e.type === 'touchmove') {
-                        const touch = e.touches[0];
-                        const moveY = Math.abs(touch.clientY - trackDragState.preStartY);
-                        if (moveY > 10) {
-                            clearTimeout(trackDragTimer);
-                            trackDragTimer = null;
-                            trackDragState = null;
-                        }
-                    }
-                    return;
-                }
-
-                if (e.cancelable) e.preventDefault();
-
-                const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
-                // 解构新状态变量
-                const { ghost, fingerOffset, lastClientY, lastScrollTop, itemHeight, elementHeights, allMovableEls } = trackDragState;
-
-                // A. 移动替身
-                ghost.style.top = `${clientY - fingerOffset}px`;
-
-                // B. 计算滚动增量
-                const container = trackListContainerRef.value;
-                const currentScrollTop = container ? container.scrollTop : 0;
-                const dy = clientY - lastClientY;
-                const dScroll = currentScrollTop - lastScrollTop;
-
-                trackDragState.lastClientY = clientY;
-                trackDragState.lastScrollTop = currentScrollTop;
-                trackDragState.cumulativeDelta += (dy + dScroll);
-
-                let indexChanged = false;
-
-                // 🟢 核心修改: 使用 virtualDomIndex 和 allMovableEls 进行判断
-                // 这样无论是卡片还是分割条，只要高度符合阈值，都会触发交换逻辑
-
-                // 向下移动
-                while (trackDragState.cumulativeDelta > 0) {
-                    // 到底了
-                    if (trackDragState.virtualDomIndex >= elementHeights.length - 1) break;
-
-                    const nextDomIndex = trackDragState.virtualDomIndex + 1;
-                    const threshold = elementHeights[nextDomIndex] / 2 + itemHeight / 2;
-
-                    if (trackDragState.cumulativeDelta > threshold) {
-                        trackDragState.cumulativeDelta -= elementHeights[nextDomIndex]; // 减去被跨越元素的高度
-                        trackDragState.virtualDomIndex++;
-
-                        // 🟢 只有跨越的是卡片时，数据索引才+1；跨越分割条时，数据索引不变
-                        if (allMovableEls[nextDomIndex].classList.contains('track-card')) {
-                            trackDragState.virtualDataIndex++;
-                        }
-
-                        indexChanged = true;
-                    } else break;
-                }
-
-                // 向上移动
-                while (trackDragState.cumulativeDelta < 0) {
-                    if (trackDragState.virtualDomIndex <= 0) break;
-
-                    const prevDomIndex = trackDragState.virtualDomIndex - 1;
-                    // 计算阈值时使用上一个元素的高度
-                    const threshold = elementHeights[prevDomIndex] / 2 + itemHeight / 2;
-
-                    if (trackDragState.cumulativeDelta < -threshold) {
-                        trackDragState.cumulativeDelta += elementHeights[prevDomIndex];
-                        trackDragState.virtualDomIndex--;
-
-                        // 🟢 只有跨越的是卡片时，数据索引才-1
-                        if (allMovableEls[prevDomIndex].classList.contains('track-card')) {
-                            trackDragState.virtualDataIndex--;
-                        }
-
-                        indexChanged = true;
-                    } else break;
-                }
-
-                // C. 应用视觉变换 (对所有 allMovableEls 生效)
-                if (indexChanged || true) {
-                    if (indexChanged) window.triggerTouchHaptic('Light');
-
-                    const vDomIdx = trackDragState.virtualDomIndex;
-                    const domStartIdx = trackDragState.domStartIndex;
-
-                    trackDragState.allMovableEls.forEach((el, i) => {
-                        // 跳过自己
-                        if (i === domStartIdx) return;
-
-                        let translateY = 0;
-                        // 逻辑与之前相同，只是现在 i 代表 DOM 索引
-                        if (domStartIdx < vDomIdx) {
-                            // 向下拖：中间的元素向上移
-                            if (i > domStartIdx && i <= vDomIdx) translateY = -itemHeight;
-                        } else if (domStartIdx > vDomIdx) {
-                            // 向上拖：中间的元素向下移
-                            if (i >= vDomIdx && i < domStartIdx) translateY = itemHeight;
-                        }
-
-                        el.style.transform = translateY !== 0 ? `translate3d(0, ${translateY}px, 0)` : '';
-                        el.style.transition = 'transform 0.2s cubic-bezier(0.2, 0, 0, 1)';
-                    });
-                }
-
-                handleTrackListAutoScroll(clientY);
-            };
-
-            // 3. 拖拽结束 (修复版: 完美支持分割条跨越检测)
-            const onTrackDragEnd = () => {
-                if (trackDragTimer) {
-                    clearTimeout(trackDragTimer);
-                    trackDragTimer = null;
-                }
-
-                if (!trackDragState || !trackDragState.ghost) {
-                    trackDragState = null;
-                    window.removeEventListener('touchmove', onTrackDragMove);
-                    window.removeEventListener('touchend', onTrackDragEnd);
-                    window.removeEventListener('touchcancel', onTrackDragEnd);
-                    return;
-                }
-
-                const { targetEl, ghost, allMovableEls, dataStartIndex, virtualDataIndex, domStartIndex, virtualDomIndex, item } = trackDragState;
-
-                // 1. 恢复显示 & 清理
-                if (targetEl) targetEl.style.opacity = '';
-                if (ghost && document.body.contains(ghost)) document.body.removeChild(ghost);
-
-                allMovableEls.forEach(el => {
-                    el.style.transform = '';
-                    el.style.transition = '';
-                });
-                stopTrackListAutoScroll();
-
-                // 🟢 关键修改: 只要视觉位置变了(跨越了分割条) OR 数据位置变了，都要处理
-                if (domStartIndex !== virtualDomIndex || dataStartIndex !== virtualDataIndex) {
-                    const items = trackListData.value.items;
-                    const previousSectionIndex = item.sectionIndex;
-
-                    // A. 执行数据移动 (如果跨越了其他任务)
-                    // 注意：如果只跨越了分割条，virtualDataIndex 可能等于 dataStartIndex，此时数组不需变动
-                    if (dataStartIndex !== virtualDataIndex) {
-                        items.splice(dataStartIndex, 1);
-                        items.splice(virtualDataIndex, 0, item);
-                    }
-
-                    // B. 计算新的 SectionIndex (核心修复逻辑)
-                    // 我们需要模拟一下 DOM 移动后的状态，看看“我的头上是谁”
-                    const tempDomArray = [...allMovableEls];
-                    const movedEl = tempDomArray.splice(domStartIndex, 1)[0];
-                    tempDomArray.splice(virtualDomIndex, 0, movedEl);
-
-                    const prevEl = tempDomArray[virtualDomIndex - 1]; // 我上面的元素
-
-                    if (prevEl && prevEl.id && prevEl.id.startsWith('sec-divider-')) {
-                        // 🟢 情况1: 头上是分割条 -> 说明我被拖到了该分割条的下方 -> 继承该分割条的 Section
-                        // ID 格式为 "sec-divider-2"，取出最后的数字
-                        const newSection = parseInt(prevEl.id.replace('sec-divider-', ''));
-                        item.sectionIndex = newSection;
-                    } else {
-                        // 🟢 情况2: 头上是普通任务 或 没东西(在顶部) -> 走标准继承逻辑
-                        if (items.length > 1) {
-                            let newSectionIndex = 0;
-
-                            if (virtualDataIndex === 0) {
-                                // 如果插在队首，尝试继承原来队首(现在是老二)的 section
-                                // (防止队首就是 section 0 的情况)
-                                newSectionIndex = items[1].sectionIndex;
-                            } else {
-                                // 否则继承前一个任务的 section
-                                newSectionIndex = items[virtualDataIndex - 1].sectionIndex;
-                            }
-                            item.sectionIndex = newSectionIndex;
-                        }
-                    }
-
-                    trackListFeature.syncTrackItemScheduleSection(item, previousSectionIndex);
-
-                    // 保存 & 反馈
-                    pushHistory();
-                    window.triggerTouchHaptic('Success');
-
-                    // 强制重新排序以刷新分割条位置 (Vue 响应式有时候需要这一下)
-                    // autoSortTrackList();
-                }
-
-                trackDragState = null;
-
-                window.removeEventListener('touchmove', onTrackDragMove);
-                window.removeEventListener('touchend', onTrackDragEnd);
-                window.removeEventListener('touchcancel', onTrackDragEnd);
-                window.removeEventListener('mousemove', onTrackDragMove);
-                window.removeEventListener('mouseup', onTrackDragEnd);
-            };
-
             // 🟢 [重写] 过滤日程 (修复搜索定位问题)
             const filteredScheduledTasks = computed(() => {
                 const rawQuery = globalSearchQuery.value.trim().toLowerCase();
@@ -1770,66 +1034,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     });
                 });
             });
-
-            const showRecInfoModal = ref(false);
-            const recInfoForm = reactive({
-                studio: '',
-                engineer: '',
-                operator: '',
-                assistant: '', // 🟢 新增
-                notes: ''
-            });
-
-            const openRecInfoModal = () => {
-                const task = trackListData.value.taskRef;
-                if (!task) return;
-
-                // 判断当前模式 (根据侧边栏 Tab)
-                const isEditMode = sidebarTab.value === 'project';
-
-                // 如果是编辑模式，读 editInfo；否则读 recordingInfo
-                const info = isEditMode ? (task.editInfo || {}) : (task.recordingInfo || {});
-
-                recInfoForm.studio = info.studio || '';
-                recInfoForm.engineer = info.engineer || ''; // 这里可能是 Edit Engineer
-                recInfoForm.operator = info.operator || '';
-                recInfoForm.assistant = info.assistant || '';
-                recInfoForm.notes = info.notes || '';
-
-                showRecInfoModal.value = true;
-            };
-
-            // 保存录音信息
-            const saveRecInfo = () => {
-                const task = trackListData.value.taskRef;
-                if (!task) return;
-
-                const isEditMode = sidebarTab.value === 'project';
-
-                const newData = {
-                    studio: recInfoForm.studio.trim(),
-                    engineer: recInfoForm.engineer.trim(),
-                    operator: recInfoForm.operator.trim(),
-                    assistant: recInfoForm.assistant.trim(),
-                    notes: recInfoForm.notes.trim()
-                };
-
-                if (isEditMode) {
-                    task.editInfo = newData; // ✅ 存入编辑信息
-                } else {
-                    task.recordingInfo = newData; // ✅ 存入录音信息
-                }
-
-                // 强制更新视图
-                const idx = scheduledTasks.value.findIndex(t => t.scheduleId === task.scheduleId);
-                if (idx !== -1) {
-                    scheduledTasks.value[idx] = { ...task };
-                }
-
-                pushHistory();
-                window.triggerTouchHaptic('Success');
-                showRecInfoModal.value = false;
-            };
 
             const savedSidebarState = storageService.getItem('musche_sidebar_open');
             // 🟢 修改: 默认为 true (打开状态)
@@ -4040,77 +3244,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 operators: [],
                 assistants: []
             });
-
-            // 🟢 [新增] 录音信息弹窗的下拉菜单状态
-            const activeRecDropdown = ref(null); // 'studio', 'engineer', 'operator', 'assistant'
-            const recDropdownSearch = ref('');
-
-            // 🟢 [新增] 获取当前下拉菜单的可选列表 (支持搜索)
-            const filteredRecOptions = computed(() => {
-                const type = activeRecDropdown.value;
-                const search = recDropdownSearch.value.toLowerCase().trim();
-                let list = [];
-
-                if (type === 'studio') list = settings.studios;
-                else if (type === 'engineer') list = settings.engineers;
-                else if (type === 'operator') list = settings.operators;
-                else if (type === 'assistant') list = settings.assistants;
-
-                if (!list) return [];
-
-                // 过滤
-                let result = list.filter(item => item.name.toLowerCase().includes(search));
-
-                // 排序 (按名称)
-                result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }));
-                return result;
-            });
-
-            // 🟢 [新增] 选中下拉项
-            const selectRecOption = (item) => {
-                // 将选中的名字填入 form
-                if (activeRecDropdown.value) {
-                    recInfoForm[activeRecDropdown.value] = item.name;
-                }
-                // 关闭菜单
-                activeRecDropdown.value = null;
-                recDropdownSearch.value = '';
-            };
-
-            // 🟢 [新增] 在下拉中新建条目
-            const createRecOption = () => {
-                const name = recDropdownSearch.value.trim();
-                const type = activeRecDropdown.value;
-                if (!name || !type) return;
-
-                // 1. 存入 settings
-                let list = null;
-                if (type === 'studio') list = settings.studios;
-                else if (type === 'engineer') list = settings.engineers;
-                else if (type === 'operator') list = settings.operators;
-                else if (type === 'assistant') list = settings.assistants;
-
-                if (list) {
-                    // 查重
-                    const exists = list.some(i => i.name.toLowerCase() === name.toLowerCase());
-                    if (!exists) {
-                        list.push({
-                            id: generateUniqueId('REC'), // 简单生成一个ID
-                            name: name
-                        });
-                        pushHistory(); // 保存历史
-                    }
-                }
-
-                // 2. 填入输入框
-                recInfoForm[type] = name;
-
-                // 3. 关闭
-                activeRecDropdown.value = null;
-                recDropdownSearch.value = '';
-                window.triggerTouchHaptic('Success');
-            };
-
             currentSessionId.value = 'S_DEFAULT';
 
             // 🟢 新增: 通用排序函数 (优先按 Group 排序，分组相同的按 Name 拼音排序)
@@ -4531,63 +3664,6 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const sortField = ref('status'); // 'name' | 'duration'
             const sortAsc = ref(true);     // true=正序(A-Z, 小-大), false=倒序(Z-A, 大-小)
 
-            // --- 🟢 新增: 录音元数据管理逻辑 (Settings页面用) ---
-            const newRecInputs = reactive({
-                studio: '',
-                engineer: '',
-                operator: '',
-                assistant: ''
-            });
-
-            const addRecItem = (type) => {
-                // 🟢 1. 优先读取输入框中当前填写的文字
-                let val = recInfoForm[type];
-
-                // 如果输入框是空的，才弹窗询问 (作为备选方案)
-                if (!val || !val.trim()) {
-                    val = prompt(`Enter new ${type} name:`);
-                }
-
-                if (val && val.trim()) {
-                    const cleanVal = val.trim();
-                    const listKey = type + 's'; // studios, engineers...
-
-                    // 🟢 2. 检查是否重复
-                    const exists = settings[listKey].some(item => item.name === cleanVal);
-
-                    if (!exists) {
-                        // 保存到元数据列表
-                        settings[listKey].push({
-                            id: Date.now(),
-                            name: cleanVal
-                        });
-                        window.triggerTouchHaptic('Success');
-
-                        // 可选：添加成功后给一点视觉反馈，或者保持下拉框开启以便确认
-                        // alert(`Saved "${cleanVal}" to library.`);
-                    } else {
-                        // 已经在库里了，不做任何事，或者提示已存在
-                    }
-                }
-            };
-
-            const removeRecItem = (type, id) => {
-                let list = null;
-                if (type === 'studio') list = settings.studios;
-                else if (type === 'engineer') list = settings.engineers;
-                else if (type === 'operator') list = settings.operators;
-                else if (type === 'assistant') list = settings.assistants;
-
-                if (list) {
-                    const idx = list.findIndex(i => i.id === id);
-                    if (idx !== -1) {
-                        list.splice(idx, 1);
-                        pushHistory();
-                        window.triggerTouchHaptic('Medium');
-                    }
-                }
-            };
-
             // --- 🟢 分组选择器状态管理 ---
 
             // 2. 获取分组后的列表 (核心逻辑) - 🟢 修复: 启用 numeric: true 自然排序
@@ -4910,6 +3986,36 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     }
                 }
             };
+
+            const recInfoFeature = registerRecInfoFeature({
+                refs: {
+                    trackListData,
+                    sidebarTab,
+                    scheduledTasks,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    generateUniqueId,
+                },
+                actions: {
+                    pushHistory,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            const showRecInfoModal = recInfoFeature.showRecInfoModal;
+            const recInfoForm = recInfoFeature.recInfoForm;
+            const openRecInfoModal = recInfoFeature.openRecInfoModal;
+            const saveRecInfo = recInfoFeature.saveRecInfo;
+            const activeRecDropdown = recInfoFeature.activeRecDropdown;
+            const recDropdownSearch = recInfoFeature.recDropdownSearch;
+            const filteredRecOptions = recInfoFeature.filteredRecOptions;
+            const selectRecOption = recInfoFeature.selectRecOption;
+            const createRecOption = recInfoFeature.createRecOption;
+            const newRecInputs = recInfoFeature.newRecInputs;
+            const addRecItem = recInfoFeature.addRecItem;
+            const removeRecItem = recInfoFeature.removeRecItem;
 
             // 🟢 修改后的 exportToICS
             const exportToICS = () => {
@@ -5415,6 +4521,43 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                 // 默认灰色
                 return isBorder ? '#9ca3af' : '#f3f4f6';
             };
+
+            const creditsFeature = registerCreditsFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                    showCreditModal,
+                    generatedCreditText,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    getNameById,
+                },
+                actions: {
+                    openAlertModal,
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            const openCreditModal = creditsFeature.openCreditModal;
+            const copyCreditText = creditsFeature.copyCreditText;
+
+            const projectInfoFeature = registerProjectInfoFeature({
+                refs: {
+                    showProjectInfoModal,
+                },
+                state: {
+                    settings,
+                },
+                actions: {
+                    triggerTouchHaptic: window.triggerTouchHaptic,
+                },
+            });
+            const projectInfoForm = projectInfoFeature.projectInfoForm;
+            const openProjectInfoModal = projectInfoFeature.openProjectInfoModal;
+            const saveProjectInfo = projectInfoFeature.saveProjectInfo;
 
             // V9.5 任务移动助手：添加分钟
             const addMinutesToTime = (timeStr, minutes) => addMinutesToTimeValue(timeStr, minutes, {
@@ -6851,6 +5994,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const isStringGroup = (...args) => trackListFeature.isStringGroup(...args);
             const sortTrackList = (...args) => trackListFeature.sortTrackList(...args);
             const autoSortTrackList = (...args) => trackListFeature.autoSortTrackList(...args);
+            const startTrackDrag = (...args) => trackListFeature.startTrackDrag(...args);
 
             // 🟢 修改: 增加 shouldSaveHistory 参数，防止拖动时卡顿
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
@@ -6865,6 +6009,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     scheduledTasks,
                     showTrackList,
                     isMobile,
+                    isDark,
                 },
                 state: {
                     settings,

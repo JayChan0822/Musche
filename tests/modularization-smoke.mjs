@@ -20,7 +20,13 @@ const viteConfig = readFileSync(viteConfigPath, 'utf8');
 const componentsCss = readFileSync(resolve(rootDir, 'app/styles/components.css'), 'utf8');
 const trackListFeature = readFileSync(resolve(rootDir, 'app/scripts/features/track-list.js'), 'utf8');
 const importMidiFeature = readFileSync(resolve(rootDir, 'app/scripts/features/import-midi.js'), 'utf8');
+const creditsFeature = readFileSync(resolve(rootDir, 'app/scripts/features/credits.js'), 'utf8');
+const projectInfoFeature = readFileSync(resolve(rootDir, 'app/scripts/features/project-info.js'), 'utf8');
+const recInfoFeature = readFileSync(resolve(rootDir, 'app/scripts/features/rec-info.js'), 'utf8');
 const { registerTrackListFeature } = await import('../app/scripts/features/track-list.js');
+const { registerTaskEditorFeature } = await import('../app/scripts/features/task-editor.js');
+const { registerProjectInfoFeature } = await import('../app/scripts/features/project-info.js');
+const { registerRecInfoFeature } = await import('../app/scripts/features/rec-info.js');
 
 assert.equal(
     packageJson.scripts?.['verify:modularization'],
@@ -60,10 +66,14 @@ assert.match(
     /<script type="module" src="\.\/scripts\/app\.js"><\/script>/,
     'index.html must load the module app entrypoint'
 );
-assert.doesNotMatch(
+assert.match(
     indexHtml,
     /<script src="\.\/config\.local\.js"><\/script>/,
-    'index.html should not hard-load config.local.js because hosted builds must rely on Vite environment variables'
+    'index.html must load local runtime config before the module app entrypoint'
+);
+assert.ok(
+    indexHtml.indexOf('<script src="./config.local.js"></script>') < indexHtml.indexOf('<script type="module" src="./scripts/app.js"></script>'),
+    'index.html must load local runtime config before app.js reads Supabase config'
 );
 
 assert.ok(!/<style[\s>]/i.test(indexHtml), 'index.html should not contain an inline style block');
@@ -202,6 +212,72 @@ assert.match(
     'track-list feature must expose a helper for syncing dragged track sections back to scheduled tasks'
 );
 
+assert.match(
+    trackListFeature,
+    /startTrackDrag/,
+    'track-list feature must own row drag handlers for dragging tracks between sections'
+);
+
+assert.doesNotMatch(
+    appScript,
+    /let\s+trackDragState|let\s+trackDragTimer|const\s+startTrackDrag\s*=\s*\(e,\s*item\)\s*=>/,
+    'app.js should not retain TrackList row drag state or handler bodies after extracting track-list behavior'
+);
+
+assert.match(
+    creditsFeature,
+    /registerCreditsFeature/,
+    'credits feature must expose a registration function for Project Credits logic'
+);
+
+assert.match(
+    appScript,
+    /registerCreditsFeature\(/,
+    'app.js must register the credits feature instead of owning Project Credits generation directly'
+);
+
+assert.doesNotMatch(
+    appScript,
+    /const\s+openCreditModal\s*=\s*\(\)\s*=>\s*\{\s*const\s+sessId/,
+    'app.js should not retain the Project Credits generation body after extraction'
+);
+
+assert.match(
+    projectInfoFeature,
+    /registerProjectInfoFeature/,
+    'project-info feature must expose a registration function for Project Info modal logic'
+);
+
+assert.match(
+    appScript,
+    /registerProjectInfoFeature\(/,
+    'app.js must register the project-info feature instead of owning Project Info modal logic'
+);
+
+assert.doesNotMatch(
+    appScript,
+    /const\s+projectInfoForm\s*=\s*reactive\(|const\s+openProjectInfoModal\s*=\s*\(project\)\s*=>\s*\{/,
+    'app.js should not retain the Project Info form or modal handler bodies after extraction'
+);
+
+assert.match(
+    recInfoFeature,
+    /registerRecInfoFeature/,
+    'rec-info feature must expose a registration function for Rec/Edit Info modal logic'
+);
+
+assert.match(
+    appScript,
+    /registerRecInfoFeature\(/,
+    'app.js must register the rec-info feature instead of owning Rec/Edit Info modal logic'
+);
+
+assert.doesNotMatch(
+    appScript,
+    /const\s+showRecInfoModal\s*=\s*ref\(|const\s+openRecInfoModal\s*=\s*\(\)\s*=>\s*\{|const\s+filteredRecOptions\s*=\s*computed\(/,
+    'app.js should not retain Rec/Edit Info state, modal handlers, or dropdown computed bodies after extraction'
+);
+
 assert.doesNotMatch(
     appScript,
     /else if \(sidebarTab\.value === 'project'\)\s*\{\s*sidebarTab\.value = 'instrument';\s*\}/,
@@ -233,6 +309,9 @@ const requiredFiles = [
     'app/scripts/features/sidebar-stats.js',
     'app/scripts/features/task-editor.js',
     'app/scripts/features/track-list.js',
+    'app/scripts/features/credits.js',
+    'app/scripts/features/project-info.js',
+    'app/scripts/features/rec-info.js',
     'app/scripts/features/split-task.js',
     'app/scripts/features/midi-manager.js',
     'scripts/supabase-keepalive.mjs'
@@ -304,6 +383,212 @@ for (const relativePath of requiredFiles) {
     assert.equal(movedSchedule.startTime, '11:00');
     assert.equal(notificationTarget, movedSchedule);
     assert.equal(pruneCalled, false, 'moving an individually scheduled track must not prune its old schedule section');
+}
+
+{
+    const poolItem = {
+        id: 'T_DELETE',
+        musicianId: 'M1',
+        projectId: 'P1',
+        instrumentId: 'I1',
+        musicDuration: '03:00',
+        estDuration: '01:00:00',
+        ratio: 20
+    };
+    const scheduledTask = {
+        scheduleId: 501,
+        templateId: 'T_DELETE',
+        musicianId: 'M1',
+        projectId: 'P1',
+        instrumentId: 'I1'
+    };
+    const refs = {
+        itemPool: { value: [poolItem] },
+        scheduledTasks: { value: [scheduledTask] },
+        editingItem: { value: {} },
+        editingSource: { value: '' },
+        showEditor: { value: false },
+        sidebarTab: { value: 'musician' },
+        trackListData: { value: { viewType: 'musician' } }
+    };
+    let cleanupCalled = false;
+    let historyPushed = false;
+
+    const feature = registerTaskEditorFeature({
+        refs,
+        split: {
+            ensureItemSplitViews: () => {},
+            normalizeSplitViewType: (viewType) => viewType || 'musician',
+            getSplitViewState: () => ({ splitFromId: null }),
+            setItemSplitState: () => {},
+            syncLegacySplitFields: () => {},
+            rebalanceSplitFamilyDuration: () => ({ ok: true }),
+            syncFamilyLegacyFields: () => {},
+            syncFamilySharedIdentity: () => {},
+            syncFamilyOrchestration: () => {},
+            syncFamilyTotalDuration: () => {},
+            syncScheduledDurationsFromFamily: () => {},
+        },
+        utils: {
+            calculateEstTime: () => '01:00:00',
+            getDefaultRatio: () => 20,
+        },
+        actions: {
+            checkCanDeleteSplit: () => true,
+            restoreSplitTime: () => false,
+            clearPoolRecord: () => {},
+            cleanupEmptySchedules: () => { cleanupCalled = true; },
+            openAlertModal: () => {},
+            autoUpdateEfficiency: () => {},
+            updateTaskNotification: () => {},
+            pushHistory: () => { historyPushed = true; },
+            cancelNotification: () => {},
+        }
+    });
+
+    feature.openEditModal(poolItem, 'pool');
+    feature.deleteEditingItem();
+
+    assert.deepEqual(refs.itemPool.value, [], 'deleting an ordinary pool edit item must remove the pool item');
+    assert.deepEqual(refs.scheduledTasks.value, [], 'deleting a pool edit item must remove scheduled copies');
+    assert.equal(refs.showEditor.value, false, 'Delete should close the Edit Event modal after deleting');
+    assert.equal(cleanupCalled, true, 'pool deletion should prune empty schedules');
+    assert.equal(historyPushed, true, 'pool deletion should push history once');
+}
+
+{
+    const refs = {
+        showProjectInfoModal: { value: false },
+    };
+    const state = {
+        settings: {
+            projects: [{
+                id: 'P_INFO',
+                name: 'Visible Project Name',
+                composer: 'Existing Composer',
+                mixingStudio: 'Existing Studio',
+            }],
+        },
+    };
+    let hapticType = null;
+
+    const feature = registerProjectInfoFeature({
+        refs,
+        state,
+        actions: {
+            triggerTouchHaptic: (type) => { hapticType = type; },
+        },
+    });
+
+    feature.openProjectInfoModal(state.settings.projects[0]);
+
+    assert.equal(feature.projectInfoForm.id, 'P_INFO', 'Project Info form must track the edited project id');
+    assert.equal(feature.projectInfoForm.title, 'Visible Project Name', 'Project Info title should default to the project name');
+    assert.equal(feature.projectInfoForm.composer, 'Existing Composer', 'Project Info form should backfill existing metadata');
+    assert.equal(feature.projectInfoForm.mixingStudio, 'Existing Studio', 'Project Info form should backfill technical metadata');
+    assert.equal(refs.showProjectInfoModal.value, true, 'opening Project Info should show the modal');
+
+    feature.projectInfoForm.title = 'Updated Title';
+    feature.projectInfoForm.producer = 'Updated Producer';
+    feature.saveProjectInfo();
+
+    assert.equal(state.settings.projects[0].title, 'Updated Title', 'saving Project Info should merge form fields back to the project');
+    assert.equal(state.settings.projects[0].producer, 'Updated Producer', 'saving Project Info should preserve updated producer metadata');
+    assert.equal(refs.showProjectInfoModal.value, false, 'saving Project Info should close the modal');
+    assert.equal(hapticType, 'Success', 'saving Project Info should trigger success haptic feedback');
+}
+
+{
+    const scheduledTask = {
+        scheduleId: 8801,
+        recordingInfo: {
+            studio: 'Old Studio',
+            engineer: 'Old Engineer',
+            operator: '',
+            assistant: '',
+            notes: 'Old Notes',
+        },
+        editInfo: {
+            studio: 'Edit Studio',
+            engineer: 'Edit Engineer',
+            operator: '',
+            assistant: '',
+            notes: 'Edit Notes',
+        },
+    };
+    const refs = {
+        trackListData: { value: { taskRef: scheduledTask } },
+        sidebarTab: { value: 'musician' },
+        scheduledTasks: { value: [scheduledTask] },
+    };
+    const state = {
+        settings: {
+            studios: [{ id: 'S1', name: 'Old Studio' }],
+            engineers: [{ id: 'E1', name: 'Old Engineer' }],
+            operators: [],
+            assistants: [],
+        },
+    };
+    let historyCount = 0;
+    let hapticType = null;
+
+    const feature = registerRecInfoFeature({
+        refs,
+        state,
+        utils: {
+            generateUniqueId: () => 'REC_NEW',
+        },
+        actions: {
+            pushHistory: () => { historyCount += 1; },
+            triggerTouchHaptic: (type) => { hapticType = type; },
+            promptForValue: () => 'Prompted Name',
+        },
+    });
+
+    feature.openRecInfoModal();
+
+    assert.equal(feature.showRecInfoModal.value, true, 'opening Rec Info should show the modal');
+    assert.equal(feature.recInfoForm.studio, 'Old Studio', 'Rec Info should backfill recording metadata outside project mode');
+    assert.equal(feature.recInfoForm.notes, 'Old Notes', 'Rec Info should backfill notes outside project mode');
+
+    feature.recInfoForm.studio = '  Saved Studio  ';
+    feature.recInfoForm.engineer = 'Saved Engineer';
+    feature.saveRecInfo();
+
+    assert.deepEqual(scheduledTask.recordingInfo, {
+        studio: 'Saved Studio',
+        engineer: 'Saved Engineer',
+        operator: '',
+        assistant: '',
+        notes: 'Old Notes',
+    }, 'saving Rec Info should trim and store recordingInfo outside project mode');
+    assert.deepEqual(refs.scheduledTasks.value[0], { ...scheduledTask }, 'saving Rec Info should replace the scheduled task entry to refresh the view');
+    assert.equal(feature.showRecInfoModal.value, false, 'saving Rec Info should close the modal');
+    assert.equal(historyCount, 1, 'saving Rec Info should push history once');
+    assert.equal(hapticType, 'Success', 'saving Rec Info should trigger success haptic feedback');
+
+    refs.sidebarTab.value = 'project';
+    feature.openRecInfoModal();
+    assert.equal(feature.recInfoForm.studio, 'Edit Studio', 'Rec Info should backfill edit metadata in project mode');
+    feature.recInfoForm.notes = '  Updated Edit Notes  ';
+    feature.saveRecInfo();
+    assert.equal(scheduledTask.editInfo.notes, 'Updated Edit Notes', 'saving Rec Info should store editInfo in project mode');
+
+    feature.activeRecDropdown.value = 'engineer';
+    feature.recDropdownSearch.value = 'old';
+    assert.equal(feature.filteredRecOptions.value[0].name, 'Old Engineer', 'Rec Info dropdown should filter the active metadata list');
+    feature.selectRecOption({ id: 'E1', name: 'Old Engineer' });
+    assert.equal(feature.recInfoForm.engineer, 'Old Engineer', 'selecting a Rec Info dropdown item should fill the active form field');
+    assert.equal(feature.activeRecDropdown.value, null, 'selecting a Rec Info dropdown item should close the dropdown');
+
+    feature.activeRecDropdown.value = 'assistant';
+    feature.recDropdownSearch.value = 'New Assistant';
+    feature.createRecOption();
+    assert.deepEqual(state.settings.assistants[0], { id: 'REC_NEW', name: 'New Assistant' }, 'creating a Rec Info option should add it to the matching metadata list');
+    assert.equal(feature.recInfoForm.assistant, 'New Assistant', 'creating a Rec Info option should fill the active form field');
+
+    feature.removeRecItem('assistant', 'REC_NEW');
+    assert.deepEqual(state.settings.assistants, [], 'removing a Rec Info option should delete it from the matching metadata list');
 }
 
 console.log(`modularization smoke passed (${requiredFiles.length} JS modules checked)`);
