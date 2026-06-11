@@ -17,7 +17,7 @@ test('app bootstrap registers search through the search registrar without the pa
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createSearchFeatureRegistrar',
-    registerName: 'registerSearchFeature',
+    registerName: 'wireSearchFeature',
     modulePath: 'search-feature-registrar.js',
     label: 'search',
   });

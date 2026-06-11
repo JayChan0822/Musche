@@ -35,21 +35,21 @@ import { createAppDependencies } from './services/app-dependencies.js';
         wireNameLookupFeature,
         wireSplitViewFeature,
         wireDropdownsFeature,
-        registerViewNavigationFeature,
+        wireViewNavigationFeature,
         wireQuickAddFeature,
         wireUniversalModalFeature,
         wireOrchestrationFeature,
         registerSplitTaskFeature,
         wirePickerControlsFeature,
         registerPoolInteractionsFeature,
-        registerSearchFeature,
-        registerSidebarStatsFeature,
+        wireSearchFeature,
+        wireSidebarStatsFeature,
         wireSidebarFeature,
-        registerMobileUiFeature,
-        registerScheduleFeature,
+        wireMobileUiFeature,
+        wireScheduleFeature,
         registerScheduleInteractionsFeature,
         registerAuthFeature,
-        registerSettingsSyncFeature,
+        wireSettingsSyncFeature,
         createMuscheStore,
         createRootAppState,
         createRootSettingsState,
@@ -184,6 +184,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const sidebarFeature = wireSidebarFeature(assembly);
             assembly.features.sidebar = sidebarFeature;
             const isSidebarOpen = sidebarFeature.isSidebarOpen;
+            assembly.refs.isSidebarOpen = isSidebarOpen;
 
             let splitState;
             let checkCanSplit;
@@ -1062,48 +1063,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const saveEdit = taskEditorFeatureProxy.method('saveEdit');
             const deleteEditingItem = taskEditorFeatureProxy.method('deleteEditingItem');
 
-            scheduleFeature = registerScheduleFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                    trackListData,
-                    showTrackList,
-                    pxPerMin,
-                    sidebarTab,
-                    currentView,
-                    viewDate,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime: timeUtils.parseTime,
-                    timeToMinutes: timeUtils.timeToMinutes,
-                    getNameById,
-                    addDaysToDate: timeUtils.addDaysToDate,
-                    addMinutesToTimeValue: timeUtils.addMinutesToTimeValue,
-                },
-                actions: {
-                    pushHistory,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    getCurrentWeekDays: () => currentWeekDays.value,
-                },
-            });
-            const settingsSyncFeature = registerSettingsSyncFeature({
-                refs: {
-                    settingsExpandedGroups,
-                    settingsGroupFocus,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    generateUniqueId: idUtils.generateUniqueId,
-                    generateRandomHexColor,
-                },
-                actions: {},
-            });
+            scheduleFeature = wireScheduleFeature(assembly);
+            assembly.features.schedule = scheduleFeature;
+            const settingsSyncFeature = wireSettingsSyncFeature(assembly);
+            assembly.features.settingsSync = settingsSyncFeature;
             const {
                 inputRects,
                 settingsNameFocus,
@@ -1367,39 +1330,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             userDisplayName = authFeature.userDisplayName;
 
             let currentSidebarList;
-            searchFeature = registerSearchFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    globalSearchQuery,
-                    currentSearchIndex: store.currentSearchIndex,
-                    searchHighlightTimer: store.searchHighlightTimer,
-                    lastHighlightedTrackId: store.lastHighlightedTrackId,
-                    lastTrackSearchQuery: store.lastTrackSearchQuery,
-                    trackSearchIndex: store.trackSearchIndex,
-                    trackListSearchQuery: store.trackListSearchQuery,
-                    trackListData,
-                    showTrackList,
-                    isSearchFocused,
-                    isMobile,
-                },
-                state: {
-                    sidebarTab,
-                    settings,
-                    musicianStats: { get value() { return musicianStats.value; } },
-                    projectStats: { get value() { return projectStats.value; } },
-                    instrumentStats: { get value() { return instrumentStats.value; } },
-                },
-                utils: {
-                    getNameById,
-                },
-                actions: {
-                    openAlertModal,
-                    smartScrollToTask,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    getSidebarList: () => currentSidebarList.value,
-                },
-            });
+            searchFeature = wireSearchFeature(assembly);
+            assembly.features.search = searchFeature;
             const {
                 filteredScheduledTasks,
                 filteredSidebarList,
@@ -1410,40 +1342,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 onSearchFocus,
                 handleTrackListSearchAction,
             } = searchFeature;
+            assembly.refs.filteredScheduledTasks = filteredScheduledTasks;
 
-            const sidebarStatsFeature = registerSidebarStatsFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                    globalSearchQuery,
-                    sidebarTab,
-                    sortField,
-                    sortAsc,
-                    statClickIndexMap: store.statClickIndexMap,
-                    isMobile,
-                    expandedGroups,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime: timeUtils.parseTime,
-                    formatSecs: formatUtils.formatSecs,
-                    calculateEstTime,
-                    getNameById,
-                    getFullSearchText,
-                    smartMatch,
-                    isItemVisibleForView,
-                    peekSplitViewState,
-                },
-                actions: {
-                    pushHistory,
-                    openAlertModal,
-                    smartScrollToTask,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            const sidebarStatsFeature = wireSidebarStatsFeature(assembly);
+            assembly.features.sidebarStats = sidebarStatsFeature;
             const {
                 calculateGroupStats,
                 musicianStats,
@@ -1459,44 +1361,12 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToStatSchedule,
                 handleStatCardClick,
             } = sidebarStatsFeature;
-            assembly.refs.musicianStats = musicianStats;
+            Object.assign(assembly.refs, { musicianStats, projectStats, instrumentStats });
             currentSidebarList = sidebarStatsFeature.currentSidebarList;
+            assembly.refs.currentSidebarList = sidebarStatsFeature.currentSidebarList;
 
-            const viewNavigationFeature = registerViewNavigationFeature({
-                refs: {
-                    currentView,
-                    monthViewMode,
-                    viewDate,
-                    visibleTopDate,
-                    monthObserver,
-                    monthRefs,
-                    filteredScheduledTasks,
-                    weekContainer,
-                    pxPerMin,
-                    isMobile,
-                    flashingTaskId,
-                    mobileTab,
-                    dayColWidth,
-                    isResizingMobile,
-                    currentSessionId,
-                    sidebarTab,
-                    isContextSwitching,
-                },
-                state: {
-                    settings,
-                },
-                services: {
-                    storageService,
-                },
-                utils: {
-                    formatDate: formatUtils.formatDate,
-                    timeToMinutes: timeUtils.timeToMinutes,
-                },
-                actions: {
-                    isDragActive: () => !!dragState.dragElClone,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            const viewNavigationFeature = wireViewNavigationFeature(assembly);
+            assembly.features.viewNavigation = viewNavigationFeature;
             const {
                 renderedRange,
                 isLoadingMore,
@@ -1531,29 +1401,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToGhostContext,
             } = viewNavigationFeature;
             switchView = viewNavigationFeature.switchView;
-            assembly.features.viewNavigation = viewNavigationFeature;
+            assembly.refs.currentWeekDays = currentWeekDays;
 
             const handlePageUnload = authFeature.handlePageUnload;
+            assembly.features.auth = authFeature;
 
             // --- 🟢 手机端适配逻辑 ---
             // --- 🟢 手机端适配 & 布局自动修复 ---
-            mobileUiFeature = registerMobileUiFeature({
-                refs: {
-                    isMobile,
-                    isSidebarOpen,
-                    showMobileMenu,
-                    showProfileMenu,
-                    activeDropdown,
-                    themeMode,
-                    isDark,
-                },
-                services: {
-                    storageService,
-                },
-                actions: {
-                    handlePageUnload,
-                },
-            });
+            mobileUiFeature = wireMobileUiFeature(assembly);
+            assembly.features.mobileUi = mobileUiFeature;
             getThemeLabel = mobileUiFeature.getThemeLabel;
 
             // 🟢 优化: 增强版布局刷新函数

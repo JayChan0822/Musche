@@ -15,7 +15,7 @@ test('app bootstrap registers mobile UI through the mobile UI registrar without 
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createMobileUiFeatureRegistrar',
-    registerName: 'registerMobileUiFeature',
+    registerName: 'wireMobileUiFeature',
     modulePath: 'mobile-ui-feature-registrar.js',
     label: 'mobile UI',
   });

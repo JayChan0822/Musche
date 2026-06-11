@@ -14,7 +14,7 @@ test('app bootstrap registers sidebar stats through the sidebar stats registrar 
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createSidebarStatsFeatureRegistrar',
-    registerName: 'registerSidebarStatsFeature',
+    registerName: 'wireSidebarStatsFeature',
     modulePath: 'sidebar-stats-feature-registrar.js',
     label: 'sidebar stats',
   });

@@ -14,7 +14,7 @@ test('app bootstrap wires schedule helpers through the schedule registrar withou
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createScheduleFeatureRegistrar',
-    registerName: 'registerScheduleFeature',
+    registerName: 'wireScheduleFeature',
     modulePath: 'schedule-feature-registrar.js',
     label: 'schedule',
   });

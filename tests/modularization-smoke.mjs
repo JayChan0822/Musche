@@ -3603,7 +3603,7 @@ for (const refName of requiredBootstrapStoreRefs) {
     );
 }
 
-const searchFeatureIndex = appScript.indexOf('searchFeature = registerSearchFeature({');
+const searchFeatureIndex = appScript.indexOf('searchFeature = wireSearchFeature(assembly');
 const appStateDeclarationIndex = appScript.indexOf('} = createRootAppState();');
 assert.ok(searchFeatureIndex !== -1, 'app.js must register the search feature');
 assert.ok(appStateDeclarationIndex !== -1, 'app.js must create root-local app state');
@@ -3638,7 +3638,7 @@ assert.equal(
     'app.js must not register the pass-through ratio shell feature'
 );
 
-const scheduleFeatureIndex = appScript.indexOf('scheduleFeature = registerScheduleFeature({');
+const scheduleFeatureIndex = appScript.indexOf('scheduleFeature = wireScheduleFeature(assembly');
 assert.ok(scheduleFeatureIndex !== -1, 'app.js must register the schedule feature');
 assert.match(
     scheduleFeatureRegistrarModule,
@@ -3649,7 +3649,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createScheduleFeatureRegistrar',
-    registerName: 'registerScheduleFeature',
+    registerName: 'wireScheduleFeature',
     modulePath: 'schedule-feature-registrar.js',
     label: 'Schedule',
 });
@@ -3666,7 +3666,7 @@ assert.doesNotMatch(
     'app.js must not import, register, or keep the pass-through schedule shell feature'
 );
 
-const settingsSyncFeatureIndex = appScript.indexOf('const settingsSyncFeature = registerSettingsSyncFeature({');
+const settingsSyncFeatureIndex = appScript.indexOf('const settingsSyncFeature = wireSettingsSyncFeature(assembly');
 const settingsFeatureIndex = appScript.indexOf('settingsFeature = registerSettingsFeature({');
 const sortedInstrumentsIndex = appScript.indexOf('sortedInstruments,');
 assert.ok(settingsSyncFeatureIndex !== -1, 'app.js must register the lightweight settings sync feature');
@@ -3685,7 +3685,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSettingsSyncFeatureRegistrar',
-    registerName: 'registerSettingsSyncFeature',
+    registerName: 'wireSettingsSyncFeature',
     modulePath: 'settings-sync-feature-registrar.js',
     label: 'Settings Sync',
 });
@@ -3790,7 +3790,7 @@ assert.equal(
     'app.js must not register the pass-through midi-manager shell feature'
 );
 
-const viewNavigationFeatureIndex = appScript.indexOf('const viewNavigationFeature = registerViewNavigationFeature({');
+const viewNavigationFeatureIndex = appScript.indexOf('const viewNavigationFeature = wireViewNavigationFeature(assembly');
 assert.ok(viewNavigationFeatureIndex !== -1, 'app.js must register the view-navigation feature');
 assert.equal(
     appScript.indexOf('registerViewNavigationShellFeature('),
@@ -3894,7 +3894,7 @@ assert.doesNotMatch(
     'app.js must not import, register, or keep the pass-through schedule-interactions shell feature'
 );
 
-const sidebarStatsFeatureIndex = appScript.indexOf('const sidebarStatsFeature = registerSidebarStatsFeature({');
+const sidebarStatsFeatureIndex = appScript.indexOf('const sidebarStatsFeature = wireSidebarStatsFeature(assembly');
 assert.ok(sidebarStatsFeatureIndex !== -1, 'app.js must register the sidebar-stats feature');
 assert.equal(
     appScript.indexOf('registerSidebarStatsShellFeature('),
@@ -4026,7 +4026,7 @@ assert.equal(
     'app.js must not register the pass-through name-lookup shell feature'
 );
 
-const mobileUiFeatureIndex = appScript.indexOf('mobileUiFeature = registerMobileUiFeature({');
+const mobileUiFeatureIndex = appScript.indexOf('mobileUiFeature = wireMobileUiFeature(assembly');
 assert.ok(mobileUiFeatureIndex !== -1, 'app.js must register the mobile-ui feature');
 assert.equal(
     appScript.indexOf('registerMobileUiShellFeature('),
@@ -4238,7 +4238,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSearchFeatureRegistrar',
-    registerName: 'registerSearchFeature',
+    registerName: 'wireSearchFeature',
     modulePath: 'search-feature-registrar.js',
     label: 'Search',
 });
@@ -6159,7 +6159,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createMobileUiFeatureRegistrar',
-    registerName: 'registerMobileUiFeature',
+    registerName: 'wireMobileUiFeature',
     modulePath: 'mobile-ui-feature-registrar.js',
     label: 'Mobile UI',
 });
@@ -6629,7 +6629,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSidebarStatsFeatureRegistrar',
-    registerName: 'registerSidebarStatsFeature',
+    registerName: 'wireSidebarStatsFeature',
     modulePath: 'sidebar-stats-feature-registrar.js',
     label: 'Sidebar Stats',
 });
@@ -7153,7 +7153,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createViewNavigationFeatureRegistrar',
-    registerName: 'registerViewNavigationFeature',
+    registerName: 'wireViewNavigationFeature',
     modulePath: 'view-navigation-feature-registrar.js',
     label: 'view-navigation',
 });
@@ -7178,7 +7178,7 @@ assert.match(
 
 assert.match(
     appScript,
-    /registerViewNavigationFeature\(/,
+    /wireViewNavigationFeature\(assembly\)/,
     'app.js must register view-navigation instead of direct calendar/main view navigation wiring'
 );
 
