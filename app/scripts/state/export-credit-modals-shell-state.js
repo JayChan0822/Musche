@@ -1,14 +1,13 @@
-export function createExportCreditModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createExportCreditModalsShellState = defineShellState('createExportCreditModalsShellState', ({
     appExportModal,
     appCreditModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createExportCreditModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appExportModal,
-        appCreditModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appExportModal,
+            appCreditModal,
+        },
+    };
+});

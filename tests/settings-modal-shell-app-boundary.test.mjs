@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {
   appScript,
   appStateFactoriesModule,
-  settingsModalShellStateModule,
 } from './helpers/app-boundary-assertions.mjs';
+import { createSettingsModalShellState } from '../app/scripts/state/settings-modal-shell-state.js';
 
 test('app bootstrap creates Settings modal ctx through a focused state factory', () => {
   assert.match(
@@ -35,9 +35,47 @@ test('app bootstrap creates Settings modal ctx through a focused state factory',
 });
 
 test('Settings modal shell state owns refs, computed values, and action pass-throughs', () => {
-  assert.match(
-    settingsModalShellStateModule,
-    /export function createSettingsModalShellState\(\{[\s\S]*reactive,[\s\S]*refs,[\s\S]*state,[\s\S]*computedState,[\s\S]*actions,[\s\S]*\}\s*=\s*\{\}\)\s*\{[\s\S]*return reactive\(\{[\s\S]*get showSettings\(\)[\s\S]*set showSettings\(value\)[\s\S]*get settingsExpandedGroups\(\)[\s\S]*get allSettingsGrouped\(\)[\s\S]*get showMetadataManager\(\)[\s\S]*set showMetadataManager\(value\)[\s\S]*clearSettingsList:[\s\S]*factoryReset:[\s\S]*\}\);[\s\S]*\}/,
-    'settings-modal-shell-state should own the Settings modal ctx getters, setters, and action wiring',
-  );
+  const makeBucket = () => {
+    const cache = new Map();
+    return new Proxy({}, {
+      get(_, key) {
+        if (!cache.has(key)) cache.set(key, { value: { ref: key } });
+        return cache.get(key);
+      },
+    });
+  };
+  const refs = makeBucket();
+  const state = makeBucket();
+  const computedState = makeBucket();
+  const actions = makeBucket();
+  const ctx = createSettingsModalShellState({
+    reactive: (value) => value,
+    refs,
+    state,
+    computedState,
+    actions,
+  });
+
+  // 可写 ref（v-model）
+  for (const key of ['showSettings', 'showMetadataManager']) {
+    assert.equal(ctx[key], refs[key].value, `${key} should read the ref value`);
+    const sentinel = { sentinel: key };
+    ctx[key] = sentinel;
+    assert.equal(refs[key].value, sentinel, `${key} should write back to the ref`);
+  }
+  // 直传：reactive Set 不按 ref 解包
+  assert.equal(ctx.settingsExpandedGroups, state.settingsExpandedGroups);
+  // computed 只读
+  assert.equal(ctx.allSettingsGrouped, computedState.allSettingsGrouped.value);
+  assert.equal(Object.getOwnPropertyDescriptor(ctx, 'allSettingsGrouped').set, undefined);
+  // action 透传
+  assert.equal(ctx.clearSettingsList, actions.clearSettingsList);
+  assert.equal(ctx.factoryReset, actions.factoryReset);
+});
+
+test('Settings modal shell state fails clearly without Vue reactive', () => {
+  assert.throws(() => createSettingsModalShellState({}), {
+    name: 'TypeError',
+    message: 'createSettingsModalShellState requires Vue reactive factory',
+  });
 });

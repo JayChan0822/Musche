@@ -1,14 +1,13 @@
-export function createTaskActionModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createTaskActionModalsShellState = defineShellState('createTaskActionModalsShellState', ({
     appEditModal,
     appSplitModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createTaskActionModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appEditModal,
-        appSplitModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appEditModal,
+            appSplitModal,
+        },
+    };
+});

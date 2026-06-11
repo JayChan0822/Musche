@@ -1,14 +1,11 @@
-export function createSidebarShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createSidebarShellState = defineShellState('createSidebarShellState', ({
     refs,
     state,
     actions,
     utils,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createSidebarShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         isMobile,
         mobileTab,
@@ -26,51 +23,59 @@ export function createSidebarShellState({
         filteredSidebarList,
         selectedPoolIds,
     } = refs;
-    const { dragState, expandedStatsIds } = state;
-
-    return reactive({
-        get isMobile() { return isMobile.value; },
-        get mobileTab() { return mobileTab.value; },
-        get dragElClone() { return dragState.dragElClone; },
-        get dragSourceType() { return dragState.dragSourceType; },
-        get isSidebarOpen() { return isSidebarOpen.value; },
-        get sidebarWidth() { return sidebarWidth.value; },
-        get showMobileTaskInput() { return showMobileTaskInput.value; },
-        set showMobileTaskInput(value) { showMobileTaskInput.value = value; },
-        get sidebarTab() { return sidebarTab.value; },
-        get activeTaskCount() { return activeTaskCount.value; },
-        get musicianStats() { return musicianStats.value; },
-        get projectStats() { return projectStats.value; },
-        get instrumentStats() { return instrumentStats.value; },
-        get sidebarScrollRef() { return sidebarScrollRef.value; },
-        set sidebarScrollRef(value) { sidebarScrollRef.value = value; },
-        get sidebarTransitionName() { return sidebarTransitionName.value; },
-        get sortField() { return sortField.value; },
-        get filteredSidebarList() { return filteredSidebarList.value; },
-        get expandedStatsIds() { return expandedStatsIds; },
-        get selectedPoolIds() { return selectedPoolIds.value; },
-        dragEnterPool: actions.dragEnterPool,
-        dragLeavePool: actions.dragLeavePool,
-        dropToPool: actions.dropToPool,
-        clearSelection: actions.clearSelection,
-        onSidebarTouchStart: actions.onSidebarTouchStart,
-        onSidebarTouchEnd: actions.onSidebarTouchEnd,
-        switchSidebarTab: actions.switchSidebarTab,
-        toggleSort: actions.toggleSort,
-        getSortIcon: actions.getSortIcon,
-        dragStart: actions.dragStart,
-        handleStatCardClick: actions.handleStatCardClick,
-        handlePoolTouchStart: actions.handlePoolTouchStart,
-        handleTouchMove: actions.handleTouchMove,
-        handleTouchEnd: actions.handleTouchEnd,
-        jumpToStatSchedule: actions.jumpToStatSchedule,
-        autoUpdateEfficiency: actions.autoUpdateEfficiency,
-        selectTask: actions.selectTask,
-        openEditModal: actions.openEditModal,
-        getGroupColor: actions.getGroupColor,
-        getNameById: actions.getNameById,
-        calculateSingleRatio: actions.calculateSingleRatio,
-        getTaskRatio: actions.getTaskRatio,
-        formatSecs: utils.formatSecs,
-    });
-}
+    const {
+        dragState,
+        expandedStatsIds,
+    } = state;
+    return {
+        reads: {
+            isMobile,
+            mobileTab,
+            isSidebarOpen,
+            sidebarWidth,
+            sidebarTab,
+            activeTaskCount,
+            musicianStats,
+            projectStats,
+            instrumentStats,
+            sidebarTransitionName,
+            sortField,
+            filteredSidebarList,
+            selectedPoolIds,
+        },
+        models: {
+            showMobileTaskInput,
+            sidebarScrollRef,
+        },
+        raw: {
+            dragElClone: () => dragState.dragElClone,
+            dragSourceType: () => dragState.dragSourceType,
+        },
+        values: {
+            expandedStatsIds,
+            dragEnterPool: actions.dragEnterPool,
+            dragLeavePool: actions.dragLeavePool,
+            dropToPool: actions.dropToPool,
+            clearSelection: actions.clearSelection,
+            onSidebarTouchStart: actions.onSidebarTouchStart,
+            onSidebarTouchEnd: actions.onSidebarTouchEnd,
+            switchSidebarTab: actions.switchSidebarTab,
+            toggleSort: actions.toggleSort,
+            getSortIcon: actions.getSortIcon,
+            dragStart: actions.dragStart,
+            handleStatCardClick: actions.handleStatCardClick,
+            handlePoolTouchStart: actions.handlePoolTouchStart,
+            handleTouchMove: actions.handleTouchMove,
+            handleTouchEnd: actions.handleTouchEnd,
+            jumpToStatSchedule: actions.jumpToStatSchedule,
+            autoUpdateEfficiency: actions.autoUpdateEfficiency,
+            selectTask: actions.selectTask,
+            openEditModal: actions.openEditModal,
+            getGroupColor: actions.getGroupColor,
+            getNameById: actions.getNameById,
+            calculateSingleRatio: actions.calculateSingleRatio,
+            getTaskRatio: actions.getTaskRatio,
+            formatSecs: utils.formatSecs,
+        },
+    };
+});

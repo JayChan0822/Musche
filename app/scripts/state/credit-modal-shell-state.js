@@ -1,13 +1,10 @@
-export function createCreditModalShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createCreditModalShellState = defineShellState('createCreditModalShellState', ({
     refs,
     midiRefs,
     actions,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createCreditModalShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         showCreditModal,
         generatedCreditText,
@@ -17,15 +14,18 @@ export function createCreditModalShellState({
         midiBpm,
         midiTimeSig,
     } = midiRefs;
-
-    return reactive({
-        get showCreditModal() { return showCreditModal.value; },
-        set showCreditModal(value) { showCreditModal.value = value; },
-        get generatedCreditText() { return generatedCreditText.value; },
-        set generatedCreditText(value) { generatedCreditText.value = value; },
-        get midiBpm() { return midiBpm.value; },
-        get midiTimeSig() { return midiTimeSig.value; },
-        get managingProject() { return managingProject.value; },
-        copyCreditText: actions.copyCreditText,
-    });
-}
+    return {
+        reads: {
+            midiBpm,
+            midiTimeSig,
+            managingProject,
+        },
+        models: {
+            showCreditModal,
+            generatedCreditText,
+        },
+        values: {
+            copyCreditText: actions.copyCreditText,
+        },
+    };
+});

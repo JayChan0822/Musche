@@ -1,16 +1,15 @@
-export function createMidiCsvImportModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createMidiCsvImportModalsShellState = defineShellState('createMidiCsvImportModalsShellState', ({
     appMidiManagerModal,
     appMidiImportModal,
     appCsvImportModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createMidiCsvImportModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appMidiManagerModal,
-        appMidiImportModal,
-        appCsvImportModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appMidiManagerModal,
+            appMidiImportModal,
+            appCsvImportModal,
+        },
+    };
+});

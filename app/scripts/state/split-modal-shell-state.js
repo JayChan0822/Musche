@@ -1,22 +1,23 @@
-export function createSplitModalShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createSplitModalShellState = defineShellState('createSplitModalShellState', ({
     refs,
     state,
     actions,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createSplitModalShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         showSplitModal,
     } = refs;
-
-    return reactive({
-        get showSplitModal() { return showSplitModal.value; },
-        set showSplitModal(value) { showSplitModal.value = value; },
-        get splitState() { return state.splitState; },
-        onSplitSliderInput: actions.onSplitSliderInput,
-        confirmSplitSlider: actions.confirmSplitSlider,
-    });
-}
+    return {
+        models: {
+            showSplitModal,
+        },
+        raw: {
+            splitState: () => state.splitState,
+        },
+        values: {
+            onSplitSliderInput: actions.onSplitSliderInput,
+            confirmSplitSlider: actions.confirmSplitSlider,
+        },
+    };
+});

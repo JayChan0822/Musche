@@ -1,14 +1,13 @@
-export function createMetadataInfoModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createMetadataInfoModalsShellState = defineShellState('createMetadataInfoModalsShellState', ({
     appProjectInfoModal,
     appRecInfoModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createMetadataInfoModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appProjectInfoModal,
-        appRecInfoModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appProjectInfoModal,
+            appRecInfoModal,
+        },
+    };
+});

@@ -1,16 +1,15 @@
-export function createStandaloneOverlaysShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createStandaloneOverlaysShellState = defineShellState('createStandaloneOverlaysShellState', ({
     appSettingsModal,
     appTrackListModal,
     appMobileTaskInput,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createStandaloneOverlaysShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appSettingsModal,
-        appTrackListModal,
-        appMobileTaskInput,
-    });
-}
+}) => {
+    return {
+        values: {
+            appSettingsModal,
+            appTrackListModal,
+            appMobileTaskInput,
+        },
+    };
+});

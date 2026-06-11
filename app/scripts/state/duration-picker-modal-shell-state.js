@@ -1,13 +1,10 @@
-export function createDurationPickerModalShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createDurationPickerModalShellState = defineShellState('createDurationPickerModalShellState', ({
     refs,
     state,
     actions,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createDurationPickerModalShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         showDurationPicker,
         pickerMinRef,
@@ -24,19 +21,22 @@ export function createDurationPickerModalShellState({
         resetDuration,
         confirmDurationPicker,
     } = actions;
-
-    return reactive({
-        get showDurationPicker() { return showDurationPicker.value; },
-        get pickerPos() { return pickerPos; },
-        get pickerMinRef() { return pickerMinRef.value; },
-        set pickerMinRef(value) { pickerMinRef.value = value; },
-        get pickerSecRef() { return pickerSecRef.value; },
-        set pickerSecRef(value) { pickerSecRef.value = value; },
-        get tempDuration() { return tempDuration; },
-        closePicker,
-        onScroll,
-        onDragStart,
-        resetDuration,
-        confirmDurationPicker,
-    });
-}
+    return {
+        reads: {
+            showDurationPicker,
+        },
+        models: {
+            pickerMinRef,
+            pickerSecRef,
+        },
+        values: {
+            pickerPos,
+            tempDuration,
+            closePicker,
+            onScroll,
+            onDragStart,
+            resetDuration,
+            confirmDurationPicker,
+        },
+    };
+});

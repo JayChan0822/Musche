@@ -1,13 +1,10 @@
-export function createColorPickerModalShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createColorPickerModalShellState = defineShellState('createColorPickerModalShellState', ({
     refs,
     state,
     actions,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createColorPickerModalShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         showColorPickerModal,
         tempColor,
@@ -19,14 +16,15 @@ export function createColorPickerModalShellState({
         resetColorPicker,
         saveColorPicker,
     } = actions;
-
-    return reactive({
-        get showColorPickerModal() { return showColorPickerModal.value; },
-        set showColorPickerModal(value) { showColorPickerModal.value = value; },
-        get presetColors() { return presetColors; },
-        get tempColor() { return tempColor.value; },
-        set tempColor(value) { tempColor.value = value; },
-        resetColorPicker,
-        saveColorPicker,
-    });
-}
+    return {
+        models: {
+            showColorPickerModal,
+            tempColor,
+        },
+        values: {
+            presetColors,
+            resetColorPicker,
+            saveColorPicker,
+        },
+    };
+});

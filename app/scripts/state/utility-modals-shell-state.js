@@ -1,14 +1,13 @@
-export function createUtilityModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createUtilityModalsShellState = defineShellState('createUtilityModalsShellState', ({
     appQuickAddModal,
     appImportModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createUtilityModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appQuickAddModal,
-        appImportModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appQuickAddModal,
+            appImportModal,
+        },
+    };
+});

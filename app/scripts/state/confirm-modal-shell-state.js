@@ -1,21 +1,21 @@
-export function createConfirmModalShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createConfirmModalShellState = defineShellState('createConfirmModalShellState', ({
     refs,
     actions,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createConfirmModalShellState requires Vue reactive factory');
-    }
-
+}) => {
     const {
         showConfirmModal,
         confirmModalConfig,
     } = refs;
-
-    return reactive({
-        get showConfirmModal() { return showConfirmModal.value; },
-        get confirmModalConfig() { return confirmModalConfig; },
-        closeConfirmModal: actions.closeConfirmModal,
-        handleConfirmAction: actions.handleConfirmAction,
-    });
-}
+    return {
+        reads: {
+            showConfirmModal,
+        },
+        values: {
+            confirmModalConfig,
+            closeConfirmModal: actions.closeConfirmModal,
+            handleConfirmAction: actions.handleConfirmAction,
+        },
+    };
+});

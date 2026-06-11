@@ -1,14 +1,13 @@
-export function createPickerModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createPickerModalsShellState = defineShellState('createPickerModalsShellState', ({
     appColorPickerModal,
     appDurationPicker,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createPickerModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appColorPickerModal,
-        appDurationPicker,
-    });
-}
+}) => {
+    return {
+        values: {
+            appColorPickerModal,
+            appDurationPicker,
+        },
+    };
+});

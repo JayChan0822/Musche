@@ -1436,11 +1436,38 @@ assert.match(
     /export const AppSettingsModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-settings-modal\.js'\), 'AppSettingsModal'\);/,
     'app-root-async-modals must register the low-frequency Settings modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    settingsModalShellStateModule,
-    /get settingsExpandedGroups\(\)\s*\{\s*return settingsExpandedGroups;\s*\}/,
-    'settings modal shell state must pass the reactive settingsExpandedGroups Set without unwrapping it as a ref'
-);
+// shell state 行为断言用的 mock 桶：任意键都返回稳定的假 ref。
+function createShellSourceMock() {
+    const cache = new Map();
+    return new Proxy({}, {
+        get(_, key) {
+            if (!cache.has(key)) cache.set(key, { value: { ref: key } });
+            return cache.get(key);
+        },
+    });
+}
+function instantiateShellState(factory, bucketNames) {
+    const sources = {};
+    for (const name of bucketNames) sources[name] = createShellSourceMock();
+    return { ctx: factory({ reactive: (value) => value, ...sources }), sources };
+}
+
+{
+    const { createSettingsModalShellState } = await import('../app/scripts/state/settings-modal-shell-state.js');
+    const state = createShellSourceMock();
+    const ctx = createSettingsModalShellState({
+        reactive: (value) => value,
+        refs: createShellSourceMock(),
+        state,
+        computedState: createShellSourceMock(),
+        actions: createShellSourceMock(),
+    });
+    assert.equal(
+        ctx.settingsExpandedGroups,
+        state.settingsExpandedGroups,
+        'settings modal shell state must pass the reactive settingsExpandedGroups Set without unwrapping it as a ref'
+    );
+}
 assert.doesNotMatch(
     indexHtml,
     /<div v-if="showSettings" class="modal-overlay z-\[5000\]"[\s\S]*?恢复出厂设置[\s\S]*?<\/div>/,
@@ -1663,11 +1690,16 @@ assert.match(
     /appExportCreditModalComponents\s*=\s*\{[\s\S]*\bAppExportModal\b[\s\S]*\}/,
     'app-export-credit-modal-components must register AppExportModal locally'
 );
-assert.match(
-    String(createExportModalShellState),
-    /return reactive\(\{[\s\S]*showExportModal[\s\S]*exportFilter[\s\S]*exportSessionOptions[\s\S]*filteredExportProjects[\s\S]*filteredExportMusicians[\s\S]*filteredExportInstruments[\s\S]*exportDateRange[\s\S]*exportPreviewCount[\s\S]*toggleFilterItem[\s\S]*toggleFilterAll[\s\S]*confirmExport[\s\S]*\}\);/,
-    'export-modal-shell-state must own the focused Export modal ctx shape'
-);
+{
+    const { ctx } = instantiateShellState(createExportModalShellState, ['refs', 'state', 'computedState', 'actions']);
+    for (const key of [
+        'showExportModal', 'exportFilter', 'exportSessionOptions', 'filteredExportProjects',
+        'filteredExportMusicians', 'filteredExportInstruments', 'exportDateRange', 'exportPreviewCount',
+        'toggleFilterItem', 'toggleFilterAll', 'confirmExport',
+    ]) {
+        assert.ok(key in ctx, `export-modal-shell-state must own the focused Export modal ctx shape (missing ${key})`);
+    }
+}
 assert.match(
     appStateFactoriesModule,
     /import \{ createExportModalShellState \} from '\.\.\/state\/export-modal-shell-state\.js';[\s\S]*function createRootExportModalShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
@@ -1759,7 +1791,7 @@ assert.match(
 assert.ok(existsSync(creditModalShellStatePath), 'credit-modal-shell-state module must exist for focused Credit modal ctx extraction');
 assert.match(
     creditModalShellStateModule,
-    /export function createCreditModalShellState/,
+    /export const createCreditModalShellState = defineShellState\(/,
     'credit-modal-shell-state module must expose a focused Credit modal ctx factory'
 );
 {
@@ -1917,11 +1949,22 @@ assert.match(
     /const appMidiManagerModal\s*=\s*createRootMidiManagerModalShellState\(\{(?=[\s\S]*showMidiManager)(?=[\s\S]*managingProject)(?=[\s\S]*projectMidiGroups)(?=[\s\S]*midiManagerExpandedGroups)(?=[\s\S]*activeMidiGroupRow)(?=[\s\S]*midiGroupPos)(?=[\s\S]*midiGroupSearchQuery)(?=[\s\S]*filteredMidiGroups)(?=[\s\S]*settings)(?=[\s\S]*triggerMidiImportForProject)(?=[\s\S]*clearProjectMidi)(?=[\s\S]*toggleMidiManagerGroup)(?=[\s\S]*openMidiGroupDropdown)(?=[\s\S]*updateMidiDuration)(?=[\s\S]*removeMidiMapping)(?=[\s\S]*updateInstrumentGroup)[\s\S]*\}\);/,
     'app.js must expose MIDI Manager modal state and actions through a focused appMidiManagerModal ctx'
 );
-assert.match(
-    midiManagerModalShellStateModule,
-    /export function createMidiManagerModalShellState[\s\S]*get showMidiManager\(\)[\s\S]*set showMidiManager\(value\)[\s\S]*get managingProject\(\)[\s\S]*get projectMidiGroups\(\)[\s\S]*get midiManagerExpandedGroups\(\)[\s\S]*get activeMidiGroupRow\(\)[\s\S]*set activeMidiGroupRow\(value\)[\s\S]*get midiGroupPos\(\)[\s\S]*get midiGroupSearchQuery\(\)[\s\S]*set midiGroupSearchQuery\(value\)[\s\S]*get filteredMidiGroups\(\)[\s\S]*get settings\(\)[\s\S]*triggerMidiImportForProject[\s\S]*clearProjectMidi[\s\S]*toggleMidiManagerGroup[\s\S]*openMidiGroupDropdown[\s\S]*updateMidiDuration[\s\S]*removeMidiMapping[\s\S]*updateInstrumentGroup/,
-    'midi-manager-modal-shell-state must own the MIDI Manager modal ctx getters, setters, and actions'
-);
+{
+    const { createMidiManagerModalShellState } = await import('../app/scripts/state/midi-manager-modal-shell-state.js');
+    const { ctx } = instantiateShellState(createMidiManagerModalShellState, ['refs', 'state', 'computedState', 'actions']);
+    for (const key of [
+        'showMidiManager', 'managingProject', 'projectMidiGroups', 'midiManagerExpandedGroups',
+        'activeMidiGroupRow', 'midiGroupPos', 'midiGroupSearchQuery', 'filteredMidiGroups', 'settings',
+        'triggerMidiImportForProject', 'clearProjectMidi', 'toggleMidiManagerGroup', 'openMidiGroupDropdown',
+        'updateMidiDuration', 'removeMidiMapping', 'updateInstrumentGroup',
+    ]) {
+        assert.ok(key in ctx, `midi-manager-modal-shell-state must own the MIDI Manager modal ctx (missing ${key})`);
+    }
+    for (const key of ['showMidiManager', 'activeMidiGroupRow', 'midiGroupSearchQuery']) {
+        const descriptor = Object.getOwnPropertyDescriptor(ctx, key);
+        assert.equal(typeof descriptor.set, 'function', `midi-manager-modal-shell-state must keep ${key} writable for v-model`);
+    }
+}
 assert.match(
     appMidiCsvImportModalsShellComponent,
     /<app-midi-manager-modal\b[^>]*><\/app-midi-manager-modal>/,
@@ -2004,11 +2047,24 @@ assert.match(
     /const appMidiImportModal\s*=\s*createRootMidiImportModalShellState\(\{(?=[\s\S]*showMidiImportModal)(?=[\s\S]*midiBpm)(?=[\s\S]*managingProject)(?=[\s\S]*midiViewMode)(?=[\s\S]*midiImportData)(?=[\s\S]*midiGroupData)(?=[\s\S]*midiGroupExpanded)(?=[\s\S]*activeImportMenu)(?=[\s\S]*importMenuPos)(?=[\s\S]*importSearchQuery)(?=[\s\S]*availableInstrumentGroups)(?=[\s\S]*filteredImportOptions)(?=[\s\S]*currentMidiDisplayList)(?=[\s\S]*formatSecs)(?=[\s\S]*getNameById)(?=[\s\S]*getSmartName)(?=[\s\S]*openImportMenu)(?=[\s\S]*closeImportMenu)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*toggleMidiGroupExpand)(?=[\s\S]*confirmMidiImport)(?=[\s\S]*selectImportNewInst)(?=[\s\S]*selectImportInst)(?=[\s\S]*selectImportGroup)[\s\S]*\}\);/,
     'app.js must expose MIDI Import modal state and actions through a focused appMidiImportModal ctx'
 );
-assert.match(
-    midiImportModalShellStateModule,
-    /export function createMidiImportModalShellState[\s\S]*get showMidiImportModal\(\)[\s\S]*set showMidiImportModal\(value\)[\s\S]*get midiBpm\(\)[\s\S]*get managingProject\(\)[\s\S]*get midiViewMode\(\)[\s\S]*set midiViewMode\(value\)[\s\S]*get midiImportData\(\)[\s\S]*get midiGroupData\(\)[\s\S]*get midiGroupExpanded\(\)[\s\S]*get activeImportMenu\(\)[\s\S]*get importMenuPos\(\)[\s\S]*get importSearchQuery\(\)[\s\S]*set importSearchQuery\(value\)[\s\S]*get availableInstrumentGroups\(\)[\s\S]*get filteredImportOptions\(\)[\s\S]*get currentMidiDisplayList\(\)[\s\S]*formatSecs[\s\S]*getNameById[\s\S]*getSmartName[\s\S]*openImportMenu[\s\S]*closeImportMenu[\s\S]*toggleGroupSelection[\s\S]*toggleMidiGroupExpand[\s\S]*confirmMidiImport[\s\S]*selectImportNewInst[\s\S]*selectImportInst[\s\S]*selectImportGroup/,
-    'midi-import-modal-shell-state must own the MIDI Import modal ctx getters, setters, and actions'
-);
+{
+    const { createMidiImportModalShellState } = await import('../app/scripts/state/midi-import-modal-shell-state.js');
+    const { ctx } = instantiateShellState(createMidiImportModalShellState, ['refs', 'state', 'computedState', 'actions', 'utils']);
+    for (const key of [
+        'showMidiImportModal', 'midiBpm', 'managingProject', 'midiViewMode', 'midiImportData',
+        'midiGroupData', 'midiGroupExpanded', 'activeImportMenu', 'importMenuPos', 'importSearchQuery',
+        'availableInstrumentGroups', 'filteredImportOptions', 'currentMidiDisplayList',
+        'formatSecs', 'getNameById', 'getSmartName', 'openImportMenu', 'closeImportMenu',
+        'toggleGroupSelection', 'toggleMidiGroupExpand', 'confirmMidiImport',
+        'selectImportNewInst', 'selectImportInst', 'selectImportGroup',
+    ]) {
+        assert.ok(key in ctx, `midi-import-modal-shell-state must own the MIDI Import modal ctx (missing ${key})`);
+    }
+    for (const key of ['showMidiImportModal', 'midiViewMode', 'importSearchQuery']) {
+        const descriptor = Object.getOwnPropertyDescriptor(ctx, key);
+        assert.equal(typeof descriptor.set, 'function', `midi-import-modal-shell-state must keep ${key} writable for v-model`);
+    }
+}
 assert.match(
     appMidiCsvImportModalsShellComponent,
     /<app-midi-import-modal\b[^>]*><\/app-midi-import-modal>/,
@@ -3168,7 +3224,7 @@ assert.match(
 assert.ok(existsSync(splitModalShellStatePath), 'split-modal-shell-state module must exist for focused Split modal ctx extraction');
 assert.match(
     splitModalShellStateModule,
-    /export function createSplitModalShellState/,
+    /export const createSplitModalShellState = defineShellState\(/,
     'split-modal-shell-state module must expose a focused Split modal ctx factory'
 );
 {
@@ -3297,7 +3353,7 @@ assert.match(
 assert.ok(existsSync(inputModalShellStatePath), 'input-modal-shell-state module must exist for focused universal input modal ctx extraction');
 assert.match(
     inputModalShellStateModule,
-    /export function createInputModalShellState/,
+    /export const createInputModalShellState = defineShellState\(/,
     'input-modal-shell-state module must expose a focused universal input modal ctx factory'
 );
 {
@@ -3452,7 +3508,7 @@ assert.match(
 assert.ok(existsSync(confirmModalShellStatePath), 'confirm-modal-shell-state module must exist for focused confirm modal ctx extraction');
 assert.match(
     confirmModalShellStateModule,
-    /export function createConfirmModalShellState/,
+    /export const createConfirmModalShellState = defineShellState\(/,
     'confirm-modal-shell-state module must expose a focused confirm modal ctx factory'
 );
 {
@@ -5988,7 +6044,7 @@ assert.doesNotMatch(
 
 assert.match(
     sidebarShellStateModule,
-    /get\s+dragElClone\(\)\s*\{\s*return\s+dragState\.dragElClone;\s*\}|get\s+dragSourceType\(\)\s*\{\s*return\s+dragState\.dragSourceType;\s*\}/,
+    /dragElClone:\s*\(\)\s*=>\s*dragState\.dragElClone|dragSourceType:\s*\(\)\s*=>\s*dragState\.dragSourceType/,
     'sidebar shell state should keep exposing mobile drag clone/source state through the root return surface after removing the pass-through shell'
 );
 
@@ -6123,7 +6179,7 @@ assert.doesNotMatch(
 assert.ok(existsSync(mobileControlsShellStatePath), 'mobile-controls-shell-state module must exist for focused mobile controls ctx extraction');
 assert.match(
     mobileControlsShellStateModule,
-    /export function createMobileControlsShellState/,
+    /export const createMobileControlsShellState = defineShellState\(/,
     'mobile-controls-shell-state module must expose a focused mobile controls ctx factory'
 );
 assert.match(

@@ -1,14 +1,13 @@
-export function createUniversalModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createUniversalModalsShellState = defineShellState('createUniversalModalsShellState', ({
     appInputModal,
     appConfirmModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createUniversalModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appInputModal,
-        appConfirmModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appInputModal,
+            appConfirmModal,
+        },
+    };
+});

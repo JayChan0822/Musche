@@ -1,14 +1,13 @@
-export function createAccountModalsShellState({
-    reactive,
+import { defineShellState } from './shell-state-factory.js';
+
+export const createAccountModalsShellState = defineShellState('createAccountModalsShellState', ({
     appAuthModal,
     appCropModal,
-} = {}) {
-    if (typeof reactive !== 'function') {
-        throw new TypeError('createAccountModalsShellState requires Vue reactive factory');
-    }
-
-    return reactive({
-        appAuthModal,
-        appCropModal,
-    });
-}
+}) => {
+    return {
+        values: {
+            appAuthModal,
+            appCropModal,
+        },
+    };
+});
