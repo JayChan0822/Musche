@@ -14,16 +14,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/3119929945-web/Musician-Schedule.git"
+    "url": "git+https://github.com/JayChan0822/Musche.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/3119929945-web/Musician-Schedule/issues"
+    "url": "https://github.com/JayChan0822/Musche/issues"
   },
-  "homepage": "https://github.com/3119929945-web/Musician-Schedule#readme",
-  "description": "",
+  "homepage": "https://github.com/JayChan0822/Musche#readme",
+  "description": "Schedule planner for musicians and recording sessions, with MIDI/CSV import, Supabase sync, and a Capacitor iOS app.",
   "dependencies": {
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
