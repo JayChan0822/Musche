@@ -3753,7 +3753,7 @@ assert.match(
     'app.js must preserve the grouped-settings computed adapter when wiring settings directly'
 );
 
-const authFeatureIndex = appScript.indexOf('authFeature = registerAuthFeature({');
+const authFeatureIndex = appScript.indexOf('authFeature = wireAuthFeature(assembly');
 assert.ok(authFeatureIndex !== -1, 'app.js must register the auth feature');
 assert.doesNotMatch(
     appScript,
@@ -3886,7 +3886,7 @@ assert.equal(
     'app.js must not register the pass-through notifications shell feature'
 );
 
-const scheduleInteractionsFeatureIndex = appScript.indexOf('const scheduleInteractionsFeature = registerScheduleInteractionsFeature({');
+const scheduleInteractionsFeatureIndex = appScript.indexOf('const scheduleInteractionsFeature = wireScheduleInteractionsFeature(assembly');
 assert.ok(scheduleInteractionsFeatureIndex !== -1, 'app.js must register the schedule-interactions feature');
 assert.doesNotMatch(
     appScript,
@@ -3918,7 +3918,7 @@ assert.equal(
     'app.js must not register the pass-through task-editor shell feature'
 );
 
-const splitTaskFeatureIndex = appScript.indexOf('splitTaskFeature = registerSplitTaskFeature({');
+const splitTaskFeatureIndex = appScript.indexOf('splitTaskFeature = wireSplitTaskFeature(assembly');
 assert.ok(splitTaskFeatureIndex !== -1, 'app.js must register the split-task feature');
 assert.equal(
     appScript.indexOf('registerSplitTaskShellFeature('),
@@ -3994,7 +3994,7 @@ assert.equal(
     'app.js must not register the pass-through desktop-resize shell feature'
 );
 
-const poolInteractionsFeatureIndex = appScript.indexOf('const poolInteractionsFeature = registerPoolInteractionsFeature({');
+const poolInteractionsFeatureIndex = appScript.indexOf('const poolInteractionsFeature = wirePoolInteractionsFeature(assembly');
 assert.ok(poolInteractionsFeatureIndex !== -1, 'app.js must register the pool-interactions feature');
 assert.equal(
     appScript.indexOf('registerPoolInteractionsShellFeature('),
@@ -4002,7 +4002,7 @@ assert.equal(
     'app.js must not register the pass-through pool-interactions shell feature'
 );
 
-const globalKeyboardFeatureIndex = appScript.indexOf('const globalKeyboardFeature = registerGlobalKeyboardFeature({');
+const globalKeyboardFeatureIndex = appScript.indexOf('const globalKeyboardFeature = wireGlobalKeyboardFeature(assembly');
 assert.ok(globalKeyboardFeatureIndex !== -1, 'app.js must register the global-keyboard feature');
 assert.equal(
     appScript.indexOf('registerGlobalKeyboardShellFeature('),
@@ -4010,7 +4010,7 @@ assert.equal(
     'app.js must not register the pass-through global-keyboard shell feature'
 );
 
-const appRuntimeFeatureIndex = appScript.indexOf('const appRuntimeFeature = registerAppRuntimeFeature({');
+const appRuntimeFeatureIndex = appScript.indexOf('const appRuntimeFeature = wireAppRuntimeFeature(assembly');
 assert.ok(appRuntimeFeatureIndex !== -1, 'app.js must register the app-runtime feature');
 assert.equal(
     appScript.indexOf('registerAppRuntimeShellFeature('),
@@ -4780,7 +4780,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createScheduleInteractionsFeatureRegistrar',
-    registerName: 'registerScheduleInteractionsFeature',
+    registerName: 'wireScheduleInteractionsFeature',
     modulePath: 'schedule-interactions-feature-registrar.js',
     label: 'Schedule Interactions',
 });
@@ -5905,7 +5905,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createAuthFeatureRegistrar',
-    registerName: 'registerAuthFeature',
+    registerName: 'wireAuthFeature',
     modulePath: 'auth-feature-registrar.js',
     label: 'Auth',
 });
@@ -6915,7 +6915,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createPoolInteractionsFeatureRegistrar',
-    registerName: 'registerPoolInteractionsFeature',
+    registerName: 'wirePoolInteractionsFeature',
     modulePath: 'pool-interactions-feature-registrar.js',
     label: 'Pool Interactions',
 });
@@ -6983,7 +6983,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createGlobalKeyboardFeatureRegistrar',
-    registerName: 'registerGlobalKeyboardFeature',
+    registerName: 'wireGlobalKeyboardFeature',
     modulePath: 'global-keyboard-feature-registrar.js',
     label: 'global-keyboard',
 });
@@ -7433,7 +7433,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSplitTaskFeatureRegistrar',
-    registerName: 'registerSplitTaskFeature',
+    registerName: 'wireSplitTaskFeature',
     modulePath: 'split-task-feature-registrar.js',
     label: 'Split Task',
 });
@@ -7638,7 +7638,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createAppRuntimeFeatureRegistrar',
-    registerName: 'registerAppRuntimeFeature',
+    registerName: 'wireAppRuntimeFeature',
     modulePath: 'app-runtime-feature-registrar.js',
     label: 'app-runtime',
 });

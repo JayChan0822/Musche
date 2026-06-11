@@ -14,7 +14,7 @@ test('app bootstrap registers auth through the auth registrar without the pass-t
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createAuthFeatureRegistrar',
-    registerName: 'registerAuthFeature',
+    registerName: 'wireAuthFeature',
     modulePath: 'auth-feature-registrar.js',
     label: 'auth',
   });

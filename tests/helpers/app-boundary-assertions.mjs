@@ -732,7 +732,7 @@ export function assertAppDependenciesRegistry() {
   );
   assert.match(
     appScript,
-    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bloadNotificationsFeature\b[\s\S]*\bregisterAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
+    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bloadNotificationsFeature\b[\s\S]*\bwireAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should consume composed app dependencies from createAppDependencies()',
   );
   for (const factoryName of [

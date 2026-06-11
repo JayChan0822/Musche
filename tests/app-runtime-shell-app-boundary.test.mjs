@@ -15,7 +15,7 @@ test('app bootstrap registers app runtime through the runtime registrar without 
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createAppRuntimeFeatureRegistrar',
-    registerName: 'registerAppRuntimeFeature',
+    registerName: 'wireAppRuntimeFeature',
     modulePath: 'app-runtime-feature-registrar.js',
     label: 'app runtime',
   });

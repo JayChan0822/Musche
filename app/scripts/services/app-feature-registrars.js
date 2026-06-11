@@ -24,8 +24,8 @@ import { createSettingsSyncFeatureRegistrar } from './settings-sync-feature-regi
 
 export function createAppFeatureRegistrars({ pinyinMatchSupport } = {}) {
     return {
-        registerAppRuntimeFeature: createAppRuntimeFeatureRegistrar(),
-        registerGlobalKeyboardFeature: createGlobalKeyboardFeatureRegistrar(),
+        wireAppRuntimeFeature: createAppRuntimeFeatureRegistrar(),
+        wireGlobalKeyboardFeature: createGlobalKeyboardFeatureRegistrar(),
         wireSessionFeature: createSessionFeatureRegistrar(),
         wireHistoryFeature: createHistoryFeatureRegistrar(),
         wireRatioFeature: createRatioFeatureRegistrar(),
@@ -36,16 +36,16 @@ export function createAppFeatureRegistrars({ pinyinMatchSupport } = {}) {
         wireQuickAddFeature: createQuickAddFeatureRegistrar(),
         wireUniversalModalFeature: createUniversalModalFeatureRegistrar(),
         wireOrchestrationFeature: createOrchestrationFeatureRegistrar(),
-        registerSplitTaskFeature: createSplitTaskFeatureRegistrar(),
+        wireSplitTaskFeature: createSplitTaskFeatureRegistrar(),
         wirePickerControlsFeature: createPickerControlsFeatureRegistrar(),
-        registerPoolInteractionsFeature: createPoolInteractionsFeatureRegistrar(),
+        wirePoolInteractionsFeature: createPoolInteractionsFeatureRegistrar(),
         wireSearchFeature: createSearchFeatureRegistrar({ pinyinMatchSupport }),
         wireSidebarStatsFeature: createSidebarStatsFeatureRegistrar(),
         wireSidebarFeature: createSidebarFeatureRegistrar(),
         wireMobileUiFeature: createMobileUiFeatureRegistrar(),
         wireScheduleFeature: createScheduleFeatureRegistrar(),
-        registerScheduleInteractionsFeature: createScheduleInteractionsFeatureRegistrar(),
-        registerAuthFeature: createAuthFeatureRegistrar(),
+        wireScheduleInteractionsFeature: createScheduleInteractionsFeatureRegistrar(),
+        wireAuthFeature: createAuthFeatureRegistrar(),
         wireSettingsSyncFeature: createSettingsSyncFeatureRegistrar(),
     };
 }

@@ -4,6 +4,8 @@ import {
   appScript,
   ratioFeatureRegistrarModule,
   splitViewFeatureRegistrarModule,
+  splitTaskFeatureRegistrarModule,
+  scheduleInteractionsFeatureRegistrarModule,
   assertGroupedUtilityBoundary,
 } from './helpers/app-boundary-assertions.mjs';
 
@@ -30,10 +32,13 @@ test('app bootstrap consumes split-state helpers through a grouped utility surfa
     helperNames: splitUtilityNames,
     label: 'split-state helpers',
     registryPattern: /const\s+splitStateUtils\s*=\s*\{[\s\S]*createHiddenSplitState[\s\S]*syncLegacySplitFields[\s\S]*\};[\s\S]*return\s*\{[\s\S]*splitStateUtils[\s\S]*\};/,
-    appPassThroughs: [
-      ['normalizeSplitViewType', 'normalizeSplitViewType'],
-    ],
+    appPassThroughs: [],
   });
+  assert.match(
+    scheduleInteractionsFeatureRegistrarModule,
+    /normalizeSplitViewType:\s*splitStateUtils\.normalizeSplitViewType/,
+    'schedule-interactions registrar should pass normalizeSplitViewType through the grouped splitStateUtils surface',
+  );
   assert.match(
     ratioFeatureRegistrarModule,
     /ensureItemSplitViews:\s*splitStateUtils\.ensureItemSplitViews/,
@@ -45,9 +50,9 @@ test('app bootstrap consumes split-state helpers through a grouped utility surfa
     'split-view registrar should pass the grouped split-state utility surface into the split-view feature',
   );
   assert.match(
-    appScript,
+    splitTaskFeatureRegistrarModule,
     /registerSplitTaskFeature\(\{[\s\S]*split:\s*\{[\s\S]*\.\.\.splitStateUtils[\s\S]*getSplitViewState[\s\S]*peekSplitViewState[\s\S]*\}[\s\S]*\}\);/,
-    'app.js should extend the grouped split-state utility surface only with app-local split helpers for split-task',
+    'split-task registrar should extend the grouped split-state utility surface only with split-view helpers',
   );
   assert.match(
     appScript,

@@ -27,8 +27,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
         loadMobileTouchRegistration,
         loadTrackListFeature,
         loadSettingsFeature,
-        registerAppRuntimeFeature,
-        registerGlobalKeyboardFeature,
+        wireAppRuntimeFeature,
+        wireGlobalKeyboardFeature,
         wireSessionFeature,
         wireHistoryFeature,
         wireRatioFeature,
@@ -39,16 +39,16 @@ import { createAppDependencies } from './services/app-dependencies.js';
         wireQuickAddFeature,
         wireUniversalModalFeature,
         wireOrchestrationFeature,
-        registerSplitTaskFeature,
+        wireSplitTaskFeature,
         wirePickerControlsFeature,
-        registerPoolInteractionsFeature,
+        wirePoolInteractionsFeature,
         wireSearchFeature,
         wireSidebarStatsFeature,
         wireSidebarFeature,
         wireMobileUiFeature,
         wireScheduleFeature,
-        registerScheduleInteractionsFeature,
-        registerAuthFeature,
+        wireScheduleInteractionsFeature,
+        wireAuthFeature,
         wireSettingsSyncFeature,
         createMuscheStore,
         createRootAppState,
@@ -178,6 +178,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 projectMidiList,
                 filteredMidiGroups,
             } = createRootMidiManagerState();
+            Object.assign(assembly.refs, { midiManagerExpandedGroups, projectMidiGroups });
 
             const getNameWithGroup = (...args) => searchFeature.getNameWithGroup(...args);
 
@@ -543,44 +544,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const filteredExportInstruments = computed(() => dataIoFeatureRef.value?.filteredExportInstruments.value || []);
             const exportDateRange = computed(() => dataIoFeatureRef.value?.exportDateRange.value || { min: '', max: '' });
             const exportPreviewCount = computed(() => dataIoFeatureRef.value?.exportPreviewCount.value || 0);
-            const appRuntimeFeature = registerAppRuntimeFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                    user,
-                    saveStatus,
-                    currentView,
-                    monthViewMode,
-                    viewDate,
-                    isBootstrappingData,
-                },
-                values: {
-                    isSidebarOpen,
-                },
-                handlers: {
-                    handleGlobalKey: (...args) => handleGlobalKey(...args),
-                    handleResizeMove: (...args) => handleResizeMove(...args),
-                    handleResizeEnd: (...args) => handleResizeEnd(...args),
-                    closeDropdowns: (...args) => closeDropdowns(...args),
-                },
-                state: {
-                    settings,
-                },
-                services: {
-                    storageService,
-                },
-                actions: {
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    scrollToMonthDate: (date) => scrollToMonthDate(date),
-                    bootSessionData: (options) => authFeature.bootSessionData(options),
-                    saveToCloud: () => saveToCloud(),
-                    nextTick,
-                },
-                vue: {
-                    watch,
-                },
-            });
+            const appRuntimeFeature = wireAppRuntimeFeature(assembly);
+            assembly.features.appRuntime = appRuntimeFeature;
             appRuntimeFeature.mountAppRuntime();
             onMounted(() => appRuntimeFeature.mountAppLifecycle());
             onUnmounted(() => appRuntimeFeature.unmountAppLifecycle());
@@ -626,45 +591,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 addItemToPool,
             } = quickAddFeature;
 
-            const scheduleInteractionsFeature = registerScheduleInteractionsFeature({
-                refs: {
-                    scheduledTasks,
-                    itemPool,
-                    pxPerMin,
-                    sidebarTab,
-                    currentSessionId,
-                    isMobile,
-                    trackListData,
-                    showTrackList,
-                    trackListContainerRef,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime: timeUtils.parseTime,
-                    formatSecs: formatUtils.formatSecs,
-                },
-                actions: {
-                    checkOverlap: (...args) => checkOverlap(...args),
-                    openAlertModal,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    pushHistory,
-                    isResourceCompleted: (...args) => isResourceCompleted(...args),
-                    clearPoolRecord: (...args) => clearPoolRecord(...args),
-                    clearAggregateRecords: (...args) => clearAggregateRecords(...args),
-                    isContextSwitchingActive: () => isContextSwitching.value,
-                    isTaskGhost: (...args) => isTaskGhost(...args),
-                    jumpToGhostContext: (...args) => jumpToGhostContext(...args),
-                    normalizeSplitViewType: splitStateUtils.normalizeSplitViewType,
-                    isItemVisibleForView,
-                    syncItemForView,
-                    ensureItemRecords,
-                    getNameById,
-                    autoSortTrackList: (...args) => autoSortTrackList(...args),
-                    preloadTrackList: () => { getTrackListFeature(); },
-                },
-            });
+            const scheduleInteractionsFeature = wireScheduleInteractionsFeature(assembly);
+            assembly.features.scheduleInteractions = scheduleInteractionsFeature;
             const dragStart = (...args) => scheduleInteractionsFeature.dragStart(...args);
             const handleDragEnd = (...args) => scheduleInteractionsFeature.handleDragEnd(...args);
             const dragEnterPool = (...args) => scheduleInteractionsFeature.dragEnterPool(...args);
@@ -702,30 +630,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const scrollToSidebarItem = (...args) => sidebarFeature.scrollToSidebarItem(...args);
 
-            const poolInteractionsFeature = registerPoolInteractionsFeature({
-                refs: {
-                    selectedSource,
-                    selectedTaskId,
-                    selectedPoolIds,
-                    lastPoolFocusId,
-                    lastPoolClickId,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                    sidebarTab,
-                    isSidebarOpen,
-                    isMobile,
-                },
-                actions: {
-                    getGroupedItemPool: () => groupedItemPool.value,
-                    getCurrentSidebarList: () => currentSidebarList.value,
-                    isGroupExpanded: (key) => expandedGroups.has(key),
-                    isStatExpanded: (id) => expandedStatsIds.has(id),
-                    scrollToSidebarItem,
-                    smartScrollToTask,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            const poolInteractionsFeature = wirePoolInteractionsFeature(assembly);
+            assembly.features.poolInteractions = poolInteractionsFeature;
             const getVisiblePoolItems = (...args) => poolInteractionsFeature.getVisiblePoolItems(...args);
 
             const selectTask = (...args) => poolInteractionsFeature.selectTask(...args);
@@ -768,87 +674,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const clearPoolRecord = scheduleDeletionFeatureProxy.method('clearPoolRecord');
             const clearAggregateRecords = scheduleDeletionFeatureProxy.method('clearAggregateRecords');
 
-            const globalKeyboardFeature = registerGlobalKeyboardFeature({
-                refs: {
-                    showSettings,
-                    showEditor,
-                    showTrackList,
-                    showAuthModal,
-                    showCropModal,
-                    showMobileMenu,
-                    showColorPickerModal,
-                    showMobileTaskInput,
-                    showQuickAddModal,
-                    showRecInfoModal,
-                    showConfirmModal,
-                    showInputModal,
-                    showSplitModal,
-                    showCreditModal,
-                    showMidiManager,
-                    showMidiImportModal,
-                    showCsvImportModal,
-                    showProjectInfoModal,
-                    showDurationPicker: store.showDurationPicker,
-                    showImportModal,
-                    showProfileMenu,
-                    showGroupSuggestions,
-                    activeRecDropdown,
-                    activeMidiGroupRow: store.activeMidiGroupRow,
-                    activeDropdown,
-                    settingsGroupFocus,
-                    selectedTaskId,
-                    selectedPoolIds,
-                    selectedSource,
-                    isMobile,
-                    currentSessionId,
-                    currentView,
-                    sidebarTab,
-                    sortKey,
-                    activeColorKey,
-                    scheduledTasks,
-                    itemPool,
-                    lastPoolFocusId,
-                    lastPoolClickId,
-                },
-                state: {
-                    activeImportMenu: store.activeImportMenu,
-                    expandedGroups,
-                    expandedStatsIds: {
-                        has: (id) => expandedStatsIds.has(id),
-                        add: (id) => expandedStatsIds.add(id),
-                        clear: () => expandedStatsIds.clear(),
-                    },
-                },
-                actions: {
-                    closePicker,
-                    closeConfirmModal,
-                    closeInputModal,
-                    closeImportMenu: (...args) => closeImportMenu(...args),
-                    toggleAllProjectCollapse: (...args) => toggleAllProjectCollapse(...args),
-                    undo: (...args) => undo(...args),
-                    redo: (...args) => redo(...args),
-                    switchView: (...args) => switchView(...args),
-                    selectTask: (...args) => selectTask(...args),
-                    moveTask: (...args) => moveTask(...args),
-                    checkCanDeleteSplit: (...args) => checkCanDeleteSplit(...args),
-                    restoreSplitTime: (...args) => restoreSplitTime(...args),
-                    cleanupEmptySchedules: (...args) => cleanupEmptySchedules(...args),
-                    clearSelection: (...args) => clearSelection(...args),
-                    pushHistory: (...args) => pushHistory(...args),
-                    isResourceCompleted: (...args) => isResourceCompleted(...args),
-                    clearPoolRecord: (...args) => clearPoolRecord(...args),
-                    clearAggregateRecords: (...args) => clearAggregateRecords(...args),
-                    openAlertModal: (...args) => openAlertModal(...args),
-                    triggerTouchHaptic: (...args) => triggerTouchHaptic(...args),
-                    getSettings: () => settings,
-                    getSettingsNameFocus: () => settingsNameFocus,
-                    getFilteredSidebarList: () => filteredSidebarList.value,
-                    getProjectMidiGroups: () => projectMidiGroups.value,
-                    getMidiManagerExpandedGroups: () => midiManagerExpandedGroups,
-                    getGroupedItemPool: () => groupedItemPool.value,
-                    getMusicianStats: () => musicianStats.value,
-                },
-            });
+            const globalKeyboardFeature = wireGlobalKeyboardFeature(assembly);
+            assembly.features.globalKeyboard = globalKeyboardFeature;
             const handleGlobalKey = (...args) => globalKeyboardFeature.handleGlobalKey(...args);
 
             const handleTaskDblClick = (...args) => scheduleInteractionsFeature.handleTaskDblClick(...args);
@@ -967,40 +794,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const sidebarScrollRef = sidebarFeature.sidebarScrollRef;
             const switchSidebarTab = sidebarFeature.switchSidebarTab;
 
-            splitTaskFeature = registerSplitTaskFeature({
-                refs: {
-                    showSplitModal,
-                    itemPool,
-                    scheduledTasks,
-                    trackListData,
-                    currentSessionId,
-                    showTrackList,
-                },
-                split: {
-                    ...splitStateUtils,
-                    getSplitViewState,
-                    isItemVisibleInView: isItemVisibleForView,
-                    peekSplitViewState,
-                },
-                utils: {
-                    parseTime: timeUtils.parseTime,
-                    timeToMinutes: timeUtils.timeToMinutes,
-                    formatSecs: formatUtils.formatSecs,
-                    generateUniqueId: idUtils.generateUniqueId,
-                    calculateEstTime,
-                },
-                actions: {
-                    getCurrentSplitView,
-                    syncItemForView,
-                    ensureItemRecords,
-                    openAlertModal,
-                    openInputModal,
-                    pushHistory,
-                    autoUpdateEfficiency,
-                    autoSortTrackList,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            splitTaskFeature = wireSplitTaskFeature(assembly);
+            assembly.features.splitTask = splitTaskFeature;
             splitState = splitTaskFeature.splitState;
             const {
                 checkCanSplit: splitTaskCheckCanSplit,
@@ -1222,47 +1017,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const handleCSVImport = importDataFeatureProxy.method('handleCSVImport');
             const refreshCsvPreview = importDataFeatureProxy.method('refreshCsvPreview');
 
-            authFeature = registerAuthFeature({
-                refs: {
-                    user,
-                    showAuthModal,
-                    authLoading,
-                    authForm,
-                    activeDropdown,
-                    showProfileMenu,
-                    showMobileMenu,
-                    tempAvatarUrl: store.tempAvatarUrl,
-                    tempNickname,
-                    localDataVersion,
-                    saveStatus,
-                    isSyncing,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    formatDate: formatUtils.formatDate,
-                    ensureItemRecords,
-                    calculateEstTime,
-                    generateUniqueId: idUtils.generateUniqueId,
-                },
-                services: {
-                    storageService,
-                    supabaseService,
-                },
-                actions: {
-                    pushHistory,
-                    openAlertModal,
-                    openConfirmModal,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    setSaveStatus: (value) => {
-                        saveStatus.value = value;
-                    },
-                },
-            });
+            authFeature = wireAuthFeature(assembly);
+            assembly.features.auth = authFeature;
             const toggleProjectCollapse = importDataFeatureProxy.method('toggleProjectCollapse');
             const toggleAllProjectCollapse = importDataFeatureProxy.method('toggleAllProjectCollapse');
             const toggleMidiGroupExpand = importDataFeatureProxy.method('toggleMidiGroupExpand');
@@ -1304,8 +1060,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
                             },
                         });
                         midiManagerExpandedGroups = midiManagerFeature.midiManagerExpandedGroups;
+                        assembly.refs.midiManagerExpandedGroups = midiManagerExpandedGroups;
                         projectMidiList = midiManagerFeature.projectMidiList;
                         projectMidiGroups = midiManagerFeature.projectMidiGroups;
+                        assembly.refs.projectMidiGroups = projectMidiGroups;
                         filteredMidiGroups = midiManagerFeature.filteredMidiGroups;
                         return midiManagerFeature;
                     }),
@@ -1343,6 +1101,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 handleTrackListSearchAction,
             } = searchFeature;
             assembly.refs.filteredScheduledTasks = filteredScheduledTasks;
+            assembly.refs.filteredSidebarList = filteredSidebarList;
 
             const sidebarStatsFeature = wireSidebarStatsFeature(assembly);
             assembly.features.sidebarStats = sidebarStatsFeature;
@@ -1361,7 +1120,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToStatSchedule,
                 handleStatCardClick,
             } = sidebarStatsFeature;
-            Object.assign(assembly.refs, { musicianStats, projectStats, instrumentStats });
+            Object.assign(assembly.refs, { musicianStats, projectStats, instrumentStats, expandedStatsIds });
             currentSidebarList = sidebarStatsFeature.currentSidebarList;
             assembly.refs.currentSidebarList = sidebarStatsFeature.currentSidebarList;
 
@@ -1404,7 +1163,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.refs.currentWeekDays = currentWeekDays;
 
             const handlePageUnload = authFeature.handlePageUnload;
-            assembly.features.auth = authFeature;
 
             // --- 🟢 手机端适配逻辑 ---
             // --- 🟢 手机端适配 & 布局自动修复 ---
@@ -1431,6 +1189,23 @@ import { createAppDependencies } from './services/app-dependencies.js';
             });
             const startTour = tourFeatureProxy.method('startTour');
             const mountTourAutostart = tourFeatureProxy.method('mountTourAutostart');
+
+            Object.assign(assembly.helpers, {
+                checkOverlap,
+                isResourceCompleted,
+                clearPoolRecord,
+                clearAggregateRecords,
+                autoSortTrackList,
+                getTrackListFeature,
+                closeImportMenu,
+                toggleAllProjectCollapse,
+                checkCanDeleteSplit: (...args) => checkCanDeleteSplit(...args),
+                restoreSplitTime: (...args) => restoreSplitTime(...args),
+                handleGlobalKey,
+                handleResizeMove,
+                handleResizeEnd,
+                saveToCloud,
+            });
 
             const appSidebar = createRootSidebarShellState({
                 refs: {
