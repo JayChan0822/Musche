@@ -508,7 +508,9 @@ test('root component parser only accepts createAppRootOptions() as the app.js re
 test('assertSharedLazyFeatureProxy verifies loader-backed proxy methods and rejects hand-rolled bridges', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'tourFeatureProxy',
+    wireName: 'wireTourFeature',
     loaderName: 'loadTourFeature',
+    appConsumerName: 'wireTourFeature',
     methods: ['startTour', 'mountTourAutostart'],
     forbiddenPattern: /tourFeaturePromise|getTourFeature/,
     label: 'tour feature',
@@ -518,7 +520,9 @@ test('assertSharedLazyFeatureProxy verifies loader-backed proxy methods and reje
 test('assertSharedLazyFeatureProxy accepts grouped proxy method declarations', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'settingsFeatureProxy',
+    wireName: 'wireSettingsFeature',
     loaderName: 'loadSettingsFeature',
+    appConsumerName: 'wireSettingsFeature',
     methods: ['onSettingsItemDragStart', 'clearSettingsList', 'handleItemRename'],
     forbiddenPattern: /settingsFeaturePromise|getSettingsFeature|withSettingsFeature/,
     label: 'settings feature',

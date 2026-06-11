@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 
 // 每个测试都是全新浏览器上下文（空 localStorage）：
-// 应用会写入演示数据（Project A / Instrument A / Musician A + 演示曲目）并自动弹新手引导。
+// 应用会写入演示数据（Project A / Instrument A / Musician A + 演示曲目）。
+// 新手引导是懒加载的，自动弹出的时机不可控（driver.js chunk 加载完才出现），
+// 所以统一预置 musche_tour_seen 阻止自动启动；引导用例会手动点击启动按钮。
 async function bootApp(page) {
+    await page.addInitScript(() => localStorage.setItem('musche_tour_seen', '1'));
     await page.goto('/');
     await expect(page.locator('#global-loader')).toBeHidden({ timeout: 15_000 });
-    await page.keyboard.press('Escape'); // 关闭首次启动的新手引导
     await expect(page.locator('.driver-popover')).toBeHidden();
 }
 

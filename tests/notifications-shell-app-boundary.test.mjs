@@ -24,7 +24,7 @@ test('app bootstrap delegates notification feature imports without the pass-thro
 test('app bootstrap proxies notification handlers through the shared lazy feature proxy', () => {
   assert.match(
     appScript,
-    /const\s+notificationsFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadNotificationsFeature\(\)[\s\S]*const\s+updateTaskNotification\s*=\s*notificationsFeatureProxy\.method\('updateTaskNotification'\);[\s\S]*const\s+scheduleReminder\s*=\s*notificationsFeatureProxy\.method\('scheduleReminder'\);/,
+    /const\s+notificationsFeatureProxy\s*=\s*wireNotificationsFeature\(assembly[\s\S]*const\s+updateTaskNotification\s*=\s*notificationsFeatureProxy\.method\('updateTaskNotification'\);[\s\S]*const\s+scheduleReminder\s*=\s*notificationsFeatureProxy\.method\('scheduleReminder'\);/,
     'app.js must expose notification handlers through the shared lazy feature proxy',
   );
   assert.doesNotMatch(

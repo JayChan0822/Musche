@@ -25,7 +25,9 @@ test('app bootstrap delegates tour imports without the pass-through shell', () =
 test('app bootstrap proxies tour handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'tourFeatureProxy',
+    wireName: 'wireTourFeature',
     loaderName: 'loadTourFeature',
+    appConsumerName: 'wireTourFeature',
     methods: ['startTour', 'mountTourAutostart'],
     forbiddenPattern: /tourFeaturePromise|getTourFeature/,
     label: 'tour feature',

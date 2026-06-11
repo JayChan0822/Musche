@@ -29,7 +29,7 @@ test('app bootstrap delegates schedule deletion imports without the pass-through
 test('app bootstrap proxies schedule deletion handlers through the shared lazy feature proxy', () => {
   assert.match(
     appScript,
-    /const\s+scheduleDeletionFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadScheduleDeletionFeature\(\)[\s\S]*const\s+isResourceCompleted\s*=\s*scheduleDeletionFeatureProxy\.method\('isResourceCompleted'\);[\s\S]*const\s+deleteCurrentSchedule\s*=\s*scheduleDeletionFeatureProxy\.method\('deleteCurrentSchedule'\);[\s\S]*const\s+clearPoolRecord\s*=\s*scheduleDeletionFeatureProxy\.method\('clearPoolRecord'\);[\s\S]*const\s+clearAggregateRecords\s*=\s*scheduleDeletionFeatureProxy\.method\('clearAggregateRecords'\);/,
+    /const\s+scheduleDeletionFeatureProxy\s*=\s*wireScheduleDeletionFeature\(assembly[\s\S]*const\s+isResourceCompleted\s*=\s*scheduleDeletionFeatureProxy\.method\('isResourceCompleted'\);[\s\S]*const\s+deleteCurrentSchedule\s*=\s*scheduleDeletionFeatureProxy\.method\('deleteCurrentSchedule'\);[\s\S]*const\s+clearPoolRecord\s*=\s*scheduleDeletionFeatureProxy\.method\('clearPoolRecord'\);[\s\S]*const\s+clearAggregateRecords\s*=\s*scheduleDeletionFeatureProxy\.method\('clearAggregateRecords'\);/,
     'app.js should use the shared lazy feature proxy for schedule deletion handlers',
   );
   assert.doesNotMatch(

@@ -24,7 +24,7 @@ test('app bootstrap delegates desktop resize feature imports without the pass-th
 test('app bootstrap proxies desktop resize handlers through the shared lazy feature proxy', () => {
   assert.match(
     appScript,
-    /const\s+desktopResizeFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadDesktopResizeFeature\(\)[\s\S]*const\s+initResize\s*=\s*desktopResizeFeatureProxy\.method\('initResize'\);[\s\S]*const\s+handleResizeMove\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeMove'\);[\s\S]*const\s+handleResizeEnd\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeEnd'\);/,
+    /const\s+desktopResizeFeatureProxy\s*=\s*wireDesktopResizeFeature\(assembly[\s\S]*const\s+initResize\s*=\s*desktopResizeFeatureProxy\.method\('initResize'\);[\s\S]*const\s+handleResizeMove\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeMove'\);[\s\S]*const\s+handleResizeEnd\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeEnd'\);/,
     'app.js should use the shared lazy feature proxy for desktop resize handlers',
   );
   assert.doesNotMatch(

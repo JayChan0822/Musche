@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import {
+    appLazyFeatureWiringsModule,
     assertAppDependenciesRegistry,
     assertAppBootstrapServicesRegistry,
     assertAppFeatureLoadersRegistry,
@@ -990,6 +991,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createTrackListFeatureLoader',
     loaderName: 'loadTrackListFeature',
+    appConsumerName: 'wireTrackListFeature',
     modulePath: 'track-list-feature-loader.js',
     label: 'track-list feature',
 });
@@ -1042,6 +1044,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createMidiManagerFeatureLoader',
     loaderName: 'loadMidiManagerFeature',
+    appConsumerName: 'wireMidiManagerFeature',
     modulePath: 'midi-manager-feature-loader.js',
     label: 'MIDI Manager feature',
 });
@@ -3667,10 +3670,10 @@ assert.doesNotMatch(
 );
 
 const settingsSyncFeatureIndex = appScript.indexOf('const settingsSyncFeature = wireSettingsSyncFeature(assembly');
-const settingsFeatureIndex = appScript.indexOf('settingsFeature = registerSettingsFeature({');
+const settingsFeatureIndex = appScript.indexOf('const settingsFeatureProxy = wireSettingsFeature(assembly');
 const sortedInstrumentsIndex = appScript.indexOf('sortedInstruments,');
 assert.ok(settingsSyncFeatureIndex !== -1, 'app.js must register the lightweight settings sync feature');
-assert.ok(settingsFeatureIndex !== -1, 'app.js must lazily register the full settings feature');
+assert.ok(settingsFeatureIndex !== -1, 'app.js must lazily wire the full settings feature');
 assert.ok(sortedInstrumentsIndex !== -1, 'app.js must expose sorted settings lists');
 assert.ok(
     settingsSyncFeatureIndex < sortedInstrumentsIndex && sortedInstrumentsIndex < settingsFeatureIndex,
@@ -3734,6 +3737,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createSettingsFeatureLoader',
     loaderName: 'loadSettingsFeature',
+    appConsumerName: 'wireSettingsFeature',
     modulePath: 'settings-feature-loader.js',
     label: 'settings feature',
 });
@@ -3749,7 +3753,7 @@ assert.doesNotMatch(
 );
 assert.match(
     appScript,
-    /allSettingsGrouped\s*=\s*computed\(\(\) => settingsFeature\.getAllSettingsGrouped\(\)\);/,
+    /allSettingsGrouped\s*=\s*computed\(\(\) => feature\.getAllSettingsGrouped\(\)\);/,
     'app.js must preserve the grouped-settings computed adapter when wiring settings directly'
 );
 
@@ -3766,7 +3770,7 @@ assert.match(
     'app.js must keep the manual-sync-aware cloud-save adapter when wiring auth directly'
 );
 
-const importDataFeatureIndex = appScript.indexOf('importDataFeature = registerImportDataFeature({');
+const importDataFeatureIndex = appScript.indexOf('const importDataFeatureProxy = wireImportDataFeature(assembly');
 assert.ok(importDataFeatureIndex !== -1, 'app.js must lazily register the import data feature');
 assert.equal(
     appScript.indexOf('registerImportShellFeature('),
@@ -3774,15 +3778,15 @@ assert.equal(
     'app.js must not register the pass-through import shell feature'
 );
 
-const trackListFeatureIndex = appScript.indexOf('trackListFeature = registerTrackListFeature({');
+const trackListFeatureIndex = appScript.indexOf('const trackListFeatureProxy = wireTrackListFeature(assembly');
 assert.ok(trackListFeatureIndex !== -1, 'app.js must register the track-list feature inside the lazy loader');
 assert.match(
     appScript,
-    /const\s+trackListFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadTrackListFeature\(\)[\s\S]*const\s+getTrackListFeature\s*=\s*trackListFeatureProxy\.getFeature;[\s\S]*const\s+withTrackListFeature\s*=\s*trackListFeatureProxy\.method;/,
+    /const\s+trackListFeatureProxy\s*=\s*wireTrackListFeature\(assembly[\s\S]*const\s+getTrackListFeature\s*=\s*trackListFeatureProxy\.getFeature;[\s\S]*const\s+withTrackListFeature\s*=\s*trackListFeatureProxy\.method;/,
     'app.js must proxy track-list helpers through the shared lazy feature proxy'
 );
 
-const midiManagerFeatureIndex = appScript.indexOf('midiManagerFeature = registerMidiManagerFeature({');
+const midiManagerFeatureIndex = appScript.indexOf('const midiManagerFeatureProxy = wireMidiManagerFeature(assembly');
 assert.ok(midiManagerFeatureIndex !== -1, 'app.js must register the midi-manager feature inside the lazy loader');
 assert.equal(
     appScript.indexOf('registerMidiManagerShellFeature('),
@@ -3806,7 +3810,7 @@ assert.equal(
     'app.js must not register the pass-through picker-controls shell feature'
 );
 
-const dataIoFeatureIndex = appScript.indexOf('const dataIoFeature = registerDataIoFeature({');
+const dataIoFeatureIndex = appScript.indexOf('const dataIoFeatureProxy = wireDataIoFeature(assembly');
 assert.ok(dataIoFeatureIndex !== -1, 'app.js must register the data-io feature inside the lazy loader');
 assert.equal(
     appScript.indexOf('registerDataIoShellFeature('),
@@ -3814,7 +3818,7 @@ assert.equal(
     'app.js must not register the pass-through data-io shell feature'
 );
 
-const metadataModalsFeatureIndex = appScript.indexOf('const metadataModalsFeature = registerMetadataModalsFeature({');
+const metadataModalsFeatureIndex = appScript.indexOf('const metadataModalsFeatureProxy = wireMetadataModalsFeature(assembly');
 assert.ok(metadataModalsFeatureIndex !== -1, 'app.js must register the metadata-modals feature inside the lazy loader');
 assert.equal(
     appScript.indexOf('registerMetadataModalsShellFeature('),
@@ -3870,16 +3874,16 @@ assert.equal(
     'app.js must not register the pass-through session shell feature'
 );
 
-const avatarCropFeatureIndex = appScript.indexOf('registerAvatarCropFeature({');
-assert.ok(avatarCropFeatureIndex !== -1, 'app.js must lazily register the avatar-crop feature');
+const avatarCropFeatureIndex = appScript.indexOf('const avatarCropFeatureProxy = wireAvatarCropFeature(assembly');
+assert.ok(avatarCropFeatureIndex !== -1, 'app.js must lazily wire the avatar-crop feature');
 assert.equal(
     appScript.indexOf('registerAvatarCropShellFeature('),
     -1,
     'app.js must not register the pass-through avatar-crop shell feature'
 );
 
-const notificationsFeatureIndex = appScript.indexOf('registerNotificationsFeature({');
-assert.ok(notificationsFeatureIndex !== -1, 'app.js must lazily register the notifications feature');
+const notificationsFeatureIndex = appScript.indexOf('const notificationsFeatureProxy = wireNotificationsFeature(assembly');
+assert.ok(notificationsFeatureIndex !== -1, 'app.js must lazily wire the notifications feature');
 assert.equal(
     appScript.indexOf('registerNotificationsShellFeature('),
     -1,
@@ -3902,7 +3906,7 @@ assert.equal(
     'app.js must not register the pass-through sidebar-stats shell feature'
 );
 
-const scheduleDeletionFeatureIndex = appScript.indexOf('scheduleDeletionFeature = registerScheduleDeletionFeature({');
+const scheduleDeletionFeatureIndex = appScript.indexOf('const scheduleDeletionFeatureProxy = wireScheduleDeletionFeature(assembly');
 assert.ok(scheduleDeletionFeatureIndex !== -1, 'app.js must lazily register the schedule-deletion feature');
 assert.equal(
     appScript.indexOf('registerScheduleDeletionShellFeature('),
@@ -3910,7 +3914,7 @@ assert.equal(
     'app.js must not register the pass-through schedule-deletion shell feature'
 );
 
-const taskEditorFeatureIndex = appScript.indexOf('registerTaskEditorFeature({');
+const taskEditorFeatureIndex = appScript.indexOf('const taskEditorFeatureProxy = wireTaskEditorFeature(assembly');
 assert.ok(taskEditorFeatureIndex !== -1, 'app.js must lazily register the task-editor feature');
 assert.equal(
     appScript.indexOf('registerTaskEditorShellFeature('),
@@ -3926,7 +3930,7 @@ assert.equal(
     'app.js must not register the pass-through split-task shell feature'
 );
 
-const mobileTouchFeatureIndex = appScript.indexOf('registerMobileTouchFeature({');
+const mobileTouchFeatureIndex = appScript.indexOf('const mobileTouchFeatureProxy = wireMobileTouchFeature(assembly');
 assert.ok(mobileTouchFeatureIndex !== -1, 'app.js must lazily register the mobile-touch feature');
 assert.match(
     mobileTouchFeatureLoaderModule,
@@ -3966,6 +3970,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createMobileTouchFeatureLoader',
     loaderName: 'loadMobileTouchRegistration',
+    appConsumerName: 'wireMobileTouchFeature',
     modulePath: 'mobile-touch-feature-loader.js',
     label: 'mobile-touch feature',
 });
@@ -3986,7 +3991,7 @@ assert.doesNotMatch(
     'app.js should not register the unused mobile-slider-auto-hide feature or shell'
 );
 
-const desktopResizeFeatureIndex = appScript.indexOf('registerDesktopResizeFeature({');
+const desktopResizeFeatureIndex = appScript.indexOf('const desktopResizeFeatureProxy = wireDesktopResizeFeature(assembly');
 assert.ok(desktopResizeFeatureIndex !== -1, 'app.js must lazily register the desktop-resize feature');
 assert.equal(
     appScript.indexOf('registerDesktopResizeShellFeature('),
@@ -4082,6 +4087,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createTourFeatureLoader',
     loaderName: 'loadTourFeature',
+    appConsumerName: 'wireTourFeature',
     modulePath: 'tour-feature-loader.js',
     label: 'tour feature',
 });
@@ -4092,7 +4098,7 @@ assert.doesNotMatch(
 );
 assert.match(
     appScript,
-    /const\s+tourFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadTourFeature\(\)[\s\S]*registerTourFeature\(\{/,
+    /const\s+tourFeatureProxy\s*=\s*wireTourFeature\(assembly\)/,
     'app.js must register the onboarding tour through the shared lazy loader proxy'
 );
 assert.match(
@@ -4258,6 +4264,7 @@ assert.doesNotMatch(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createImportDataDependencyLoader',
     loaderName: 'loadImportDataFeature',
+    appConsumerName: 'wireImportDataFeature',
     modulePath: 'import-data-dependency-loader.js',
     label: 'import-data dependency',
 });
@@ -4846,9 +4853,9 @@ assert.match(
 );
 
 assert.match(
-    appScript,
-    /registerTaskEditorFeature\(\{[\s\S]{0,2200}clearPoolRecord:\s*\(\.\.\.args\)\s*=>\s*clearPoolRecord\(\.\.\.args\)[\s\S]{0,240}clearAggregateRecords:\s*\(\.\.\.args\)\s*=>\s*clearAggregateRecords\(\.\.\.args\)/,
-    'app.js must inject schedule deletion cleanup helpers into task-editor lazily because schedule-deletion registers later'
+    appLazyFeatureWiringsModule,
+    /registerTaskEditorFeature\(\{[\s\S]{0,2200}clearPoolRecord:\s*\(\.\.\.args\)\s*=>\s*helpers\.clearPoolRecord\(\.\.\.args\)[\s\S]{0,240}clearAggregateRecords:\s*\(\.\.\.args\)\s*=>\s*helpers\.clearAggregateRecords\(\.\.\.args\)/,
+    'lazy wirings must inject schedule deletion cleanup helpers into task-editor lazily because schedule-deletion registers later'
 );
 
 assert.match(
@@ -4902,6 +4909,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createTaskEditorFeatureLoader',
     loaderName: 'loadTaskEditorFeature',
+    appConsumerName: 'wireTaskEditorFeature',
     modulePath: 'task-editor-feature-loader.js',
     label: 'task-editor feature',
 });
@@ -4914,7 +4922,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+taskEditorFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadTaskEditorFeature\(\)[\s\S]*const\s+openEditModal\s*=\s*taskEditorFeatureProxy\.method\('openEditModal'\);[\s\S]*const\s+saveEdit\s*=\s*taskEditorFeatureProxy\.method\('saveEdit'\);[\s\S]*const\s+deleteEditingItem\s*=\s*taskEditorFeatureProxy\.method\('deleteEditingItem'\);/,
+    /const\s+taskEditorFeatureProxy\s*=\s*wireTaskEditorFeature\(assembly[\s\S]*const\s+openEditModal\s*=\s*taskEditorFeatureProxy\.method\('openEditModal'\);[\s\S]*const\s+saveEdit\s*=\s*taskEditorFeatureProxy\.method\('saveEdit'\);[\s\S]*const\s+deleteEditingItem\s*=\s*taskEditorFeatureProxy\.method\('deleteEditingItem'\);/,
     'app.js must expose task editor handlers through the shared lazy feature proxy'
 );
 
@@ -4937,9 +4945,9 @@ assert.match(
 );
 
 assert.match(
-    appScript,
-    /registerTrackListFeature\(\{[\s\S]{0,1600}checkCanDeleteSplit:\s*\(\.\.\.args\)\s*=>\s*checkCanDeleteSplit\(\.\.\.args\)/,
-    'app.js must inject checkCanDeleteSplit into track-list lazily because split-task registers later'
+    appLazyFeatureWiringsModule,
+    /registerTrackListFeature\(\{[\s\S]{0,1600}checkCanDeleteSplit:\s*\(\.\.\.args\)\s*=>\s*helpers\.checkCanDeleteSplit\(\.\.\.args\)/,
+    'lazy wirings must inject checkCanDeleteSplit into track-list lazily because split-task registers later'
 );
 
 assert.match(
@@ -5064,6 +5072,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createMetadataModalsFeatureLoader',
     loaderName: 'loadMetadataModalsFeature',
+    appConsumerName: 'wireMetadataModalsFeature',
     modulePath: 'metadata-modals-feature-loader.js',
     label: 'metadata-modals feature',
 });
@@ -5076,7 +5085,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+metadataModalsFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadMetadataModalsFeature\(\)[\s\S]*\.then\(\(registerMetadataModalsFeature\)\s*=>\s*\{/,
+    /const\s+metadataModalsFeatureProxy\s*=\s*wireMetadataModalsFeature\(assembly/,
     'app.js must register metadata-modals through the loader service instead of direct metadata modal feature wiring'
 );
 
@@ -5555,6 +5564,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createDataIoFeatureLoader',
     loaderName: 'loadDataIoFeature',
+    appConsumerName: 'wireDataIoFeature',
     modulePath: 'data-io-feature-loader.js',
     label: 'data I/O feature',
 });
@@ -5567,13 +5577,13 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerDataIoFeature\(/,
+    /wireDataIoFeature\(assembly/,
     'app.js must register data-io orchestration instead of direct data-portability/export-csv wiring'
 );
 
 assert.match(
     appScript,
-    /const\s+dataIoFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadDataIoFeature\(\)[\s\S]*const\s+dataIoHandlers\s*=\s*dataIoFeatureProxy\.methods\(\[[\s\S]*'exportToICS'[\s\S]*'exportJSON'[\s\S]*'importJSON'[\s\S]*'triggerFileSelect'[\s\S]*'handleJSONFile'[\s\S]*'exportCSV'[\s\S]*'openExportModal'[\s\S]*'toggleFilterItem'[\s\S]*'toggleFilterAll'[\s\S]*'confirmExport'[\s\S]*\]\);/,
+    /const\s+dataIoFeatureProxy\s*=\s*wireDataIoFeature\(assembly[\s\S]*const\s+dataIoHandlers\s*=\s*dataIoFeatureProxy\.methods\(\[[\s\S]*'exportToICS'[\s\S]*'exportJSON'[\s\S]*'importJSON'[\s\S]*'triggerFileSelect'[\s\S]*'handleJSONFile'[\s\S]*'exportCSV'[\s\S]*'openExportModal'[\s\S]*'toggleFilterItem'[\s\S]*'toggleFilterAll'[\s\S]*'confirmExport'[\s\S]*\]\);/,
     'app.js must proxy data import/export helpers through the shared lazy feature proxy'
 );
 
@@ -5657,6 +5667,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createAvatarCropFeatureLoader',
     loaderName: 'loadAvatarCropFeature',
+    appConsumerName: 'wireAvatarCropFeature',
     modulePath: 'avatar-crop-feature-loader.js',
     label: 'avatar crop feature',
 });
@@ -5669,7 +5680,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerAvatarCropFeature\(/,
+    /wireAvatarCropFeature\(assembly/,
     'app.js must register the avatar-crop feature instead of owning Cropper lifecycle and upload logic'
 );
 
@@ -5687,7 +5698,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+avatarCropFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadAvatarCropFeature\(\)[\s\S]*const\s+onFileSelect\s*=\s*avatarCropFeatureProxy\.method\('onFileSelect'\);[\s\S]*const\s+cancelCrop\s*=\s*avatarCropFeatureProxy\.method\('cancelCrop'\);[\s\S]*const\s+confirmCrop\s*=\s*avatarCropFeatureProxy\.method\('confirmCrop'\);/,
+    /const\s+avatarCropFeatureProxy\s*=\s*wireAvatarCropFeature\(assembly\)[\s\S]*const\s+onFileSelect\s*=\s*avatarCropFeatureProxy\.method\('onFileSelect'\);[\s\S]*const\s+cancelCrop\s*=\s*avatarCropFeatureProxy\.method\('cancelCrop'\);[\s\S]*const\s+confirmCrop\s*=\s*avatarCropFeatureProxy\.method\('confirmCrop'\);/,
     'app.js must expose avatar crop handlers through the shared lazy feature proxy'
 );
 
@@ -5789,6 +5800,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createScheduleDeletionFeatureLoader',
     loaderName: 'loadScheduleDeletionFeature',
+    appConsumerName: 'wireScheduleDeletionFeature',
     modulePath: 'schedule-deletion-feature-loader.js',
     label: 'schedule deletion feature',
 });
@@ -5801,7 +5813,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerScheduleDeletionFeature\(/,
+    /wireScheduleDeletionFeature\(assembly/,
     'app.js must register the schedule-deletion feature instead of owning protected schedule deletion logic'
 );
 
@@ -5824,7 +5836,7 @@ for (const leakedRootReturnField of [
 
 assert.match(
     appScript,
-    /const\s+scheduleDeletionFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadScheduleDeletionFeature\(\)[\s\S]*const\s+isResourceCompleted\s*=\s*scheduleDeletionFeatureProxy\.method\('isResourceCompleted'\);[\s\S]*const\s+deleteCurrentSchedule\s*=\s*scheduleDeletionFeatureProxy\.method\('deleteCurrentSchedule'\);[\s\S]*const\s+clearPoolRecord\s*=\s*scheduleDeletionFeatureProxy\.method\('clearPoolRecord'\);[\s\S]*const\s+clearAggregateRecords\s*=\s*scheduleDeletionFeatureProxy\.method\('clearAggregateRecords'\);/,
+    /const\s+scheduleDeletionFeatureProxy\s*=\s*wireScheduleDeletionFeature\(assembly[\s\S]*const\s+isResourceCompleted\s*=\s*scheduleDeletionFeatureProxy\.method\('isResourceCompleted'\);[\s\S]*const\s+deleteCurrentSchedule\s*=\s*scheduleDeletionFeatureProxy\.method\('deleteCurrentSchedule'\);[\s\S]*const\s+clearPoolRecord\s*=\s*scheduleDeletionFeatureProxy\.method\('clearPoolRecord'\);[\s\S]*const\s+clearAggregateRecords\s*=\s*scheduleDeletionFeatureProxy\.method\('clearAggregateRecords'\);/,
     'app.js must proxy protected deletion helpers through the shared lazy feature proxy'
 );
 
@@ -6032,7 +6044,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+mobileTouchFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadMobileTouchRegistration\(\)[\s\S]*const\s+mobileTouchHandlers\s*=\s*mobileTouchFeatureProxy\.methods\(\[[\s\S]*'handleTouchStart'[\s\S]*'handlePoolTouchStart'[\s\S]*'handleTouchMove'[\s\S]*'handleTouchEnd'[\s\S]*'initMobileResize'[\s\S]*\]\);/,
+    /const\s+mobileTouchFeatureProxy\s*=\s*wireMobileTouchFeature\(assembly[\s\S]*const\s+mobileTouchHandlers\s*=\s*mobileTouchFeatureProxy\.methods\(\[[\s\S]*'handleTouchStart'[\s\S]*'handlePoolTouchStart'[\s\S]*'handleTouchMove'[\s\S]*'handleTouchEnd'[\s\S]*'initMobileResize'[\s\S]*\]\);/,
     'app.js should wire mobile-touch handlers through the shared lazy feature proxy after removing the pass-through shell'
 );
 
@@ -6370,6 +6382,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createDesktopResizeFeatureLoader',
     loaderName: 'loadDesktopResizeFeature',
+    appConsumerName: 'wireDesktopResizeFeature',
     modulePath: 'desktop-resize-feature-loader.js',
     label: 'desktop resize feature',
 });
@@ -6382,7 +6395,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+desktopResizeFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadDesktopResizeFeature\(\)[\s\S]*const\s+initResize\s*=\s*desktopResizeFeatureProxy\.method\('initResize'\);[\s\S]*const\s+handleResizeMove\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeMove'\);[\s\S]*const\s+handleResizeEnd\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeEnd'\);/,
+    /const\s+desktopResizeFeatureProxy\s*=\s*wireDesktopResizeFeature\(assembly[\s\S]*const\s+initResize\s*=\s*desktopResizeFeatureProxy\.method\('initResize'\);[\s\S]*const\s+handleResizeMove\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeMove'\);[\s\S]*const\s+handleResizeEnd\s*=\s*desktopResizeFeatureProxy\.method\('handleResizeEnd'\);/,
     'app.js must expose desktop resize handlers through the shared lazy feature proxy'
 );
 
@@ -6393,9 +6406,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-    appScript,
-    /registerDesktopResizeFeature\(\{[\s\S]*checkOverlap:\s*\(\.\.\.args\)\s*=>\s*checkOverlap\(\.\.\.args\)/,
-    'app.js must pass late-bound desktop resize overlap checks through the lazy wrapper'
+    appLazyFeatureWiringsModule,
+    /registerDesktopResizeFeature\(\{[\s\S]*checkOverlap:\s*\(\.\.\.args\)\s*=>\s*assembly\.helpers\.checkOverlap\(\.\.\.args\)/,
+    'lazy wirings must pass late-bound desktop resize overlap checks through the lazy wrapper'
 );
 
 assert.doesNotMatch(
@@ -6586,7 +6599,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerImportDataFeature\(/,
+    /wireImportDataFeature\(assembly/,
     'app.js must register import-data orchestration instead of direct CSV/MIDI import wiring'
 );
 
@@ -6782,7 +6795,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+importDataFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadImportDataFeature\(\)[\s\S]*const\s+calculateRowStatusText\s*=\s*importDataFeatureProxy\.method\('calculateRowStatusText'\);[\s\S]*const\s+confirmCsvImport\s*=\s*importDataFeatureProxy\.method\('confirmCsvImport'\);[\s\S]*const\s+triggerMidiImportForProject\s*=\s*importDataFeatureProxy\.method\('triggerMidiImportForProject'\);[\s\S]*const\s+selectImportGroup\s*=\s*importDataFeatureProxy\.method\('selectImportGroup'\);/,
+    /const\s+importDataFeatureProxy\s*=\s*wireImportDataFeature\(assembly[\s\S]*const\s+calculateRowStatusText\s*=\s*importDataFeatureProxy\.method\('calculateRowStatusText'\);[\s\S]*const\s+confirmCsvImport\s*=\s*importDataFeatureProxy\.method\('confirmCsvImport'\);[\s\S]*const\s+triggerMidiImportForProject\s*=\s*importDataFeatureProxy\.method\('triggerMidiImportForProject'\);[\s\S]*const\s+selectImportGroup\s*=\s*importDataFeatureProxy\.method\('selectImportGroup'\);/,
     'app.js must proxy CSV/MIDI import helpers through the shared lazy import-data feature proxy'
 );
 
@@ -6806,7 +6819,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+midiManagerFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadMidiManagerFeature\(\)[\s\S]*const\s+getMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.getFeature;[\s\S]*const\s+withMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.method;/,
+    /const\s+midiManagerFeatureProxy\s*=\s*wireMidiManagerFeature\(assembly[\s\S]*const\s+getMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.getFeature;[\s\S]*const\s+withMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.method;/,
     'app.js must proxy MIDI manager methods through the shared lazy feature proxy'
 );
 
@@ -7733,6 +7746,7 @@ assert.match(
 assertAppFeatureLoadersRegistry({
     factoryName: 'createNotificationsFeatureLoader',
     loaderName: 'loadNotificationsFeature',
+    appConsumerName: 'wireNotificationsFeature',
     modulePath: 'notifications-feature-loader.js',
     label: 'notifications feature',
 });
@@ -7751,7 +7765,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+notificationsFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadNotificationsFeature\(\)[\s\S]*\.then\(\(registerNotificationsFeature\)\s*=>\s*registerNotificationsFeature\(\{/,
+    /const\s+notificationsFeatureProxy\s*=\s*wireNotificationsFeature\(assembly/,
     'app.js must lazy-load the notifications registration function only when notification handlers are used'
 );
 
@@ -7774,9 +7788,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-    appScript,
+    appLazyFeatureWiringsModule,
     /registerNotificationsFeature\(\{[\s\S]*openAlertModal/,
-    'app.js must pass notification dependencies through the lazy wrapper'
+    'lazy wirings must pass notification dependencies through the lazy wrapper'
 );
 
 assert.doesNotMatch(
@@ -7858,6 +7872,7 @@ const requiredFiles = [
     'app/scripts/state/root-shell-state.js',
     'app/scripts/state/shell-state-factory.js',
     'app/scripts/services/app-assembly.js',
+    'app/scripts/services/app-lazy-feature-wirings.js',
     'app/scripts/state/mobile-controls-shell-state.js',
     'app/scripts/state/credit-modal-shell-state.js',
     'app/scripts/state/confirm-modal-shell-state.js',

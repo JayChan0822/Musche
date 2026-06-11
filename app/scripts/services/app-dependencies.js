@@ -7,22 +7,25 @@ import { createAppStateFactories } from './app-state-factories.js';
 import { createAppRootComponents } from './app-root-components.js';
 import { createAppVueRuntime } from './app-vue-runtime.js';
 import { createAppAssembly } from './app-assembly.js';
+import { createAppLazyFeatureWirings } from './app-lazy-feature-wirings.js';
 import { createLazyFeatureProxy } from './lazy-feature-proxy.js';
 
 export function createAppDependencies() {
     const vueRuntime = createAppVueRuntime();
     const supportLoaders = createAppSupportLoaders({ ref: vueRuntime.ref });
+    const featureLoaders = createAppFeatureLoaders({
+        cropperSupport: supportLoaders.loadCropper,
+        midiSmfSupport: supportLoaders.loadMidiSmf,
+        xlsxSupport: supportLoaders.loadXlsx,
+    });
 
     return {
         ...vueRuntime,
         ...createAppUtilityFunctions(),
         ...createAppBootstrapServices(),
         ...supportLoaders,
-        ...createAppFeatureLoaders({
-            cropperSupport: supportLoaders.loadCropper,
-            midiSmfSupport: supportLoaders.loadMidiSmf,
-            xlsxSupport: supportLoaders.loadXlsx,
-        }),
+        ...featureLoaders,
+        ...createAppLazyFeatureWirings({ loaders: featureLoaders }),
         ...createAppFeatureRegistrars({
             pinyinMatchSupport: supportLoaders.pinyinMatchSupport,
         }),

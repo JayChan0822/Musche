@@ -39,7 +39,7 @@ test('app bootstrap uses the settings sync registrar and lazy-loads full setting
   );
   assert.match(
     appScript,
-    /allSettingsGrouped\s*=\s*computed\(\(\) => settingsFeature\.getAllSettingsGrouped\(\)\);/,
+    /allSettingsGrouped\s*=\s*computed\(\(\) => feature\.getAllSettingsGrouped\(\)\);/,
     'app.js should preserve the grouped settings computed adapter when wiring settings directly',
   );
 });
@@ -47,7 +47,9 @@ test('app bootstrap uses the settings sync registrar and lazy-loads full setting
 test('app bootstrap proxies full settings handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'settingsFeatureProxy',
+    wireName: 'wireSettingsFeature',
     loaderName: 'loadSettingsFeature',
+    appConsumerName: 'wireSettingsFeature',
     methods: [
       'onSettingsItemDragStart',
       'onSettingsItemDragEnd',

@@ -31,6 +31,8 @@ const appFeatureRegistrarsPath = resolveFixturePath('app/scripts/services/app-fe
 export const appFeatureRegistrarsModule = readOptionalFixture(appFeatureRegistrarsPath);
 const appFeatureLoadersPath = resolveFixturePath('app/scripts/services/app-feature-loaders.js');
 export const appFeatureLoadersModule = readOptionalFixture(appFeatureLoadersPath);
+export const appLazyFeatureWiringsPath = resolveFixturePath('app/scripts/services/app-lazy-feature-wirings.js');
+export const appLazyFeatureWiringsModule = readOptionalFixture(appLazyFeatureWiringsPath);
 const appStateFactoriesPath = resolveFixturePath('app/scripts/services/app-state-factories.js');
 export const appStateFactoriesModule = readOptionalFixture(appStateFactoriesPath);
 const appUtilityFunctionsPath = resolveFixturePath('app/scripts/services/app-utility-functions.js');
@@ -507,12 +509,20 @@ export function assertSharedLazyFeatureProxy({
   methods,
   forbiddenPattern,
   label,
+  wireName,
 }) {
   assert.match(
-    appScript,
-    new RegExp(`const\\s+${escapedModulePath(proxyName)}\\s*=\\s*createLazyFeatureProxy\\(\\{[\\s\\S]*loadFeature:\\s*\\(\\)\\s*=>\\s*${escapedModulePath(loaderName)}\\(`),
-    `app.js must create ${label} through the shared lazy feature proxy`,
+    appLazyFeatureWiringsModule,
+    new RegExp(`createLazyFeatureProxy\\(\\{[\\s\\S]{0,200}loadFeature:\\s*\\(\\)\\s*=>\\s*${escapedModulePath(loaderName)}\\(`),
+    `lazy feature wirings must create ${label} through the shared lazy feature proxy`,
   );
+  if (wireName) {
+    assert.match(
+      appScript,
+      new RegExp(`const\\s+${escapedModulePath(proxyName)}\\s*=\\s*${escapedModulePath(wireName)}\\(assembly`),
+      `app.js must wire ${label} through the assembly-wired lazy wiring`,
+    );
+  }
 
   for (const methodName of methods) {
     const escapedProxyName = escapedModulePath(proxyName);
@@ -732,7 +742,7 @@ export function assertAppDependenciesRegistry() {
   );
   assert.match(
     appScript,
-    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bloadNotificationsFeature\b[\s\S]*\bwireAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
+    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bwireNotificationsFeature\b[\s\S]*\bwireAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should consume composed app dependencies from createAppDependencies()',
   );
   for (const factoryName of [
@@ -795,7 +805,7 @@ export function assertAppFeatureRegistrarRegistry({ factoryName, registerName, m
   );
 }
 
-export function assertAppFeatureLoadersRegistry({ factoryName, loaderName, modulePath, label }) {
+export function assertAppFeatureLoadersRegistry({ factoryName, loaderName, modulePath, label, appConsumerName = loaderName }) {
   assert.ok(
     appFeatureLoadersModule,
     'app-feature-loaders service registry should exist',
@@ -807,7 +817,7 @@ export function assertAppFeatureLoadersRegistry({ factoryName, loaderName, modul
   );
   assert.match(
     appScript,
-    new RegExp(`\\b${loaderName}\\b[\\s\\S]*=\\s*createAppDependencies\\(\\);`),
+    new RegExp(`\\b${appConsumerName}\\b[\\s\\S]*=\\s*createAppDependencies\\(\\);`),
     `app.js should get ${label} from the app dependency registry`,
   );
   assert.doesNotMatch(

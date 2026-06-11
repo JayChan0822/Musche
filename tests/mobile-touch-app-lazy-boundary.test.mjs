@@ -31,7 +31,9 @@ test('app bootstrap delegates mobile touch imports without the pass-through shel
 test('app bootstrap proxies mobile touch handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'mobileTouchFeatureProxy',
+    wireName: 'wireMobileTouchFeature',
     loaderName: 'loadMobileTouchRegistration',
+    appConsumerName: 'wireMobileTouchFeature',
     methods: [
       'handleTouchStart',
       'handlePoolTouchStart',

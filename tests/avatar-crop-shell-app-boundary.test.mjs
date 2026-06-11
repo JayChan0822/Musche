@@ -49,7 +49,7 @@ test('app bootstrap keeps Cropper support inside the avatar crop feature loader 
 test('app bootstrap proxies avatar crop handlers through the shared lazy feature proxy', () => {
   assert.match(
     appScript,
-    /const\s+avatarCropFeatureProxy\s*=\s*createLazyFeatureProxy\(\{[\s\S]*loadFeature:\s*\(\)\s*=>\s*loadAvatarCropFeature\(\)[\s\S]*const\s+onFileSelect\s*=\s*avatarCropFeatureProxy\.method\('onFileSelect'\);[\s\S]*const\s+cancelCrop\s*=\s*avatarCropFeatureProxy\.method\('cancelCrop'\);[\s\S]*const\s+confirmCrop\s*=\s*avatarCropFeatureProxy\.method\('confirmCrop'\);/,
+    /const\s+avatarCropFeatureProxy\s*=\s*wireAvatarCropFeature\(assembly[\s\S]*const\s+onFileSelect\s*=\s*avatarCropFeatureProxy\.method\('onFileSelect'\);[\s\S]*const\s+cancelCrop\s*=\s*avatarCropFeatureProxy\.method\('cancelCrop'\);[\s\S]*const\s+confirmCrop\s*=\s*avatarCropFeatureProxy\.method\('confirmCrop'\);/,
     'app.js should use the shared lazy feature proxy for avatar crop handlers',
   );
   assert.doesNotMatch(

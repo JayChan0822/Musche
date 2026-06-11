@@ -14,19 +14,19 @@ import { createAppDependencies } from './services/app-dependencies.js';
         supabaseService,
         deviceService,
         triggerTouchHaptic,
-        loadImportDataFeature,
-        loadNotificationsFeature,
-        loadDesktopResizeFeature,
-        loadScheduleDeletionFeature,
-        loadAvatarCropFeature,
-        loadDataIoFeature,
-        loadMetadataModalsFeature,
-        loadTourFeature,
-        loadMidiManagerFeature,
-        loadTaskEditorFeature,
-        loadMobileTouchRegistration,
-        loadTrackListFeature,
-        loadSettingsFeature,
+        wireImportDataFeature,
+        wireNotificationsFeature,
+        wireDesktopResizeFeature,
+        wireScheduleDeletionFeature,
+        wireAvatarCropFeature,
+        wireDataIoFeature,
+        wireMetadataModalsFeature,
+        wireTourFeature,
+        wireMidiManagerFeature,
+        wireTaskEditorFeature,
+        wireMobileTouchFeature,
+        wireTrackListFeature,
+        wireSettingsFeature,
         wireAppRuntimeFeature,
         wireGlobalKeyboardFeature,
         wireSessionFeature,
@@ -170,6 +170,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 filteredImportOptions,
                 midiGroupExpanded,
             } = createRootImportDataState();
+            assembly.refs.availableInstrumentGroups = availableInstrumentGroups;
             let importDataFeature;
 
             let {
@@ -206,44 +207,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
 // 🟢 新增: 手动同步函数
             const handleManualSync = () => authFeature.handleManualSync();
 
-            const mobileTouchFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadMobileTouchRegistration()
-                    .then((registerMobileTouchFeature) => registerMobileTouchFeature({
-                        refs: {
-                            isMobile,
-                            mobileTab,
-                            currentView,
-                            weekContainer,
-                            scheduledTasks,
-                            pxPerMin,
-                            sidebarTab,
-                            currentSessionId,
-                            lastTapState: store.lastTapState,
-                            isResizingMobile,
-                            mobileResizeState: store.mobileResizeState,
-                        },
-                        state: dragState,
-                        data: {
-                            getSettings: () => settings,
-                        },
-                        utils: {
-                            timeToMinutes: timeUtils.timeToMinutes,
-                            formatSecs: formatUtils.formatSecs,
-                            parseTime: timeUtils.parseTime,
-                        },
-                        actions: {
-                            changeDate: (...args) => changeDate(...args),
-                            isTaskGhost: (...args) => isTaskGhost(...args),
-                            jumpToGhostContext: (...args) => jumpToGhostContext(...args),
-                            handleTaskDblClick: (...args) => handleTaskDblClick(...args),
-                            selectTask: (...args) => selectTask(...args),
-                            triggerTouchHaptic: triggerTouchHaptic,
-                            checkOverlap: (...args) => checkOverlap(...args),
-                            openAlertModal: (...args) => openAlertModal(...args),
-                            pushHistory: () => pushHistory(),
-                        },
-                    })),
-            });
+            const mobileTouchFeatureProxy = wireMobileTouchFeature(assembly);
             const mobileTouchHandlers = mobileTouchFeatureProxy.methods([
                 'handleTouchStart',
                 'handlePoolTouchStart',
@@ -278,24 +242,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 openAlertModal, openConfirmModal, closeConfirmModal, handleConfirmAction,
                 openInputModal, closeInputModal, confirmInputModal,
             });
-            const avatarCropFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadAvatarCropFeature()
-                    .then((registerAvatarCropFeature) => registerAvatarCropFeature({
-                        refs: {
-                            showCropModal,
-                            cropImgSrc,
-                            cropImgRef,
-                            authLoading,
-                            user,
-                        },
-                        services: {
-                            supabaseService,
-                        },
-                        actions: {
-                            openAlertModal,
-                        },
-                    })),
-            });
+            const avatarCropFeatureProxy = wireAvatarCropFeature(assembly);
             const onFileSelect = avatarCropFeatureProxy.method('onFileSelect');
             const cancelCrop = avatarCropFeatureProxy.method('cancelCrop');
             const confirmCrop = avatarCropFeatureProxy.method('confirmCrop');
@@ -422,6 +369,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 confirmDurationPicker,
                 resetDuration,
             } = pickerControlsFeature;
+            assembly.refs.showColorPickerModal = showColorPickerModal;
 
             nameLookupFeature = wireNameLookupFeature(assembly);
             assembly.features.nameLookup = nameLookupFeature;
@@ -437,43 +385,11 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 metadataModalsFeatureRef,
             } = createRootMetadataModalState();
             assembly.refs.activeRecDropdown = activeRecDropdown;
-            const metadataModalsFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadMetadataModalsFeature()
-                    .then((registerMetadataModalsFeature) => {
-                        const metadataModalsFeature = registerMetadataModalsFeature({
-                            refs: {
-                                trackListData,
-                                sidebarTab,
-                                itemPool,
-                                scheduledTasks,
-                                currentSessionId,
-                                showCreditModal,
-                                generatedCreditText,
-                                showProjectInfoModal,
-                                showRecInfoModal,
-                                recInfoForm,
-                                activeRecDropdown,
-                                recDropdownSearch,
-                                newRecInputs,
-                                projectInfoForm,
-                            },
-                            state: {
-                                settings,
-                            },
-                            utils: {
-                                generateUniqueId: idUtils.generateUniqueId,
-                                getNameById,
-                            },
-                            actions: {
-                                pushHistory,
-                                triggerTouchHaptic: triggerTouchHaptic,
-                                openConfirmModal,
-                                openAlertModal,
-                            },
-                        });
-                        metadataModalsFeatureRef.value = metadataModalsFeature;
-                        return metadataModalsFeature;
-                    }),
+            Object.assign(assembly.refs, { showRecInfoModal, recInfoForm, recDropdownSearch, newRecInputs, projectInfoForm });
+            const metadataModalsFeatureProxy = wireMetadataModalsFeature(assembly, {
+                onLoaded: (feature) => {
+                    metadataModalsFeatureRef.value = feature;
+                },
             });
             const metadataModalHandlers = metadataModalsFeatureProxy.methods([
                 'openRecInfoModal',
@@ -495,36 +411,11 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 exportFilter,
                 dataIoFeatureRef,
             } = createRootDataIoState();
-            const dataIoFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadDataIoFeature()
-                    .then((registerDataIoFeature) => {
-                        const dataIoFeature = registerDataIoFeature({
-                            refs: {
-                                itemPool,
-                                scheduledTasks,
-                                currentSessionId,
-                            },
-                            state: {
-                                settings,
-                            },
-                            utils: {
-                                parseTime: timeUtils.parseTime,
-                                getNameById,
-                            },
-                            actions: {
-                                openInputModal,
-                                openAlertModal,
-                                pushHistory,
-                            },
-                            ioState: {
-                                showImportModal,
-                                showExportModal,
-                                exportFilter,
-                            },
-                        });
-                        dataIoFeatureRef.value = dataIoFeature;
-                        return dataIoFeature;
-                    }),
+            Object.assign(assembly.refs, { showImportModal, showExportModal, exportFilter });
+            const dataIoFeatureProxy = wireDataIoFeature(assembly, {
+                onLoaded: (feature) => {
+                    dataIoFeatureRef.value = feature;
+                },
             });
             const dataIoHandlers = dataIoFeatureProxy.methods([
                 'exportToICS',
@@ -604,26 +495,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const dropToMonth = (...args) => scheduleInteractionsFeature.dropToMonth(...args);
 
 
-            const desktopResizeFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadDesktopResizeFeature()
-                    .then((registerDesktopResizeFeature) => registerDesktopResizeFeature({
-                        refs: {
-                            resizing: store.resizing,
-                            pxPerMin,
-                        },
-                        utils: {
-                            timeToMinutes: timeUtils.timeToMinutes,
-                            formatSecs: formatUtils.formatSecs,
-                            parseTime: timeUtils.parseTime,
-                        },
-                        actions: {
-                            checkOverlap: (...args) => checkOverlap(...args),
-                            openAlertModal,
-                            triggerTouchHaptic: triggerTouchHaptic,
-                            pushHistory,
-                        },
-                    })),
-            });
+            const desktopResizeFeatureProxy = wireDesktopResizeFeature(assembly);
             const initResize = desktopResizeFeatureProxy.method('initResize');
             const handleResizeMove = desktopResizeFeatureProxy.method('handleResizeMove');
             const handleResizeEnd = desktopResizeFeatureProxy.method('handleResizeEnd');
@@ -642,32 +514,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const moveTask = (...args) => scheduleFeature.moveTask(...args);
 
-            const scheduleDeletionFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadScheduleDeletionFeature()
-                    .then((registerScheduleDeletionFeature) => {
-                        scheduleDeletionFeature = registerScheduleDeletionFeature({
-                            refs: {
-                                itemPool,
-                                scheduledTasks,
-                                currentSessionId,
-                                trackListData,
-                                showTrackList,
-                                sidebarTab,
-                            },
-                            state: {
-                                musicianStats,
-                                projectStats,
-                                instrumentStats,
-                            },
-                            actions: {
-                                openAlertModal,
-                                pushHistory,
-                                triggerTouchHaptic: triggerTouchHaptic,
-                                autoUpdateEfficiency,
-                            },
-                        });
-                        return scheduleDeletionFeature;
-                    }),
+            const scheduleDeletionFeatureProxy = wireScheduleDeletionFeature(assembly, {
+                onLoaded: (feature) => {
+                    scheduleDeletionFeature = feature;
+                },
             });
             const isResourceCompleted = scheduleDeletionFeatureProxy.method('isResourceCompleted');
             const deleteCurrentSchedule = scheduleDeletionFeatureProxy.method('deleteCurrentSchedule');
@@ -688,64 +538,16 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
-            const notificationsFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadNotificationsFeature()
-                    .then((registerNotificationsFeature) => registerNotificationsFeature({
-                        services: {
-                            deviceService,
-                        },
-                        utils: {
-                            getNameById,
-                        },
-                        actions: {
-                            openAlertModal,
-                        },
-                    })),
-            });
+            const notificationsFeatureProxy = wireNotificationsFeature(assembly);
             const updateTaskNotification = notificationsFeatureProxy.method('updateTaskNotification');
             const scheduleReminder = notificationsFeatureProxy.method('scheduleReminder');
 
             const { trackListReady } = createRootTrackListState();
-            const trackListFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadTrackListFeature()
-                    .then((registerTrackListFeature) => {
-                        trackListFeature = registerTrackListFeature({
-                            refs: {
-                                trackListData,
-                                trackListContainerRef,
-                                draggingSectionIndex,
-                                itemPool,
-                                scheduledTasks,
-                                showTrackList,
-                                isMobile,
-                                isDark,
-                                sidebarTab,
-                            },
-                            state: {
-                                settings,
-                            },
-                            utils: {
-                                parseTime: timeUtils.parseTime,
-                                formatSecs: formatUtils.formatSecs,
-                                getNameById,
-                            },
-                            actions: {
-                                openAlertModal,
-                                openInputModal,
-                                pushHistory,
-                                autoUpdateEfficiency,
-                                checkCanDeleteSplit: (...args) => checkCanDeleteSplit(...args),
-                                restoreSplitTime,
-                                updateTaskNotification,
-                                triggerTouchHaptic: triggerTouchHaptic,
-                                moveDivider,
-                                pruneEmptySchedules,
-                                calculateSingleRatio,
-                            },
-                        });
-                        trackListReady.value = true;
-                        return trackListFeature;
-                    }),
+            const trackListFeatureProxy = wireTrackListFeature(assembly, {
+                onLoaded: (feature) => {
+                    trackListFeature = feature;
+                    trackListReady.value = true;
+                },
             });
             const getTrackListFeature = trackListFeatureProxy.getFeature;
             const withTrackListFeature = trackListFeatureProxy.method;
@@ -792,6 +594,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const onSidebarTouchEnd = sidebarFeature.onSidebarTouchEnd;
             const sidebarTransitionName = sidebarFeature.sidebarTransitionName;
             const sidebarScrollRef = sidebarFeature.sidebarScrollRef;
+            assembly.refs.sidebarScrollRef = sidebarScrollRef;
             const switchSidebarTab = sidebarFeature.switchSidebarTab;
 
             splitTaskFeature = wireSplitTaskFeature(assembly);
@@ -816,44 +619,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             confirmSplitSlider = splitTaskConfirmSplitSlider;
             restoreSplitTime = splitTaskRestoreSplitTime;
 
-            const taskEditorFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadTaskEditorFeature()
-                    .then((registerTaskEditorFeature) => registerTaskEditorFeature({
-                        refs: {
-                            itemPool,
-                            scheduledTasks,
-                            editingItem,
-                            editingSource,
-                            showEditor,
-                            sidebarTab,
-                            trackListData,
-                        },
-                        split: {
-                            ...splitStateUtils,
-                            getSplitViewState,
-                            syncFamilyLegacyFields,
-                            syncFamilySharedIdentity,
-                            syncFamilyOrchestration,
-                            syncScheduledDurationsFromFamily,
-                        },
-                        utils: {
-                            calculateEstTime,
-                            getDefaultRatio,
-                        },
-                        actions: {
-                            checkCanDeleteSplit,
-                            restoreSplitTime,
-                            clearPoolRecord: (...args) => clearPoolRecord(...args),
-                            clearAggregateRecords: (...args) => clearAggregateRecords(...args),
-                            cleanupEmptySchedules,
-                            openAlertModal,
-                            autoUpdateEfficiency,
-                            updateTaskNotification,
-                            pushHistory,
-                            cancelNotification: (notificationId) => deviceService.cancelNotification(notificationId),
-                        },
-                    })),
-            });
+            const taskEditorFeatureProxy = wireTaskEditorFeature(assembly);
             const openEditModal = taskEditorFeatureProxy.method('openEditModal');
             const saveEdit = taskEditorFeatureProxy.method('saveEdit');
             const deleteEditingItem = taskEditorFeatureProxy.method('deleteEditingItem');
@@ -882,37 +648,13 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 getOrCreateSettingItem,
             } = settingsSyncFeature;
             assembly.refs.settingsNameFocus = settingsNameFocus;
+            Object.assign(assembly.refs, { sortedInstruments });
             let allSettingsGrouped = settingsSyncFeature.allSettingsGrouped;
-            const settingsFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadSettingsFeature()
-                    .then((registerSettingsFeature) => {
-                        settingsFeature = registerSettingsFeature({
-                            refs: {
-                                itemPool,
-                                scheduledTasks,
-                                settingsExpandedGroups,
-                                newSettingsItem,
-                                settingsGroupFocus,
-                            },
-                            state: {
-                                settings,
-                            },
-                            utils: {
-                                generateUniqueId: idUtils.generateUniqueId,
-                                generateRandomHexColor,
-                            },
-                            actions: {
-                                pushHistory,
-                                triggerTouchHaptic: triggerTouchHaptic,
-                                openConfirmModal,
-                                openAlertModal,
-                                cleanupEmptySchedules,
-                                autoUpdateEfficiency,
-                            },
-                        });
-                        allSettingsGrouped = computed(() => settingsFeature.getAllSettingsGrouped());
-                        return settingsFeature;
-                    }),
+            const settingsFeatureProxy = wireSettingsFeature(assembly, {
+                onLoaded: (feature) => {
+                    settingsFeature = feature;
+                    allSettingsGrouped = computed(() => feature.getAllSettingsGrouped());
+                },
             });
             const settingsHandlers = settingsFeatureProxy.methods([
                 'onSettingsItemDragStart',
@@ -929,71 +671,18 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 'handleItemRename',
             ]);
 
-            const importDataFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadImportDataFeature().then(({ registerImportDataFeature, csvUtils, midiUtils }) => {
-                    importDataFeature = registerImportDataFeature({
-                        refs: {
-                            csvSearchQuery: store.csvSearchQuery,
-                            csvImportData: store.csvImportData,
-                            csvImportConfig: store.csvImportConfig,
-                            activeImportTab: store.activeImportTab,
-                            collapsedProjects: store.collapsedProjects,
-                            rawCsvRows: store.rawCsvRows,
-                            csvHeadersMap: store.csvHeadersMap,
-                            showCsvImportModal,
-                            itemPool,
-                            scheduledTasks,
-                            currentSessionId,
-                            managingProject,
-                            showMidiImportModal,
-                            midiImportData: store.midiImportData,
-                            midiBpm: store.midiBpm,
-                            midiTempoMap: store.midiTempoMap,
-                            midiTimeSigs: store.midiTimeSigs,
-                            midiViewMode: store.midiViewMode,
-                            midiTimeSig: store.midiTimeSig,
-                            activeImportMenu: store.activeImportMenu,
-                            importMenuPos: store.importMenuPos,
-                            importSearchQuery: store.importSearchQuery,
-                        },
-                        state: {
-                            settings,
-                        },
-                        utils: {
-                            formatSecs: formatUtils.formatSecs,
-                            parseTime: timeUtils.parseTime,
-                            normalizeDate: csvUtils.normalizeDate,
-                            getOrchString: csvUtils.getOrchString,
-                            getNameById,
-                            getOrCreateSettingItem,
-                            calculateEstTime,
-                            generateUniqueId: idUtils.generateUniqueId,
-                            buildTempoMap: midiUtils.buildTempoMap,
-                            buildTimeSigMap: midiUtils.buildTimeSigMap,
-                            extractNotesFromJZZTrack: midiUtils.extractNotesFromJZZTrack,
-                            calculateBarQuantizedDuration: midiUtils.calculateBarQuantizedDuration,
-                            normalizeForMatch: midiUtils.normalizeForMatch,
-                            generateRandomHexColor,
-                        },
-                        actions: {
-                            openAlertModal,
-                            pushHistory,
-                            autoUpdateEfficiency,
-                            autoResizeSchedules,
-                            triggerTouchHaptic: triggerTouchHaptic,
-                            sortedInstruments,
-                            nextTick,
-                        },
-                    });
-                    groupedCsvData = importDataFeature.groupedCsvData;
-                    isAllSelected = importDataFeature.isAllSelected;
-                    availableInstrumentGroups = importDataFeature.availableInstrumentGroups;
-                    midiGroupExpanded = importDataFeature.midiGroupExpanded;
-                    midiGroupData = importDataFeature.midiGroupData;
-                    currentMidiDisplayList = importDataFeature.currentMidiDisplayList;
-                    filteredImportOptions = importDataFeature.filteredImportOptions;
-                    return importDataFeature;
-                }),
+            const importDataFeatureProxy = wireImportDataFeature(assembly, {
+                onLoaded: (feature) => {
+                    importDataFeature = feature;
+                    groupedCsvData = feature.groupedCsvData;
+                    isAllSelected = feature.isAllSelected;
+                    availableInstrumentGroups = feature.availableInstrumentGroups;
+                    assembly.refs.availableInstrumentGroups = availableInstrumentGroups;
+                    midiGroupExpanded = feature.midiGroupExpanded;
+                    midiGroupData = feature.midiGroupData;
+                    currentMidiDisplayList = feature.currentMidiDisplayList;
+                    filteredImportOptions = feature.filteredImportOptions;
+                },
             });
             const calculateRowStatusText = importDataFeatureProxy.method('calculateRowStatusText');
             const refreshCsvStatus = importDataFeatureProxy.method('refreshCsvStatus');
@@ -1028,45 +717,16 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const selectImportInst = importDataFeatureProxy.method('selectImportInst');
             const selectImportNewInst = importDataFeatureProxy.method('selectImportNewInst');
             const selectImportGroup = importDataFeatureProxy.method('selectImportGroup');
-            const midiManagerFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadMidiManagerFeature()
-                    .then((registerMidiManagerFeature) => {
-                        midiManagerFeature = registerMidiManagerFeature({
-                            refs: {
-                                showMidiManager,
-                                managingProject,
-                                activeMidiGroupRow: store.activeMidiGroupRow,
-                                midiGroupPos: store.midiGroupPos,
-                                midiGroupSearchQuery: store.midiGroupSearchQuery,
-                                newItem,
-                                itemPool,
-                                scheduledTasks,
-                                currentSessionId,
-                                showMobileTaskInput,
-                                isMobile,
-                            },
-                            state: {
-                                settings,
-                            },
-                            utils: {
-                                calculateEstTime,
-                                getNameById,
-                            },
-                            actions: {
-                                getAvailableInstrumentGroups: () => availableInstrumentGroups,
-                                openConfirmModal,
-                                pushHistory,
-                                triggerTouchHaptic: triggerTouchHaptic,
-                            },
-                        });
-                        midiManagerExpandedGroups = midiManagerFeature.midiManagerExpandedGroups;
-                        assembly.refs.midiManagerExpandedGroups = midiManagerExpandedGroups;
-                        projectMidiList = midiManagerFeature.projectMidiList;
-                        projectMidiGroups = midiManagerFeature.projectMidiGroups;
-                        assembly.refs.projectMidiGroups = projectMidiGroups;
-                        filteredMidiGroups = midiManagerFeature.filteredMidiGroups;
-                        return midiManagerFeature;
-                    }),
+            const midiManagerFeatureProxy = wireMidiManagerFeature(assembly, {
+                onLoaded: (feature) => {
+                    midiManagerFeature = feature;
+                    midiManagerExpandedGroups = feature.midiManagerExpandedGroups;
+                    assembly.refs.midiManagerExpandedGroups = midiManagerExpandedGroups;
+                    projectMidiList = feature.projectMidiList;
+                    projectMidiGroups = feature.projectMidiGroups;
+                    assembly.refs.projectMidiGroups = projectMidiGroups;
+                    filteredMidiGroups = feature.filteredMidiGroups;
+                },
             });
             const getMidiManagerFeature = midiManagerFeatureProxy.getFeature;
             const withMidiManagerFeature = midiManagerFeatureProxy.method;
@@ -1172,25 +832,20 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             // 🟢 优化: 增强版布局刷新函数
 
-            const tourFeatureProxy = createLazyFeatureProxy({
-                loadFeature: () => loadTourFeature()
-                    .then((registerTourFeature) => registerTourFeature({
-                        refs: {
-                            isMobile,
-                            isSidebarOpen,
-                            mobileTab,
-                            showMobileTaskInput,
-                            sidebarScrollRef,
-                        },
-                        services: {
-                            storageService,
-                        },
-                    })),
-            });
+            const tourFeatureProxy = wireTourFeature(assembly);
             const startTour = tourFeatureProxy.method('startTour');
             const mountTourAutostart = tourFeatureProxy.method('mountTourAutostart');
 
             Object.assign(assembly.helpers, {
+                autoResizeSchedules,
+                changeDate,
+                getOrCreateSettingItem,
+                moveDivider,
+                updateTaskNotification,
+                syncFamilyLegacyFields,
+                syncFamilySharedIdentity,
+                syncFamilyOrchestration,
+                syncScheduledDurationsFromFamily,
                 checkOverlap,
                 isResourceCompleted,
                 clearPoolRecord,

@@ -67,7 +67,9 @@ test('app bootstrap keeps MIDI SMF support inside the import-data dependency loa
 test('app bootstrap proxies import-data handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'importDataFeatureProxy',
+    wireName: 'wireImportDataFeature',
     loaderName: 'loadImportDataFeature',
+    appConsumerName: 'wireImportDataFeature',
     methods: [
       'calculateRowStatusText',
       'confirmCsvImport',

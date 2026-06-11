@@ -55,7 +55,9 @@ test('app bootstrap keeps XLSX support inside the data I/O feature loader bounda
 test('app bootstrap proxies data I/O handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'dataIoFeatureProxy',
+    wireName: 'wireDataIoFeature',
     loaderName: 'loadDataIoFeature',
+    appConsumerName: 'wireDataIoFeature',
     methods: [
       'exportToICS',
       'exportJSON',

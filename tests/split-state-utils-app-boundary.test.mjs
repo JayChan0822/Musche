@@ -6,6 +6,7 @@ import {
   splitViewFeatureRegistrarModule,
   splitTaskFeatureRegistrarModule,
   scheduleInteractionsFeatureRegistrarModule,
+  appLazyFeatureWiringsModule,
   assertGroupedUtilityBoundary,
 } from './helpers/app-boundary-assertions.mjs';
 
@@ -55,8 +56,8 @@ test('app bootstrap consumes split-state helpers through a grouped utility surfa
     'split-task registrar should extend the grouped split-state utility surface only with split-view helpers',
   );
   assert.match(
-    appScript,
+    appLazyFeatureWiringsModule,
     /registerTaskEditorFeature\(\{[\s\S]*split:\s*\{[\s\S]*\.\.\.splitStateUtils[\s\S]*getSplitViewState[\s\S]*syncFamilyLegacyFields[\s\S]*\}[\s\S]*\}\)/,
-    'app.js should extend the grouped split-state utility surface only with split-task helpers for task editor',
+    'lazy wirings should extend the grouped split-state utility surface only with split-task helpers for task editor',
   );
 });

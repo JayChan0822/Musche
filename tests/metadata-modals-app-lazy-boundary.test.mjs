@@ -30,7 +30,9 @@ test('app bootstrap delegates metadata modal imports without the pass-through sh
 test('app bootstrap proxies metadata modal handlers through the shared lazy feature proxy', () => {
   assertSharedLazyFeatureProxy({
     proxyName: 'metadataModalsFeatureProxy',
+    wireName: 'wireMetadataModalsFeature',
     loaderName: 'loadMetadataModalsFeature',
+    appConsumerName: 'wireMetadataModalsFeature',
     methods: [
       'openRecInfoModal',
       'saveRecInfo',
