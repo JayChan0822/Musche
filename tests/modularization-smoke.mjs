@@ -3599,11 +3599,17 @@ const requiredBootstrapStoreRefs = [
     'isDark',
 ];
 
+assert.match(
+    appScript,
+    /Object\.assign\(assembly\.refs, store,/,
+    'app.js must merge the store into assembly.refs so wiring modules can destructure bootstrap refs'
+);
+const muscheStoreModule = readFileSync('app/scripts/store/index.js', 'utf8');
 for (const refName of requiredBootstrapStoreRefs) {
     assert.match(
-        appScript,
-        new RegExp(`const \\{[\\s\\S]*\\b${refName}\\b[\\s\\S]*\\} = store;`),
-        `app.js must destructure ${refName} from the store before using it during bootstrap`
+        muscheStoreModule,
+        new RegExp(`\\b${refName}\\b`),
+        `the store must own ${refName} so assembly.refs exposes it during bootstrap`
     );
 }
 
