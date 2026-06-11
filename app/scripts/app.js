@@ -93,6 +93,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
         createRootTaskActionModalsShellState,
         createRootUniversalModalsShellState,
         createAppRootOptions,
+        createAppAssembly,
         createLazyFeatureProxy,
     } = createAppDependencies();
     createApp({
@@ -135,6 +136,18 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 onAfterLeave,
                 dragState,
             } = createRootAppState();
+            // 装配上下文：feature 接线适配器从这里取 refs/state/helpers（见 services/app-assembly.js）
+            const assembly = createAppAssembly({
+                vue: { computed, watch, nextTick, onMounted, onUnmounted },
+                utils: { timeUtils, formatUtils, idUtils, splitStateUtils },
+                services: { storageService, supabaseService, deviceService, triggerTouchHaptic },
+            });
+            Object.assign(assembly.refs, store, {
+                sidebarTab, isMobile, mobileTab, newItem, sortField, sortAsc,
+                authPasswordRef, initialTouchCoords, draggingTaskElement,
+                isSyncing, isContextSwitching, isZooming, weekGridWrapper, dragState,
+            });
+            Object.assign(assembly.helpers, { onBeforeLeave, onAfterLeave });
             splitViewFeature = registerSplitViewFeature({
                 refs: {
                     trackListData,
@@ -310,6 +323,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const confirmCrop = avatarCropFeatureProxy.method('confirmCrop');
 
             const settings = createRootSettingsState();
+            assembly.state.settings = settings;
             currentSessionId.value = 'S_DEFAULT';
 
             // 🟢 修改: 纯粹的登录逻辑 (不再自动跳转注册)

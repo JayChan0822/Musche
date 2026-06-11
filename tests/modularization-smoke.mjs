@@ -7851,6 +7851,7 @@ const requiredFiles = [
     'app/scripts/state/metadata-modal-state.js',
     'app/scripts/state/root-shell-state.js',
     'app/scripts/state/shell-state-factory.js',
+    'app/scripts/services/app-assembly.js',
     'app/scripts/state/mobile-controls-shell-state.js',
     'app/scripts/state/credit-modal-shell-state.js',
     'app/scripts/state/confirm-modal-shell-state.js',

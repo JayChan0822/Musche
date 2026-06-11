@@ -6,6 +6,7 @@ import { createAppFeatureRegistrars } from './app-feature-registrars.js';
 import { createAppStateFactories } from './app-state-factories.js';
 import { createAppRootComponents } from './app-root-components.js';
 import { createAppVueRuntime } from './app-vue-runtime.js';
+import { createAppAssembly } from './app-assembly.js';
 import { createLazyFeatureProxy } from './lazy-feature-proxy.js';
 
 export function createAppDependencies() {
@@ -32,6 +33,7 @@ export function createAppDependencies() {
             computed: vueRuntime.computed,
         }),
         ...createAppRootComponents(),
+        createAppAssembly,
         createLazyFeatureProxy,
     };
 }
