@@ -7,6 +7,7 @@ Musche：音乐人排程应用。Vue 3（运行时组件，无 SFC、无 JSX）+
 ```bash
 npm run dev                      # 本地开发（需 app/config.local.js 或 VITE_SUPABASE_* 环境变量）
 npm test                         # 全量测试：模块化烟雾 + node --test tests/*.test.mjs
+npm run test:e2e                 # Playwright E2E 冒烟（tests/e2e/，跑在 vite preview 上，不连 Supabase）
 npm run verify:modularization    # 仅跑模块边界烟雾测试
 npm run build                    # 产物在 app/dist
 node --test tests/<file>.test.mjs   # 单跑某个测试

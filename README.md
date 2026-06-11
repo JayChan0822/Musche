@@ -28,6 +28,7 @@ Supabase 配置二选一（本地开发推荐前者，托管构建用后者）�
 
 ```bash
 npm test          # 模块化烟雾测试 + node --test 全量测试
+npm run test:e2e  # Playwright E2E 冒烟测试（基于 vite preview，本地模式、不连 Supabase）
 npm run build     # 产物输出到 app/dist（Vercel 部署目录）
 npm run preview
 ```
