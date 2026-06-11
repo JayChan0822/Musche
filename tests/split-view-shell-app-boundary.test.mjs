@@ -14,7 +14,7 @@ test('app bootstrap registers split view through the split view registrar withou
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createSplitViewFeatureRegistrar',
-    registerName: 'registerSplitViewFeature',
+    registerName: 'wireSplitViewFeature',
     modulePath: 'split-view-feature-registrar.js',
     label: 'split view',
   });

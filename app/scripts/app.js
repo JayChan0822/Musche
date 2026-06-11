@@ -32,15 +32,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
         wireSessionFeature,
         wireHistoryFeature,
         wireRatioFeature,
-        registerNameLookupFeature,
-        registerSplitViewFeature,
+        wireNameLookupFeature,
+        wireSplitViewFeature,
         wireDropdownsFeature,
         registerViewNavigationFeature,
-        registerQuickAddFeature,
-        registerUniversalModalFeature,
-        registerOrchestrationFeature,
+        wireQuickAddFeature,
+        wireUniversalModalFeature,
+        wireOrchestrationFeature,
         registerSplitTaskFeature,
-        registerPickerControlsFeature,
+        wirePickerControlsFeature,
         registerPoolInteractionsFeature,
         registerSearchFeature,
         registerSidebarStatsFeature,
@@ -148,13 +148,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 isSyncing, isContextSwitching, isZooming, weekGridWrapper, dragState,
             });
             Object.assign(assembly.helpers, { onBeforeLeave, onAfterLeave });
-            splitViewFeature = registerSplitViewFeature({
-                refs: {
-                    trackListData,
-                    sidebarTab,
-                },
-                split: splitStateUtils,
-            });
+            splitViewFeature = wireSplitViewFeature(assembly);
+            assembly.features.splitView = splitViewFeature;
             const {
                 syncItemForView,
                 syncItemsForView,
@@ -163,7 +158,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 peekSplitViewState,
                 getCurrentSplitView,
             } = splitViewFeature;
-            assembly.features.splitView = splitViewFeature;
             // --- 🎹 MIDI 高级导入逻辑 ---
             
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
@@ -267,19 +261,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             let getThemeLabel;
             let switchView;
 
-            universalModalFeature = registerUniversalModalFeature({
-                refs: {
-                    showConfirmModal,
-                    confirmModalConfig,
-                    showInputModal,
-                    inputModalConfig,
-                    universalInputRef,
-                },
-                actions: {
-                    triggerTouchHaptic: triggerTouchHaptic,
-                    switchView,
-                },
-            });
+            universalModalFeature = wireUniversalModalFeature(assembly);
+            assembly.features.universalModal = universalModalFeature;
             const {
                 openAlertModal,
                 openConfirmModal,
@@ -414,22 +397,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 handleSessionAction,
             } = sessionFeature;
 
-            const pickerControlsFeature = registerPickerControlsFeature({
-                refs: {
-                    showDurationPicker: store.showDurationPicker,
-                    tempDuration: store.tempDuration,
-                    pickerMinRef: store.pickerMinRef,
-                    pickerSecRef: store.pickerSecRef,
-                    pickerPos: store.pickerPos,
-                },
-                utils: {
-                    calculateEstTime,
-                },
-                actions: {
-                    pushHistory,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            const pickerControlsFeature = wirePickerControlsFeature(assembly);
+            assembly.features.pickerControls = pickerControlsFeature;
             const {
                 showColorPickerModal,
                 colorPickerTarget,
@@ -452,11 +421,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 resetDuration,
             } = pickerControlsFeature;
 
-            nameLookupFeature = registerNameLookupFeature({
-                state: {
-                    settings,
-                },
-            });
+            nameLookupFeature = wireNameLookupFeature(assembly);
+            assembly.features.nameLookup = nameLookupFeature;
             const getNameById = (...args) => nameLookupFeature.getNameById(...args);
 
             const {
@@ -627,25 +593,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             // --- V9.7.4 名称和颜色查找器 (新增项目类型) ---
 
-            orchestrationFeature = registerOrchestrationFeature({
-                refs: {
-                    editingItem,
-                    showEditor,
-                    sidebarTab,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    getNameById,
-                },
-                actions: {
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            orchestrationFeature = wireOrchestrationFeature(assembly);
+            assembly.features.orchestration = orchestrationFeature;
             const {
                 activeOrchPresets,
                 orchTemplates,
@@ -666,36 +615,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const getGroupColor = (...args) => pickerControlsFeature.getGroupColor(...args);
 
-            quickAddFeature = registerQuickAddFeature({
-                refs: {
-                    quickAddType,
-                    quickAddForm,
-                    showQuickAddModal,
-                    activeDropdown,
-                    itemPool,
-                    currentSessionId,
-                    isMobile,
-                    showMobileTaskInput,
-                },
-                state: {
-                    settings,
-                    newItem,
-                },
-                utils: {
-                    getExistingGroups: (...args) => getExistingGroups(...args),
-                    generateUniqueId: idUtils.generateUniqueId,
-                    generateRandomHexColor,
-                    getDefaultRatio,
-                    getNameById,
-                    calculateEstTime,
-                    ensureItemRecords,
-                },
-                actions: {
-                    openAlertModal,
-                    pushHistory,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            quickAddFeature = wireQuickAddFeature(assembly);
+            assembly.features.quickAdd = quickAddFeature;
             const {
                 currentQuickAddGroups,
                 openQuickAdd,
@@ -703,7 +624,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 confirmQuickAdd,
                 addItemToPool,
             } = quickAddFeature;
-            assembly.features.quickAdd = quickAddFeature;
 
             const scheduleInteractionsFeature = registerScheduleInteractionsFeature({
                 refs: {
@@ -1611,6 +1531,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToGhostContext,
             } = viewNavigationFeature;
             switchView = viewNavigationFeature.switchView;
+            assembly.features.viewNavigation = viewNavigationFeature;
 
             const handlePageUnload = authFeature.handlePageUnload;
 

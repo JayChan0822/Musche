@@ -14,7 +14,7 @@ test('app bootstrap registers picker controls through the picker controls regist
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createPickerControlsFeatureRegistrar',
-    registerName: 'registerPickerControlsFeature',
+    registerName: 'wirePickerControlsFeature',
     modulePath: 'picker-controls-feature-registrar.js',
     label: 'picker controls',
   });

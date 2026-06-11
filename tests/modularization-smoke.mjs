@@ -3618,7 +3618,7 @@ assert.equal(
     'app.js must not register the pass-through search shell feature'
 );
 
-const splitViewFeatureIndex = appScript.indexOf('registerSplitViewFeature({');
+const splitViewFeatureIndex = appScript.indexOf('wireSplitViewFeature(assembly');
 assert.ok(splitViewFeatureIndex !== -1, 'app.js must register the split-view feature');
 assert.ok(
     appStateDeclarationIndex < splitViewFeatureIndex,
@@ -3798,7 +3798,7 @@ assert.equal(
     'app.js must not register the pass-through view-navigation shell feature'
 );
 
-const pickerControlsFeatureIndex = appScript.indexOf('const pickerControlsFeature = registerPickerControlsFeature({');
+const pickerControlsFeatureIndex = appScript.indexOf('const pickerControlsFeature = wirePickerControlsFeature(assembly');
 assert.ok(pickerControlsFeatureIndex !== -1, 'app.js must register the picker-controls feature');
 assert.equal(
     appScript.indexOf('registerPickerControlsShellFeature('),
@@ -3822,7 +3822,7 @@ assert.equal(
     'app.js must not register the pass-through metadata-modals shell feature'
 );
 
-const orchestrationFeatureIndex = appScript.indexOf('orchestrationFeature = registerOrchestrationFeature({');
+const orchestrationFeatureIndex = appScript.indexOf('orchestrationFeature = wireOrchestrationFeature(assembly');
 assert.ok(orchestrationFeatureIndex !== -1, 'app.js must register the orchestration feature');
 assert.equal(
     appScript.indexOf('registerOrchestrationShellFeature('),
@@ -3838,7 +3838,7 @@ assert.equal(
     'app.js must not register the pass-through dropdowns shell feature'
 );
 
-const universalModalFeatureIndex = appScript.indexOf('universalModalFeature = registerUniversalModalFeature({');
+const universalModalFeatureIndex = appScript.indexOf('universalModalFeature = wireUniversalModalFeature(assembly');
 assert.ok(universalModalFeatureIndex !== -1, 'app.js must register the universal-modal feature');
 assert.equal(
     appScript.indexOf('registerUniversalModalShellFeature('),
@@ -3846,7 +3846,7 @@ assert.equal(
     'app.js must not register the pass-through universal-modal shell feature'
 );
 
-const quickAddFeatureIndex = appScript.indexOf('quickAddFeature = registerQuickAddFeature({');
+const quickAddFeatureIndex = appScript.indexOf('quickAddFeature = wireQuickAddFeature(assembly');
 assert.ok(quickAddFeatureIndex !== -1, 'app.js must register the quick-add feature');
 assert.equal(
     appScript.indexOf('registerQuickAddShellFeature('),
@@ -4018,7 +4018,7 @@ assert.equal(
     'app.js must not register the pass-through app-runtime shell feature'
 );
 
-const nameLookupFeatureIndex = appScript.indexOf('nameLookupFeature = registerNameLookupFeature({');
+const nameLookupFeatureIndex = appScript.indexOf('nameLookupFeature = wireNameLookupFeature(assembly');
 assert.ok(nameLookupFeatureIndex !== -1, 'app.js must register the name-lookup feature');
 assert.equal(
     appScript.indexOf('registerNameLookupShellFeature('),
@@ -4490,7 +4490,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createNameLookupFeatureRegistrar',
-    registerName: 'registerNameLookupFeature',
+    registerName: 'wireNameLookupFeature',
     modulePath: 'name-lookup-feature-registrar.js',
     label: 'name-lookup',
 });
@@ -5149,7 +5149,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createOrchestrationFeatureRegistrar',
-    registerName: 'registerOrchestrationFeature',
+    registerName: 'wireOrchestrationFeature',
     modulePath: 'orchestration-feature-registrar.js',
     label: 'Orchestration',
 });
@@ -5162,7 +5162,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerOrchestrationFeature\(/,
+    /wireOrchestrationFeature\(assembly\)/,
     'app.js must register the orchestration feature instead of owning roster and percussion editor logic'
 );
 
@@ -5199,7 +5199,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createUniversalModalFeatureRegistrar',
-    registerName: 'registerUniversalModalFeature',
+    registerName: 'wireUniversalModalFeature',
     modulePath: 'universal-modal-feature-registrar.js',
     label: 'Universal Modal',
 });
@@ -5212,7 +5212,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerUniversalModalFeature\(/,
+    /wireUniversalModalFeature\(assembly\)/,
     'app.js must register the universal-modal feature instead of owning confirm/input modal helpers directly'
 );
 
@@ -5249,7 +5249,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createQuickAddFeatureRegistrar',
-    registerName: 'registerQuickAddFeature',
+    registerName: 'wireQuickAddFeature',
     modulePath: 'quick-add-feature-registrar.js',
     label: 'Quick Add',
 });
@@ -5262,7 +5262,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerQuickAddFeature\(/,
+    /wireQuickAddFeature\(assembly\)/,
     'app.js must register the quick-add feature instead of owning Quick Add modal logic'
 );
 
@@ -5311,7 +5311,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createPickerControlsFeatureRegistrar',
-    registerName: 'registerPickerControlsFeature',
+    registerName: 'wirePickerControlsFeature',
     modulePath: 'picker-controls-feature-registrar.js',
     label: 'Picker Controls',
 });
@@ -5336,7 +5336,7 @@ assert.match(
 
 assert.match(
     appScript,
-    /registerPickerControlsFeature\(/,
+    /wirePickerControlsFeature\(assembly\)/,
     'app.js must register picker-controls instead of direct color/duration picker wiring'
 );
 
@@ -7507,7 +7507,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSplitViewFeatureRegistrar',
-    registerName: 'registerSplitViewFeature',
+    registerName: 'wireSplitViewFeature',
     modulePath: 'split-view-feature-registrar.js',
     label: 'split-view',
 });

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   appScript,
   ratioFeatureRegistrarModule,
+  splitViewFeatureRegistrarModule,
   assertGroupedUtilityBoundary,
 } from './helpers/app-boundary-assertions.mjs';
 
@@ -39,9 +40,9 @@ test('app bootstrap consumes split-state helpers through a grouped utility surfa
     'ratio registrar should pass ensureItemSplitViews through the grouped splitStateUtils surface',
   );
   assert.match(
-    appScript,
+    splitViewFeatureRegistrarModule,
     /registerSplitViewFeature\(\{[\s\S]*split:\s*splitStateUtils[\s\S]*\}\);/,
-    'app.js should pass the grouped split-state utility surface into the split-view feature',
+    'split-view registrar should pass the grouped split-state utility surface into the split-view feature',
   );
   assert.match(
     appScript,

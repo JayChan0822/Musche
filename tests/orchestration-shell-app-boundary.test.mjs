@@ -14,7 +14,7 @@ test('app bootstrap registers orchestration through the orchestration registrar 
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createOrchestrationFeatureRegistrar',
-    registerName: 'registerOrchestrationFeature',
+    registerName: 'wireOrchestrationFeature',
     modulePath: 'orchestration-feature-registrar.js',
     label: 'orchestration',
   });
