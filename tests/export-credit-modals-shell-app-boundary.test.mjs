@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates Export/Credit modal group ctx through a focused stat
     'app.js should get the Export/Credit modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appExportCreditModalsShell\s*=\s*createRootExportCreditModalsShellState\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
     'app.js should create the Export/Credit modal group ctx through the focused shell ctx factory',
   );

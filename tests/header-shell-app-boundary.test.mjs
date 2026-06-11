@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates header shell ctx through a focused state factory', (
     'app.js should get the header shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appHeader\s*=\s*createRootHeaderShellState\(\{[\s\S]*showMobileMenu[\s\S]*themeMode[\s\S]*globalSearchQuery[\s\S]*tempNickname[\s\S]*openSettings[\s\S]*handleMidiFile[\s\S]*\}\);/,
     'app.js should create the header ctx through the focused shell ctx factory',
   );

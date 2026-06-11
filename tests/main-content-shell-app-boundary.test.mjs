@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appMainContentComponent,
   appScript,
   appStateFactoriesModule,
@@ -23,7 +24,7 @@ test('app bootstrap creates main content shell ctx through a focused state facto
     'app.js should get the main content shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMainContent\s*=\s*createRootMainContentShellState\(\{[\s\S]*currentDateLabel[\s\S]*tasksByDateMap[\s\S]*handleInfiniteScroll[\s\S]*dropToSchedule[\s\S]*initMobileResize[\s\S]*setMonthRef[\s\S]*\}\);/,
     'app.js should create the main content ctx through the focused shell ctx factory',
   );

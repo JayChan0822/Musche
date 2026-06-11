@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -23,7 +24,7 @@ test('app bootstrap creates universal modal group ctx through a focused state fa
     'app.js should get the universal modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appUniversalModalsShell\s*=\s*createRootUniversalModalsShellState\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
     'app.js should create the universal modal group ctx through the focused shell ctx factory',
   );

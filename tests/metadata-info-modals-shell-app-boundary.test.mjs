@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates Project/Recording Info modal group ctx through a foc
     'app.js should get the Project/Recording Info modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMetadataInfoModalsShell\s*=\s*createRootMetadataInfoModalsShellState\(\{[\s\S]*appProjectInfoModal[\s\S]*appRecInfoModal[\s\S]*\}\);/,
     'app.js should create the Project/Recording Info modal group ctx through the focused shell ctx factory',
   );

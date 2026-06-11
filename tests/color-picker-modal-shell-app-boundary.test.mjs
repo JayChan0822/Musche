@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates Color Picker modal ctx through a focused state facto
     'app.js should get the Color Picker modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appColorPickerModal\s*=\s*createRootColorPickerModalShellState\(\{(?=[\s\S]*showColorPickerModal)(?=[\s\S]*presetColors)(?=[\s\S]*tempColor)(?=[\s\S]*resetColorPicker)(?=[\s\S]*saveColorPicker)[\s\S]*\}\);/,
     'app.js should create the Color Picker modal ctx through the focused shell ctx factory',
   );

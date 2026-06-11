@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates account modal group ctx through a focused state fact
     'app.js should get the account modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appAccountModalsShell\s*=\s*createRootAccountModalsShellState\(\{[\s\S]*appAuthModal[\s\S]*appCropModal[\s\S]*\}\);/,
     'app.js should create the account modal group ctx through the focused shell ctx factory',
   );

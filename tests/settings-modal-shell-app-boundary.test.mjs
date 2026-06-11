@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -23,7 +24,7 @@ test('app bootstrap creates Settings modal ctx through a focused state factory',
     'app.js should get the Settings modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appSettingsModal\s*=\s*createRootSettingsModalShellState\(\{(?=[\s\S]*showSettings)(?=[\s\S]*settingsExpandedGroups)(?=[\s\S]*allSettingsGrouped)(?=[\s\S]*showMetadataManager)(?=[\s\S]*clearSettingsList:)(?=[\s\S]*factoryReset)[\s\S]*\}\);/,
     'app.js should create the Settings modal ctx through the focused shell ctx factory',
   );

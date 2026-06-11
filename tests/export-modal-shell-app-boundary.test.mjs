@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -23,7 +24,7 @@ test('app bootstrap creates Export modal ctx through a focused state factory', (
     'app.js should get the Export modal ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appExportModal\s*=\s*createRootExportModalShellState\(\{[\s\S]*showExportModal[\s\S]*exportFilter[\s\S]*exportSessionOptions[\s\S]*exportPreviewCount[\s\S]*toggleFilterItem:[\s\S]*confirmExport:[\s\S]*\}\);/,
     'app.js should create the Export modal ctx through the focused shell ctx factory',
   );

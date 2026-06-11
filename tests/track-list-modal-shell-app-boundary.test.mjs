@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates Track List modal ctx through a focused state factory
     'app.js should get the Track List modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appTrackListModal\s*=\s*createRootTrackListModalShellState\(\{(?=[\s\S]*showTrackList)(?=[\s\S]*trackListData)(?=[\s\S]*trackListSearchQuery)(?=[\s\S]*trackListContainerRef)(?=[\s\S]*draggingSectionIndex)(?=[\s\S]*sidebarTab)(?=[\s\S]*openRecInfoModal)(?=[\s\S]*deleteTrackFromList)(?=[\s\S]*openSplitSlider)(?=[\s\S]*deleteCurrentSchedule)[\s\S]*\}\);/,
     'app.js should create the Track List modal ctx through the focused shell ctx factory',
   );

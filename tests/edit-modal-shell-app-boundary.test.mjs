@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates Edit modal ctx through a focused state factory', () 
     'app.js should get the Edit modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appEditModal\s*=\s*createRootEditModalShellState\(\{(?=[\s\S]*showEditor)(?=[\s\S]*editingItem)(?=[\s\S]*editingSource)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*dropdownExpandedGroups)(?=[\s\S]*filteredOptions)(?=[\s\S]*isMobile)(?=[\s\S]*showOrchestrationField)(?=[\s\S]*parsedRoster)(?=[\s\S]*activeOrchPresets)(?=[\s\S]*isPercussionMode)(?=[\s\S]*percState)(?=[\s\S]*timeSlots)(?=[\s\S]*deleteEditingItem)(?=[\s\S]*saveEdit)[\s\S]*\}\);/,
     'app.js should create the Edit modal ctx through the focused shell ctx factory',
   );

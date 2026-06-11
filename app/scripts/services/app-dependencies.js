@@ -8,6 +8,7 @@ import { createAppRootComponents } from './app-root-components.js';
 import { createAppVueRuntime } from './app-vue-runtime.js';
 import { createAppAssembly } from './app-assembly.js';
 import { createAppLazyFeatureWirings } from './app-lazy-feature-wirings.js';
+import { createAppRootContexts } from './app-root-context-wiring.js';
 import { createLazyFeatureProxy } from './lazy-feature-proxy.js';
 
 export function createAppDependencies() {
@@ -37,6 +38,7 @@ export function createAppDependencies() {
         }),
         ...createAppRootComponents(),
         createAppAssembly,
+        createAppRootContexts,
         createLazyFeatureProxy,
     };
 }

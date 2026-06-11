@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import {
     appLazyFeatureWiringsModule,
+    appRootContextWiringModule,
     assertAppDependenciesRegistry,
     assertAppBootstrapServicesRegistry,
     assertAppFeatureLoadersRegistry,
@@ -1187,7 +1188,7 @@ assert.match(
     'appRootStaticComponents must register AppRootOverlaysShell on the root Vue app'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const\s+\{\s*appRootShell,\s*appRootOverlaysShell\s*\}\s*=\s*createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader,[\s\S]*appSidebar,[\s\S]*appMainContent,[\s\S]*appMobileControls,[\s\S]*appStandaloneOverlaysShell,[\s\S]*appTaskActionModalsShell,[\s\S]*appAccountModalsShell,[\s\S]*appUtilityModalsShell,[\s\S]*appUniversalModalsShell,[\s\S]*appPickerModalsShell,[\s\S]*appExportCreditModalsShell,[\s\S]*appMidiCsvImportModalsShell,[\s\S]*appMetadataInfoModalsShell,[\s\S]*\}\);/,
     'app.js must create the two root shell contexts through the bound root shell state factory'
 );
@@ -1265,7 +1266,7 @@ assert.match(
     'app state factories should bind Vue reactive for the header shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appHeader\s*=\s*createRootHeaderShellState\(\{[\s\S]*showMobileMenu[\s\S]*themeMode[\s\S]*getThemeLabel[\s\S]*openSettings[\s\S]*toggleTheme[\s\S]*\}\);/,
     'app.js must expose header theme controls through the focused appHeader ctx factory without unused settings state'
 );
@@ -1503,7 +1504,7 @@ assert.match(
     'app-root-shell-components must import the app-mobile-controls component locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMobileControls\s*=\s*createRootMobileControlsShellState\(\{[\s\S]*globalSearchQuery[\s\S]*isSearchFocused[\s\S]*mobileTab[\s\S]*showMobileTaskInput[\s\S]*\}\);/,
     'app.js must expose mobile controls state through a small appMobileControls ctx factory call'
 );
@@ -1562,7 +1563,7 @@ assert.match(
     'app state factories should bind Vue reactive for the mobile task input shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMobileTaskInput\s*=\s*createRootMobileTaskInputShellState\(\{(?=[\s\S]*showMobileTaskInput)(?=[\s\S]*newItem)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*dropdownExpandedGroups)(?=[\s\S]*filteredOptions)(?=[\s\S]*isMobile)(?=[\s\S]*getGroupColor)(?=[\s\S]*getNameById)(?=[\s\S]*getGroupedOptions)(?=[\s\S]*toggleDropdown)(?=[\s\S]*toggleDropdownGroup)(?=[\s\S]*selectOption)(?=[\s\S]*openQuickAdd)(?=[\s\S]*openDurationPicker)(?=[\s\S]*addItemToPool)[\s\S]*\}\);/,
     'app.js must expose mobile task input state and actions through a focused appMobileTaskInput ctx factory call'
 );
@@ -1638,7 +1639,7 @@ assert.match(
     'app state factories should bind Vue reactive for the Export/Credit modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appExportCreditModalsShell\s*=\s*createRootExportCreditModalsShellState\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
     'app.js must expose the Export/Credit modal group through one focused shell ctx factory call'
 );
@@ -1709,7 +1710,7 @@ assert.match(
     'app state factories should bind Vue reactive for the Export modal ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appExportModal\s*=\s*createRootExportModalShellState\(\{[\s\S]*refs:[\s\S]*showExportModal[\s\S]*state:[\s\S]*exportFilter[\s\S]*computedState:[\s\S]*exportSessionOptions[\s\S]*filteredExportProjects[\s\S]*filteredExportMusicians[\s\S]*filteredExportInstruments[\s\S]*exportDateRange[\s\S]*exportPreviewCount[\s\S]*actions:[\s\S]*toggleFilterItem:[\s\S]*toggleFilterAll:[\s\S]*confirmExport:[\s\S]*\}\);/,
     'app.js must expose Export modal state and actions through the focused Export modal ctx factory'
 );
@@ -1777,7 +1778,7 @@ assert.match(
     'app-export-credit-modal-components must register AppCreditModal locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appCreditModal\s*=\s*createRootCreditModalShellState\(\{(?=[\s\S]*showCreditModal)(?=[\s\S]*generatedCreditText)(?=[\s\S]*midiBpm)(?=[\s\S]*midiTimeSig)(?=[\s\S]*managingProject)(?=[\s\S]*copyCreditText)[\s\S]*\}\);/,
     'app.js must expose Credit modal state and actions through a focused appCreditModal ctx factory call'
 );
@@ -1896,7 +1897,7 @@ for (const importShellChildComponent of [
     );
 }
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiCsvImportModalsShell\s*=\s*createRootMidiCsvImportModalsShellState\(\{[\s\S]*appMidiManagerModal[\s\S]*appMidiImportModal[\s\S]*appCsvImportModal[\s\S]*\}\);/,
     'app.js must expose the MIDI/CSV import modal group through one focused shell ctx factory call'
 );
@@ -1948,7 +1949,7 @@ assert.match(
     'app-midi-csv-import-modal-components must register AppMidiManagerModal locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiManagerModal\s*=\s*createRootMidiManagerModalShellState\(\{(?=[\s\S]*showMidiManager)(?=[\s\S]*managingProject)(?=[\s\S]*projectMidiGroups)(?=[\s\S]*midiManagerExpandedGroups)(?=[\s\S]*activeMidiGroupRow)(?=[\s\S]*midiGroupPos)(?=[\s\S]*midiGroupSearchQuery)(?=[\s\S]*filteredMidiGroups)(?=[\s\S]*settings)(?=[\s\S]*triggerMidiImportForProject)(?=[\s\S]*clearProjectMidi)(?=[\s\S]*toggleMidiManagerGroup)(?=[\s\S]*openMidiGroupDropdown)(?=[\s\S]*updateMidiDuration)(?=[\s\S]*removeMidiMapping)(?=[\s\S]*updateInstrumentGroup)[\s\S]*\}\);/,
     'app.js must expose MIDI Manager modal state and actions through a focused appMidiManagerModal ctx'
 );
@@ -2046,7 +2047,7 @@ assert.match(
     'app-midi-csv-import-modal-components must register AppMidiImportModal locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiImportModal\s*=\s*createRootMidiImportModalShellState\(\{(?=[\s\S]*showMidiImportModal)(?=[\s\S]*midiBpm)(?=[\s\S]*managingProject)(?=[\s\S]*midiViewMode)(?=[\s\S]*midiImportData)(?=[\s\S]*midiGroupData)(?=[\s\S]*midiGroupExpanded)(?=[\s\S]*activeImportMenu)(?=[\s\S]*importMenuPos)(?=[\s\S]*importSearchQuery)(?=[\s\S]*availableInstrumentGroups)(?=[\s\S]*filteredImportOptions)(?=[\s\S]*currentMidiDisplayList)(?=[\s\S]*formatSecs)(?=[\s\S]*getNameById)(?=[\s\S]*getSmartName)(?=[\s\S]*openImportMenu)(?=[\s\S]*closeImportMenu)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*toggleMidiGroupExpand)(?=[\s\S]*confirmMidiImport)(?=[\s\S]*selectImportNewInst)(?=[\s\S]*selectImportInst)(?=[\s\S]*selectImportGroup)[\s\S]*\}\);/,
     'app.js must expose MIDI Import modal state and actions through a focused appMidiImportModal ctx'
 );
@@ -2127,7 +2128,7 @@ assert.match(
     'app-midi-csv-import-modal-components must register AppCsvImportModal locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appCsvImportModal\s*=\s*createRootCsvImportModalShellState\(\{(?=[\s\S]*showCsvImportModal)(?=[\s\S]*activeImportTab)(?=[\s\S]*csvSearchQuery)(?=[\s\S]*csvImportConfig)(?=[\s\S]*csvImportData)(?=[\s\S]*groupedCsvData)(?=[\s\S]*collapsedProjects)(?=[\s\S]*refreshCsvStatus)(?=[\s\S]*toggleAllRows)(?=[\s\S]*toggleProjectCollapse)(?=[\s\S]*isGroupSelected)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*confirmCsvImport)[\s\S]*\}\);/,
     'app.js must expose CSV Import modal state and actions through a focused appCsvImportModal ctx factory call'
 );
@@ -2224,7 +2225,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppMetadataInfoModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appProjectInfoModal\s*=\s*createRootProjectInfoModalShellState\(\{(?=[\s\S]*showProjectInfoModal)(?=[\s\S]*projectInfoForm)(?=[\s\S]*saveProjectInfo)[\s\S]*\}\);/,
     'app.js must expose Project Info modal state and actions through a focused appProjectInfoModal ctx factory call'
 );
@@ -2239,7 +2240,7 @@ assert.match(
     'app-state-factories must bind Vue reactive for the Project Info modal shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appRecInfoModal\s*=\s*createRootRecInfoModalShellState\(\{(?=[\s\S]*showRecInfoModal)(?=[\s\S]*sidebarTab)(?=[\s\S]*recInfoForm)(?=[\s\S]*activeRecDropdown)(?=[\s\S]*recDropdownSearch)(?=[\s\S]*filteredRecOptions)(?=[\s\S]*selectRecOption)(?=[\s\S]*createRecOption)(?=[\s\S]*saveRecInfo)[\s\S]*\}\);/,
     'app.js must expose Rec Info modal state and actions through a focused appRecInfoModal ctx factory call'
 );
@@ -2254,7 +2255,7 @@ assert.match(
     'app-state-factories must bind Vue reactive for the Rec Info modal shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMetadataInfoModalsShell\s*=\s*createRootMetadataInfoModalsShellState\(\{[\s\S]*appProjectInfoModal[\s\S]*appRecInfoModal[\s\S]*\}\);/,
     'app.js must expose Project/Recording Info modals through one focused appMetadataInfoModalsShell ctx factory call'
 );
@@ -2356,7 +2357,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppTaskActionModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appEditModal\s*=\s*createRootEditModalShellState\(\{(?=[\s\S]*showEditor)(?=[\s\S]*editingItem)(?=[\s\S]*editingSource)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*dropdownExpandedGroups)(?=[\s\S]*filteredOptions)(?=[\s\S]*isMobile)(?=[\s\S]*showOrchestrationField)(?=[\s\S]*parsedRoster)(?=[\s\S]*activeOrchPresets)(?=[\s\S]*isPercussionMode)(?=[\s\S]*percState)(?=[\s\S]*timeSlots)(?=[\s\S]*deleteEditingItem)(?=[\s\S]*saveEdit)[\s\S]*\}\);/,
     'app.js must expose edit modal state and actions through a focused appEditModal ctx factory call'
 );
@@ -2366,7 +2367,7 @@ assert.match(
     'app state factories should bind Vue reactive for the task action modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appTaskActionModalsShell\s*=\s*createRootTaskActionModalsShellState\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
     'app.js must expose Edit/Split task action modals through one focused shell ctx factory call'
 );
@@ -2482,7 +2483,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppAccountModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appAuthModal\s*=\s*createRootAuthModalShellState\(\{(?=[\s\S]*showAuthModal)(?=[\s\S]*authForm)(?=[\s\S]*authLoading)(?=[\s\S]*authPasswordRef)(?=[\s\S]*handleLogin)(?=[\s\S]*handleRegister)(?=[\s\S]*handleResetPwd)[\s\S]*\}\);/,
     'app.js must expose auth modal state and actions through a focused appAuthModal ctx factory call'
 );
@@ -2502,7 +2503,7 @@ assert.match(
     'app state factories should bind Vue reactive for the account modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appAccountModalsShell\s*=\s*createRootAccountModalsShellState\(\{[\s\S]*appAuthModal[\s\S]*appCropModal[\s\S]*\}\);/,
     'app.js must expose Auth/Crop modals through one focused appAccountModalsShell ctx factory call'
 );
@@ -2589,7 +2590,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency Crop modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appCropModal\s*=\s*createRootCropModalShellState\(\{(?=[\s\S]*showCropModal)(?=[\s\S]*cropImgSrc)(?=[\s\S]*cropImgRef)(?=[\s\S]*authLoading)(?=[\s\S]*cancelCrop)(?=[\s\S]*confirmCrop)[\s\S]*\}\);/,
     'app.js must expose avatar crop modal state and actions through a focused appCropModal ctx factory call'
 );
@@ -2651,7 +2652,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency Track List modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appTrackListModal\s*=\s*createRootTrackListModalShellState\(\{(?=[\s\S]*showTrackList)(?=[\s\S]*trackListData)(?=[\s\S]*trackListSearchQuery)(?=[\s\S]*trackListContainerRef)(?=[\s\S]*draggingSectionIndex)(?=[\s\S]*sidebarTab)(?=[\s\S]*openRecInfoModal)(?=[\s\S]*deleteTrackFromList)(?=[\s\S]*openSplitSlider)(?=[\s\S]*deleteCurrentSchedule)[\s\S]*\}\);/,
     'app.js must expose Track List modal state and actions through a focused appTrackListModal ctx factory call'
 );
@@ -2718,7 +2719,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppStandaloneOverlaysShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appStandaloneOverlaysShell\s*=\s*createRootStandaloneOverlaysShellState\(\{[\s\S]*appSettingsModal[\s\S]*appTrackListModal[\s\S]*appMobileTaskInput[\s\S]*\}\);/,
     'app.js must expose Settings/Track List/Mobile Task Input through one focused appStandaloneOverlaysShell ctx factory call'
 );
@@ -2803,7 +2804,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppUtilityModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appQuickAddModal\s*=\s*createRootQuickAddModalShellState\(\{(?=[\s\S]*showQuickAddModal)(?=[\s\S]*quickAddType)(?=[\s\S]*quickAddForm)(?=[\s\S]*showGroupSuggestions)(?=[\s\S]*currentQuickAddGroups)(?=[\s\S]*confirmQuickAdd)[\s\S]*\}\);/,
     'app.js must expose Quick Add modal state and actions through a focused appQuickAddModal ctx factory call'
 );
@@ -2828,7 +2829,7 @@ assert.match(
     'app state factories should bind Vue reactive for the utility modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appUtilityModalsShell\s*=\s*createRootUtilityModalsShellState\(\{[\s\S]*appQuickAddModal[\s\S]*appImportModal[\s\S]*\}\);/,
     'app.js must expose Quick Add/JSON restore modals through one focused appUtilityModalsShell ctx factory call'
 );
@@ -2911,7 +2912,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency JSON restore modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appImportModal\s*=\s*createRootImportModalShellState\(\{(?=[\s\S]*showImportModal)(?=[\s\S]*triggerFileSelect)[\s\S]*\}\);/,
     'app.js must expose JSON restore modal state and actions through a focused appImportModal ctx factory call'
 );
@@ -2963,7 +2964,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency Recording/Editing Info modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appRecInfoModal\s*=\s*createRootRecInfoModalShellState\(\{(?=[\s\S]*showRecInfoModal)(?=[\s\S]*sidebarTab)(?=[\s\S]*recInfoForm)(?=[\s\S]*activeRecDropdown)(?=[\s\S]*recDropdownSearch)(?=[\s\S]*filteredRecOptions)(?=[\s\S]*selectRecOption)(?=[\s\S]*createRecOption)(?=[\s\S]*saveRecInfo)[\s\S]*\}\);/,
     'app.js must expose Recording/Editing Info state and actions through a focused appRecInfoModal ctx factory call'
 );
@@ -3052,7 +3053,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppPickerModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appColorPickerModal\s*=\s*createRootColorPickerModalShellState\(\{(?=[\s\S]*showColorPickerModal)(?=[\s\S]*presetColors)(?=[\s\S]*tempColor)(?=[\s\S]*resetColorPicker)(?=[\s\S]*saveColorPicker)[\s\S]*\}\);/,
     'app.js must expose Color Picker state and actions through a focused appColorPickerModal ctx factory call'
 );
@@ -3062,7 +3063,7 @@ assert.match(
     'app state factories should bind Vue reactive for the picker modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appPickerModalsShell\s*=\s*createRootPickerModalsShellState\(\{[\s\S]*appColorPickerModal[\s\S]*appDurationPicker[\s\S]*\}\);/,
     'app.js must expose color/duration picker components through one focused shell ctx factory call'
 );
@@ -3158,7 +3159,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency Duration Picker through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appDurationPicker\s*=\s*createRootDurationPickerModalShellState\(\{(?=[\s\S]*showDurationPicker)(?=[\s\S]*pickerPos)(?=[\s\S]*pickerMinRef)(?=[\s\S]*pickerSecRef)(?=[\s\S]*tempDuration)(?=[\s\S]*closePicker)(?=[\s\S]*onScroll)(?=[\s\S]*onDragStart)(?=[\s\S]*resetDuration)(?=[\s\S]*confirmDurationPicker)[\s\S]*\}\);/,
     'app.js must expose Duration Picker state and actions through a focused appDurationPicker ctx factory call'
 );
@@ -3210,7 +3211,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency Split modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appSplitModal\s*=\s*createRootSplitModalShellState\(\{(?=[\s\S]*showSplitModal)(?=[\s\S]*splitState)(?=[\s\S]*onSplitSliderInput)(?=[\s\S]*confirmSplitSlider)[\s\S]*\}\);/,
     'app.js must expose Split modal state and actions through a focused appSplitModal ctx factory call'
 );
@@ -3339,7 +3340,7 @@ assert.match(
     'app-root-overlay-shell-components must register AppUniversalModalsShell locally'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appInputModal\s*=\s*createRootInputModalShellState\(\{(?=[\s\S]*showInputModal)(?=[\s\S]*inputModalConfig)(?=[\s\S]*universalInputRef)(?=[\s\S]*closeInputModal)(?=[\s\S]*confirmInputModal)[\s\S]*\}\);/,
     'app.js must expose universal input modal state and actions through a focused appInputModal ctx factory call'
 );
@@ -3402,7 +3403,7 @@ assert.match(
     'app state factories should bind Vue reactive for the universal modal group shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appUniversalModalsShell\s*=\s*createRootUniversalModalsShellState\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
     'app.js must expose input/confirm modals through one focused shell ctx factory call'
 );
@@ -3494,7 +3495,7 @@ assert.match(
     'app-root-async-modals must register the low-frequency confirm modal through createAsyncRootComponent dynamic import'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appConfirmModal\s*=\s*createRootConfirmModalShellState\(\{(?=[\s\S]*showConfirmModal)(?=[\s\S]*confirmModalConfig)(?=[\s\S]*closeConfirmModal)(?=[\s\S]*handleConfirmAction)[\s\S]*\}\);/,
     'app.js must expose confirm and alert modal state and actions through a focused appConfirmModal ctx factory call'
 );
@@ -5588,9 +5589,9 @@ assert.match(
 );
 
 assert.match(
-    appScript,
-    /const\s+dataIoHandlers\s*=\s*dataIoFeatureProxy\.methods\(\[[\s\S]*'exportCSV'[\s\S]*\]\);[\s\S]*exportCSV:\s*dataIoHandlers\.exportCSV/,
-    'app.js must expose exportCSV through a Data I/O lazy-loader proxy before wiring the app header context'
+    appRootContextWiringModule,
+    /exportCSV:\s*dataIoHandlers\.exportCSV/,
+    'root context wiring must expose exportCSV through the Data I/O lazy-loader proxy handlers'
 );
 
 assert.doesNotMatch(
@@ -6200,7 +6201,7 @@ assert.match(
     'app-state-factories must bind Vue reactive for the mobile controls shell ctx factory'
 );
 assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMobileControls\s*=\s*createRootMobileControlsShellState\(\{[\s\S]*refs:\s*\{[\s\S]*globalSearchQuery[\s\S]*isSearchFocused[\s\S]*mobileTab[\s\S]*showMobileTaskInput[\s\S]*\},[\s\S]*actions:\s*\{[\s\S]*onSearchFocus[\s\S]*handleSearchBlur[\s\S]*handleSearchEnter[\s\S]*\}/,
     'app.js must create the mobile controls ctx through the focused shell ctx factory'
 );
@@ -7873,6 +7874,7 @@ const requiredFiles = [
     'app/scripts/state/shell-state-factory.js',
     'app/scripts/services/app-assembly.js',
     'app/scripts/services/app-lazy-feature-wirings.js',
+    'app/scripts/services/app-root-context-wiring.js',
     'app/scripts/state/mobile-controls-shell-state.js',
     'app/scripts/state/credit-modal-shell-state.js',
     'app/scripts/state/confirm-modal-shell-state.js',

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
   assertAppFeatureRegistrarRegistry,
@@ -46,7 +47,7 @@ test('app bootstrap only consumes Vue runtime helpers it calls directly', () => 
     'app.js should not consume Vue ref/reactive/shallowRef once state factories bind those helpers',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const\s+\{ appRootShell,\s*appRootOverlaysShell \}\s*=\s*createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);/,
     'app.js should create top-level root shell wrappers through the bound root shell state factory',
   );

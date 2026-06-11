@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates CSV Import modal ctx through a focused state factory
     'app.js should get the CSV Import modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appCsvImportModal\s*=\s*createRootCsvImportModalShellState\(\{(?=[\s\S]*showCsvImportModal)(?=[\s\S]*activeImportTab)(?=[\s\S]*csvSearchQuery)(?=[\s\S]*csvImportConfig)(?=[\s\S]*csvImportData)(?=[\s\S]*groupedCsvData)(?=[\s\S]*collapsedProjects)(?=[\s\S]*refreshCsvStatus)(?=[\s\S]*toggleAllRows)(?=[\s\S]*toggleProjectCollapse)(?=[\s\S]*isGroupSelected)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*confirmCsvImport)[\s\S]*\}\);/,
     'app.js should create the CSV Import modal ctx through the focused shell ctx factory',
   );

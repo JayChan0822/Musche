@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -22,7 +23,7 @@ test('app bootstrap creates MIDI/CSV import modal group ctx through a focused st
     'app.js should get the MIDI/CSV import modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiCsvImportModalsShell\s*=\s*createRootMidiCsvImportModalsShellState\(\{[\s\S]*appMidiManagerModal[\s\S]*appMidiImportModal[\s\S]*appCsvImportModal[\s\S]*\}\);/,
     'app.js should create the MIDI/CSV import modal group ctx through the focused shell ctx factory',
   );
@@ -42,7 +43,7 @@ test('app bootstrap creates MIDI/CSV import modal group ctx through a focused st
     'app.js should get the MIDI import modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiImportModal\s*=\s*createRootMidiImportModalShellState\(\{(?=[\s\S]*showMidiImportModal)(?=[\s\S]*midiBpm)(?=[\s\S]*midiViewMode)(?=[\s\S]*midiGroupData)(?=[\s\S]*currentMidiDisplayList)(?=[\s\S]*confirmMidiImport)(?=[\s\S]*selectImportGroup)[\s\S]*\}\);/,
     'app.js should create the MIDI import modal ctx through the focused shell ctx factory',
   );

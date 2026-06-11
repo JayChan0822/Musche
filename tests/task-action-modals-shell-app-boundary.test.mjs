@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
 } from './helpers/app-boundary-assertions.mjs';
@@ -23,7 +24,7 @@ test('app bootstrap creates task action modal group ctx through a focused state 
     'app.js should get the task action modal group shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appTaskActionModalsShell\s*=\s*createRootTaskActionModalsShellState\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
     'app.js should create the task action modal group ctx through the focused shell ctx factory',
   );

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appRootContextWiringModule,
   assertNoAppImport,
   assertNoAppRegistration,
   appStateFactoriesModule,
@@ -41,7 +42,7 @@ test('app bootstrap delegates MIDI manager imports without the pass-through shel
     'app.js should get the MIDI manager modal shell ctx factory from createAppDependencies()',
   );
   assert.match(
-    appScript,
+    appRootContextWiringModule,
     /const appMidiManagerModal\s*=\s*createRootMidiManagerModalShellState\(\{(?=[\s\S]*showMidiManager)(?=[\s\S]*projectMidiGroups)(?=[\s\S]*activeMidiGroupRow)(?=[\s\S]*triggerMidiImportForProject)(?=[\s\S]*updateInstrumentGroup)[\s\S]*\}\);/,
     'app.js should create the MIDI manager modal ctx through the focused shell ctx factory',
   );
