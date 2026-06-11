@@ -1,5 +1,13 @@
 # App Root Slimming Implementation Plan
 
+> **状态（2026-06-12）：已完成。** app.js 从 2423 行收敛到 936 行：
+> 23 个同步 feature 接线表 → 各自 registrar（Task 2-3，4 个提交）；
+> 13 个懒加载接线表 → `services/app-lazy-feature-wirings.js`（含静态交叉校验修复 2 处漏发布）；
+> 34 个 shell ctx 表 → `services/app-root-context-wiring.js`（locals 包直传）；
+> 巨型 store 解构修剪为 assembly.refs 合并。剩余 936 行均为装配序列：
+> state 创建、wire 调用、别名发布、生命周期。后续如要继续压缩，方向是
+> 消除组合根的模板别名层（把 locals 包改为从 assembly.features 派生），收益有限。
+
 **Goal:** 把 app.js 的 feature 接线表与 shell ctx 创建下放到适配层，组合根收敛到数百行。
 
 设计见 `2026-06-11-app-root-slimming-design.md`。

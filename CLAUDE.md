@@ -15,12 +15,12 @@ node --test tests/<file>.test.mjs   # 单跑某个测试
 
 ## 架构约定
 
-`app/scripts/app.js` 是**组合根**：只负责装配，不写业务逻辑。新逻辑一律放进模块，由 app.js 接线。
+`app/scripts/app.js` 是**组合根**：只负责按顺序装配（创建 store/state → 逐个 `wireXxxFeature(assembly)` → 发布别名 → 创建根 ctx），不写业务逻辑，也不写接线表。新逻辑一律放进模块，接线细节放进对应适配器。
 
 - **features/**：业务功能模块，两种形态：
   - `registerXxxFeature(context)`——同步注册，接收 `{ refs, services, actions }` 形态的 context，返回供模板使用的函数集合；
   - `loadXxxFeature(...)`——懒加载形态，配合 `services/lazy-feature-proxy.js`（首次调用时动态 import，方法调用自动排队等待加载完成）。
-- **services/**：依赖装配层。`app-dependencies.js` 聚合全部依赖供 app.js 一次性解构；`*-feature-registrar.js` / `*-feature-loader.js` 是 feature 的接线适配器；`*-loader.js`（xlsx/cropper/midi-smf/pinyin）封装第三方库的按需加载。
+- **services/**：依赖装配层。`app-dependencies.js` 聚合全部依赖供 app.js 一次性解构；`app-assembly.js` 是共享装配上下文（`refs`/`state`/`features`/`helpers` 四个桶）；`*-feature-registrar.js` 持有同步 feature 的接线表（`wireXxxFeature(assembly)`，从 assembly 解构所需 refs，跨 feature 引用必须经 `assembly.helpers`/`assembly.features` **延迟取值**，禁止在模块顶部解构捕获）；`app-lazy-feature-wirings.js` 持有全部懒加载 feature 的接线表（refs 在 loadFeature 执行时才取，`onLoaded` 回调把结果回填组合根局部别名）；`app-root-context-wiring.js` 把模板别名装配成 `appRootShell`/`appRootOverlaysShell`；`*-loader.js`（xlsx/cropper/midi-smf/pinyin）封装第三方库的按需加载。
 - **components/**：Vue 运行时组件（`app-*-modal.js`、`*-shell.js`），通过 `:ctx` prop 接收状态。
 - **state/**：状态工厂；每个弹窗/区块有对应 `*-shell-state.js`，由 `app-state-factories.js` 汇总。shell state 一律用 `state/shell-state-factory.js` 的 `defineShellState(name, spec)` 声明（bucket：`reads` 只读 ref / `models` 可写 ref / `raw` 延迟取值 / `values` 直传），不要手写 getter 样板。
 - **utils/**：纯函数（time/csv/midi/format/id/split-state），不依赖 Vue。
