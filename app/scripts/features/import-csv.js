@@ -31,6 +31,7 @@ export function registerImportCsvFeature(context) {
     openAlertModal,
     autoUpdateEfficiency,
     autoResizeSchedules,
+    getElementById = (id) => document.getElementById(id),
   } = actions;
 
   const groupedCsvData = computed(() => {
@@ -82,6 +83,33 @@ export function registerImportCsvFeature(context) {
     if (groupedCsvData.value.length === 0) return false;
     return groupedCsvData.value.every((group) => group.rows.every((row) => row.selected));
   });
+
+  const toggleProjectCollapse = (projectName) => {
+    if (collapsedProjects.has(projectName)) {
+      collapsedProjects.delete(projectName);
+    } else {
+      collapsedProjects.add(projectName);
+    }
+  };
+
+  const toggleAllProjectCollapse = () => {
+    const allGroups = groupedCsvData.value.map((group) => group.projectName);
+    const isAllCollapsed = allGroups.every((projectName) => collapsedProjects.has(projectName));
+
+    if (isAllCollapsed) {
+      collapsedProjects.clear();
+    } else {
+      allGroups.forEach((projectName) => collapsedProjects.add(projectName));
+    }
+  };
+
+  const triggerCSV = () => {
+    const input = getElementById('csv-import-input');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+  };
 
   watch(
     () => [csvSearchQuery.value, activeImportTab.value],
@@ -423,7 +451,6 @@ export function registerImportCsvFeature(context) {
   }
 
   function confirmCsvImport() {
-    if (typeof pushHistory === 'function') pushHistory('Import CSV Data');
     const isRecTab = activeImportTab.value === 'rec';
     const selectedRows = csvImportData.value.filter(
       (row) => row.selected && (isRecTab ? row.hasRecData : row.hasEditData),
@@ -925,10 +952,18 @@ export function registerImportCsvFeature(context) {
       partIndex: options.partIndex || 0,
     };
 
+    const normalizeImportMatch = (value) => String(value || '').trim().toLowerCase();
+
     const existingTask = itemPool.value.find((item) => {
+      if ((item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
       const itemProjectName = getNameById(item.projectId, 'project');
       const itemInstrumentName = item.name || getNameById(item.instrumentId, 'instrument');
-      return itemProjectName === nextItem.projectName && itemInstrumentName === nextItem.name_merge;
+      const itemMusicianName = item.musicianId ? getNameById(item.musicianId, 'musician') : '';
+      return (
+        normalizeImportMatch(itemProjectName) === normalizeImportMatch(nextItem.projectName) &&
+        normalizeImportMatch(itemInstrumentName) === normalizeImportMatch(nextItem.name_merge) &&
+        normalizeImportMatch(itemMusicianName) === normalizeImportMatch(nextItem.playerName)
+      );
     });
 
     nextItem.isDuplicate = !!existingTask;
@@ -993,56 +1028,6 @@ export function registerImportCsvFeature(context) {
       nextItem.hasEdtTimeDiff = hasTimeDiff || !editTimeMatch || !editStudioMatch || !editSchedule;
       edtDiff = nextItem.hasEdtTimeDiff || hasOrchDiff;
 
-      if (nextItem.hasRecTimeDiff) {
-        console.group(`🔍 Debug: ${nextItem.name_merge} (检测到 UPDATE)`);
-        console.log('项目/乐器:', nextItem.projectName, nextItem.name_real);
-        console.log(`日期对比: CSV[${normalizedRecDate}] vs 数据库日程[${recSchedule ? recSchedule.date : '未找到'}]`);
-        console.log(`ID匹配: CSV乐手[${nextItem.playerName}] -> ID[${existingTask.musicianId}]`);
-
-        if (!recSchedule) {
-          console.error('❌ 原因: 未找到对应的录音日程 (recSched is undefined)');
-          console.log('   -> 请检查: 日期是否一致? Session是否一致? 乐手ID是否一致?');
-        } else {
-          if (!recTimeMatch) {
-            console.warn('⚠️ 原因: 时间不匹配');
-            console.log(`   CSV : ${normalizeTime(nextItem.recStart)} - ${normalizeTime(nextItem.recEnd)}`);
-            console.log(`   DB  : ${normalizeTime(recRecord.recStart)} - ${normalizeTime(recRecord.recEnd)}`);
-          }
-          if (!recStudioMatch) {
-            console.warn(`⚠️ 原因: 录音棚不匹配 (CSV: ${nextItem.recStudio} vs DB: ${recSchedule.recordingInfo?.studio})`);
-          }
-          if (hasTimeDiff) console.warn('⚠️ 原因: 时长(Duration)有变化');
-        }
-        console.groupEnd();
-      }
-
-      if (nextItem.hasEdtTimeDiff) {
-        console.group(`🎬 Edit Debug: ${nextItem.projectName} (状态: UPDATE)`);
-        console.log('项目名称:', nextItem.projectName);
-        console.log(`日期对比: CSV[${normalizedEdtDate}] vs DB[${editSchedule ? editSchedule.date : '❌ 未找到日程'}]`);
-
-        if (!editSchedule) {
-          console.error('❌ 主要原因: 数据库中未找到对应的编辑日程');
-          console.log('   可能原因:');
-          console.log(`   1. 日期不匹配 (CSV: ${normalizedEdtDate})`);
-          console.log('   2. 这是一个新日期的任务，数据库里还没排');
-          console.log(`   3. Session ID 不匹配 (当前: ${currentSessionId.value})`);
-        } else {
-          if (!editTimeMatch) {
-            console.warn('⚠️ 原因: 时间不匹配');
-            console.log(`   CSV要求: ${nextItem.edtStart || '(空)'} - ${nextItem.edtEnd || '(空)'}`);
-            console.log(`   DB现有 : ${normalizeTime(editRecord.recStart)} - ${normalizeTime(editRecord.recEnd)}`);
-          }
-          if (!editStudioMatch) {
-            console.warn('⚠️ 原因: 录音棚不匹配');
-            console.log(`   CSV要求: '${nextItem.edtStudio}'`);
-            console.log(`   DB现有 : '${editSchedule.editInfo?.studio}'`);
-          }
-          if (hasTimeDiff) console.warn('⚠️ 原因: 乐曲时长(Duration)发生了变化');
-          if (hasOrchDiff) console.warn('⚠️ 原因: 配器(Orchestration)发生了变化');
-        }
-        console.groupEnd();
-      }
     }
 
     const calculateStatus = (hasData, hasSpecificDiff) => {
@@ -1065,6 +1050,8 @@ export function registerImportCsvFeature(context) {
   return {
     groupedCsvData,
     isAllSelected,
+    toggleProjectCollapse,
+    toggleAllProjectCollapse,
     calculateRowStatusText,
     toggleCsvSelection,
     isGroupSelected,
@@ -1072,6 +1059,7 @@ export function registerImportCsvFeature(context) {
     toggleAllRows,
     parseCSVLine,
     parseCSVRobust,
+    triggerCSV,
     handleCSVImport,
     refreshCsvPreview,
     refreshCsvStatus,

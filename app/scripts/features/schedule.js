@@ -1,3 +1,5 @@
+import { computed } from 'vue';
+
 export function registerScheduleFeature(context) {
   const { refs, state, utils, actions } = context;
   const {
@@ -8,14 +10,46 @@ export function registerScheduleFeature(context) {
     showTrackList,
     pxPerMin,
     sidebarTab,
+    currentView,
+    viewDate,
   } = refs;
   const { settings } = state;
-  const { parseTime, timeToMinutes, getNameById } = utils;
-  const { pushHistory, triggerTouchHaptic } = actions;
+  const {
+    parseTime,
+    timeToMinutes,
+    getNameById,
+    addDaysToDate,
+    addMinutesToTimeValue,
+    addMinutesToTime: rawAddMinutesToTime,
+  } = utils;
+  const {
+    pushHistory,
+    triggerTouchHaptic,
+    getCurrentWeekDays = () => refs.currentWeekDays?.value || [],
+  } = actions;
+
+  const scheduledTemplateIds = computed(() => {
+    return new Set(scheduledTasks.value.map((task) => task.templateId).filter((id) => id !== undefined));
+  });
+
+  const isScheduled = (templateId) => scheduledTemplateIds.value.has(templateId);
+
+  const addMinutesToTime = (timeStr, minutes) => (typeof addMinutesToTimeValue === 'function'
+    ? addMinutesToTimeValue(timeStr, minutes, {
+      minMinutes: settings.startHour * 60,
+      maxMinutes: settings.endHour * 60 - 30,
+      stepMinutes: 30,
+    })
+    : rawAddMinutesToTime(timeStr, minutes));
 
   function autoResizeSchedules(taskIds) {
     void taskIds;
-    console.log('执行全局自动调整...');
+  }
+
+  function getMins(timeStr) {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 
   function checkOverlap(date, startTime, durationStr, excludeId, checkType) {
@@ -161,6 +195,132 @@ export function registerScheduleFeature(context) {
     }
   }
 
+  function moveTask(task, direction) {
+    let updated = false;
+    const isMonth = currentView?.value === 'month';
+
+    const checkMonthViewSwitch = (dateStr) => {
+      if (!isMonth || !viewDate) return;
+      const newDate = new Date(dateStr);
+      const currentDate = new Date(viewDate.value);
+      if (newDate.getMonth() !== currentDate.getMonth() || newDate.getFullYear() !== currentDate.getFullYear()) {
+        viewDate.value = newDate;
+      }
+    };
+
+    let type = 'musician';
+    if (task.projectId) type = 'project';
+    else if (task.instrumentId) type = 'instrument';
+
+    if (direction === 'up') {
+      if (isMonth) {
+        const newDate = addDaysToDate(task.date, -7);
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+          triggerTouchHaptic('Error');
+          return;
+        }
+        if (newDate !== task.date) {
+          pushHistory();
+          task.date = newDate;
+          updated = true;
+          checkMonthViewSwitch(newDate);
+        }
+      } else {
+        const newTime = addMinutesToTime(task.startTime, -30);
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
+          triggerTouchHaptic('Error');
+          return;
+        }
+        if (newTime !== task.startTime) {
+          pushHistory();
+          task.startTime = newTime;
+          updated = true;
+        }
+      }
+    } else if (direction === 'down') {
+      if (isMonth) {
+        const newDate = addDaysToDate(task.date, 7);
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+          triggerTouchHaptic('Error');
+          return;
+        }
+        if (newDate !== task.date) {
+          pushHistory();
+          task.date = newDate;
+          updated = true;
+          checkMonthViewSwitch(newDate);
+        }
+      } else {
+        const newTime = addMinutesToTime(task.startTime, 30);
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
+          triggerTouchHaptic('Error');
+          return;
+        }
+        if (newTime !== task.startTime) {
+          pushHistory();
+          task.startTime = newTime;
+          updated = true;
+        }
+      }
+    } else if (direction === 'left') {
+      const newDate = addDaysToDate(task.date, -1);
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+        triggerTouchHaptic('Error');
+        return;
+      }
+      if (newDate !== task.date) {
+        pushHistory();
+        task.date = newDate;
+        updated = true;
+        if (isMonth) {
+          checkMonthViewSwitch(newDate);
+        } else if (currentView?.value === 'week') {
+          const weekDays = getCurrentWeekDays();
+          if (weekDays[0] && newDate < weekDays[0].dateStr && viewDate) viewDate.value = new Date(newDate);
+        }
+      }
+    } else if (direction === 'right') {
+      const newDate = addDaysToDate(task.date, 1);
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+        triggerTouchHaptic('Error');
+        return;
+      }
+      if (newDate !== task.date) {
+        pushHistory();
+        task.date = newDate;
+        updated = true;
+        if (isMonth) {
+          checkMonthViewSwitch(newDate);
+        } else if (currentView?.value === 'week') {
+          const weekDays = getCurrentWeekDays();
+          if (weekDays[6] && newDate > weekDays[6].dateStr && viewDate) viewDate.value = new Date(newDate);
+        }
+      }
+    }
+
+    void updated;
+  }
+
+  function getOverlapCount(targetTask) {
+    const dayTasks = scheduledTasks.value.filter((task) => task.date === targetTask.date);
+    const targetStart = timeToMinutes(targetTask.startTime);
+    const targetEnd = targetStart + parseTime(targetTask.estDuration) / 60;
+
+    let overlapCount = 0;
+    for (const task of dayTasks) {
+      if (task.scheduleId === targetTask.scheduleId) continue;
+
+      const taskStart = timeToMinutes(task.startTime);
+      const taskEnd = taskStart + parseTime(task.estDuration) / 60;
+
+      if (targetStart < taskEnd && targetEnd > taskStart) {
+        overlapCount++;
+      }
+    }
+
+    return overlapCount;
+  }
+
   function isTaskGhost(task) {
     const taskSession = task.sessionId || 'S_DEFAULT';
     if (taskSession !== currentSessionId.value) return true;
@@ -195,14 +355,36 @@ export function registerScheduleFeature(context) {
     return '未命名日程';
   }
 
+  function hasRecordingInfo(task) {
+    const hasPopulatedField = (info) => {
+      if (!info) return false;
+      return !!(
+        (info.studio && info.studio.trim()) ||
+        (info.engineer && info.engineer.trim()) ||
+        (info.operator && info.operator.trim()) ||
+        (info.assistant && info.assistant.trim()) ||
+        (info.notes && info.notes.trim())
+      );
+    };
+
+    return hasPopulatedField(task.recordingInfo) || hasPopulatedField(task.editInfo);
+  }
+
   return {
     autoResizeSchedules,
+    scheduledTemplateIds,
+    isScheduled,
     checkOverlap,
+    addMinutesToTime,
+    getMins,
     cleanupEmptySchedules,
     pruneEmptySchedules,
     moveDivider,
+    moveTask,
+    getOverlapCount,
     isTaskGhost,
     getTaskStyle,
     getBlockTitle,
+    hasRecordingInfo,
   };
 }

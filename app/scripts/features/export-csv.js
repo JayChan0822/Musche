@@ -5,11 +5,12 @@ export function registerExportCsvFeature(context) {
   const { itemPool, scheduledTasks, currentSessionId } = refs;
   const { settings } = state;
   const { parseTime, getNameById } = utils;
-  const { openAlertModal, openInputModal } = actions;
+  const { openAlertModal, openInputModal, loadXlsx } = actions;
+  const exportState = context.exportState || {};
 
   /* ── modal state ── */
-  const showExportModal = ref(false);
-  const exportFilter = reactive({
+  const showExportModal = exportState.showExportModal || ref(false);
+  const exportFilter = exportState.exportFilter || reactive({
     sessions: new Set(),
     projects: new Set(),
     musicians: new Set(),
@@ -228,7 +229,7 @@ export function registerExportCsvFeature(context) {
     ];
   }
 
-  function applyRowStyle(ws, rowIdx, baseStyle) {
+  function applyRowStyle(XLSX, ws, rowIdx, baseStyle) {
     for (let c = 0; c < HEADERS.length; c++) {
       const addr = XLSX.utils.encode_cell({ r: rowIdx, c });
       if (!ws[addr]) ws[addr] = { v: '', t: 's' };
@@ -241,7 +242,7 @@ export function registerExportCsvFeature(context) {
     }
   }
 
-  function buildSheet(rows) {
+  function buildSheet(XLSX, rows) {
     const data = [HEADERS, ...rows.map(rowToArray)];
     const ws = XLSX.utils.aoa_to_sheet(data);
 
@@ -253,7 +254,7 @@ export function registerExportCsvFeature(context) {
     rows.forEach((row, i) => {
       const isEven = i % 2 === 0;
       const style = row.type === 'EDT' ? (isEven ? EDT_EVEN : EDT_ODD) : (isEven ? REC_EVEN : REC_ODD);
-      applyRowStyle(ws, i + 1, style);
+      applyRowStyle(XLSX, ws, i + 1, style);
     });
 
     ws['!cols'] = [
@@ -271,10 +272,6 @@ export function registerExportCsvFeature(context) {
   function openExportModal() {
     if (scheduledTasks.value.length === 0) {
       openAlertModal('日程表是空的', '没有可导出的数据。');
-      return;
-    }
-    if (typeof XLSX === 'undefined') {
-      openAlertModal('导出失败', '表格导出库未加载，请检查网络连接后刷新页面。');
       return;
     }
 
@@ -304,7 +301,7 @@ export function registerExportCsvFeature(context) {
     exportFilter[setName] = allSelected ? new Set() : new Set(allIds);
   }
 
-  function confirmExport() {
+  async function confirmExport() {
     const allRows = collectFilteredRows();
     if (allRows.length === 0) {
       openAlertModal('无数据', '当前筛选条件下没有可导出的数据。');
@@ -317,7 +314,7 @@ export function registerExportCsvFeature(context) {
     const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
     const defaultName = `schedule_${dateStr}.xlsx`;
 
-    openInputModal('导出表格 (Excel)', defaultName, '请输入文件名', (inputName) => {
+    openInputModal('导出表格 (Excel)', defaultName, '请输入文件名', async (inputName) => {
       if (!inputName) return;
       let fileName = inputName;
       if (!fileName.toLowerCase().endsWith('.xlsx')) fileName += '.xlsx';
@@ -327,13 +324,20 @@ export function registerExportCsvFeature(context) {
         return 0;
       });
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, buildSheet(sort(allRows, 'date', 'startTime')), '按时间排序');
-      XLSX.utils.book_append_sheet(wb, buildSheet(sort(allRows, 'project', 'date', 'startTime')), '按项目排序');
-      XLSX.utils.book_append_sheet(wb, buildSheet(sort(allRows, 'instLabel', 'date', 'startTime')), '按乐器排序');
-      XLSX.utils.book_append_sheet(wb, buildSheet(sort(allRows, 'musician', 'date', 'startTime')), '按演奏员排序');
+      try {
+        const xlsxModule = await loadXlsx();
+        const XLSX = xlsxModule.default || xlsxModule;
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, buildSheet(XLSX, sort(allRows, 'date', 'startTime')), '按时间排序');
+        XLSX.utils.book_append_sheet(wb, buildSheet(XLSX, sort(allRows, 'project', 'date', 'startTime')), '按项目排序');
+        XLSX.utils.book_append_sheet(wb, buildSheet(XLSX, sort(allRows, 'instLabel', 'date', 'startTime')), '按乐器排序');
+        XLSX.utils.book_append_sheet(wb, buildSheet(XLSX, sort(allRows, 'musician', 'date', 'startTime')), '按演奏员排序');
 
-      XLSX.writeFile(wb, fileName);
+        XLSX.writeFile(wb, fileName);
+      } catch (error) {
+        console.error('XLSX export failed:', error);
+        openAlertModal('导出失败', '表格导出库未加载，请检查网络连接后重试。');
+      }
     });
   }
 

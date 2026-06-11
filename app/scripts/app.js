@@ -1,1760 +1,200 @@
-import { parseTime, timeToMinutes, addMinutesToTime as addMinutesToTimeValue, addDaysToDate } from './utils/time.js';
-import { formatDate, formatSecs } from './utils/format.js';
-import { generateUniqueId } from './utils/id.js';
-import {
-    createHiddenSplitState,
-    deactivateItemInView,
-    ensureItemSplitViews,
-    getConnectedSplitItemIds,
-    getItemSplitState,
-    hasVisibleSplitStateInAnyView,
-    isItemVisibleInView,
-    normalizeSplitViewType,
-    peekItemSplitState,
-    peekItemVisibilityInView,
-    rebalanceSplitFamilyDuration,
-    setItemSplitState,
-    syncFamilyTotalDuration,
-    syncLegacySplitFields,
-} from './utils/split-state.js';
-import {
-    calculateBarQuantizedDuration,
-    buildTempoMap,
-    buildTimeSigMap,
-    extractNotesFromJZZTrack,
-    cleanMidiTrackName,
-    normalizeForMatch,
-    installJzzSmfPlugin
-} from './utils/midi.js';
-import { extractTime, normalizeDate, getOrchString } from './utils/csv.js';
-import { createStorageService } from './services/storage-service.js';
-import { createSupabaseService } from './services/supabase-service.js';
-import { createDeviceService } from './services/device-service.js';
-import { createApp, ref, computed, onMounted, onUnmounted, watch, reactive, nextTick } from 'vue';
-import { match as pinyinMatch } from 'pinyin-pro';
-import { driver } from 'driver.js';
-import 'driver.js/dist/driver.css';
-import JZZ from 'jzz';
-import installJzzSmf from 'jzz-midi-smf';
-import XLSX from 'xlsx-js-style';
-import Cropper from 'cropperjs';
-import { registerScheduleFeature } from './features/schedule.js';
-import { createMuscheStore } from './store/index.js';
-import { registerSettingsFeature } from './features/settings.js';
-import { registerImportCsvFeature } from './features/import-csv.js';
-import { registerImportMidiFeature } from './features/import-midi.js';
-import { registerAuthFeature } from './features/auth.js';
-import { registerMobileUiFeature } from './features/mobile-ui.js';
-import { registerExportCsvFeature } from './features/export-csv.js';
-import { registerSearchFeature } from './features/search.js';
-import { registerCalendarViewFeature } from './features/calendar-view.js';
-import { registerSidebarStatsFeature } from './features/sidebar-stats.js';
-import { registerTaskEditorFeature } from './features/task-editor.js';
-import { registerTrackListFeature } from './features/track-list.js';
-import { registerSplitTaskFeature } from './features/split-task.js';
-import { registerMidiManagerFeature } from './features/midi-manager.js';
-import { registerCreditsFeature } from './features/credits.js';
-import { registerProjectInfoFeature } from './features/project-info.js';
-import { registerRecInfoFeature } from './features/rec-info.js';
-import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
-    const storageService = createStorageService();
-    const supabaseService = createSupabaseService({url: SUPABASE_URL, key: SUPABASE_KEY});
-    const deviceService = createDeviceService();
-    installJzzSmfPlugin(JZZ, installJzzSmf);
-    window.JZZ = JZZ;
-    window.XLSX = XLSX;
-    window.Cropper = Cropper;
-    let scheduleFeature;
-    let settingsFeature;
-    let importCsvFeature;
-    let importMidiFeature;
-    let authFeature;
-    let mobileUiFeature;
-    let exportCsvFeature;
-    let searchFeature;
-    let trackListFeature;
-    let splitTaskFeature;
-    let midiManagerFeature;
-    const hexToRgb = hex => {
-        const bigint = parseInt(hex.slice(1), 16);
-        const r = (bigint >> 16) & 255;
-        const g = (bigint >> 8) & 255;
-        const b = bigint & 255;
-        return [r, g, b];
-    };
-    const getTextColor = hex => {
-        if (!hex) return '#1f2937';
-        const [r, g, b] = hexToRgb(hex);
-        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-        return brightness > 150 ? '#1f2937' : '#f9fafb';
-    };
-    const generateRandomHexColor = () => {
-        return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-    };
-    const adjustColor = (hex, percent) => { // percent: 0.1 for 10% brighter, -0.1 for 10% darker
-        if (!hex) return '#f3f4f6';
-        const [r, g, b] = hexToRgb(hex);
-        const factor = 1 + percent;
-        const newR = Math.min(255, Math.max(0, Math.floor(r * factor)));
-        const newG = Math.min(255, Math.max(0, Math.floor(g * factor)));
-        const newB = Math.min(255, Math.max(0, Math.floor(b * factor)));
-        return '#' + [newR, newG, newB].map(x => x.toString(16).padStart(2, '0')).join('');
-    };
-    window.triggerTouchHaptic = (style = 'Light') => deviceService.triggerTouchHaptic(style);
-
-
+import { createAppDependencies } from './services/app-dependencies.js';
+    const {
+        createApp,
+        computed,
+        onMounted,
+        onUnmounted,
+        watch,
+        nextTick,
+        timeUtils,
+        formatUtils,
+        idUtils,
+        splitStateUtils,
+        storageService,
+        supabaseService,
+        deviceService,
+        triggerTouchHaptic,
+        loadImportDataFeature,
+        loadNotificationsFeature,
+        loadDesktopResizeFeature,
+        loadScheduleDeletionFeature,
+        loadAvatarCropFeature,
+        loadDataIoFeature,
+        loadMetadataModalsFeature,
+        loadTourFeature,
+        loadMidiManagerFeature,
+        loadTaskEditorFeature,
+        loadMobileTouchRegistration,
+        loadTrackListFeature,
+        loadSettingsFeature,
+        registerAppRuntimeFeature,
+        registerGlobalKeyboardFeature,
+        registerSessionFeature,
+        registerHistoryFeature,
+        registerRatioFeature,
+        registerNameLookupFeature,
+        registerSplitViewFeature,
+        registerDropdownsFeature,
+        registerViewNavigationFeature,
+        registerQuickAddFeature,
+        registerUniversalModalFeature,
+        registerOrchestrationFeature,
+        registerSplitTaskFeature,
+        registerPickerControlsFeature,
+        registerPoolInteractionsFeature,
+        registerSearchFeature,
+        registerSidebarStatsFeature,
+        registerSidebarFeature,
+        registerMobileUiFeature,
+        registerScheduleFeature,
+        registerScheduleInteractionsFeature,
+        registerAuthFeature,
+        registerSettingsSyncFeature,
+        createMuscheStore,
+        createRootAppState,
+        createRootSettingsState,
+        createRootShellState,
+        createRootHeaderShellState,
+        createRootSidebarShellState,
+        createRootMainContentShellState,
+        createRootDataIoState,
+        createRootImportDataState,
+        createRootTrackListState,
+        createRootMidiManagerState,
+        createRootMidiManagerModalShellState,
+        createRootMidiImportModalShellState,
+        createRootSettingsModalShellState,
+        createRootMetadataModalState,
+        createRootMobileControlsShellState,
+        createRootMobileTaskInputShellState,
+        createRootStandaloneOverlaysShellState,
+        createRootTrackListModalShellState,
+        createRootExportModalShellState,
+        createRootExportCreditModalsShellState,
+        createRootMidiCsvImportModalsShellState,
+        createRootCsvImportModalShellState,
+        createRootCreditModalShellState,
+        createRootProjectInfoModalShellState,
+        createRootRecInfoModalShellState,
+        createRootMetadataInfoModalsShellState,
+        createRootEditModalShellState,
+        createRootAccountModalsShellState,
+        createRootAuthModalShellState,
+        createRootCropModalShellState,
+        createRootUtilityModalsShellState,
+        createRootImportModalShellState,
+        createRootQuickAddModalShellState,
+        createRootConfirmModalShellState,
+        createRootInputModalShellState,
+        createRootSplitModalShellState,
+        createRootColorPickerModalShellState,
+        createRootDurationPickerModalShellState,
+        createRootPickerModalsShellState,
+        createRootTaskActionModalsShellState,
+        createRootUniversalModalsShellState,
+        createAppRootOptions,
+        createLazyFeatureProxy,
+    } = createAppDependencies();
     createApp({
+        ...createAppRootOptions(),
         setup() {
+            let scheduleFeature;
+            let settingsFeature;
+            let authFeature;
+            let mobileUiFeature;
+            let searchFeature;
+            let trackListFeature;
+            let splitTaskFeature;
+            let midiManagerFeature;
+            let orchestrationFeature;
+            let universalModalFeature;
+            let quickAddFeature;
+            let historyFeature;
+            let scheduleDeletionFeature;
+            let sessionFeature;
+            let ratioFeature;
+            let nameLookupFeature;
+            let splitViewFeature;
             const store = createMuscheStore(storageService);
-            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, statClickIndexMap, showProfileMenu, tempAvatarUrl, initialTouchY, showDurationPicker, tempDuration, pickerMinRef, pickerSecRef, pickerPos, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, mobileResizeState, saveStatus, globalSearchQuery, lastTapState, currentSearchIndex, resizing, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, csvImportMode, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, csvImportData, csvColumnMap, csvImportConfig, midiImportData, midiBpm, midiTempoMap, midiTimeSigs, midiViewMode, midiTimeSig, activeMidiGroupRow, midiGroupPos, activeImportMenu, importMenuPos, importSearchQuery, midiGroupSearchQuery, trackListSearchQuery, trackSearchIndex, lastTrackSearchQuery, lastHighlightedTrackId, searchHighlightTimer, rawCsvRows, csvHeadersMap, collapsedProjects, activeImportTab, csvSearchQuery, currentSessionId, activeDropdown, showMobileMenu, tempNickname, settingsExpandedGroups, newSettingsItem, user, showAuthModal, authLoading, authForm, history, historyIndex, showConfirmModal, confirmModalConfig, showInputModal, universalInputRef, inputModalConfig, showQuickAddModal, quickAddType, quickAddForm, showCropModal, cropImgSrc, cropImgRef, showGroupSuggestions, settingsGroupFocus, sortKey, activeColorKey, expandedGroups, themeMode, isDark } = store;
-            const syncItemForView = (item, viewType = 'musician') => {
-                ensureItemSplitViews(item);
-                syncLegacySplitFields(item, viewType);
-                return item;
-            };
-            const syncItemsForView = (items, viewType = 'musician') => {
-                items.forEach(item => syncItemForView(item, viewType));
-                return items;
-            };
-            const isItemVisibleForView = (item, viewType = 'musician') => {
-                return peekItemVisibilityInView(item, viewType);
-            };
-            const getSplitViewState = (item, viewType = 'musician') => getItemSplitState(item, viewType);
-            const peekSplitViewState = (item, viewType = 'musician') => peekItemSplitState(item, viewType);
-            const getCurrentSplitView = () => normalizeSplitViewType(
-                (trackListData.value && trackListData.value.viewType) || sidebarTab.value || 'musician'
-            );
-            const isMobile = ref(window.innerWidth < 800);
+            const { itemPool, scheduledTasks, slotHeight, pxPerMin, currentView, monthViewMode, viewDate, selectedTaskId, selectedSource, selectedPoolIds, sidebarWidth, lastPoolClickId, lastPoolFocusId, showSettings, showProjectInfoModal, showMetadataManager, showEditor, showTrackList, trackListData, editingItem, editingSource, weekContainer, flashingTaskId, showProfileMenu, showMobileTaskInput, trackListContainerRef, draggingSectionIndex, dayColWidth, isResizingMobile, saveStatus, globalSearchQuery, isSearchFocused, localDataVersion, isBootstrappingData, showSplitModal, showCreditModal, generatedCreditText, visibleTopDate, monthObserver, monthRefs, showMidiManager, managingProject, showMidiImportModal, showCsvImportModal, currentSessionId, activeDropdown, showMobileMenu, tempNickname, settingsExpandedGroups, newSettingsItem, user, showAuthModal, authLoading, authForm, history, historyIndex, showConfirmModal, confirmModalConfig, showInputModal, universalInputRef, inputModalConfig, showQuickAddModal, quickAddType, quickAddForm, showCropModal, cropImgSrc, cropImgRef, showGroupSuggestions, settingsGroupFocus, sortKey, activeColorKey, expandedGroups, themeMode, isDark } = store;
+            const {
+                sidebarTab,
+                isMobile,
+                mobileTab,
+                newItem,
+                sortField,
+                sortAsc,
+                authPasswordRef,
+                initialTouchCoords,
+                draggingTaskElement,
+                isSyncing,
+                isContextSwitching,
+                isZooming,
+                weekGridWrapper,
+                onBeforeLeave,
+                onAfterLeave,
+                dragState,
+            } = createRootAppState();
+            splitViewFeature = registerSplitViewFeature({
+                refs: {
+                    trackListData,
+                    sidebarTab,
+                },
+                split: splitStateUtils,
+            });
+            const {
+                syncItemForView,
+                syncItemsForView,
+                isItemVisibleForView,
+                getSplitViewState,
+                peekSplitViewState,
+                getCurrentSplitView,
+            } = splitViewFeature;
             // --- 🎹 MIDI 高级导入逻辑 ---
             
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
-            // 1. 定义状态变量 (已适配你文件的变量命名习惯)
-            let pickerCallback = null;
-            let dragElClone = null;       // 拖拽时的克隆体
-            let dragSourceTask = null;    // 源任务数据
-            let dragStartDate = null;     // 源日期
-            let longPressTimeout = null;  // 长按定时器
-            let isDraggingMouse = false;
-            let startMouseY = 0;
-            let startScrollTop = 0;
-            let activeColRef = null; // 当前拖动的滚轮 DOM 引用
-            let startX = 0, startY = 0;   // 触摸起始位置
-            let cloneOffsetX = 0, cloneOffsetY = 0; // 手指在元素内的偏移
-            let activeDropSlot = null;    // 当前手指下的放置目标
-            let dragSourceEl = null; // 用于记录被拖拽的原始 DOM 元素
-            let touchOffsetMinutes = 0;
-            let dragClickOffsetY = 0;
-            let dragSourceType = 'schedule';
-            let autoScrollInterval = null;
-            let monthSwitchTimer = null;
-            let isScrollingProgrammatically = false;
-            let resizeRaf = null; // 用于 requestAnimationFrame 防抖
-            // --- 🟢 新增：iOS 视图切换双击检测辅助变量 ---
-            let lastHeaderTap = 0; // 记录周视图表头上次点击时间
-            let lastMonthTap = { time: 0, date: null };
+            let {
+                groupedCsvData,
+                isAllSelected,
+                availableInstrumentGroups,
+                midiGroupData,
+                currentMidiDisplayList,
+                filteredImportOptions,
+                midiGroupExpanded,
+            } = createRootImportDataState();
+            let importDataFeature;
 
+            let {
+                midiManagerExpandedGroups,
+                projectMidiGroups,
+                projectMidiList,
+                filteredMidiGroups,
+            } = createRootMidiManagerState();
 
+            const getNameWithGroup = (...args) => searchFeature.getNameWithGroup(...args);
 
-
-            const toggleProjectCollapse = (pName) => {
-                if (collapsedProjects.has(pName)) {
-                    collapsedProjects.delete(pName);
-                } else {
-                    collapsedProjects.add(pName);
-                }
-            };
-
-            let groupedCsvData;
-            let isAllSelected;
-            let availableInstrumentGroups;
-            let midiGroupData;
-            let currentMidiDisplayList;
-
-            // 1. [新增] 提取通用的状态计算逻辑
-            const calculateRowStatusText = (row) => importCsvFeature.calculateRowStatusText(row);
-
-            const refreshCsvStatus = () => importCsvFeature.refreshCsvStatus();
-
-            const toggleCsvSelection = (index, field) => importCsvFeature.toggleCsvSelection(index, field);
-
-            const confirmCsvImport = () => importCsvFeature.confirmCsvImport();
-
-            // 🟢 修复后的 addDataToPrepared 函数 (加入差异对比)
-            const addDataToPrepared = (targetList, rawRow, col, options = {}) =>
-                importCsvFeature.addDataToPrepared(targetList, rawRow, col, options);
-
-            let midiManagerExpandedGroups;
-            let projectMidiGroups;
-            let projectMidiList;
-            let filteredMidiGroups;
-            const toggleMidiManagerGroup = (...args) => midiManagerFeature.toggleMidiManagerGroup(...args);
-            const openMidiGroupDropdown = (...args) => midiManagerFeature.openMidiGroupDropdown(...args);
-            const selectMidiGroup = (...args) => midiManagerFeature.selectMidiGroup(...args);
-            const openMidiManager = (...args) => midiManagerFeature.openMidiManager(...args);
-            const updateMidiDuration = (...args) => midiManagerFeature.updateMidiDuration(...args);
-            const removeMidiMapping = (...args) => midiManagerFeature.removeMidiMapping(...args);
-            const clearProjectMidi = (...args) => midiManagerFeature.clearProjectMidi(...args);
-            const updateInstrumentGroup = (...args) => midiManagerFeature.updateInstrumentGroup(...args);
-            const isOverlapping = (...args) => midiManagerFeature.isOverlapping(...args);
-            const calculateEffectiveDuration = (...args) => midiManagerFeature.calculateEffectiveDuration(...args);
-            const calculateAccurateDuration = (...args) => midiManagerFeature.calculateAccurateDuration(...args);
-            const convertTicksToSeconds = (...args) => midiManagerFeature.convertTicksToSeconds(...args);
-            const calculateQuantizedDuration = (...args) => midiManagerFeature.calculateQuantizedDuration(...args);
-            const autoFillMidiDuration = (...args) => midiManagerFeature.autoFillMidiDuration(...args);
-
-            // 1. 扩展乐器库 (增加常见缩写和变体)
-            const instrumentLibrary = {
-                "Brass": [
-                    "Horn", "French Horn", "Hn", "Trumpet", "Tpt", "Cornet", "Trombone", "Tbn",
-                    "Bass Trombone", "B.Tbn", "Tuba", "Tba", "Euphonium", "Brass"
-                ],
-                "Woodwinds": [
-                    "Flute", "Fl", "Piccolo", "Picc", "Oboe", "Ob", "English Horn", "Cor Anglais", "E.H",
-                    "Clarinet", "Cl", "Bass Clarinet", "B.Cl", "Bassoon", "Bsn", "Contrabassoon", "C.Bsn",
-                    "Saxophone", "Sax", "Recorder", "Woodwinds"
-                ],
-                "Strings": [
-                    "Violin", "Vln", "Viola", "Vla", "Cello", "Violoncello", "Vc",
-                    "Double Bass", "Contrabass", "Db", "Cb", "Bass", // 注意：Bass 在这里，但我们会用正则防止 Bassoon 误判
-                    "Strings", "Str"
-                ],
-                "Percussion": [
-                    "Timpani", "Timp", "Snare", "SD", "Bass Drum", "BD", "Cymbals", "Cym", "Piatti",
-                    "Triangle", "Tri", "Tambourine", "Tamb", "Glockenspiel", "Glock", "Xylophone", "Xyl",
-                    "Vibraphone", "Vib", "Marimba", "Mar", "Tubular Bells", "Chimes", "Drum", "Percussion", "Perc"
-                ],
-                "Keys": [
-                    "Piano", "Pno", "Celesta", "Cel", "Harpsichord", "Organ", "Accordion"
-                ],
-                "Plucks": [
-                    "Harp", "Hp", "Guitar", "Gtr", "Mandolin", "Lute"
-                ],
-                "Vocal": [
-                    "Soprano", "Alto", "Tenor", "Baritone", "Bass Voice", "Choir", "Voice", "Vocal"
-                ]
-            };
-
-            // 2. 生成排序后的搜索列表 (按长度降序，确保 "Bass Trombone" 先于 "Trombone" 被匹配)
-            const sortedLibrary = (() => {
-                const list = [];
-                for (const [group, names] of Object.entries(instrumentLibrary)) {
-                    names.forEach(name => {
-                        list.push({ name, group });
-                    });
-                }
-                // 按字符串长度降序排序 (Longest First)
-                return list.sort((a, b) => b.name.length - a.name.length);
-            })();
-
-// 核心：查找分组
-            const findGroupSmart = (trackName) => {
-                // A. 预处理轨道名
-                const cleanName = normalizeForMatch(trackName);
-
-                // B. 遍历库
-                for (const item of sortedLibrary) {
-                    const libName = normalizeForMatch(item.name);
-
-                    // 🔴 核心修复：使用正则单词边界 (\b)
-                    // 这意味着 "Bass" 只能匹配 "Bass" 或 "Double Bass"，
-                    // 而不会匹配 "Bassoon" (因为 Bassoon 里的 bass 后面没有边界)
-
-                    // 转义正则特殊字符 (如 +)
-                    const escapedLibName = libName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-                    // 构造正则：全字匹配 或 单词边界匹配
-                    // 例子：/bass/ 会匹配 bassoon，但 /\bbass\b/ 不会匹配 bassoon
-                    const regex = new RegExp(`\\b${escapedLibName}\\b`, 'i');
-
-                    if (regex.test(cleanName)) {
-                        return item.group;
-                    }
-
-                    // 兜底逻辑：对于很短的缩写 (如 "Fl", "Ob")，如果正则失败，尝试直接包含
-                    // 前提是缩写长度小于3，且不是常见的单词前缀
-                    if (libName.length < 3 && cleanName === libName) {
-                        return item.group;
-                    }
-                }
-
-                // 5. 兜底猜测 (如果库里没找到)
-                if (cleanName.includes('string') || cleanName.includes('vln') || cleanName.includes('vla') || cleanName.includes('cello')) return 'Strings';
-                if (cleanName.includes('brass') || cleanName.includes('horn') || cleanName.includes('tpt')) return 'Brass';
-                if (cleanName.includes('wood') || cleanName.includes('flute') || cleanName.includes('oboe')) return 'Woodwinds';
-                if (cleanName.includes('perc') || cleanName.includes('drum')) return 'Percussion';
-
-                return "";
-            };
-
-            // 打开导入界面的下拉菜单
-            const openImportMenu = (e, rowId, type) => {
-                // 如果点击同一个，则关闭
-                if (activeImportMenu.rowId === rowId && activeImportMenu.type === type) {
-                    activeImportMenu.rowId = null;
-                    activeImportMenu.type = null;
-                    return;
-                }
-
-                // 计算位置
-                const rect = e.currentTarget.getBoundingClientRect();
-                importMenuPos.top = rect.bottom + 5;
-                importMenuPos.left = rect.left;
-                importMenuPos.width = rect.width;
-
-                activeImportMenu.rowId = rowId;
-                activeImportMenu.type = type;
-                importSearchQuery.value = ''; // 重置搜索
-
-                // 自动聚焦搜索框
-                nextTick(() => {
-                    const input = document.getElementById('midi-import-search');
-                    if (input) input.focus();
-                });
-            };
-
-            // 关闭导入菜单
-            const closeImportMenu = () => {
-                activeImportMenu.rowId = null;
-                activeImportMenu.type = null;
-            };
-
-            // 在导入界面选择乐器
-            const selectImportInst = (track, inst) => {
-                track.instrumentId = inst.id;
-
-                // 🟢 FIX: 只有在非分组视图下才自动更新分组
-                // 这样在 'Group View' 下修改乐器时，条目不会因为分组变化而瞬间跳走
-                if (inst.group && midiViewMode.value !== 'groups') {
-                    track.group = inst.group;
-                }
-
-                track.createNew = false;
-                closeImportMenu();
-            };
-
-            // 在导入界面选择新建乐器
-            const selectImportNewInst = (track) => {
-                track.instrumentId = ""; // 空 ID 代表新建
-                track.createNew = true;
-                closeImportMenu();
-                // 自动聚焦名字输入框 (可选优化)
-            };
-
-            // 在导入界面选择分组
-            const selectImportGroup = (track, groupName) => {
-                track.group = groupName;
-                closeImportMenu();
-            };
-
-            // 获取导入菜单的过滤列表
-            const filteredImportOptions = computed(() => {
-                const search = importSearchQuery.value.toLowerCase();
-
-                if (activeImportMenu.type === 'inst') {
-                    // 乐器列表
-                    return sortedInstruments.value.filter(i =>
-                        i.name.toLowerCase().includes(search) ||
-                        (i.group && i.group.toLowerCase().includes(search))
-                    );
-                } else if (activeImportMenu.type === 'group') {
-                    // 分组列表
-                    return availableInstrumentGroups.value.filter(g =>
-                        g.toLowerCase().includes(search)
-                    );
-                }
-                return [];
+            const sidebarFeature = registerSidebarFeature({
+                refs: {
+                    sidebarWidth,
+                    isMobile,
+                    sidebarTab,
+                },
+                services: {
+                    storageService,
+                },
+                actions: {
+                    isDragActive: () => !!dragState.dragElClone,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                },
             });
-
-// 触发定向导入 (复用之前的 input，但这次我们已经知道是哪个项目了)
-            const triggerMidiImportForProject = () => importMidiFeature.triggerMidiImportForProject();
-
-            // 在 setup() 内部靠前位置添加
-
-// ... 其他 refs ...
-
-// 🟢 MIDI 导入相关逻辑
-            const triggerMidiImport = () => importMidiFeature.triggerMidiImport();
-
-            const handleMidiFile = (e) => importMidiFeature.handleMidiFile(e);
-
-// 🟢 [重写] processMidiFile - 满足三大核心需求
-            const processMidiFile = (file) => importMidiFeature.processMidiFile(file);
-
-            // --- 🟢 MIDI Group 状态管理 ---
-            const midiGroupExpanded = reactive(new Set()); // 存储已展开的组名
-
-            const toggleMidiGroupExpand = (groupName) => {
-                if (midiGroupExpanded.has(groupName)) {
-                    midiGroupExpanded.delete(groupName);
-                } else {
-                    midiGroupExpanded.add(groupName);
-                }
-            };
-
-// 🟢 [新增] 判断某组是否全选 (用于分组 Checkbox 状态)
-            const isGroupSelected = (rows) => importCsvFeature.isGroupSelected(rows);
-
-            // 🟢 [新增] 切换某组的全选状态
-            const toggleGroupSelection = (group, isChecked) => importCsvFeature.toggleGroupSelection(group, isChecked);
-
-            // 🟢 [修复] 全局全选切换 (只操作当前视图可见的行)
-            const toggleAllRows = (isChecked) => importCsvFeature.toggleAllRows(isChecked);
-
-// 🟢 [修复] midiGroupData: 修复 Group 视图下 Bars 显示为 0 的问题
-            // midiGroupData 由 importMidiFeature 注册后注入
-
-
-            // 🟢 [新增] 根据模式返回当前显示的列表
-            // currentMidiDisplayList 由 importMidiFeature 注册后注入
-
-            const findGroupFromLibrary = (cleanName) => {
-                const target = cleanName.toLowerCase();
-
-                // 遍历所有分组
-                for (const [groupName, instruments] of Object.entries(instrumentLibrary)) {
-                    // 检查该分组下的乐器是否匹配
-                    const match = instruments.find(inst => {
-                        const libInst = inst.toLowerCase();
-                        // 匹配逻辑：
-                        // 1. 全字匹配 (最准确)
-                        if (libInst === target) return true;
-                        // 2. 包含匹配 (如库里是 "Piano", 轨道叫 "Piano (L)")
-                        if (target.includes(libInst)) return true;
-                        return false;
-                    });
-
-                    if (match) return groupName;
-                }
-                return "";
-            };
-
-            // 🟢 [修改] 获取所有可用分组 (合并系统设置 + 当前导入界面的临时分组)
-            // availableInstrumentGroups 由 importMidiFeature 注册后注入
-
-            // 🟢 [新增] 当用户改变乐器选择时，自动更新 Group
-            const onImportInstChange = (track) => importMidiFeature.onImportInstChange(track);
-
-            const getSmartName = (row) => importMidiFeature.getSmartName(row);
-
-            // 🟢 [修改] confirmMidiImport: 支持存储多条轨道数据 (Flute 1, Flute 2)
-            const confirmMidiImport = () => importMidiFeature.confirmMidiImport();
-
-            // 1. 周视图 -> 月视图 (双击表头)
-            const handleHeaderDoubleTap = (e) => {
-                const now = Date.now();
-                // 如果两次点击间隔小于 300ms
-                if (now - lastHeaderTap < 300) {
-                    e.preventDefault(); // 阻止默认行为（如缩放）
-                    switchView('month');
-                }
-                lastHeaderTap = now;
-            };
-
-            // 2. 月视图 -> 周视图 (双击日期格)
-            const handleMonthCellDoubleTap = (e, dateStr) => {
-                // 如果点到了任务条(Task)，不要触发视图切换，让任务条自己的逻辑处理
-                if (e.target.closest('.task-block') || e.target.closest('.text-\\[11px\\]')) {
-                    return;
-                }
-
-                const now = Date.now();
-                // 必须是同一个日期格子，且间隔小于 300ms
-                if (now - lastMonthTap.time < 300 && lastMonthTap.date === dateStr) {
-                    e.preventDefault();
-                    window.triggerTouchHaptic('Light');
-                    switchToWeek(dateStr);
-                }
-                lastMonthTap.time = now;
-                lastMonthTap.date = dateStr;
-            };
-
-            // 🟢 [新增] 检查是否允许删除 (只允许删除链条的末端)
-            const checkCanDeleteSplit = (item) => {
-                const viewType = getCurrentSplitView();
-                // 1. 检查是否有任何任务的 splitFromId 指向当前任务
-                // 如果有，说明当前任务是"父级" (例如它是 Part 2，且存在 Part 3)，则不能删
-                const directChild = itemPool.value.find(t => (
-                    isItemVisibleForView(t, viewType) &&
-                    getSplitViewState(t, viewType).splitFromId === item.id
-                ));
-
-                if (directChild) {
-                    const childName = getSplitViewState(directChild, viewType).splitTag || '后续部分';
-                    openAlertModal(
-                        '无法删除',
-                        `检测到后续任务 ${childName} 存在。\n\n为了保证时间计算正确，请务必按顺序先删除最后一个 Part，才能逐级归还时间。`
-                    );
-                    window.triggerTouchHaptic('Error');
-                    return false; // 禁止删除
-                }
-
-                return true; // 允许删除
-            };
-
-
-
-            // 🟢 [新增] 辅助函数：计算某个任务及其所有分身的总时长
-            const getFamilyTotalDuration = (targetItem) => {
-                const viewType = getCurrentSplitView();
-                // 1. 找到根节点 ID (如果是子任务，取 splitFromId；如果是根任务，取自身 ID)
-                const rootId = getSplitViewState(targetItem, viewType).splitFromId || targetItem.id;
-
-                // 2. 在任务池中找到整个家族 (根节点 + 所有子节点)
-                // 注意：这里只筛选 ID 匹配，不筛选 Session，因为 splitFromId 是跨 Session 唯一的
-                const familyMembers = itemPool.value.filter(i => (
-                    isItemVisibleForView(i, viewType) &&
-                    (i.id === rootId || getSplitViewState(i, viewType).splitFromId === rootId)
-                ));
-
-                // 3. 累加所有成员的 musicDuration
-                const totalSeconds = familyMembers.reduce((sum, item) => {
-                    return sum + parseTime(getSplitViewState(item, viewType).musicDuration || '00:00');
-                }, 0);
-
-                return totalSeconds;
-            };
-
-            // 🟢 [修改] 编制预设 (改为显式名称格式)
-            const activeOrchPresets = computed(() => {
-                const instId = editingItem.value.instrumentId;
-                // 默认木管配置
-                if (!instId) return { full: '2 Fl, 2 Ob, 2 Cl, 2 Bsn', std: '1 Fl, 1 Ob, 1 Cl, 1 Bsn' };
-
-                const inst = settings.instruments.find(i => i.id === instId);
-                const text = inst ? `${inst.name} ${inst.group || ''}`.toLowerCase() : '';
-
-                // 1. Strings (弦乐)
-                if (/string|str|vln|vla|vc|db|violin|cello|viola/.test(text)) {
-                    return {
-                        full: '12 Vln1, 10 Vln2, 8 Vla, 8 Vc, 6 Db',
-                        std: '8 Vln1, 6 Vln2, 4 Vla, 4 Vc, 3 Db'
-                    };
-                }
-
-                // 2. Brass (铜管)
-                if (/brass|hn|tpt|tbn|tba|horn|trumpet|trombone|tuba/.test(text)) {
-                    return {
-                        full: '4 Hn, 3 Tpt, 3 Tbn, 1 Tba',
-                        std: '4 Hn, 2 Tpt, 2 Tbn'
-                    };
-                }
-
-                // 3. Woodwinds (木管 - 默认)
-                return {
-                    full: '3 Fl, 3 Ob, 3 Cl, 3 Bsn',
-                    std: '2 Fl, 2 Ob, 2 Cl, 2 Bsn'
-                };
-            });
-
-
-            const orchTemplates = {
-                'Brass': ['Hn', 'Tpt', 'Tbn', 'B. Tbn', 'Tba'],
-                'Woodwinds':['Fl', 'Picc', 'Ob', 'E. H.', 'Cl', 'B. Cl', 'Bsn', 'C. Bsn'],
-                'Strings': ['Vln1', 'Vln2', 'Vla', 'Vc', 'Db']
-            };
-
-            // 🟢 [修改] 解析编制字符串 (动态模式)
-            // 输入: "4 Fl, 2 Ob, 12 Vln1"
-            // 输出: 动态生成对应数量的输入框
-            const parsedRoster = computed(() => {
-                const code = editingItem.value.orchestration || '';
-
-                // 1. 分割字符串：支持逗号(,) 加号(+) 或分号(;) 分隔
-                // 过滤掉空字符串
-                const parts = code.split(/[,+;]/).map(s => s.trim()).filter(s => s);
-
-                const result = [];
-
-                parts.forEach((part, index) => {
-                    // 2. 正则匹配：以数字开头，后面跟着名称
-                    // 捕获组 1: 数字 (\d+)
-                    // 捕获组 2: 名称 (剩下的部分)
-                    const match = part.match(/^(\d+)\s*(.*)$/);
-
-                    if (match) {
-                        const count = parseInt(match[1], 10);
-                        // 如果没有写名字(例如只写了"4")，则使用默认名称 "Player"
-                        const label = match[2].trim() || 'Player';
-
-                        if (count > 0) {
-                            result.push({
-                                label: label,
-                                count: count,
-                                // 使用 label 作为前缀，确保 rosters 对象中的 key 唯一
-                                // 例如: "Fl._1", "Fl._2"
-                                startIndex: 0
-                            });
-                        }
-                    }
-                });
-
-                return result;
-            });
-
-            // 初始化/获取人员名单对象
-            const getRosterName = (sectionLabel, index) => {
-                if (!editingItem.value.roster) editingItem.value.roster = {};
-                const key = `${sectionLabel}_${index + 1}`;
-                return editingItem.value.roster[key] || '';
-            };
-
-            // 更新人员名单
-            const updateRosterName = (sectionLabel, index, value) => {
-                if (!editingItem.value.roster) editingItem.value.roster = {};
-                const key = `${sectionLabel}_${index + 1}`;
-                editingItem.value.roster[key] = value;
-            };
-
-            // --- 🟢 新增：判断是否显示编制/名单输入框 ---
-            const showOrchestrationField = computed(() => {
-                const instId = editingItem.value.instrumentId;
-                if (!instId) return false;
-
-                // 1. 找到当前乐器对象
-                const inst = settings.instruments.find(i => i.id === instId);
-                if (!inst) return false;
-
-                // 2. 拼接 名称 和 分组 (转小写)
-                const text = `${inst.name} ${inst.group || ''}`.toLowerCase();
-
-                // 3. 关键词匹配 (支持 Brass, Woodwind, String, Wind, Str 等)
-                // 只要名称或分组里包含这些词，就显示
-                return /brass|woodwind|string|str|wind/.test(text);
-            });
-
-            // --- 🥁 智能打击乐处理逻辑 (Smart Percussion) ---
-
-            // 1. 定义打击乐关键词映射表 (根据你的截图大幅扩充)
-            const percKeywords = {
-                // 基础类
-                'Snare': 'SD', 'Drum': 'Dr', 'Bass': 'BD', 'Kick': 'BD',
-                'Cymbal': 'Cym', 'Piatti': 'Piatti', 'Crash': 'Cym', 'Sus': 'SusCym',
-                'Timpani': 'Timp', 'Gong': 'Gong', 'Tam': 'Tam', 'Tubular':'TB',
-
-                // 你的截图特定乐器
-                'Anvil': 'Anv',       // 铁砧
-                'Cabasa': 'Cab',      // 卡巴萨
-                'Castanets': 'Cast',  // 响板
-                'Bell': 'Bell',       // 各种铃 (China Bell, LP Bell, SL Bell)
-                'Cowbell': 'CB',      // 牛铃
-                'Guiro': 'Guiro',     // 刮瓜
-                'Mark Tree': 'Tree',  // 音树
-                'Ratchet': 'Ratch',   // 棘轮
-                'Whistle': 'Whis',    // 哨子 (Samba Whistle)
-                'Shaker': 'Shk',      // 沙锤 (Plastic, Metal, Wooden)
-                'Shells': 'Shells',   // 贝壳风铃
-                'Sleigh': 'SlBell',   // 雪橇铃
-                'Whip': 'Whip',       // 鞭响
-                'Wood Block': 'WB',   // 木鱼/木盒
-                'Block': 'Blk',
-                'Tamb': 'Tamb',       // 铃鼓
-                'Tri': 'Tri',         // 三角铁
-                'Vib': 'Vib', 'Xylo': 'Xyl', 'Glock': 'Glk', 'Chime': 'Chm',
-                'Crot': 'Crot', 'Stick': 'Stk', 'Clap': 'Clap'
-            };
-
-            // 1. 状态变量
-            const percState = reactive({
-                tags: [],
-                players: [],
-                selectedTagIndices: new Set()
-            });
-
-            // 3. 判断当前是否为打击乐编辑模式 (修正: 检查范围更广)
-            const isPercussionMode = computed(() => {
-                const instName = getNameById(editingItem.value.instrumentId, 'instrument').toLowerCase();
-                const musicianName = getNameById(editingItem.value.musicianId, 'musician').toLowerCase();
-                const groupName = (settings.instruments.find(i => i.id === editingItem.value.instrumentId)?.group || '').toLowerCase();
-
-                // 触发词：只要命中这些词，就视为打击乐任务，开启分部面板
-                // 包含了 "Percussion" (匹配你的 SPO Percussion Player)
-                const triggers = ['perc'];
-
-                return triggers.some(t => instName.includes(t) || musicianName.includes(t) || groupName.includes(t));
-            });
-
-            // 4. 核心：扫描并生成/恢复标签 (修复: 读取演奏员存档实现持久化)
-            const scanPercussionTags = () => {
-                // 1. 获取当前演奏员对象 (作为配置的存储载体)
-                const musician = settings.musicians.find(m => m.id === editingItem.value.musicianId);
-
-                // 初始化临时列表
-                let currentTags = [];
-                let currentPlayers = [];
-
-                // 2. 尝试读取该演奏员已保存的配置
-                if (musician && musician.percConfig) {
-                    // 深拷贝以断开引用，防止修改未保存时污染源数据
-                    currentTags = JSON.parse(JSON.stringify(musician.percConfig.tags));
-                    currentPlayers = JSON.parse(JSON.stringify(musician.percConfig.players));
-                } else {
-                    // 如果没有存档，初始化默认演奏员
-                    currentPlayers = [{ id: 1, name: 'Perc 1', tags: [] }];
-                }
-
-                // 3. 扫描当前 Session 下该人的所有任务，找出所有涉及的乐器
-                // (目的是发现新添加的任务/乐器，并合并到现有配置中)
-                let relatedItems = [];
-                if (sidebarTab.value === 'musician' && editingItem.value.musicianId) {
-                    relatedItems = itemPool.value.filter(i => i.musicianId === editingItem.value.musicianId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
-                } else if (editingItem.value.instrumentId) {
-                    relatedItems = itemPool.value.filter(i => i.instrumentId === editingItem.value.instrumentId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
-                }
-
-                relatedItems.forEach(item => {
-                    const rawName = getNameById(item.instrumentId, 'instrument');
-
-                    // 检查这个乐器是否已经在 tags 里了
-                    // 🟢 修复: 只有当它是新乐器时才添加
-                    if (rawName && !currentTags.some(t => t.fullName === rawName)) {
-                        currentTags.push({
-                            name: rawName,
-                            fullName: rawName,
-                            assignedTo: null // 新乐器默认未分配
-                        });
-                    }
-                });
-
-                // 4. 排序 (让界面整洁)
-                currentTags.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
-
-                // 5. 赋值给响应式状态
-                percState.tags = currentTags;
-                percState.players = currentPlayers;
-                percState.selectedTagIndices.clear();
-            };
-
-            // 5. 添加演奏员
-            const addPercPlayer = () => {
-                const id = percState.players.length + 1;
-                percState.players.push({
-                    id: id,
-                    name: `Perc ${id}`,
-                    tags: []
-                });
-            };
-
-            // 6. 移除演奏员
-            const removePercPlayer = (idx) => {
-                const player = percState.players[idx];
-                // 把该人的标签释放回未分配状态
-                percState.tags.forEach(t => {
-                    if (t.assignedTo === player.id) t.assignedTo = null;
-                });
-                percState.players.splice(idx, 1);
-
-                // 🟢 触发保存和同步
-                updatePercOrchestration();
-            };
-
-            // 7. 分配逻辑：点击标签
-            const togglePercTagSelect = (index) => {
-                if (percState.selectedTagIndices.has(index)) {
-                    percState.selectedTagIndices.delete(index);
-                } else {
-                    percState.selectedTagIndices.add(index);
-                }
-            };
-
-            // 8. 分配逻辑：点击演奏员 (将选中的标签给这个人)
-            const assignTagsToPlayer = (playerId) => {
-                if (percState.selectedTagIndices.size === 0) return;
-
-                percState.selectedTagIndices.forEach(idx => {
-                    const tag = percState.tags[idx];
-                    tag.assignedTo = playerId;
-                });
-
-                percState.selectedTagIndices.clear(); // 清空选择
-                window.triggerTouchHaptic('Medium');
-                updatePercOrchestration();
-            };
-
-            // 9. 更新最终字符串并同步给同组所有任务 (修复: 持久化存储 + 全局同步)
-            const updatePercOrchestration = () => {
-                // A. 生成 Roster 对象和摘要字符串
-                const newRoster = {};
-                const summaryParts = [];
-
-                percState.players.forEach(p => {
-                    // 找到归属该人的标签
-                    const myTags = percState.tags
-                        .filter(t => t.assignedTo === p.id)
-                        .map(t => t.name);
-
-                    const uniqueTags = [...new Set(myTags)];
-                    const tagStr = uniqueTags.length > 0 ? ` (${uniqueTags.join(', ')})` : '';
-
-                    newRoster[`Player_${p.id}`] = p.name;
-                    summaryParts.push(`${p.name}${tagStr}`);
-                });
-
-                const finalOrchString = summaryParts.join(', ');
-
-                // B. 更新当前正在编辑的任务 (UI显示)
-                editingItem.value.roster = newRoster;
-                editingItem.value.orchestration = finalOrchString;
-
-                // C. 🟢 核心修复: 保存配置到演奏员对象 (持久化)
-                const musician = settings.musicians.find(m => m.id === editingItem.value.musicianId);
-                if (musician) {
-                    musician.percConfig = {
-                        tags: JSON.parse(JSON.stringify(percState.tags)),
-                        players: JSON.parse(JSON.stringify(percState.players))
-                    };
-                }
-
-                // D. 🟢 核心修复: 同步更新该演奏员的所有任务 (同步化)
-                // 这样你在一个任务里分好了，其他任务卡片上的文字也会跟着变
-                if (musician) {
-                    // 1. 更新任务池
-                    itemPool.value.forEach(item => {
-                        if (item.musicianId === musician.id && (item.sessionId || 'S_DEFAULT') === currentSessionId.value) {
-                            item.orchestration = finalOrchString;
-                            item.roster = JSON.parse(JSON.stringify(newRoster));
-                        }
-                    });
-
-                    // 2. 更新日程表
-                    scheduledTasks.value.forEach(task => {
-                        if (task.musicianId === musician.id && (task.sessionId || 'S_DEFAULT') === currentSessionId.value) {
-                            // 注意: 日程表里的任务可能没有 roster 字段结构，主要更新 orchestration 用于显示
-                            task.orchestration = finalOrchString;
-                            // task.roster = ... (如果需要的话也可以存)
-                        }
-                    });
-                }
-
-                // E. 保存历史
-                // (注意：这里如果频繁触发可能会导致历史记录过多，可以考虑加个防抖，或者只在关闭弹窗时 pushHistory)
-                // pushHistory();
-            };
-
-            // 10. 监听 Modal 打开，如果是打击乐且没有数据，自动扫描
-            watch(() => showEditor.value, (val) => {
-                if (val && isPercussionMode.value) {
-                    // 如果 Orchestration 是空的，或者看起来不像已经手动编辑过的，就自动扫描
-                    if (!editingItem.value.orchestration) {
-                        scanPercussionTags();
-                    }
-                }
-            });
-
-            // 🟢 [辅助函数] 获取带分组的完整名称 (用于搜索)
-            const getNameWithGroup = (id, type) => {
-                if (!id) return '';
-                let list = [];
-                // 根据类型获取对应列表
-                if (type === 'project') list = settings.projects;
-                else if (type === 'instrument') list = settings.instruments;
-                else list = settings.musicians;
-
-                // 使用 loose equality (==) 兼容字符串/数字 ID
-                const item = list.find(i => i.id == id);
-                // 返回 "名称 + 分组"
-                return item ? `${item.name} ${item.group || ''}` : '';
-            };
-
-            // --- 🟢 搜索辅助函数 (放在 setup 内部靠前的位置) ---
-            const smartMatch = (text, keyword) => {
-                if (!text) return false;
-                const lowerText = text.toLowerCase();
-                // 1. 原文包含
-                if (lowerText.includes(keyword)) return true;
-                // 2. 去空格包含 (匹配英文名如 "Yi Li" -> "yili")
-                if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
-                // 3. 拼音匹配
-                if (pinyinMatch) {
-                    return !!pinyinMatch(text, keyword, { continuous: true });
-                }
-                return false;
-            };
-
-            // 🟢 [修改] 获取用于搜索的组合文本 (加入分组信息)
-            const getFullSearchText = (task, groupName) => {
-                // 原代码：
-                // const mText = getNameById(task.musicianId, 'musician');
-                // const pText = getNameById(task.projectId, 'project');
-                // const iText = getNameById(task.instrumentId, 'instrument');
-
-                // 🟢 修改后：使用 getNameWithGroup 获取带分组的文本
-                const mText = getNameWithGroup(task.musicianId, 'musician');
-                const pText = getNameWithGroup(task.projectId, 'project');
-                const iText = getNameWithGroup(task.instrumentId, 'instrument');
-
-                // 获取录音信息
-                const info = task.recordingInfo || {};
-                const infoText = [
-                    info.studio, info.engineer, info.operator,
-                    info.assistant, info.notes
-                ].join(' ');
-
-                // 组合所有相关文本
-                return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
-            };
-
-            // 🟢 [重写] 过滤日程 (修复搜索定位问题)
-            const filteredScheduledTasks = computed(() => {
-                const rawQuery = globalSearchQuery.value.trim().toLowerCase();
-                if (!rawQuery) return scheduledTasks.value;
-
-                const statusDefinitions = {
-                    '完成': ['completed'], 'finished': ['completed'],
-                    '进行中': ['in-progress'], 'ing': ['in-progress'],
-                    '缺时': ['insufficient'], 'missing': ['insufficient'],
-                    '已排': ['full', 'completed'], 'full': ['full', 'completed']
-                };
-
-                const textKeywords = [];
-                const statusFilters = new Set();
-
-                // 解析搜索词 (分离状态关键词和文本关键词)
-                rawQuery.split(/\s+/).filter(k => k).forEach(inputWord => {
-                    let isStatus = false;
-                    for (const [key, statuses] of Object.entries(statusDefinitions)) {
-                        if (key.includes(inputWord) || inputWord.includes(key)) {
-                            statuses.forEach(s => statusFilters.add(s));
-                            isStatus = true;
-                            break;
-                        }
-                    }
-                    if (!isStatus) textKeywords.push(inputWord);
-                });
-
-                // 智能匹配函数
-                const smartMatch = (text, keyword) => {
-                    if (!text) return false;
-                    const lowerText = text.toLowerCase();
-                    if (lowerText.includes(keyword)) return true;
-                    if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
-                    if (pinyinMatch) {
-                        return !!pinyinMatch(text, keyword, { continuous: true });
-                    }
-                    return false;
-                };
-
-                // 🟢 [核心修复] 状态检查逻辑
-                const checkTaskStatus = (task) => {
-                    // 1. 如果没有指定状态过滤 (只搜文字)，直接放行！
-                    // 这样避免了"在项目视图搜不到乐器任务"的问题
-                    if (statusFilters.size === 0) return true;
-
-                    // 2. 如果有状态过滤，才去检查侧边栏的统计状态
-                    let targetList = musicianStats.value;
-                    let targetId = task.musicianId;
-
-                    if (sidebarTab.value === 'project') {
-                        targetList = projectStats.value;
-                        targetId = task.projectId;
-                    }
-                    else if (sidebarTab.value === 'instrument') {
-                        targetList = instrumentStats.value;
-                        targetId = task.instrumentId;
-                    }
-
-                    if (!targetId) return false;
-                    const statItem = targetList.find(s => s.id === targetId);
-                    if (!statItem) return false;
-
-                    return statusFilters.has(statItem.statusKey);
-                };
-
-                const scheduleSectionMap = new Map();
-                const groups = {};
-                // ... (分组逻辑保持不变) ...
-                scheduledTasks.value.forEach(t => {
-                    const sess = t.sessionId || 'S_DEFAULT';
-                    let key = '';
-                    if (t.musicianId) key = `M|${t.musicianId}`;
-                    else if (t.projectId) key = `P|${t.projectId}`;
-                    else if (t.instrumentId) key = `I|${t.instrumentId}`;
-                    const fullKey = `${sess}|${key}`;
-                    if (!groups[fullKey]) groups[fullKey] = [];
-                    groups[fullKey].push(t);
-                });
-                Object.values(groups).forEach(group => {
-                    group.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-                    group.forEach((t, index) => {
-                        scheduleSectionMap.set(t.scheduleId, index);
-                    });
-                });
-
-                return scheduledTasks.value.filter(task => {
-                    const sess = task.sessionId || 'S_DEFAULT';
-
-                    // 1. 检查状态过滤器
-                    if (!checkTaskStatus(task)) return false;
-
-                    // 2. 如果没有文本关键词，直接返回
-                    if (textKeywords.length === 0) return true;
-
-                    // 🟢 [核心修复] 使用全局 getNameWithGroup 获取所有相关文本
-                    // 确保项目名、乐器名、人员名都被纳入搜索范围
-                    const selfText = [
-                        getNameWithGroup(task.musicianId, 'musician'),
-                        getNameWithGroup(task.projectId, 'project'),
-                        getNameWithGroup(task.instrumentId, 'instrument'),
-                        task.recordingInfo?.studio,
-                        task.recordingInfo?.engineer,
-                        task.recordingInfo?.notes
-                    ].join(' ');
-
-                    // 自身匹配
-                    if (textKeywords.every(k => smartMatch(selfText, k))) return true;
-
-                    // 子项匹配 (聚合任务)
-                    let subItems = [];
-                    if (task.templateId) {
-                        const exactItem = itemPool.value.find(i => i.id === task.templateId);
-                        if (exactItem) subItems.push(exactItem);
-                    } else {
-                        const mySectionIndex = scheduleSectionMap.get(task.scheduleId);
-                        subItems = itemPool.value.filter(i => {
-                            if ((i.sessionId || 'S_DEFAULT') !== sess) return false;
-                            let idMatch = false;
-                            if (task.musicianId) idMatch = (i.musicianId === task.musicianId);
-                            else if (task.projectId) idMatch = (i.projectId === task.projectId);
-                            else if (task.instrumentId) idMatch = (i.instrumentId === task.instrumentId);
-                            if (!idMatch) return false;
-                            const itemIdx = i.sectionIndex !== undefined ? i.sectionIndex : 0;
-                            return itemIdx === mySectionIndex;
-                        });
-                    }
-
-                    return subItems.some(sub => {
-                        const itemText = [
-                            getNameWithGroup(sub.projectId, 'project'),
-                            getNameWithGroup(sub.instrumentId, 'instrument'),
-                            getNameWithGroup(sub.musicianId, 'musician'),
-                            sub.splitTag,
-                            sub.recordingInfo?.notes
-                        ].join(' ');
-                        const combinedText = itemText + ' ' + selfText;
-                        return textKeywords.every(k => smartMatch(combinedText, k));
-                    });
-                });
-            });
-
-            const savedSidebarState = storageService.getItem('musche_sidebar_open');
-            // 🟢 修改: 默认为 true (打开状态)
-            const isSidebarOpen = ref(savedSidebarState !== null ? JSON.parse(savedSidebarState) : true);
-            // 3. 监听变化并自动保存 (记忆功能)
-            watch([isSidebarOpen, sidebarWidth], ([open, width]) => {
-                storageService.setItem('musche_sidebar_open', open);
-                storageService.setItem('musche_sidebar_width', width);
-            });
-
-            // 🟢 新增: 当鼠标进入输入框，临时禁止父级拖拽 (解决无法选中文本的问题)
-            const disableRowDrag = (e) => {
-                const row = e.target.closest('.group\\/item'); // 查找父级行
-                if (row) {
-                    row.setAttribute('draggable', 'false');
-                    row.style.cursor = 'text'; // 强制显示文本光标
-                }
-            };
-
-            // 🟢 新增: 当鼠标离开输入框，恢复父级拖拽
-            const enableRowDrag = (e) => {
-                const row = e.target.closest('.group\\/item');
-                if (row) {
-                    row.setAttribute('draggable', 'true');
-                    row.style.cursor = ''; // 恢复默认光标
-                }
-            };
-
-            // ----------------------------------------------------------------
-            // 🟢 新增: 1. 定义电脑端引导步骤
-            // ----------------------------------------------------------------
-            const desktopSteps = [
-                {
-                    // 1. 欢迎
-                    popover: {
-                        title: '欢迎使用 Musche',
-                        description: '这是一款专为音乐人设计的智能排程工具。<br>已为您预设了演示数据，让我们花 1 分钟了解核心流程。',
-                        align: 'center'
-                    }
-                },
-                {
-                    // 2. Session
-                    element: '#tour-session-select',
-                    popover: {
-                        title: '日程切换 (Session)',
-                        description: '这是“档期管理器”。<br>您可以新建不同的录音档期（如“2025春季录音”），并在此切换。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    // 3. 侧边栏整体
-                    element: '#sidebar',
-                    popover: {
-                        title: '任务池 (Pool)',
-                        description: '这里存放所有待排程的资源。<br>点击顶部的 <b>人员/项目/乐器</b> 标签可切换不同维度的分组显示。',
-                        side: "right",
-                        align: 'start'
-                    }
-                },
-                {
-                    // 4. 具体的统计卡片 (原侧边栏Guide的内容)
-                    element: '#tour-first-stat-card',
-                    popover: {
-                        title: '任务卡片',
-                        description: `
-                    这是具体的待排程对象（如 Musician A）。
-                    <br>🟢 <b>绿色</b>：已排期
-                    <br>🔴 <b>红色</b>：缺时 (需增加排期)
-                    <br>🔵 <b>蓝色</b>：录制完成
-                    <br>🟠 <b>橙色</b>：进行中
-                    <hr style="margin:8px 0; opacity:0.2">
-                    <b>长按拖拽</b>：直接将卡片拖到右侧日程表中。
-                    <br><b>点击卡片</b>：展开查看具体的曲目列表。
-                `,
-                        side: "right",
-                        align: 'center'
-                    }
-                },
-                {
-                    // 5. 新建按钮
-                    element: '#tour-new-task',
-                    popover: {
-                        title: '添加任务',
-                        description: '点击这里录入新的人员、乐器或项目。<br>支持手动输入或 CSV 批量导入。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    // 6. 主日程
-                    element: '#main-content',
-                    popover: {
-                        title: '日程表 (Schedule)',
-                        description: `
-                    主工作台，支持<b>周/月</b>视图切换。
-                    <br>已为您在“今天”创建了一个演示日程。
-                    <hr style="margin:8px 0; opacity:0.2">
-                    <b>双击日程块</b>：打开 TrackList 详情页，可记录实际录音时间、拆分任务或自动计算效率倍率。
-                `,
-                        side: "left",
-                        align: 'center'
-                    }
-                },
-                {
-                    // 7. 视图切换
-                    element: '#tour-view-switch',
-                    popover: {
-                        title: '视图切换',
-                        description: '<b>周视图</b>：精确到分钟的排程操作。<br><b>月视图</b>：宏观查看每日安排和空档。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    // 8. 同步
-                    element: '#tour-sync-btn',
-                    popover: {
-                        title: '云端同步',
-                        description: '登录账号后，数据将自动保存到云端，支持多设备协作。',
-                        side: "bottom"
-                    }
-                }
-            ];
-
-            // ----------------------------------------------------------------
-            // 🟢 新增: 2. 定义手机端引导步骤 (适配 Mobile UI)
-            // ----------------------------------------------------------------
-            const mobileSteps = [
-                {
-                    popover: {
-                        title: '欢迎使用 Musche',
-                        description: '专为移动端优化的排程体验。<br>支持手势操作和快速记录。',
-                        align: 'center'
-                    }
-                },
-                {
-                    element: '#tour-session-select',
-                    popover: {
-                        title: '切换档期',
-                        description: '点击顶部切换不同的录音 Session。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    element: '#main-content',
-                    popover: {
-                        title: '日程表与手势',
-                        description: `
-                            <b>长按</b>：进入拖拽模式。
-                            <br><b>双击</b>：打开详情页记录时间。
-                            <br><b>左右滑动</b>：切换日期 (日程表) 或 切换分类 (任务池)。
-                        `,
-                        align: 'center'
-                    }
-                },
-                {
-                    element: '.mobile-header-nav',
-                    popover: {
-                        title: '日期导航',
-                        description: '左右滑动屏幕，或点击这里切换日期。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    // 7. 视图切换
-                    element: '#tour-view-switch',
-                    popover: {
-                        title: '视图切换',
-                        description: '<b>周视图</b>：精确到分钟的排程操作。<br><b>月视图</b>：宏观查看每日安排和空档。',
-                        side: "bottom"
-                    }
-                },
-                {
-                    element: '.mobile-tab-bar',
-                    popover: {
-                        title: '底部导航',
-                        description: '<b>核心功能区</b>：<br><b>任务池</b>：查看待排任务<br><b>添加</b>：快速新建<br><b>日程表</b>：查看当前安排',
-                        side: "top"
-                    }
-                },
-                // --- 🟢 修改点：插入任务池介绍步骤，并自动切换视图 ---
-                {
-                    element: '#sidebar', // 目标元素：侧边栏容器
-                    popover: {
-                        title: '任务池 (Task Pool)',
-                        description: '这里存放所有待排程的资源。<br>点击上方标签可切换 <b>人员/项目/乐器</b>。<br><b>长按卡片</b>即可拖拽到日程表中。',
-                        side: "top",
-                        align: 'center'
-                    },
-                    // 🚀 核心逻辑：进入此步骤时，强制切换到 Pool 视图
-                    onHighlightStarted: () => {
-                        mobileTab.value = 'pool';
-                        showMobileTaskInput.value = false; // 确保添加弹窗关闭
-                        // 稍微滚动一下侧边栏确保有动感 (可选)
-                        if(sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = 0;
-                    }
-                },
-                {
-                    // 4. 具体的统计卡片 (原侧边栏Guide的内容)
-                    element: '#tour-first-stat-card',
-                    popover: {
-                        title: '任务卡片',
-                        description: `
-                    这是具体的待排程对象（如 Musician A）。
-                    <br>🟢 <b>绿色</b>：已排期
-                    <br>🔴 <b>红色</b>：缺时 (需增加排期)
-                    <br>🔵 <b>蓝色</b>：录制完成
-                    <br>🟠 <b>橙色</b>：进行中
-                    <hr style="margin:8px 0; opacity:0.2">
-                    <b>长按拖拽</b>：直接将卡片拖到右侧日程表中。
-                    <br><b>点击卡片</b>：展开查看具体的曲目列表。
-                `,
-                        side: "right",
-                        align: 'center'
-                    }
-                },
-                {
-                    // 5. 新建按钮
-                    element: '#tour-new-task',
-                    popover: {
-                        title: '添加任务',
-                        description: '点击这里录入新的人员、乐器或项目。<br>支持手动输入或 CSV 批量导入。',
-                        side: "bottom"
-                    }
-                },
-                // ----------------------------------------------------
-                {
-                    // 8. 同步
-                    element: '#tour-sync-btn',
-                    popover: {
-                        title: '云端同步',
-                        description: '登录账号后，数据将自动保存到云端，支持多设备协作。',
-                        side: "bottom"
-                    },
-                    // 🚀 核心逻辑：离开任务池介绍后，切回日程表视图，以便正确高亮 #main-content
-                    onHighlightStarted: () => {
-                        mobileTab.value = 'schedule';
-                    }
-                }
-            ];
-
-            // ----------------------------------------------------------------
-            // 🟢 新增: 3. 初始化 Driver 实例 (空配置)
-            // ----------------------------------------------------------------
-            const driverObj = driver({
-                showProgress: true,
-                animate: true,
-                allowClose: true,
-                doneBtnText: '开始使用',
-                nextBtnText: '下一步',
-                prevBtnText: '上一步',
-            });
-
-            // ----------------------------------------------------------------
-            // 🟢 新增: 4. 智能启动函数 (根据屏幕判断)
-            // ----------------------------------------------------------------
-            const startTour = () => {
-                // 确保之前可能存在的侧边栏引导标记不干扰
-                storageService.removeItem('musche_sidebar_tour_seen');
-
-                if (window.innerWidth < 800) {
-                    // === 📱 手机模式 ===
-
-                    // 1. 强制切换到底部导航的“日程表”视图，确保界面整洁
-                    mobileTab.value = 'schedule';
-                    showMobileTaskInput.value = false;
-
-                    // 2. 设置手机版剧本
-                    driverObj.setConfig({ steps: mobileSteps });
-
-                    // 3. 直接播放
-                    driverObj.drive();
-                } else {
-                    // === 💻 电脑模式 ===
-
-                    // 1. 强制展开侧边栏，确保元素可见
-                    isSidebarOpen.value = true;
-
-                    // 2. 设置电脑版剧本
-                    driverObj.setConfig({ steps: desktopSteps });
-
-                    // 3. 延迟播放，等待侧边栏动画展开
-                    setTimeout(() => {
-                        driverObj.drive();
-                    }, 400);
-                }
-
-                // 标记已读
-                storageService.setItem('musche_tour_seen', 'true');
-            };
-
-            // 🟢 修复: 简化的侧边栏切换 (不再包含引导逻辑)
-            const toggleSidebar = () => {
-                isSidebarOpen.value = !isSidebarOpen.value;
-            };
+            const isSidebarOpen = sidebarFeature.isSidebarOpen;
 
             let splitState;
-            const checkCanSplit = (...args) => splitTaskFeature.checkCanSplit(...args);
-            const openSplitSlider = (...args) => splitTaskFeature.openSplitSlider(...args);
-            const onSplitSliderInput = (...args) => splitTaskFeature.onSplitSliderInput(...args);
-            const updateSplitStrings = (...args) => splitTaskFeature.updateSplitStrings(...args);
-            const confirmSplitSlider = (...args) => splitTaskFeature.confirmSplitSlider(...args);
-            const splitTrack = (...args) => splitTaskFeature.splitTrack(...args);
-            const restoreSplitTime = (...args) => splitTaskFeature.restoreSplitTime(...args);
-
-            // --- 🟢 新增：自定义颜色选择器逻辑 ---
-            const showColorPickerModal = ref(false);
-            const colorPickerTarget = ref(null); // 当前正在编辑的对象 { item, type }
-            const tempColor = ref('');           // 临时颜色，确认后才应用
-
-            // 🟢 修复: 隔离坐标状态，防止切换时位置跳动
-            const inputRects = reactive({
-                name: { top: 0, left: 0, width: 0, height: 0 },
-                group: { top: 0, left: 0, width: 0, height: 0 }
-            });
-
-            // 更新坐标 (增加 kind 参数: 'name' | 'group')
-            const updateInputRect = (e, kind) => {
-                const wrapperClass = kind === 'name' ? '.settings-name-wrapper' : '.settings-group-wrapper';
-                const el = e.target.closest(wrapperClass);
-                if (el) {
-                    const r = el.getBoundingClientRect();
-                    inputRects[kind] = { top: r.top, left: r.left, width: r.width, height: r.height };
-                }
-            };
-
-            // 🟢 动态计算样式 (根据 kind 获取各自的坐标)
-            const getFloatingStyle = (kind) => {
-                const rect = inputRects[kind]; // 获取各自独立的坐标
-                const windowHeight = window.innerHeight;
-
-                const inputBottom = rect.top + rect.height;
-                const spaceBelow = windowHeight - inputBottom;
-                const menuHeight = 220;
-                const isDropUp = spaceBelow < menuHeight;
-
-                const style = {
-                    position: 'fixed',
-                    left: `${rect.left}px`,
-                    width: `${rect.width}px`,
-                    margin: 0,
-                    zIndex: 99999,
-                };
-
-                if (isDropUp) {
-                    style.top = 'auto';
-                    style.bottom = `${windowHeight - rect.top + 5}px`;
-                    style.transformOrigin = 'bottom center';
-                } else {
-                    style.top = `${inputBottom + 5}px`;
-                    style.bottom = 'auto';
-                    style.transformOrigin = 'top center';
-                }
-
-                return style;
-            };
-
-            // 🟢 关键：滚动时关闭菜单 (防止菜单悬浮在空中不动)
-            const onSettingsScroll = () => {
-                if (settingsNameFocus.value || settingsGroupFocus.value) {
-                    settingsNameFocus.value = null;
-                    settingsGroupFocus.value = null;
-                }
-            };
-
-            // 🟢 新增：名称输入框的焦点状态
-            const settingsNameFocus = ref(null);
-
-            // 🟢 新增：获取当前类型下“未分组”的项目
-            const getUngroupedItems = (type) => {
-                let list = [];
-                if (type === 'instrument') list = settings.instruments;
-                else if (type === 'musician') list = settings.musicians;
-                else if (type === 'project') list = settings.projects;
-
-                // 筛选条件：没有 group 或者 group 是空字符串
-                return list.filter(i => !i.group || !i.group.trim())
-                    .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
-            };
-
-            // 定义一套符合 App 风格的预设颜色
-            const presetColors = [
-                '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
-                '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-                '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-                '#ec4899', '#f43f5e', '#64748b', '#71717a', '#000000'
-            ];
-
-            // 打开颜色选择器
-            const openColorPicker = (item, type) => {
-                colorPickerTarget.value = { item, type };
-                tempColor.value = item.color || getDefaultColorByType(type);
-                showColorPickerModal.value = true;
-            };
-
-            // 获取默认颜色 (用于重置)
-            const getDefaultColorByType = (type) => {
-                if (type === 'project') return '#eab308';    // 黄
-                if (type === 'instrument') return '#3b82f6'; // 蓝
-                if (type === 'musician') return '#a855f7';   // 紫
-                return '#9ca3af';
-            };
-
-            // 重置颜色
-            const resetColorPicker = () => {
-                if (colorPickerTarget.value) {
-                    tempColor.value = getDefaultColorByType(colorPickerTarget.value.type);
-                }
-            };
-
-            // 确认保存
-            const saveColorPicker = () => {
-                if (colorPickerTarget.value && tempColor.value) {
-                    // 更新对象颜色
-                    colorPickerTarget.value.item.color = tempColor.value;
-                    pushHistory(); // 保存历史
-                }
-                showColorPickerModal.value = false;
-            };
-
-            // 1. 切换单个分组 (修改：增加 type 参数，使用复合键)
-            const toggleSettingsGroup = (type, groupName) => settingsFeature.toggleSettingsGroup(type, groupName);
-
-            // 2. 判断全展开 (修改：使用复合键检查)
-            const isAllGroupsExpanded = (type) => {
-                const groups = getSettingsGroupedList(type);
-                if (groups.length === 0) return false;
-
-                // 检查是否每个分组的 Key 都在 Set 里
-                return groups.every(g => settingsExpandedGroups.has(type + '|' + g.name));
-            };
-
-            // 3. 批量切换 (修改：使用复合键操作)
-            const toggleAllGroups = (type) => {
-                const groups = getSettingsGroupedList(type);
-                const isAllOpen = isAllGroupsExpanded(type);
-
-                if (isAllOpen) {
-                    // 全关
-                    groups.forEach(g => settingsExpandedGroups.delete(type + '|' + g.name));
-                } else {
-                    // 全开
-                    groups.forEach(g => settingsExpandedGroups.add(type + '|' + g.name));
-                }
-            };
-
-            // --- 🟢 新增: 视图切换动画与手势逻辑 ---
-            const viewTransitionName = ref('view-slide-left'); // 默认动画方向
-            const touchStartX = ref(0);
-            const touchStartY = ref(0);
-
-            // --- 🟢 新增: 侧边栏(任务池) 滑动切换 Tab ---
-            const sidebarTouchStartX = ref(0);
-            const sidebarTouchStartY = ref(0);
-            const sidebarTabsOrder = ['musician', 'project', 'instrument']; // 定义切换顺序
-
-            const onSidebarTouchStart = (e) => {
-                // 如果正在拖拽任务，不记录起点，防止误触
-                if (dragElClone) return;
-
-                sidebarTouchStartX.value = e.touches[0].clientX;
-                sidebarTouchStartY.value = e.touches[0].clientY;
-            };
-
-            // 1. 定义动画状态和 Scroll 引用
-            const sidebarTransitionName = ref('slide-next');
-            const sidebarScrollRef = ref(null);
-
-            // ... (原有的 sidebarTouchStartX 等变量保持不变) ...
-
-            // 🟢 新增：智能切换 Tab 函数 (处理动画方向)
-            const switchSidebarTab = (targetTab) => {
-                if (sidebarTab.value === targetTab) return;
-
-                const order = ['musician', 'project', 'instrument'];
-                const oldIdx = order.indexOf(sidebarTab.value);
-                const newIdx = order.indexOf(targetTab);
-
-                // 判断方向：新索引 > 旧索引 ? 向左推(Next) : 向右推(Prev)
-                sidebarTransitionName.value = newIdx > oldIdx ? 'slide-next' : 'slide-prev';
-
-                // 切换数据
-                sidebarTab.value = targetTab;
-
-                // 切换后自动滚回顶部，体验更好
-                if (sidebarScrollRef.value) {
-                    sidebarScrollRef.value.scrollTop = 0;
-                }
-            };
-
-            // 🟢 更新：触摸结束处理函数 (集成动画逻辑)
-            const onSidebarTouchEnd = (e) => {
-                if (dragElClone || !isMobile.value) return;
-
-                const endX = e.changedTouches[0].clientX;
-                const endY = e.changedTouches[0].clientY;
-                const diffX = endX - sidebarTouchStartX.value;
-                const diffY = endY - sidebarTouchStartY.value;
-
-                if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 50) {
-                    const currentIndex = sidebarTabsOrder.indexOf(sidebarTab.value);
-                    if (currentIndex === -1) return;
-
-                    let nextIndex = currentIndex;
-                    let direction = '';
-
-                    if (diffX < 0) {
-                        // 左滑 -> 下一个
-                        if (currentIndex < sidebarTabsOrder.length - 1) {
-                            nextIndex++;
-                            direction = 'next';
-                        }
-                    } else {
-                        // 右滑 -> 上一个
-                        if (currentIndex > 0) {
-                            nextIndex--;
-                            direction = 'prev';
-                        }
-                    }
-
-                    if (nextIndex !== currentIndex) {
-                        // 🟢 手动设置动画方向
-                        sidebarTransitionName.value = direction === 'next' ? 'slide-next' : 'slide-prev';
-
-                        sidebarTab.value = sidebarTabsOrder[nextIndex];
-                        window.triggerTouchHaptic('Light');
-
-                        // 滚回顶部
-                        if (sidebarScrollRef.value) sidebarScrollRef.value.scrollTop = 0;
-                    }
-                }
-                sidebarTouchStartX.value = 0;
-                sidebarTouchStartY.value = 0;
-            };
-
-            const autoDistributeSections = () => trackListFeature.autoDistributeSections();
-
-            // 修改 switchView 函数
-            const switchView = (targetView) => {
-                if (targetView === currentView.value) return;
-
-                if (targetView === 'month') {
-                    viewTransitionName.value = 'zoom-out';
-                    currentView.value = targetView;
-
-                    // 🟢 [新增] 如果是切到滚动模式，自动定位到当前月份
-                    if (monthViewMode.value === 'scrolled') {
-                        scrollToMonthDate(viewDate.value);
-                    }
-                } else {
-                    viewTransitionName.value = 'zoom-in';
-                    currentView.value = targetView;
-                    // 切回周视图时可能也需要类似的定位逻辑，这里暂略
-                }
-                window.triggerTouchHaptic('Light');
-            };
-
-            const resetAutoHide = () => {
-                // 强制显示
-                showMobileSlider.value = true;
-
-                // 清除之前的定时器
-                if (idleTimer) clearTimeout(idleTimer);
-
-                // 虽然是"保持显示"，但我们还是重置一个定时器，
-                // 确保如果用户手指停在滑块上不动，它依然保持显示状态
-                idleTimer = setTimeout(() => {
-                    showMobileSlider.value = true;
-                }, 1000);
-            };
-
-            // --- 🟢 新增: 电脑端鼠标滑动翻页 (模拟触摸体验) ---
-            const isMouseViewDrag = ref(false);
-            const mouseStartX = ref(0);
-            const mouseStartY = ref(0);
-
-            const onMainMouseDown = (e) => {
-                // 1. 如果是手机端，直接忽略 (交给 Touch 事件处理)
-                if (isMobile.value) return;
-
-                // 2. 只响应鼠标左键
-                if (e.button !== 0) return;
-
-                // 3. 智能避让: 如果点到了任务块、调整手柄或滚动条，不触发翻页
-                if (e.target.closest('.task-block') || e.target.closest('.resize-handle')) return;
-
-                isMouseViewDrag.value = true;
-                mouseStartX.value = e.clientX;
-                mouseStartY.value = e.clientY;
-            };
-
-            const onMainMouseUp = (e) => {
-                if (!isMouseViewDrag.value) return;
-                isMouseViewDrag.value = false;
-
-                const diffX = e.clientX - mouseStartX.value;
-                const diffY = e.clientY - mouseStartY.value;
-
-                // 4. 判定阈值 (逻辑同手机端: 水平距离 > 垂直距离的1.5倍 且 距离 > 50px)
-                if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 50) {
-                    const dir = diffX < 0 ? 1 : -1; // 左滑=下翻(1), 右滑=上翻(-1)
-                    changeDate(dir);
-                }
-            };
-
-            // --- 🟢 新增: 触控板左右滑动切换 (防抖动处理) ---
-            let isWheelLocked = false; // 锁定状态，防止连续触发
-
-            const onMainWheel = (e) => {
-                // 1. 如果正在动画锁定中，或者按住了 Ctrl/Cmd (可能是缩放)，则忽略
-                if (isWheelLocked || e.ctrlKey || e.metaKey) return;
-
-                // 2. 判断是否为水平滑动 (X轴移动量 > Y轴移动量)
-                // 且移动力度足够大 (阈值设为 30，避免轻微误触)
-                if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 30) {
-
-                    // 3. 阻止浏览器默认的“前进/后退”手势
-                    e.preventDefault();
-
-                    // 4. 判断方向
-                    // deltaX > 0 通常代表向右滚动(看右边的内容) -> 下一周
-                    // deltaX < 0 通常代表向左滚动(看左边的内容) -> 上一周
-                    const dir = e.deltaX > 0 ? 1 : -1;
-
-                    // 5. 执行切换
-                    changeDate(dir);
-
-                    // 6. 上锁 (800ms 内不接受新的切换，等待动画完成)
-                    isWheelLocked = true;
-                    setTimeout(() => {
-                        isWheelLocked = false;
-                    }, 800);
-                }
-            };
-
-            // 触摸开始 (记录起点)
-            const onMainTouchStart = (e) => {
-                // 如果正在拖拽任务，不触发滑屏切换
-                if (dragElClone || isResizingMobile.value) return;
-
-                touchStartX.value = e.touches[0].clientX;
-                touchStartY.value = e.touches[0].clientY;
-            };
-
-            // 🟢 修复: 触摸结束 (判定更宽松，X > Y * 1.5 即可)
-            const onMainTouchEnd = (e) => {
-                // 如果正在拖拽任务或调整大小，不触发视图切换
-                if (dragElClone || isResizingMobile.value) return;
-
-                const endX = e.changedTouches[0].clientX;
-                const endY = e.changedTouches[0].clientY;
-
-                const diffX = endX - touchStartX.value;
-                const diffY = endY - touchStartY.value;
-
-                // 优化: 水平距离 > 垂直距离的 1.5 倍 (比之前的 2 倍更灵敏) 且距离 > 50px
-                if (Math.abs(diffX) > Math.abs(diffY) * 1.5 && Math.abs(diffX) > 50) {
-
-                    let dir = 0;
-                    if (diffX < 0) dir = 1;  // 左划 -> 下一周
-                    if (diffX > 0) dir = -1; // 右划 -> 上一周
-
-                    if (dir !== 0) {
-                        // A. 周视图 (仅窄屏模式下允许)
-                        if (currentView.value === 'week') {
-                            if (dayColWidth.value < 60) {
-                                changeDate(dir);
-                            }
-                        }
-                        // B. 月视图 (始终允许)
-                        else if (currentView.value === 'month') {
-                            changeDate(dir);
-                        }
-                    }
-                }
-
-                // 归零
-                touchStartX.value = 0;
-                touchStartY.value = 0;
-            };
-
-            const currentScrollSpeed = {x: 0, y: 0};
-
-            // 🟢 [修改] 图标逻辑：根据视图类型显示不同图标
-            const widthIcon = computed(() => {
-                // 1. 月视图：显示 翻页 vs 滚动 图标
-                if (currentView.value === 'month') {
-                    // 如果当前是分页，显示"切换到流式"图标；反之亦然
-                    return monthViewMode.value === 'paged' ? 'fa-scroll' : 'fa-table-cells';
-                }
-
-                // 2. 周视图：保持原有宽窄切换图标
-                if (dayColWidth.value >= 100) return 'fa-compress';
-                return 'fa-expand';
-            });
-
-// 🟢 [修改] 按钮点击逻辑
-            const cycleDayWidth = () => {
-                // 在 cycleDayWidth 函数内
-                if (currentView.value === 'month') {
-                    monthViewMode.value = monthViewMode.value === 'paged' ? 'scrolled' : 'paged';
-                    window.triggerTouchHaptic('Medium');
-
-                    // 🟢 [修改] 切换到滚动模式时，定位到当前月，而不是单纯回到顶部
-                    if (monthViewMode.value === 'scrolled') {
-                        scrollToMonthDate(viewDate.value);
-                    } else {
-                        // 切回分页模式，回到顶部
-                        const main = document.getElementById('main-content');
-                        if (main) main.scrollTop = 0;
-                    }
-                    return;
-                }
-
-                // 2. 周视图逻辑 (保持不变)
-                if (dayColWidth.value >= 100) {
-                    dayColWidth.value = window.innerWidth < 400 ? 45 : 52;
-                } else {
-                    dayColWidth.value = 100;
-                }
-                storageService.setItem('musche_day_width', dayColWidth.value);
-                window.triggerTouchHaptic('Medium');
-            };
+            let checkCanSplit;
+            let openSplitSlider;
+            let onSplitSliderInput;
+            let confirmSplitSlider;
+            let restoreSplitTime;
 
             // 🟢 修复: 终极修正版清理函数
             // 修复了 S_DEFAULT 含下划线导致的分组解析错误，防止误删所有日程
@@ -1763,1541 +203,123 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 新增: 强力扫描并清理当前弹窗内的空日程块
             const pruneEmptySchedules = () => scheduleFeature.pruneEmptySchedules();
 
-            const autoResizeScheduleByRecords = (isSilent = false, shouldPushHistory = true) =>
-                trackListFeature.autoResizeScheduleByRecords(isSilent, shouldPushHistory);
-
-
-            // 🟢 修复版: 智能跳转 (适配长动画)
-            const smartScrollToTask = (targetTask) => {
-                if (!targetTask) return;
-
-                // 1. 强制切换到日程表 (手机端)
-                if (isMobile.value) {
-                    mobileTab.value = 'schedule';
-                }
-
-                // 2. 准备目标日期
-                const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
-
-                // 判断动画方向
-                if (targetDateObj.getTime() > viewDate.value.getTime()) {
-                    dateTransitionName.value = 'slide-next';
-                } else if (targetDateObj.getTime() < viewDate.value.getTime()) {
-                    dateTransitionName.value = 'slide-prev';
-                }
-
-                // 3. 切换视图 & 设置日期
-                currentView.value = 'week';
-                viewDate.value = targetDateObj;
-
-                // 4. 触发高亮
-                flashingTaskId.value = targetTask.scheduleId;
-                setTimeout(() => {
-                    if (flashingTaskId.value === targetTask.scheduleId) flashingTaskId.value = null;
-                }, 2500);
-
-                // 🟢 5. 核心优化: 延迟执行滚动
-                // CSS 动画时长是 400ms，这里设置 450ms 确保 DOM 稳定后再滚动
-                setTimeout(() => {
-                    const container = weekContainer.value;
-                    if (container) {
-                        const pxPerMinVal = pxPerMin.value; // 获取当前缩放比例
-
-                        // --- A. 垂直定位 ---
-                        const startMins = timeToMinutes(targetTask.startTime);
-                        const offsetMins = startMins - settings.startHour * 60;
-                        // 稍微向上偏一点 (-50px)，让任务不要贴着屏幕顶边，视觉更舒适
-                        const targetTopPixel = (offsetMins * pxPerMinVal);
-                        const scrollTop = Math.max(0, targetTopPixel - 50);
-
-                        // --- B. 水平定位 ---
-                        const dayIndex = targetDateObj.getDay();
-                        const timeColW = isMobile.value ? 40 : 70;
-                        // 动态计算列宽
-                        const totalW = container.scrollWidth - timeColW;
-                        const singleDayW = totalW / 7;
-
-                        const targetCenterX = timeColW + (dayIndex * singleDayW) + (singleDayW / 2);
-                        const scrollLeft = Math.max(0, targetCenterX - (container.clientWidth / 2));
-
-                        // 执行平滑滚动
-                        container.scrollTo({
-                            top: scrollTop,
-                            left: scrollLeft,
-                            behavior: 'smooth'
-                        });
-
-                        // 🟢 双重保险:
-                        // 有时 smooth 滚动会被并未完全结束的渲染打断
-                        // 100ms 后检查位置，微调一次 (这次用 auto 瞬间对齐，防止用户没感觉)
-                        setTimeout(() => {
-                            if (Math.abs(container.scrollTop - scrollTop) > 10) {
-                                container.scrollTo({top: scrollTop, left: scrollLeft, behavior: 'auto'});
-                            }
-                        }, 600);
-                    }
-                }, 1000); // ⏳ 延迟增加到 450ms
-            };
-
-            // 1. 鼠标按下 (开始拖拽)
-            const onDragStart = (e, type) => {
-                // 仅响应鼠标左键 (e.button === 0)
-                if (e.button !== 0) return;
-
-                e.preventDefault();
-                isDraggingMouse = true;
-                startMouseY = e.clientY;
-
-                // 确定当前操作的滚轮引用
-                activeColRef = type === 'm' ? pickerMinRef.value : pickerSecRef.value;
-                startScrollTop = activeColRef.scrollTop;
-
-                // 在全局添加监听，防止鼠标移出滚轮区域后拖拽中断
-                window.addEventListener('mousemove', onDragMove);
-                window.addEventListener('mouseup', onDragEnd);
-            };
-
-            // 2. 鼠标移动 (手动滚动)
-            const onDragMove = (e) => {
-                if (!isDraggingMouse) return;
-                e.preventDefault();
-
-                const deltaY = e.clientY - startMouseY;
-                // 鼠标向下移动，滚轮应该向上滚动（scrollTop 增大），所以是减法
-                activeColRef.scrollTop = startScrollTop - deltaY;
-
-                // NOTE: @scroll 事件会负责更新 tempDuration
-            };
-
-            // 3. 鼠标抬起 (结束拖拽)
-            const onDragEnd = () => {
-                if (!isDraggingMouse) return;
-
-                isDraggingMouse = false;
-                // 清理全局监听器
-                window.removeEventListener('mousemove', onDragMove);
-                window.removeEventListener('mouseup', onDragEnd);
-
-                // 触发一次 @scroll 事件，确保最后的值被吸附到位
-                activeColRef.dispatchEvent(new Event('scroll'));
-            };
-
-
-            // 1. 打开选择器
-            // 调用方式: openDurationPicker(item, 'musicDuration')
-            const openDurationPicker = (event, targetObj, key) => {
-                // --- A. 计算坐标 ---
-                const targetEl = event.target; // 获取被点击的输入框
-                const rect = targetEl.getBoundingClientRect();
-
-                // 气泡宽高 (与 CSS 对应)
-                const boxWidth = 280;
-                const boxHeight = 320;
-
-                // 计算 Left: 居中对齐输入框，但防止超出屏幕左右边界
-                let left = rect.left + (rect.width / 2) - (boxWidth / 2);
-                // 边界保护 (左边不小于 10px，右边不超屏幕)
-                left = Math.max(10, Math.min(window.innerWidth - boxWidth - 10, left));
-
-                // 计算 Top: 默认显示在输入框上方 (减去气泡高度和一点间距)
-                let top = rect.top - boxHeight - 15;
-
-                // 如果上方空间不够 (比如输入框在屏幕最顶端)，则显示在下方
-                if (top < 10) {
-                    top = rect.bottom + 15;
-                    // 注意：如果显示在下方，理论上 CSS 的小三角应该转方向，这里为简化暂不处理
-                    // 或者你可以给 box 加个 class 来翻转 ::after
-                }
-
-                pickerPos.top = top;
-                pickerPos.left = left;
-
-                // --- B. 初始化数据 ---
-                const currentVal = targetObj[key] || '';
-                let m = 0, s = 0;
-                if (currentVal.includes(':')) {
-                    const parts = currentVal.split(':');
-                    m = parseInt(parts[0]) || 0;
-                    s = parseInt(parts[1]) || 0;
-                }
-                tempDuration.m = m;
-                tempDuration.s = s;
-                showDurationPicker.value = true;
-
-                // --- C. 设置回调 ---
-                pickerCallback = (isReset = false) => {
-                    const finalStr = isReset ? '' : `${String(tempDuration.m).padStart(2, '0')}:${String(tempDuration.s).padStart(2, '0')}`;
-                    targetObj[key] = finalStr;
-
-                    if (targetObj.ratio && targetObj.estDuration !== undefined) {
-                        if (typeof calculateEstTime === 'function') {
-                            targetObj.estDuration = calculateEstTime(finalStr, targetObj.ratio);
-                        }
-                    }
-                    pushHistory(); // 保存历史
-                };
-
-                // --- D. 滚动到位 ---
-                nextTick(() => {
-                    scrollToValue(pickerMinRef.value, m);
-                    scrollToValue(pickerSecRef.value, s);
-                });
-            };
-
-            const closePicker = () => {
-                showDurationPicker.value = false;
-            };
-
-            const scrollToValue = (el, val) => {
-                if (el) el.scrollTop = val * 44; // 注意: CSS里改成了 44px 高
-            };
-
-            let scrollTimeout = null;
-            const onScroll = (e, type) => {
-                clearTimeout(scrollTimeout);
-                const el = e.target;
-
-                // 1. 计算当前滚到了第几格 (44px 是 CSS 中定义的格高)
-                // Math.round 确保过半就吸附到下一个数字
-                const newIndex = Math.round(el.scrollTop / 44);
-
-                // 2. 获取旧的索引 (上一次的状态)
-                const oldIndex = (type === 'm' ? tempDuration.m : tempDuration.s);
-
-                // 🟢 关键修改: 只有当数字发生变化时 (跳格)，才触发逻辑
-                if (newIndex !== oldIndex) {
-
-                    // A. 更新数据
-                    if (type === 'm') tempDuration.m = newIndex;
-                    if (type === 's') tempDuration.s = newIndex;
-
-                    // B. 触发震动 📳
-                    // 使用 'Light' 档位，这种轻微的敲击感最适合模拟滚轮的齿感
-                    window.triggerTouchHaptic('Light');
-                }
-                // 仅用于滚动结束后的吸附修正 (可选)
-
-                scrollTimeout = setTimeout(() => {
-                    // 此处可以加逻辑
-                }, 100);
-
-            };
-
-            const startDividerDrag = (...args) => trackListFeature.startDividerDrag(...args);
-            const onDividerDragMove = (...args) => trackListFeature.onDividerDragMove(...args);
-            const onDividerDragEnd = (...args) => trackListFeature.onDividerDragEnd(...args);
-
-            // 🟢 新增: 同步状态
-            const isSyncing = ref(false);
+            const smartScrollToTask = (...args) => viewNavigationFeature.smartScrollToTask(...args);
 
 // 🟢 新增: 手动同步函数
-            const handleManualSync = async () => authFeature.handleManualSync();
-
-            const handleTrackListAutoScroll = (...args) => trackListFeature.handleTrackListAutoScroll(...args);
-            const stopTrackListAutoScroll = (...args) => trackListFeature.stopTrackListAutoScroll(...args);
-
-            const confirmDurationPicker = () => {
-                if (pickerCallback) pickerCallback(false);
-                showDurationPicker.value = false;
-            };
-
-            // 🟢 新增: 重置功能
-            const resetDuration = () => {
-                if (pickerCallback) pickerCallback(true); // 传 true 清空
-                showDurationPicker.value = false;
-            };
-
-            // 1. 触摸开始 (修改为记录像素偏移)
-            const handleTouchStart = (e, task, dateStr) => {
-                if (!isMobile.value) return;
-
-                dragSourceType = 'schedule';
-
-                const touch = e.touches[0];
-                const targetEl = e.currentTarget;
-
-                startX = touch.clientX;
-                startY = touch.clientY;
-                dragSourceTask = task;
-                dragStartDate = dateStr;
-
-                const rect = targetEl.getBoundingClientRect();
-                cloneOffsetX = touch.clientX - rect.left;
-                cloneOffsetY = touch.clientY - rect.top;
-                dragClickOffsetY = touch.clientY - rect.top;
-
-                longPressTimeout = setTimeout(() => {
-                    // 🟢 修改: 只有非幽灵任务才允许拖拽
-                    // 幽灵任务虽然不能拖拽，但前面的代码已经记录了 dragSourceTask
-                    // 所以 touchend 里的双击检测依然有效
-                    if (!isTaskGhost(task)) {
-                        startMobileDrag(targetEl, touch);
-                    }
-                }, 300);
-            };
-
-            // 🟢 修复: 触摸开始 (防误触 + 智能状态判断)
-            const handlePoolTouchStart = (e, item, type = 'pool') => {
-                if (!isMobile.value) return;
-
-                // 🛑 1. 彻底禁止小卡片拖动 (防止列表滑动误触)
-                if (type === 'pool') return;
-
-                // 🛑 2. 大卡片 (aggregate) 状态检查
-                if (type === 'aggregate') {
-                    // 如果已完成或已排满 -> 禁止拖动，只给拒绝反馈
-                    if (item.statusKey === 'completed' || item.statusKey === 'full' || item.statusKey === 'in-progress') {
-                        // 📳 震动两下，提示用户“此人已搞定，无需安排”
-                        //window.triggerTouchHaptic('Medium');
-                        //setTimeout(() => window.triggerTouchHaptic('Medium'), 150);
-                        return;
-                    }
-                }
-
-                // --- 以下是允许拖动的情况 (大卡片 && 时间不足/未排期) ---
-                dragSourceType = type;
-
-                const touch = e.touches[0];
-                const targetEl = e.currentTarget;
-
-                startX = touch.clientX;
-                startY = touch.clientY;
-                dragSourceTask = item;
-
-                const rect = targetEl.getBoundingClientRect();
-                cloneOffsetX = touch.clientX - rect.left;
-                cloneOffsetY = touch.clientY - rect.top;
-                dragClickOffsetY = touch.clientY - rect.top;
-
-                // 启动长按计时器
-                longPressTimeout = setTimeout(() => {
-                    startMobileDrag(targetEl, touch);
-
-                    mobileTab.value = 'schedule'; // 跳转到日程表
-                    window.triggerTouchHaptic('Heavy'); // 成功触发震动
-                }, 300);
-            };
-
-            // 🟢 修改: handleTouchMove (增加周视图边缘翻页功能)
-            const handleTouchMove = (e) => {
-                const touch = e.touches[0];
-
-                // A. 如果还在长按检测阶段
-                if (longPressTimeout && !dragElClone) {
-                    const deltaX = Math.abs(touch.clientX - startX);
-                    const deltaY = Math.abs(touch.clientY - startY);
-
-                    // 如果手指移动超过 10px，视为用户想滚动屏幕，取消长按
-                    if (deltaX > 10 || deltaY > 10) {
-                        clearTimeout(longPressTimeout);
-                        longPressTimeout = null;
-                    }
-                    return;
-                }
-
-                // B. 如果已经开始拖拽
-                if (dragElClone) {
-                    // 禁用屏幕滚动
-                    if (e.cancelable) e.preventDefault();
-
-                    // 1. 移动克隆体
-                    const x = touch.clientX - cloneOffsetX;
-                    const y = touch.clientY - cloneOffsetY;
-                    dragElClone.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-
-                    // 2. 视图自动滚动与翻页检测
-                    const scrollContainer = weekContainer.value;
-
-                    // --- 周视图逻辑 ---
-                    if (currentView.value === 'week' && scrollContainer) {
-                        // [Part A] 现有的全向自动滚动 (保持不变)
-                        let vx = 0, vy = 0;
-                        if (isMobile.value) {
-                            const topZone = 500;
-                            const bottomZone = window.innerHeight - 150;
-                            const leftZone = 60;
-                            const rightZone = window.innerWidth - 60;
-                            const ramp = 80;
-
-                            if (touch.clientY < topZone) vy = -Math.min(1, (topZone - touch.clientY) / ramp);
-                            else if (touch.clientY > bottomZone) vy = Math.min(1, (touch.clientY - bottomZone) / ramp);
-
-                            if (touch.clientX < leftZone) vx = -Math.min(1, (leftZone - touch.clientX) / ramp);
-                            else if (touch.clientX > rightZone) vx = Math.min(1, (touch.clientX - rightZone) / ramp);
-                        }
-
-                        if (Math.abs(vx) > 0.05 || Math.abs(vy) > 0.05) {
-                            if (!autoScrollInterval) startAutoScroll(vx, vy, scrollContainer, scrollContainer);
-                            else updateAutoScrollDirection(vx, vy);
-                        } else {
-                            stopAutoScroll();
-                        }
-
-                        // [Part B] 新增: 周视图边缘翻页 (仿月视图逻辑)
-                        const edgeThreshold = 50; // 边缘触发区域大小
-                        let switchDir = 0;
-
-                        // 检测左右边缘
-                        if (touch.clientX < edgeThreshold) {
-                            switchDir = -1; // 上一周
-                        } else if (touch.clientX > window.innerWidth - edgeThreshold) {
-                            switchDir = 1;  // 下一周
-                        }
-
-                        if (switchDir !== 0) {
-                            // 如果手指在边缘，且没有正在等待的翻页定时器
-                            if (!monthSwitchTimer) {
-                                monthSwitchTimer = setTimeout(() => {
-                                    changeDate(switchDir); // 执行翻页 (changeDate 会自动处理 +7/-7 天)
-                                    window.triggerTouchHaptic('Medium'); // 震动反馈
-
-                                    // 翻页后重置定时器，允许连续翻页
-                                    monthSwitchTimer = null;
-                                }, 800); // 停留 800ms 后触发
-                            }
-                        } else {
-                            // 离开边缘，取消定时器
-                            if (monthSwitchTimer) {
-                                clearTimeout(monthSwitchTimer);
-                                monthSwitchTimer = null;
-                            }
-                        }
-                    }
-
-                    // --- 月视图逻辑 (保持不变) ---
-                    else if (currentView.value === 'month' && isMobile.value) {
-                        const edgeThreshold = 50;
-                        let switchDir = 0;
-                        if (touch.clientX < edgeThreshold) switchDir = -1;
-                        else if (touch.clientX > window.innerWidth - edgeThreshold) switchDir = 1;
-
-                        if (switchDir !== 0) {
-                            if (!monthSwitchTimer) {
-                                monthSwitchTimer = setTimeout(() => {
-                                    changeDate(switchDir);
-                                    window.triggerTouchHaptic('Medium');
-                                    monthSwitchTimer = null;
-                                }, 800);
-                            }
-                        } else {
-                            if (monthSwitchTimer) {
-                                clearTimeout(monthSwitchTimer);
-                                monthSwitchTimer = null;
-                            }
-                        }
-                    }
-
-                    // 3. 高亮显示下方的格子
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    if (activeDropSlot) activeDropSlot.classList.remove('drag-over');
-                    activeDropSlot = null;
-
-                    if (target) {
-                        const slot = target.closest('.grid-slot, .droppable-slot');
-                        if (slot) {
-                            activeDropSlot = slot;
-                            activeDropSlot.classList.add('drag-over');
-                        }
-                    }
-                }
-            };
-
-            // 🟢 修改: handleTouchEnd
-            const handleTouchEnd = (e) => {
-                if (longPressTimeout) {
-                    clearTimeout(longPressTimeout);
-                    longPressTimeout = null;
-
-                    // --- 双击检测逻辑 START ---
-                    if (!dragElClone && dragSourceType === 'schedule' && dragSourceTask) {
-                        const now = Date.now();
-
-                        // 如果点击的是同一个任务，且间隔小于 300ms (判定为双击)
-                        if (lastTapState.id === dragSourceTask.scheduleId && (now - lastTapState.time) < 300) {
-
-                            // 🟢 核心修复: 阻止浏览器继续触发原生的 click/dblclick
-                            // 否则原生 dblclick 会在 Session 切换完成后再次触发，导致误判为非幽灵任务从而打开弹窗
-                            if (e.cancelable) e.preventDefault();
-
-                            // 🟢 修复: 手机端双击幽灵任务时，强制执行跳转逻辑，不打开详情页
-                            if (isTaskGhost(dragSourceTask)) {
-                                jumpToGhostContext(dragSourceTask);
-                            } else {
-                                handleTaskDblClick(e, dragSourceTask);
-                            }
-
-                            lastTapState.id = null;
-                            lastTapState.time = 0;
-                        } else {
-                            // 第一次点击 (判定为单击)
-                            lastTapState.id = dragSourceTask.scheduleId;
-                            lastTapState.time = now;
-
-                            // 🟢 核心修复: 在这里手动触发选中！
-                            selectTask(dragSourceTask.scheduleId, 'schedule');
-                        }
-                    }
-                    // --- 🟢 新增: 双击检测逻辑 END ---
-                }
-
-                stopAutoScroll();
-
-                if (monthSwitchTimer) {
-                    clearTimeout(monthSwitchTimer);
-                    monthSwitchTimer = null;
-                }
-
-                if (dragElClone) {
-                    document.body.removeChild(dragElClone);
-                    dragElClone = null;
-                    if (activeDropSlot) activeDropSlot.classList.remove('drag-over');
-
-                    const touch = e.changedTouches[0];
-                    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
-
-                    const dropColumn = targetEl ? targetEl.closest('[data-date-str]') : null;
-                    const dropMonthCell = targetEl ? targetEl.closest('[data-date]') : null;
-
-                    // --- 情况 A: 放置在周视图 ---
-                    if (dropColumn) {
-                        const dateStr = dropColumn.dataset.dateStr;
-                        const timeGridContainer = dropColumn.querySelector('.relative[style*="min-height"]');
-
-                        if (timeGridContainer && dragSourceTask) {
-                            // 1. 计算目标时间
-                            const gridRect = timeGridContainer.getBoundingClientRect();
-                            const touchYInContainer = touch.clientY - gridRect.top;
-                            const taskTopPixel = touchYInContainer - dragClickOffsetY;
-                            const minsFromStart = taskTopPixel / pxPerMin.value;
-                            let totalMins = (settings.startHour * 60) + minsFromStart;
-                            const snappedMins = Math.round(totalMins / 30) * 30;
-                            const minMins = settings.startHour * 60;
-                            const maxMins = settings.endHour * 60 - 30;
-                            const finalMins = Math.max(minMins, Math.min(maxMins, snappedMins));
-                            const h = Math.floor(finalMins / 60);
-                            const m = finalMins % 60;
-                            const newTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-                            // 2. 准备检测参数
-                            let checkType = 'musician';
-                            let checkDuration = '';
-                            let excludeId = null;
-
-                            // 判断类型和时长
-                            if (dragSourceType === 'aggregate') {
-                                checkType = sidebarTab.value;
-                                const item = dragSourceTask;
-                                const remainingSecs = item.totalSeconds - item.scheduledSeconds;
-                                if (remainingSecs <= 0) return; // 没时间了，直接退出
-                                let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
-                                if (remainingMins === 0) remainingMins = 30;
-                                checkDuration = formatSecs(remainingMins * 60);
-                            } else if (dragSourceType === 'pool') {
-                                const item = dragSourceTask;
-                                if (item.projectId) checkType = 'project';
-                                else if (item.instrumentId) checkType = 'instrument';
-                                else checkType = 'musician';
-                                checkDuration = item.estDuration;
-                            } else {
-                                // schedule
-                                const item = dragSourceTask;
-                                if (item.projectId) checkType = 'project';
-                                else if (item.instrumentId) checkType = 'instrument';
-                                else checkType = 'musician';
-                                checkDuration = item.estDuration;
-                                excludeId = item.scheduleId; // 排除自己，移动时不算冲突
-                            }
-
-                            // 3. 执行冲突检测
-                            if (checkOverlap(dateStr, newTime, checkDuration, excludeId, checkType)) {
-                                openAlertModal('时间冲突', '该时间段已有重叠的安排。');
-                                window.triggerTouchHaptic('Error');
-                                if (dragSourceEl) dragSourceEl.style.opacity = '';
-                                dragSourceEl = null;
-                                activeDropSlot = null;
-                                return; // ⛔️ 发生冲突，终止操作
-                            }
-
-                            // 4. 通过检测，执行放置
-                            if (dragSourceType === 'aggregate') {
-                                const item = dragSourceTask;
-                                // 时长逻辑上面已经算过一次，这里复用
-                                const remainingSecs = item.totalSeconds - item.scheduledSeconds;
-                                let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
-                                if (remainingMins === 0) remainingMins = 30;
-
-                                const nt = {
-                                    scheduleId: Date.now(),
-                                    sessionId: currentSessionId.value,
-                                    musicianId: sidebarTab.value === 'musician' ? item.id : '',
-                                    projectId: sidebarTab.value === 'project' ? item.id : '',
-                                    instrumentId: sidebarTab.value === 'instrument' ? item.id : '',
-                                    date: dateStr,
-                                    startTime: newTime,
-                                    estDuration: formatSecs(remainingMins * 60),
-                                    trackCount: item.trackCount,
-                                    ratio: item.defaultRatio || 20,
-                                    reminderMinutes: 15,
-                                    sound: 'default'
-                                };
-                                scheduledTasks.value.push(nt);
-                                window.triggerTouchHaptic('Success');
-                                pushHistory();
-                            } else if (dragSourceType === 'pool') {
-                                const newTask = {
-                                    scheduleId: Date.now(),
-                                    sessionId: currentSessionId.value,
-                                    projectId: dragSourceTask.projectId,
-                                    instrumentId: dragSourceTask.instrumentId,
-                                    musicianId: dragSourceTask.musicianId,
-                                    musicDuration: dragSourceTask.musicDuration,
-                                    ratio: dragSourceTask.ratio,
-                                    estDuration: dragSourceTask.estDuration,
-                                    date: dateStr,
-                                    startTime: newTime,
-                                    reminderMinutes: 15,
-                                    sound: 'default'
-                                };
-                                scheduledTasks.value.push(newTask);
-                                window.triggerTouchHaptic('Success');
-                                pushHistory();
-                            } else {
-                                // 日程内部移动
-                                if (dragSourceTask.startTime !== newTime || dragSourceTask.date !== dateStr) {
-                                    dragSourceTask.startTime = newTime;
-                                    dragSourceTask.date = dateStr;
-                                    window.triggerTouchHaptic('Success');
-                                    pushHistory();
-                                }
-                            }
-                        }
-                    }
-                    // --- 情况 B: 放置在月视图 ---
-                    else if (dropMonthCell && dragSourceTask) {
-                        const dateStr = dropMonthCell.dataset.date;
-
-                        if (dragSourceType === 'schedule') {
-                            if (dragSourceTask.date !== dateStr) {
-                                dragSourceTask.date = dateStr;
-                                window.triggerTouchHaptic('Success');
-                                pushHistory();
-                            }
-                        } else if (dragSourceType === 'aggregate' || dragSourceType === 'pool') {
-                            const item = dragSourceTask;
-                            let mId = '', pId = '', iId = '';
-                            let ratio = 20;
-                            let estDur = '00:30';
-                            let tCount = 0;
-                            let musDur = '';
-                            let checkType = 'musician';
-
-                            if (dragSourceType === 'pool') {
-                                mId = item.musicianId;
-                                pId = item.projectId;
-                                iId = item.instrumentId;
-                                ratio = item.ratio;
-                                estDur = item.estDuration;
-                                musDur = item.musicDuration;
-                                if (pId) checkType = 'project'; else if (iId) checkType = 'instrument';
-                            } else {
-                                if (sidebarTab.value === 'musician') mId = item.id;
-                                else if (sidebarTab.value === 'project') {
-                                    pId = item.id;
-                                    checkType = 'project';
-                                } else if (sidebarTab.value === 'instrument') {
-                                    iId = item.id;
-                                    checkType = 'instrument';
-                                }
-                                ratio = item.defaultRatio || 20;
-                                estDur = item.estDuration || '00:30';
-                                tCount = item.trackCount || 0;
-                            }
-
-                            // 默认插在开头，检测冲突
-                            const defaultStart = settings.startHour + ':00';
-                            if (checkOverlap(dateStr, defaultStart, estDur, null, checkType)) {
-                                openAlertModal('冲突', '该日期已有安排，请切换到周视图查看详情。');
-                                window.triggerTouchHaptic('Error');
-                            } else {
-                                const nt = {
-                                    scheduleId: Date.now(),
-                                    sessionId: currentSessionId.value,
-                                    musicianId: mId, projectId: pId, instrumentId: iId,
-                                    date: dateStr, startTime: defaultStart,
-                                    estDuration: estDur, trackCount: tCount, ratio: ratio, musicDuration: musDur
-                                };
-                                scheduledTasks.value.push(nt);
-                                window.triggerTouchHaptic('Success');
-                                pushHistory();
-                            }
-                        }
-                    }
-                }
-
-                if (dragSourceEl) {
-                    dragSourceEl.style.opacity = '';
-                    dragSourceEl = null;
-                }
-                activeDropSlot = null;
-            };
-
-            // 1. 启动滚动
-            const startAutoScroll = (vx, vy, xContainer, yContainer) => {
-                if (autoScrollInterval) return;
-
-                currentScrollSpeed.x = vx;
-                currentScrollSpeed.y = vy;
-
-                // 🟢 最大极速 (像素/帧)
-                // 因为 vx/vy 现在是 0~1 的小数，这里设大一点，比如 20
-                const maxSpeed = 25;
-
-                autoScrollInterval = setInterval(() => {
-                    isScrollingProgrammatically = true;
-
-                    // --- 垂直滚动 (Y) ---
-                    // 速度 = 向量值 * 最大极速
-                    if (Math.abs(currentScrollSpeed.y) > 0 && yContainer) {
-                        yContainer.scrollTop += currentScrollSpeed.y * maxSpeed;
-                    }
-
-                    // --- 水平滚动 (X) ---
-                    if (Math.abs(currentScrollSpeed.x) > 0 && xContainer) {
-                        xContainer.scrollLeft += currentScrollSpeed.x * maxSpeed;
-                    }
-
-                    setTimeout(() => {
-                        isScrollingProgrammatically = false;
-                    }, 50);
-
-                }, 16); // 约 60fps
-            };
-
-            const updateAutoScrollDirection = (vx, vy) => {
-                currentScrollSpeed.x = vx;
-                currentScrollSpeed.y = vy;
-            };
-
-            // stopAutoScroll 保持不变
-            const stopAutoScroll = () => {
-                if (autoScrollInterval) {
-                    clearInterval(autoScrollInterval);
-                    autoScrollInterval = null;
-                    currentScrollSpeed.x = 0;
-                    currentScrollSpeed.y = 0;
-                    isScrollingProgrammatically = false;
-                }
-            };
-
-            // 1. 初始化拖动
-            const initMobileResize = (e, task) => {
-                if (!isMobile.value) return;
-
-                // 阻止冒泡
-                e.stopPropagation();
-                // 震动反馈
-                window.triggerTouchHaptic('Heavy');
-
-                const touch = e.touches[0];
-                const taskEl = e.target.closest('.task-block');
-                const rect = taskEl.getBoundingClientRect();
-
-                // 初始化状态
-                isResizingMobile.value = true;
-                mobileResizeState.task = task;
-                mobileResizeState.taskEl = taskEl;
-                mobileResizeState.startY = touch.clientY;
-                mobileResizeState.startHeight = rect.height; // 记录初始高度
-                mobileResizeState.originalDuration = task.estDuration; // 记录原始时长
-
-                // 绑定事件
-                // 🟢 关键修改：不需要 capture，因为 touchmove 没有被阻止
-                window.addEventListener('touchmove', handleMobileResizeMove, { passive: false });
-
-                // 🟢 核心修复：添加 true (使用捕获模式)
-                // 这样即使底下的元素有 @touchend.stop，window 也能先收到通知！
-                window.addEventListener('touchend', handleMobileResizeEnd, true);
-                window.addEventListener('touchcancel', handleMobileResizeEnd, true);
-            };
-
-            // 🟢 修改: 手机端拖动过程 (吸附到 Grid 绝对时间刻度)
-            const handleMobileResizeMove = (e) => {
-                if (!isResizingMobile.value) return;
-
-                if (e.cancelable) e.preventDefault();
-
-                const touch = e.touches[0];
-                const deltaY = touch.clientY - mobileResizeState.startY;
-
-                // 1. 计算目标高度
-                const targetHeight = Math.max(5, mobileResizeState.startHeight + deltaY);
-
-                // 2. 转换为分钟
-                const rawDurationMins = targetHeight / pxPerMin.value;
-
-                // 3. 计算绝对时间并吸附
-                const startMins = timeToMinutes(mobileResizeState.task.startTime);
-                const rawEndMins = startMins + rawDurationMins;
-
-                // 吸附到 30 分钟网格
-                const snappedEndMins = Math.round(rawEndMins / 30) * 30;
-
-                // 4. 计算新时长
-                let newDurationMins = snappedEndMins - startMins;
-                if (newDurationMins < 5) newDurationMins = 5;
-
-                const newDurationStr = formatSecs(newDurationMins * 60);
-
-                if (mobileResizeState.task.estDuration !== newDurationStr) {
-                    mobileResizeState.task.estDuration = newDurationStr;
-                    window.triggerTouchHaptic('Light'); // 只有数值变化时才震动
-                }
-            };
-
-            // 3. 拖动结束 (核心修正)
-            const handleMobileResizeEnd = (e) => {
-                // 强制立即重置状态 (必须是第一步，以最高优先级清除标志位)
-                const wasResizing = isResizingMobile.value;
-                isResizingMobile.value = false;
-
-                // 强制无条件移除监听器 (必须是第二步)
-                window.removeEventListener('touchmove', handleMobileResizeMove);
-
-                // 🟢 核心修复：移除时也要带上 true (捕获模式)
-                window.removeEventListener('touchend', handleMobileResizeEnd, true);
-                window.removeEventListener('touchcancel', handleMobileResizeEnd, true);
-
-                if (resizeRaf) cancelAnimationFrame(resizeRaf);
-
-                // 延迟一小段时间，执行一次 DOM/CSS 级别的重绘操作
-                requestAnimationFrame(() => {
-                    document.body.style.display = 'none';
-                    document.body.offsetHeight; // 强制浏览器计算
-                    document.body.style.display = '';
-
-                    const taskEl = mobileResizeState.taskEl;
-                    if (taskEl) {
-                        taskEl.style.opacity = '';
-                        taskEl.style.transition = '';
-                    }
-                });
-
-                // 只有确定是拖拽操作时，才执行耗时的冲突检测和数据保存
-                if (wasResizing) {
-                    setTimeout(() => {
-                        const t = mobileResizeState.task;
-                        // 🟢 防御性编程：防止 t 为空导致报错
-                        if (!t) return;
-
-                        const newDurationStr = t.estDuration;
-                        let type = 'musician';
-                        if (t.projectId) type = 'project';
-                        else if (t.instrumentId) type = 'instrument';
-
-                        // 执行冲突检测
-                        if (checkOverlap(t.date, t.startTime, newDurationStr, t.scheduleId, type)) {
-                            t.estDuration = mobileResizeState.originalDuration; // 冲突回退
-                            openAlertModal('冲突', '调整后的时间与现有任务冲突');
-                            window.triggerTouchHaptic('Error');
-                        } else {
-                            // 无冲突则保存
-                            const m = parseTime(t.musicDuration);
-                            const r = parseTime(t.estDuration);
-                            if (m > 0) t.ratio = (r / m).toFixed(1);
-                            pushHistory();
-                            window.triggerTouchHaptic('Success');
-                        }
-
-                        // 确保清除引用
-                        mobileResizeState.task = null;
-                    }, 0);
-                }
-            };
-
-            const calcTrackDiff = (...args) => trackListFeature.calcTrackDiff(...args);
-            const setTrackBreak = (...args) => trackListFeature.setTrackBreak(...args);
-
-            // 4. 辅助函数：启动拖拽模式
-            const startMobileDrag = (originalEl, touch) => {
-                // 1. 记录并变淡原元素
-                dragSourceEl = originalEl;
-                dragSourceEl.style.opacity = '0.3'; // 变淡，提示用户它被“拿”起来了
-
-                window.triggerTouchHaptic('Medium');
-
-                // 2. 创建克隆体 (保持之前的逻辑不变)
-                dragElClone = originalEl.cloneNode(true);
-
-                // 设置克隆体样式 (固定定位，浮在最上层)
-                Object.assign(dragElClone.style, {
-                    position: 'fixed',
-                    top: '0',
-                    left: '0',
-                    width: `${originalEl.offsetWidth}px`,
-                    height: `${originalEl.offsetHeight}px`,
-                    zIndex: '9999',
-                    opacity: '0.9',
-                    pointerEvents: 'none', // 关键：让触摸事件穿透克隆体
-                    transform: `translate3d(${touch.clientX - cloneOffsetX}px, ${touch.clientY - cloneOffsetY}px, 0)`,
-                    boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
-                    transition: 'none' // 禁止过渡动画，保证跟随手指无延迟
-                });
-                dragElClone.style.opacity = '0.9';
-
-                // 添加到 Body
-                document.body.appendChild(dragElClone);
-            };
-
-
-            // 🟢 存储触摸时的起始点，用于计算偏移量
-            const initialTouchCoords = reactive({x: 0, y: 0});
-
-            // 🟢 存储被拖拽元素的原始 DOM 引用 (可选，但有助于某些复杂操作)
-            const draggingTaskElement = ref(null);
-
-            // --- 🟢 新增：获取 Capacitor 插件引用 ---
-            // 注意：这里不能用 import，必须从全局对象取
-            // --- 🟢 新增：震动与通知功能函数 ---
-            const scheduleReminder = async (title, body, delaySeconds = 5) => {
-                try {
-                    const result = await deviceService.scheduleReminder(title, body, delaySeconds);
-                    if (result.reason === 'permission-denied') {
-                        openAlertModal("请授权通知权限，否则无法提醒！");
-                    } else if (result.skipped) {
-                        console.log("非 App 环境，跳过通知");
-                    }
-                } catch (e) {
-                    console.error("通知设置失败", e);
-                    openAlertModal("通知设置出错：" + e.message);
-                }
-            };
-
-            // 🟢 [修改] 计算单曲效率 (依赖 sidebarTab)
-            const calculateSingleRatio = (item) => {
-                // 优先使用弹窗的 viewType，如果没有则使用侧边栏的当前 Tab
-                let type = 'musician';
-                if (trackListData.value && showTrackList.value) {
-                    type = trackListData.value.viewType;
-                } else {
-                    type = sidebarTab.value || 'musician';
-                }
-
-                // 读取对应维度的记录
-                const record = item.records?.[type];
-                if (!record || !record.actualDuration || !item.musicDuration) return '-';
-
-                const actualSec = parseTime(record.actualDuration);
-                const musicSec = parseTime(item.musicDuration);
-                if (musicSec === 0) return '-';
-                return (actualSec / musicSec).toFixed(1);
-            };
-
-            // --- V11.9 Session UI 辅助逻辑 ---
-
-            // 1. 获取当前 Session 名称 (用于显示在按钮上)
-            const currentSessionName = computed(() => {
-                const s = settings.sessions.find(x => x.id === currentSessionId.value);
-                return s ? s.name : '未命名日程';
-            });
-
-            // 2. 切换 Session
-            const switchSession = (id) => {
-                currentSessionId.value = id;
-                activeDropdown.value = null; // 选完关闭菜单
-            };
-
-            // 🟢 修改后的 handleSessionAction
-            const handleSessionAction = (action) => {
-                if (action === 'new') {
-                    // 替换 prompt
-                    openInputModal('新建日程', '', '请输入日程名称 (例如: 2026 春季录音)', (name) => {
-                        if (name) {
-                            const newId = generateUniqueId('S');
-                            settings.sessions.push({id: newId, name: name});
-                            currentSessionId.value = newId;
-                            pushHistory();
-                        }
-                    });
-                } else if (action === 'rename') {
-                    const current = settings.sessions.find(s => s.id === currentSessionId.value);
-                    // 替换 prompt
-                    openInputModal('重命名日程', current.name, '请输入新名称', (name) => {
-                        if (name) {
-                            current.name = name;
-                            pushHistory();
-                        }
-                    });
-                    // 🟢 修改部分
-                } else if (action === 'delete') {
-                    if (settings.sessions.length <= 1) {
-                        openAlertModal('无法删除', '至少需要保留一个日程。');
-                        return;
-                    }
-
-                    // 替换 confirm
-                    openConfirmModal(
-                        '删除日程',
-                        '确定删除当前日程？\n（属于该日程的任务仍然会保留在日程表中）',
-                        () => {
-                            const idx = settings.sessions.findIndex(s => s.id === currentSessionId.value);
-                            settings.sessions.splice(idx, 1);
-                            currentSessionId.value = settings.sessions[0].id;
-                            pushHistory();
-                            window.triggerTouchHaptic('Success');
+            const handleManualSync = () => authFeature.handleManualSync();
+
+            const mobileTouchFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadMobileTouchRegistration()
+                    .then((registerMobileTouchFeature) => registerMobileTouchFeature({
+                        refs: {
+                            isMobile,
+                            mobileTab,
+                            currentView,
+                            weekContainer,
+                            scheduledTasks,
+                            pxPerMin,
+                            sidebarTab,
+                            currentSessionId,
+                            lastTapState: store.lastTapState,
+                            isResizingMobile,
+                            mobileResizeState: store.mobileResizeState,
                         },
-                        true // isDestructive = true (红色按钮)
-                    );
-                }
-                activeDropdown.value = null;
-            };
+                        state: dragState,
+                        data: {
+                            getSettings: () => settings,
+                        },
+                        utils: {
+                            timeToMinutes: timeUtils.timeToMinutes,
+                            formatSecs: formatUtils.formatSecs,
+                            parseTime: timeUtils.parseTime,
+                        },
+                        actions: {
+                            changeDate: (...args) => changeDate(...args),
+                            isTaskGhost: (...args) => isTaskGhost(...args),
+                            jumpToGhostContext: (...args) => jumpToGhostContext(...args),
+                            handleTaskDblClick: (...args) => handleTaskDblClick(...args),
+                            selectTask: (...args) => selectTask(...args),
+                            triggerTouchHaptic: triggerTouchHaptic,
+                            checkOverlap: (...args) => checkOverlap(...args),
+                            openAlertModal: (...args) => openAlertModal(...args),
+                            pushHistory: () => pushHistory(),
+                        },
+                    })),
+            });
+            const mobileTouchHandlers = mobileTouchFeatureProxy.methods([
+                'handleTouchStart',
+                'handlePoolTouchStart',
+                'handleTouchMove',
+                'handleTouchEnd',
+                'initMobileResize',
+            ]);
 
             // 🟢 核心修改: 引入三态主题管理 (Auto / Light / Dark)
 
             // 2. 应用主题的核心函数
-            const applyTheme = () => mobileUiFeature.applyTheme();
 
             // 3. 切换按钮点击事件 (Auto -> Light -> Dark -> Auto 循环)
             const toggleTheme = () => mobileUiFeature.toggleTheme();
 
             // 4. 获取当前模式的显示名称和图标 (供 HTML 使用)
             let getThemeLabel;
+            let switchView;
 
-            let cropper = null; // 存放 Cropper 实例
-
-            // --- 🟢 通用确认/提示弹窗状态 (Universal Confirm/Alert) ---
-            // 1. 打开提示框 (替代 alert)
-            const openAlertModal = (title, content, callback) => {
-                confirmModalConfig.title = title;
-                confirmModalConfig.content = content;
-                confirmModalConfig.isAlert = true;
-                confirmModalConfig.isDestructive = false;
-                confirmModalConfig.confirmText = '我知道了';
-                confirmModalConfig.onConfirm = callback;
-                showConfirmModal.value = true;
-                window.triggerTouchHaptic('Light'); // 轻微震动
-            };
-
-            // 2. 打开确认框 (替代 confirm)
-            const openConfirmModal = (title, content, onConfirm, isDestructive = false, confirmText = '确定', cancelText = '取消') => {
-                confirmModalConfig.title = title;
-                confirmModalConfig.content = content;
-                confirmModalConfig.isAlert = false;
-                confirmModalConfig.isDestructive = isDestructive;
-                confirmModalConfig.confirmText = confirmText;
-                confirmModalConfig.cancelText = cancelText;
-                confirmModalConfig.onConfirm = onConfirm;
-                showConfirmModal.value = true;
-                window.triggerTouchHaptic('Medium'); // 警告震动
-            };
-
-            const closeConfirmModal = () => {
-                // 🟢 如果定义了 onCancel 回调，则执行 (用于处理二选一的情况)
-                if (confirmModalConfig.onCancel) {
-                    confirmModalConfig.onCancel();
-                }
-
-                showConfirmModal.value = false;
-                // 延迟清理回调
-                setTimeout(() => {
-                    confirmModalConfig.onConfirm = null;
-                    confirmModalConfig.onCancel = null; // 🟢 清理 onCancel
-                }, 300);
-            };
-
-            const handleConfirmAction = () => {
-                // 1. 执行确认回调 (保留原名)
-                if (confirmModalConfig.onConfirm) {
-                    confirmModalConfig.onConfirm();
-                }
-
-                // 🟢 核心修复: 执行完确认后，必须手动清空 onCancel
-                // 这样在调用 closeConfirmModal 时，就不会再次触发“取消/自动合并”的逻辑了
-                confirmModalConfig.onCancel = null;
-
-                // 2. 关闭弹窗
-                closeConfirmModal();
-            };
-
-            // --- 🟢 通用输入弹窗状态 (Universal Input Modal) ---
-            // 打开弹窗的通用方法
-            const openInputModal = (title, initialValue, placeholder, callback, hint = '') => {
-                inputModalConfig.title = title;
-                inputModalConfig.value = initialValue;
-                inputModalConfig.placeholder = placeholder;
-                inputModalConfig.callback = callback;
-                inputModalConfig.hint = hint;
-                showInputModal.value = true;
-
-                // 自动聚焦输入框
-                nextTick(() => {
-                    if (universalInputRef.value) universalInputRef.value.focus();
-                    if (universalInputRef.value) universalInputRef.value.select(); // 全选文本方便修改
-                });
-            };
-
-            const closeInputModal = () => {
-                showInputModal.value = false;
-                inputModalConfig.callback = null; // 清理回调
-            };
-
-            const confirmInputModal = () => {
-                if (!inputModalConfig.value.trim()) {
-                    // 如果是必填项，可以在这里拦截，或者允许空值由回调函数自己判断
-                    // 这里我们简单处理：如果是空的且不是文件名导出，给个震动反馈或不做反应
-                }
-
-                if (inputModalConfig.callback) {
-                    inputModalConfig.callback(inputModalConfig.value.trim());
-                }
-                closeInputModal();
-            };
-
-            // 🟢 新增: 计算属性，专门用于 Quick Add 弹窗的分组列表
-            // 这能确保当 quickAddType 变化或 settings 数据变化时，列表能自动更新
-            const currentQuickAddGroups = computed(() => {
-                // 显式访问 .value，确保依赖被追踪
-                const type = quickAddType.value;
-                // 复用已有的获取逻辑
-                return getExistingGroups(type);
+            universalModalFeature = registerUniversalModalFeature({
+                refs: {
+                    showConfirmModal,
+                    confirmModalConfig,
+                    showInputModal,
+                    inputModalConfig,
+                    universalInputRef,
+                },
+                actions: {
+                    triggerTouchHaptic: triggerTouchHaptic,
+                    switchView,
+                },
             });
-
-            // 🟢 新增: 打开快速添加弹窗
-            const openQuickAdd = (type) => {
-                quickAddType.value = type;
-                quickAddForm.name = '';
-                quickAddForm.group = '';
-                quickAddForm.defaultRatio = 20;
-                showQuickAddModal.value = true;
-
-                // 自动聚焦输入框
-                setTimeout(() => {
-                    const input = document.getElementById('quick-add-name');
-                    if (input) input.focus();
-                }, 100);
-            };
-
-            // 🟢 [修改] confirmQuickAdd: 统一为所有类型添加 defaultRatio
-            const confirmQuickAdd = () => {
-                const nameStr = quickAddForm.name.trim();
-                if (!nameStr) return openAlertModal("名称不能为空");
-
-                const type = quickAddType.value;
-
-                // 1. 获取对应列表
-                let list = [];
-                let label = '';
-                if (type === 'instrument') {
-                    list = settings.instruments;
-                    label = '乐器';
-                } else if (type === 'musician') {
-                    list = settings.musicians;
-                    label = '演奏员';
-                } else if (type === 'project') {
-                    list = settings.projects;
-                    label = '项目';
-                }
-
-                // 🟢 2. 核心修复: 检查重名 (不区分大小写)
-                if (list.some(i => i.name.toLowerCase() === nameStr.toLowerCase())) {
-                    window.triggerTouchHaptic('Error');
-                    return openAlertModal('无法添加', `该${label}名称 "${nameStr}" 已存在！`);
-                }
-
-                // 3. 执行添加
-                const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
-                const newId = generateUniqueId(idPrefix);
-
-                const newItemObj = {
-                    id: newId,
-                    name: nameStr,
-                    group: quickAddForm.group.trim(),
-                    color: generateRandomHexColor(),
-                    defaultRatio: quickAddForm.defaultRatio || 20 // 🟢 核心修改: 所有类型都赋予默认倍率
-                };
-
-                if (type === 'project') {
-                    settings.projects.push(newItemObj);
-                    newItem.projectId = newId;
-                } else if (type === 'instrument') {
-                    settings.instruments.push(newItemObj);
-                    newItem.instrumentId = newId;
-                } else if (type === 'musician') {
-                    settings.musicians.push(newItemObj);
-                    newItem.musicianId = newId;
-                    onMusicianSelect();
-                }
-
-                pushHistory();
-                showQuickAddModal.value = false;
-                activeDropdown.value = null;
-                window.triggerTouchHaptic('Success');
-            };
-
-
-
-            // 1. 用户选择文件 -> 打开裁剪弹窗
-            const onFileSelect = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                // 放宽大小限制到 20MB
-                if (file.size > 20 * 1024 * 1024) return openAlertModal("图片太大了，请选择 20MB 以下的图片");
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    //
-                    // const arrayBuffer = e.target.result;
-                    //
-                    // // 打印到控制台或显示在页面上
-                    // console.log("解析结果：", cleanNames);
-                    // 重置状态
-                    cropImgSrc.value = e.target.result;
-                    showCropModal.value = true;
-
-                    nextTick(() => {
-                        // 1. 先彻底销毁旧实例
-                        if (cropper) {
-                            cropper.destroy();
-                            cropper = null;
-                        }
-
-                        const imgEl = cropImgRef.value;
-                        if (!imgEl) return;
-
-                        // 2. 定义初始化函数 (增加防抖，防止跑两次)
-                        let isInitialized = false;
-                        const initCropper = () => {
-                            if (isInitialized) return; // 如果已经跑过，直接停止
-                            isInitialized = true;
-
-                            cropper = new Cropper(imgEl, {
-                                aspectRatio: 1,
-                                viewMode: 1,
-                                dragMode: 'move',
-                                autoCropArea: 1,
-                                background: false,
-                                checkCrossOrigin: false,
-                                ready() {
-                                    // 可以在这里加个 console.log 确认只打印了一次
-                                    // console.log('Cropper ready');
-                                }
-                            });
-                        };
-
-                        // 3. 智能判断加载状态
-                        // 如果图片已经在缓存里加载好了，直接初始化
-                        if (imgEl.complete && imgEl.naturalWidth > 0) {
-                            initCropper();
-                        } else {
-                            // 否则监听 load 事件，且只监听一次
-                            imgEl.addEventListener('load', initCropper, {once: true});
-                        }
-                    });
-                };
-                reader.readAsDataURL(file);
-
-                event.target.value = '';
-            };
-
-            // 2. 取消裁剪
-            const cancelCrop = () => {
-                showCropModal.value = false;
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
-                }
-            };
-
-            // 3. 确认裁剪并上传
-            const confirmCrop = () => {
-                if (!cropper) return;
-
-                // 尝试获取裁剪后的 Canvas
-                const canvas = cropper.getCroppedCanvas({
-                    width: 300,
-                    height: 300
-                });
-
-                // 🟢 关键修复：如果 canvas 是 null，说明裁剪器还没准备好，或者 CSS 没加载
-                if (!canvas) {
-                    return openAlertModal("裁剪失败：未能获取到图片内容。\n请检查是否已引入 cropper.min.css 样式文件。");
-                }
-
-                authLoading.value = true;
-
-                // 🟢 修改: 使用 'image/webp' 格式，并将质量降为 0.6
-                canvas.toBlob(async (blob) => {
-                    if (!blob) {
-                        authLoading.value = false;
-                        return openAlertModal("生成图片文件失败");
-                    }
-
-                    try {
-                        const fileName = `${user.value.id}-${Date.now()}.webp`;
-                        const filePath = `${fileName}`;
-                        const {error: uploadError} = await supabaseService.uploadAvatar(filePath, blob, {
-                            contentType: 'image/webp', // 显式指定类型
-                            upsert: true
-                        });
-
-                        if (uploadError) throw uploadError;
-
-                        // 获取 URL
-                        const {data} = supabaseService.getAvatarPublicUrl(filePath);
-                        const publicUrl = data.publicUrl;
-
-                        // 更新用户资料
-                        const {error: updateError} = await supabaseService.updateUser({
-                            data: {avatar_url: publicUrl}
-                        });
-
-                        if (updateError) throw updateError;
-
-                        // 更新成功
-                        user.value = (await supabaseService.getUser()).data.user;
-
-                        // 关闭弹窗
-                        cancelCrop();
-                        openAlertModal("头像更新成功！");
-
-                    } catch (error) {
-                        console.error(error);
-                        openAlertModal("上传失败: " + error.message);
-                    } finally {
-                        authLoading.value = false;
-                    }
-
-                }, 'image/webp', 0.6); // 使用 webp 格式和 0.6 质量
-            };
-
-            const deleteTrackFromList = (...args) => trackListFeature.deleteTrackFromList(...args);
-            const autoCalcDuration = (...args) => trackListFeature.autoCalcDuration(...args);
-            const saveScheduleActualTime = (...args) => trackListFeature.saveScheduleActualTime(...args);
-            const saveTrackActual = (...args) => trackListFeature.saveTrackActual(...args);
-
-            // 🟢 新增: 检查任务归属的资源是否已完成 (用于保护已完成任务不被误删)
-            const isResourceCompleted = (task) => {
-                if (!task) return false;
-
-                const currentTab = sidebarTab.value;
-                let stat = null;
-                let list = [];
-
-                // 根据当前侧边栏视图，获取对应的统计列表和 ID
-                if (currentTab === 'project') {
-                    list = projectStats.value;
-                    if (task.projectId) stat = list.find(i => i.id === task.projectId);
-                } else if (currentTab === 'instrument') {
-                    list = instrumentStats.value;
-                    if (task.instrumentId) stat = list.find(i => i.id === task.instrumentId);
-                } else {
-                    // 默认为 musician
-                    list = musicianStats.value;
-                    if (task.musicianId) stat = list.find(i => i.id === task.musicianId);
-                }
-
-                // 如果找到了对应统计对象，且状态为 completed (蓝色完成态)，则返回 true
-                return stat && stat.statusKey === 'completed';
-            };
-
-            // 🟢 [重写] 删除当前日程块 (修复聚合任务状态不更新的问题)
-            const deleteCurrentSchedule = () => {
-                const taskToDelete = trackListData.value.taskRef;
-                if (!taskToDelete) return;
-
-                // 🟢 新增: 拦截已完成任务
-                if (isResourceCompleted(taskToDelete)) {
-                    window.triggerTouchHaptic('Error');
-                    return openAlertModal("无法删除", "当前归属对象（人员/项目/乐器）已标记为【完成】。\n\n为防止误操作，请先清除该对象下部分曲目的录音数据，使其回到“进行中”状态后再尝试删除。");
-                }
-
-                // --- 1. 尝试清理关联的录音数据 ---
-                if (taskToDelete.templateId) {
-                    // 情况 A: 单曲任务 (有明确 ID) -> 直接清理该 ID
-                    clearPoolRecord(taskToDelete.templateId);
-                } else {
-                    // 情况 B: 聚合任务 (没有 ID) -> 利用 Section 匹配清理
-                    // 逻辑：当前弹窗显示的第 X 段 (currentSectionIndex)，对应的就是我们要删的这个日程块
-
-                    const currentIdx = trackListData.value.currentSectionIndex;
-                    const viewType = trackListData.value.viewType || 'musician';
-
-                    // 遍历弹窗内的所有条目
-                    if (trackListData.value.items) {
-                        let hasCleared = false;
-                        let targetId = null;
-
-                        trackListData.value.items.forEach(item => {
-                            // 🟢 核心修复: 只有属于当前分段 (sectionIndex) 的任务才会被清理
-                            // 这样不会误删同一个人在其他日程块里的录音数据
-                            if (item.sectionIndex === currentIdx) {
-
-                                // 执行清理
-                                if (item.records && item.records[viewType]) {
-                                    // 只有当有数据时才清理，避免无效操作
-                                    if (item.records[viewType].actualDuration || item.records[viewType].recStart) {
-                                        item.records[viewType].actualDuration = '';
-                                        item.records[viewType].recStart = '';
-                                        item.records[viewType].recEnd = '';
-                                        item.records[viewType].breakMinutes = 0;
-                                        hasCleared = true;
-                                    }
-
-                                    // 记录一个 ID 用于触发效率更新 (取第一个即可)
-                                    if (!targetId) {
-                                        if (viewType === 'project') targetId = item.projectId;
-                                        else if (viewType === 'instrument') targetId = item.instrumentId;
-                                        else targetId = item.musicianId;
-                                    }
-                                }
-                            }
-                        });
-
-                        // 如果有数据被清理，触发一次效率更新，确保左侧大卡片进度条回退
-                        if (hasCleared && targetId) {
-                            autoUpdateEfficiency(targetId, viewType, false);
-                        }
-                    }
-                }
-
-                // --- 2. 从日程数组中物理删除 ---
-                scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== taskToDelete.scheduleId);
-
-                // --- 3. 关闭并保存 ---
-                showTrackList.value = false;
-                pushHistory();
-                window.triggerTouchHaptic('Medium');
-
-                // 提示用户
-                // openAlertModal("删除成功", "日程及其包含的录音数据已清除。");
-            };
-
-            // 🟢 [新增] 清理任务池本体的录音记录
-            const clearPoolRecord = (templateId) => {
-                if (!templateId) return;
-
-                const poolItem = itemPool.value.find(i => i.id === templateId);
-                if (poolItem && poolItem.records) {
-                    // 遍历所有视图类型，彻底清除该任务的“实际录音数据”
-                    ['musician', 'project', 'instrument'].forEach(type => {
-                        if (poolItem.records[type]) {
-                            poolItem.records[type].actualDuration = '';
-                            poolItem.records[type].recStart = '';
-                            poolItem.records[type].recEnd = '';
-                            poolItem.records[type].breakMinutes = 0;
-                        }
-                    });
-
-                    // 同时也尝试触发一次效率更新，以防这个删除影响了平均值
-                    // (虽然 calculateGroupStats 会自动重算，但这里确保数据层同步)
-                    if (poolItem.musicianId) autoUpdateEfficiency(poolItem.musicianId, 'musician', false);
-                    if (poolItem.projectId) autoUpdateEfficiency(poolItem.projectId, 'project', false);
-                }
-            };
-
-            const onTrackListReminderChange = (...args) => trackListFeature.onTrackListReminderChange(...args);
-
-            // --- V9.7.4: settings.projects 取代 settings.projectColors ---
-            const settings = reactive({
-                startHour: 10, endHour: 22,
-                sessions: [
-                    {id: 'S_DEFAULT', name: '默认录音日程'} // 初始默认 Session
-                ],
-                instruments: [
-                    {id: 'Imi7d0318nsj', name: '曲笛 Qudi', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d1wio42g', name: '大笛 Dadi', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d1zhnrin', name: '箫 Xiao', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d22qbj3x', name: '管子 Guanzi', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d25hgyts', name: '葫芦丝 Hulusi', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d28dmhcu', name: '嘟嘟克 Duduk', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d2czbme5', name: '奈伊笛 Ney', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d2fipt2s', name: '古筝 Guzheng', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d2irx4rn', name: '琵琶 Pipa', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d2lzuq1k', name: '中阮 Zhongruan', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d2okw95k', name: '大阮 Daruan', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d2usilyh', name: '扬琴 Yangqin', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d2ypsa3n', name: '三弦 Sanxian', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d321n3ff', name: '二胡 Erhu', color: '#60a5fa', group: 'Ethnic Strings'},
-                    {id: 'Imi7d35n8ore', name: '马头琴 Matouqin', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d38kux53', name: '萨塔尔 Sataer', color: '#60a5fa', group: 'Ethnic Strings'},
-                    {id: 'Imi7d3b4omfr', name: '古典吉他 Classical Guitar', color: '#60a5fa', group: 'Plucks'},
-                    {id: 'Imi7d3drxrgi', name: '钢弦吉他 Acoustic Guitar', color: '#60a5fa', group: 'Plucks'},
-                    {id: 'Imi7d3gz35vm', name: '萨兹琴 Saz', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d3jqoe3p', name: '西塔尔 Sitar', color: '#60a5fa', group: 'Ethnic Plucks'},
-                    {id: 'Imi7d3lxykzm', name: '笙 Sheng', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d3pcnpbh', name: '尺八 Shakuhachi', color: '#60a5fa', group: 'Ethnic Woodwinds'},
-                    {id: 'Imi7d3s0hrcp', name: '人声 Vocal', color: '#60a5fa', group: 'Vocal'},
-                    {
-                        id: 'tmi8ygljxuqkaatv',
-                        name: '低音马头琴 Diyin Matouqin',
-                        color: '#60a5fa',
-                        group: 'Ethnic Strings'
-                    },
-                    {id: 'tmifto6q9igynzmf', name: '钢琴 Piano', color: '#60a5fa', group: 'Keys'}
-                ],
-                musicians: [],
-                // V9.7.4: 新增 Projects 列表
-                projects: [],
-                // 🟢 [新增] 录音信息元数据列表
-                studios: [],
-                engineers: [],
-                operators: [],
-                assistants: []
+            const {
+                openAlertModal,
+                openConfirmModal,
+                closeConfirmModal,
+                handleConfirmAction,
+                openInputModal,
+                closeInputModal,
+                confirmInputModal,
+            } = universalModalFeature;
+            const avatarCropFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadAvatarCropFeature()
+                    .then((registerAvatarCropFeature) => registerAvatarCropFeature({
+                        refs: {
+                            showCropModal,
+                            cropImgSrc,
+                            cropImgRef,
+                            authLoading,
+                            user,
+                        },
+                        services: {
+                            supabaseService,
+                        },
+                        actions: {
+                            openAlertModal,
+                        },
+                    })),
             });
+            const onFileSelect = avatarCropFeatureProxy.method('onFileSelect');
+            const cancelCrop = avatarCropFeatureProxy.method('cancelCrop');
+            const confirmCrop = avatarCropFeatureProxy.method('confirmCrop');
+
+            const settings = createRootSettingsState();
             currentSessionId.value = 'S_DEFAULT';
 
-            // 🟢 新增: 通用排序函数 (优先按 Group 排序，分组相同的按 Name 拼音排序)
-            const sortSettingsList = (list) => {
-                return [...list].sort((a, b) => {
-                    const gA = (a.group || '').trim();
-                    const gB = (b.group || '').trim();
-
-                    // 1. 分组逻辑: 有分组的排前面，没分组(空)的排后面
-                    if (gA && !gB) return -1;
-                    if (!gA && gB) return 1;
-
-                    // 2. 如果都有分组，按分组名称拼音排序
-                    if (gA !== gB) return gA.localeCompare(gB, 'zh-CN');
-
-                    // 3. 分组相同，按名称拼音排序
-                    return (a.name || '').localeCompare(b.name || '', 'zh-CN');
-                });
-            };
-
-            // 🟢 新增: 三个排序后的计算属性 (供 HTML 渲染使用)
-            const sortedInstruments = computed(() => sortSettingsList(settings.instruments));
-            const sortedMusicians = computed(() => sortSettingsList(settings.musicians));
-            const sortedProjects = computed(() => sortSettingsList(settings.projects));
-
-            const removeInstrument = (id) => settingsFeature.removeInstrument(id);
-            const removeMusician = (id) => settingsFeature.removeMusician(id);
-            const deleteProject = (projectId) => settingsFeature.deleteProject(projectId);
-
-
-            // V9.7.4: newItem 现在绑定 projectId
-            const newItem = reactive({projectId: '', instrumentId: '', musicianId: '', musicDuration: '', ratio: 20});
-
             // 🟢 修改: 纯粹的登录逻辑 (不再自动跳转注册)
-            const handleLogin = async () => authFeature.handleLogin();
+            const handleLogin = () => authFeature.handleLogin();
 
             // 🟢 新增: 独立的注册逻辑
-            const handleRegister = async () => authFeature.handleRegister();
-
-            // --- 🟢 新增：设置单个任务的系统通知 ---
-            const updateTaskNotification = async (task) => {
-                try {
-                    const result = await deviceService.updateTaskNotification(task, {
-                        title: `准备录音: ${getNameById(task.musicianId, 'musician')}`,
-                        body: `${task.startTime} 开始 (${getNameById(task.projectId, 'project')})`
-                    });
-                    if (!result.skipped) console.log('✅ 通知已设定');
-                } catch (e) {
-                    console.error("设置通知失败:", e);
-                }
-            };
+            const handleRegister = () => authFeature.handleRegister();
 
             // 🟢 新增: 找回密码逻辑
-            const handleResetPwd = async () => authFeature.handleResetPwd();
+            const handleResetPwd = () => authFeature.handleResetPwd();
 
             // 🟢 新增: 个人中心逻辑
 
@@ -3308,7 +330,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             let userDisplayName;
 
             // 更新昵称到 Supabase
-            const updateNickname = async () => authFeature.updateNickname();
+            const updateNickname = () => authFeature.updateNickname();
 
             // 🚩🚩🚩 替换 factoryReset 函数的完整定义 🚩🚩🚩
 
@@ -3320,1215 +342,362 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             const handleUserBtnClick = () => authFeature.handleUserBtnClick();
 
             // 更新头像到 Supabase
-            const updateAvatar = async () => authFeature.updateAvatar();
-
-            // 🟢 新增: 判断是否为默认倍率 (用于隐藏卡片上的倍率标签)
-            const isDefaultRatio = (item) => {
-                // 1. 如果没有倍率，视作默认（隐藏）
-                if (!item.ratio) return true;
-
-                const val = Number(item.ratio);
-
-                // 2. 尝试找到对应演奏员的默认倍率配置
-                if (item.musicianId) {
-                    const m = settings.musicians.find(u => u.id === item.musicianId);
-                    // 如果该演奏员有特定的默认倍率，则与该值比较
-                    if (m && m.defaultRatio) {
-                        return val === Number(m.defaultRatio);
-                    }
-                }
-
-                // 3. 如果找不到特定配置，则兜底比较全局默认值 20
-                return val === 20;
-            };
-
-
-            // 🟢 [重写] 独立维度的效率更新 (修复: 设为 null 以保持自动跟随)
-            const autoUpdateEfficiency = (targetId, viewType, shouldPushHistory = true) => {
-                if (!targetId || !viewType) return;
-
-                // 1. 确定 ID 匹配键
-                let idKey = 'musicianId';
-                let list = settings.musicians;
-                if (viewType === 'project') {
-                    idKey = 'projectId';
-                    list = settings.projects;
-                } else if (viewType === 'instrument') {
-                    idKey = 'instrumentId';
-                    list = settings.instruments;
-                }
-
-                // 2. 筛选任务 (只计算当前 Session)
-                const items = itemPool.value.filter(i => i[idKey] === targetId && (i.sessionId || 'S_DEFAULT') === currentSessionId.value);
-
-                let totalActual = 0;
-                let totalMusic = 0;
-
-                items.forEach(item => {
-                    ensureItemRecords(item);
-                    // 只读取当前维度 (viewType) 的录音记录
-                    const rec = item.records[viewType];
-                    if (rec && rec.actualDuration && item.musicDuration) {
-                        const act = parseTime(rec.actualDuration);
-                        const mus = parseTime(item.musicDuration);
-                        if (act > 0 && mus > 0) {
-                            totalActual += act;
-                            totalMusic += mus;
-                        }
-                    }
-                });
-
-                // 3. 计算新的平均倍率
-                // 🟢 修复: 如果没有录音数据(totalMusic=0)，不要强制重置为 20
-                // 而是应该回退使用该对象的 defaultRatio (如果设置过)，否则才用 20
-                let newRatio = 0;
-
-                if (totalMusic > 0) {
-                    newRatio = parseFloat((totalActual / totalMusic).toFixed(1));
-                }
-
-                // 4. 更新设置里的 defaultRatio
-                const settingItem = list.find(i => i.id === targetId);
-                let oldDefaultRatio = 20;
-
-                if (settingItem) {
-                    oldDefaultRatio = settingItem.defaultRatio || 20;
-
-                    if (newRatio > 0) {
-                        // 有真实数据，更新设置
-                        settingItem.defaultRatio = newRatio;
-                    } else {
-                        // 无真实数据，使用现有的设置值作为“新倍率”去更新任务
-                        newRatio = oldDefaultRatio;
-                    }
-                } else {
-                    if (newRatio === 0) newRatio = 20;
-                }
-
-                // 5. 更新所有相关任务 (包括任务池和日程表)
-                const updateTaskLogic = (task) => {
-                    if (task[idKey] !== targetId || !task.musicDuration) return;
-
-                    ensureItemRecords(task);
-
-                    // A. 获取该任务在当前维度的旧倍率
-                    const currentDimRatio = task.ratios[viewType];
-
-                    // B. 智能判断：
-                    // 如果该任务的倍率等于旧的默认值 (说明之前就在跟随)，或者是 0/空/null
-                    // 或者等于 20 (旧数据的默认值)
-                    if (!currentDimRatio || currentDimRatio == oldDefaultRatio || parseFloat(currentDimRatio) === 20) {
-
-                        // 🟢 核心修复: 设为 null，表示"自动跟随"
-                        task.ratios[viewType] = null;
-
-                        // 🟢 2. 更新主显示属性 (为了日程表显示正确)
-                        // 日程表(Schedule View)不走 calculateGroupStats 的实时计算，它是静态显示的
-                        // 所以这里必须把最新的 newRatio 赋值给 task.ratio 和 task.estDuration
-                        if (task.ratio !== newRatio) {
-                            task.ratio = newRatio;
-                            task.estDuration = calculateEstTime(task.musicDuration, newRatio);
-                        }
-                    }
-                };
-
-                // 执行更新
-                itemPool.value.forEach(updateTaskLogic);
-                scheduledTasks.value.forEach(updateTaskLogic);
-
-                // if (shouldPushHistory) {
-                //     pushHistory();
-                // }
-            };
 
             // 🟢 新增: 处理头像文件上传
-            const handleAvatarUpload = async (event) => authFeature.handleAvatarUpload(event);
 
             // 🟢 新增: 登出逻辑
             // 🟢 修改: 暴力清除所有缓存，确保退出后不会自动登录
             // 🟢 修改: 退出登录时，只清除身份信息，保留本地数据 (v9_data)
-            const handleLogout = async () => authFeature.handleLogout();
+            const handleLogout = () => authFeature.handleLogout();
 
             // 🟢 修改: 优化后的加载逻辑 (支持版本控制)
-            const loadCloudData = async () => authFeature.loadCloudData();
 
             // 🟢 修改: 增加版本检查的保存逻辑 (解决 Race Condition)
-            const saveToCloud = async (force = false) => authFeature.saveToCloud(handleManualSync, force);
+            const saveToCloud = (force = false) => authFeature.saveToCloud(handleManualSync, force);
 
-            // --- V11.8 自定义下拉菜单状态 ---
-            const dropdownSearch = ref('');   // 下拉菜单内的搜索词
-
-            // 2. 下拉菜单的分组状态
-            const dropdownExpandedGroups = reactive(new Set()); // 默认空Set，即全部折叠
-
-            const toggleDropdownGroup = (groupName) => {
-                if (dropdownExpandedGroups.has(groupName)) {
-                    dropdownExpandedGroups.delete(groupName);
-                } else {
-                    dropdownExpandedGroups.add(groupName);
-                }
-            };
-
-            // 3. 监听搜索框：如果用户开始搜索，自动展开所有下拉分组，方便查找
-            watch(dropdownSearch, (val) => {
-                if (val && val.trim()) {
-                    // 搜索时不清空 Set，而是逻辑上视为全展开 (在 HTML v-show 中处理)
-                } else {
-                    // 搜索清空时，恢复之前的折叠状态（或者你可以选择在这里 dropdownExpandedGroups.clear() 来全部折叠）
-                    dropdownExpandedGroups.clear();
-                }
+            const dropdownsFeature = registerDropdownsFeature({
+                refs: {
+                    activeDropdown,
+                    showMobileMenu,
+                    showProfileMenu,
+                    settingsGroupFocus,
+                    showGroupSuggestions,
+                    editingItem,
+                },
+                state: {
+                    settings,
+                    newItem,
+                },
+                actions: {
+                    onMusicianSelect: () => onMusicianSelect(),
+                    getSettingsNameFocus: () => settingsNameFocus,
+                    getActiveRecDropdown: () => activeRecDropdown,
+                },
             });
-
-            // 🟢 修改 toggleDropdown: 每次打开菜单时，重置为全折叠状态
-            const toggleDropdown = (type) => {
-                if (activeDropdown.value === type) {
-                    activeDropdown.value = null;
-                } else {
-                    showMobileMenu.value = false;
-                    showProfileMenu.value = false;
-                    activeDropdown.value = type;
-                    dropdownSearch.value = '';
-                    activeGroupFilter.value = '全部';
-
-                    // 重置折叠状态
-                    dropdownExpandedGroups.clear();
-
-                    setTimeout(() => {
-                        const input = document.querySelector('.custom-dropdown-menu input[placeholder*="搜索"]');
-                        if (input) input.focus();
-                    }, 50);
-                }
-            };
-
-            // 🟢 新增: 分组筛选状态
-            const activeGroupFilter = ref('全部');
-
-            // 🟢 修改: 支持 edit_ 前缀
-            const availableGroups = computed(() => {
-                const type = activeDropdown.value;
-                if (!type) return [];
-
-                // 同时去除 mobile_ 和 edit_ 前缀
-                const realType = type.replace('mobile_', '').replace('edit_', '');
-
-                let list = [];
-                if (realType === 'project') list = settings.projects;
-                else if (realType === 'instrument') list = settings.instruments;
-                else if (realType === 'musician') list = settings.musicians;
-
-                // ... (后续去重排序逻辑保持不变)
-                const groups = new Set(list.map(i => (i.group && i.group.trim()) ? i.group : '未分组'));
-                const sorted = Array.from(groups).sort((a, b) => {
-                    if (a === '未分组') return 1;
-                    if (b === '未分组') return -1;
-                    return a.localeCompare(b, 'zh-CN');
-                });
-
-                return ['全部', ...sorted];
-            });
+            const {
+                dropdownSearch,
+                dropdownExpandedGroups,
+                activeGroupFilter,
+                availableGroups,
+                toggleDropdownGroup,
+                toggleDropdown,
+                closeDropdowns,
+                filteredOptions,
+                getGroupedOptions,
+                selectOption,
+            } = dropdownsFeature;
 
             // 🔴 新增: 切换手机菜单 (互斥其他)
             const toggleMobileMenu = () => mobileUiFeature.toggleMobileMenu();
-
-
-            // 🟢 修复: 统一管理所有下拉菜单的“点击外部关闭”逻辑
-            const closeDropdowns = (e) => {
-                // 1. 主界面下拉菜单 & 用户菜单
-                const insideSelect = e.target.closest('.custom-select-container');
-                const insideUser = e.target.closest('.user-menu-container');
-
-                if (!insideSelect && !insideUser) {
-                    activeDropdown.value = null;
-                    showProfileMenu.value = false;
-                    showMobileMenu.value = false;
-                }
-
-                // 2. Settings 弹窗里的分组下拉
-                // 如果点击的目标不在 settings-group-wrapper 内部，且当前是打开状态，则关闭
-                const insideSettingsGroup = e.target.closest('.settings-group-wrapper');
-                if (!insideSettingsGroup && settingsGroupFocus.value) {
-                    settingsGroupFocus.value = null;
-                }
-
-                // ✨✨✨ 新增：Settings 弹窗里的【名称】下拉 ✨✨✨
-                const insideSettingsName = e.target.closest('.settings-name-wrapper');
-                if (!insideSettingsName && settingsNameFocus.value) {
-                    settingsNameFocus.value = null;
-                }
-
-                // 3. Quick Add 弹窗里的分组下拉
-                // 如果点击的目标不在 quick-add-group-wrapper 内部，且当前是打开状态，则关闭
-                const insideQuickAddGroup = e.target.closest('.quick-add-group-wrapper');
-                if (!insideQuickAddGroup && showGroupSuggestions.value) {
-                    showGroupSuggestions.value = false;
-                }
-                // 🟢 [新增] 关闭录音信息下拉
-                const insideRec = e.target.closest('.rec-dropdown-wrapper');
-                if (!insideRec && activeRecDropdown.value) {
-                    activeRecDropdown.value = null;
-                }
-            };
-
-            // 🟢 修改: 支持 edit_ 前缀
-            const filteredOptions = computed(() => {
-                const search = dropdownSearch.value.toLowerCase();
-                const type = activeDropdown.value;
-                if (!type) return [];
-
-                // 同时去除 mobile_ 和 edit_ 前缀
-                const realType = type.replace('mobile_', '').replace('edit_', '');
-
-                let list = [];
-                if (realType === 'project') list = settings.projects;
-                else if (realType === 'instrument') list = settings.instruments;
-                else if (realType === 'musician') list = settings.musicians;
-
-                // ... (后续搜索、筛选、排序逻辑保持不变)
-                let result = list.filter(i => i.name.toLowerCase().includes(search));
-
-                if (activeGroupFilter.value !== '全部') {
-                    result = result.filter(i => {
-                        const g = (i.group && i.group.trim()) ? i.group : '未分组';
-                        return g === activeGroupFilter.value;
-                    });
-                }
-
-                // 🟢 修复: 启用自然排序
-                result.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true }));
-                return result;
-            });
-
-            // 🟢 新增 helper: 将平铺的数组转换为分组对象 {'分组A': [item1], '分组B': [item2]}
-            const getGroupedOptions = (list) => {
-                const groups = {};
-                const defaultKey = '未分组'; // 默认分组名称
-
-                list.forEach(item => {
-                    // 如果没有设置 group 字段，归入默认分组
-                    const g = item.group && item.group.trim() ? item.group : defaultKey;
-                    if (!groups[g]) groups[g] = [];
-                    groups[g].push(item);
-                });
-
-                // 稍微排个序，把“未分组”放到最后，其他分组按名称排
-                const sortedKeys = Object.keys(groups).sort((a, b) => {
-                    if (a === defaultKey) return 1;
-                    if (b === defaultKey) return -1;
-                    return a.localeCompare(b, 'zh-CN');
-                });
-
-                // 构造有序的遍历数组
-                return sortedKeys.map(key => ({
-                    name: key,
-                    items: groups[key]
-                }));
-            };
-
-            // 🟢 修改: 支持编辑模式赋值
-            const selectOption = (type, item) => {
-                // 1. 判断当前上下文：如果是编辑模式 (activeDropdown 以 edit_ 开头)
-                if (activeDropdown.value && activeDropdown.value.startsWith('edit_')) {
-                    const realType = activeDropdown.value.replace('edit_', '');
-
-                    if (realType === 'project') editingItem.value.projectId = item.id;
-                    else if (realType === 'instrument') editingItem.value.instrumentId = item.id;
-                    else if (realType === 'musician') editingItem.value.musicianId = item.id;
-
-                    // 选中后关闭
-                    activeDropdown.value = null;
-                    return;
-                }
-
-                // 2. 原有的新建模式逻辑 (保持不变)
-                if (type === 'project') newItem.projectId = item.id;
-                if (type === 'instrument') newItem.instrumentId = item.id;
-                if (type === 'musician') {
-                    newItem.musicianId = item.id;
-                    onMusicianSelect();
-                }
-                activeDropdown.value = null;
-            };
 
             // 在 onMounted 里绑定点击外部关闭
             // onMounted(() => { ... window.addEventListener('click', closeDropdowns); ... })
             // 别忘了在 onUnmounted 移除
 
-            const SLOT_HEIGHT = 40;
-            const PX_PER_MIN = 40 / 30;
-
-
-            // V9.7.4: sortKey/activeColorKey 可以是 projectId
-            // 修改：默认分组改为 'projectId' (项目)
-            // 改用 expandedGroups：存谁展开了，没存的就是折叠的 (默认全空=全折叠)
-            // --- V10.3 排序状态管理 ---
-            const sortField = ref('status'); // 'name' | 'duration'
-            const sortAsc = ref(true);     // true=正序(A-Z, 小-大), false=倒序(Z-A, 大-小)
-
-            // --- 🟢 分组选择器状态管理 ---
-
-            // 2. 获取分组后的列表 (核心逻辑) - 🟢 修复: 启用 numeric: true 自然排序
-            const getSettingsGroupedList = (type) => settingsFeature.getSettingsGroupedList(type);
-
-            // 🟢 新增：使用 computed 缓存分组结果，防止页面重绘导致输入框跳动
-            const allSettingsGrouped = computed(() => settingsFeature.getAllSettingsGrouped());
-
-            // 🟢 修复: 健壮的分组获取函数
-            const getExistingGroups = (type) => settingsFeature.getExistingGroups(type);
-
-
-            // 4. 重命名分组
-            const renameGroup = (type, oldName, newName) => settingsFeature.renameGroup(type, oldName, newName);
-
-            // 🟢 修改：addSettingsItem (支持“移动分组”逻辑)
-            const addSettingsItem = (type) => settingsFeature.addSettingsItem(type);
-
-            // 6. 删除项目
-            const removeSettingsItem = (type, id) => settingsFeature.removeSettingsItem(type, id);
-
-            const clearSettingsList = (type) => settingsFeature.clearSettingsList(type);
-
-            // --- 拖拽重分组逻辑 ---
-            let settingsDragItem = null;
-
-            // 🟢 修改: 拖拽开始 (仅改变视觉透明度，不影响数据)
-            const onSettingsItemDragStart = (item, type, e) => {
-                // ✨ 核心修复: 如果用户点击的是 输入框 OR 按钮，阻止拖拽，确保 Click 事件能正常触发
-                // 使用 .closest() 确保即使点到按钮里的图标也能被识别
-                if (e.target.closest('input, button, select, i')) {
-                    e.preventDefault();
-                    return;
-                }
-
-                settingsDragItem = {item, type};
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', JSON.stringify(item));
-
-                // 让整行变半透明
-                // 因为现在 draggable 加在行上，e.target 就是行本身，或者用 currentTarget 更稳
-                if (e.currentTarget) {
-                    e.currentTarget.style.opacity = '0.4';
-                }
-            };
-
-            // 🟢 新增: 拖拽结束 (无论成功与否，都强制恢复样式)
-            const onSettingsItemDragEnd = (e) => {
-                // 1. 恢复整行透明度
-                const rowEl = e.target.closest('.group\\/item');
-                if (rowEl) {
-                    rowEl.style.opacity = '1';
-                }
-
-                // 2. 清理全局高亮样式
-                document.querySelectorAll('.settings-group-container').forEach(el => {
-                    el.classList.remove('drag-over');
-                });
-
-                // 3. 清空临时变量
-                settingsDragItem = null;
-            };
-
-            const onSettingsDragOver = (e) => {
-                if (settingsDragItem) {
-                    e.preventDefault(); // 允许放置
-                    e.currentTarget.classList.add('drag-over');
-                }
-            };
-
-            const onSettingsDragLeave = (e) => {
-                e.currentTarget.classList.remove('drag-over');
-            };
-
-            const onSettingsDrop = (targetType, targetGroupName, e) => {
-                e.currentTarget.classList.remove('drag-over');
-                // 恢复样式
-                const draggables = document.querySelectorAll('[draggable=true]');
-                draggables.forEach(el => el.style.opacity = '1');
-
-                if (!settingsDragItem) return;
-
-                // 只能在同类型之间拖拽
-                if (settingsDragItem.type !== targetType) return;
-
-                // 如果拖到了自己所在的分组，不做处理
-                const currentGroup = settingsDragItem.item.group || '';
-                const targetGroup = targetGroupName || ''; // 空字符串代表未分组
-
-                if (currentGroup === targetGroup) {
-                    settingsDragItem = null;
-                    return;
-                }
-
-                // 执行移动：更新 group 属性
-                settingsDragItem.item.group = targetGroup;
-
-                pushHistory();
-                settingsDragItem = null;
-                window.triggerTouchHaptic('Light');
-            };
-
-
-            // 通用切换排序函数
-            const toggleSort = (field) => {
-                if (sortField.value === field) {
-                    // 如果点的还是当前字段，就反转顺序
-                    sortAsc.value = !sortAsc.value;
-                } else {
-                    // 如果点了新字段，切换字段
-                    sortField.value = field;
-                    // 设置默认顺序：名称默认正序(A-Z)，时长默认倒序(从长到短，方便看工作量)
-                    sortAsc.value = (field === 'name');
-                }
-            };
-
-            // 🟢 修改: getSortIcon (增加 Status 图标支持)
-            const getSortIcon = (field) => {
-                if (sortField.value !== field) return '';
-                if (field === 'name') return sortAsc.value ? 'fa-arrow-down-a-z' : 'fa-arrow-up-a-z';
-                if (field === 'duration') return sortAsc.value ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short';
-                // status: 正序(完成->未排)用 list-check 图标，倒序用反向
-                if (field === 'status') return sortAsc.value ? 'fa-arrow-down-short-wide' : 'fa-arrow-up-wide-short';
-                return '';
-            };
-
-            const calculateEstTime = (d, r) => formatSecs(parseTime(d) * (r || 1));
-
-            const authPasswordRef = ref(null);
-            let syncTimeout = null; // 用于防抖保存
-
-            // 🟢 新增: 动态计算按比例分配的时间配额
-            // 逻辑: (单曲谱面时长 / 列表所有曲目谱面总长) * 日程块总时长
-            const calculateProportionalDuration = (item) => {
-                // 安全检查: 如果没有日程块引用或列表为空，回退到默认显示
-                if (!trackListData.value.taskRef || !trackListData.value.items || trackListData.value.items.length === 0) {
-                    return item.estDuration;
-                }
-
-                // 1. 获取日程块的总时长 (例如 "10:43 - 11:05" 之间的时长，或者是 taskRef.estDuration)
-                // 这里我们使用日程块的 estDuration (即已安排时长)
-                const blockSeconds = parseTime(trackListData.value.taskRef.estDuration);
-
-                // 2. 计算当前列表中所有曲目的谱面总长
-                let totalMusicSeconds = 0;
-                trackListData.value.items.forEach(i => {
-                    totalMusicSeconds += parseTime(i.musicDuration || '00:00');
-                });
-
-                // 防止除以零
-                if (totalMusicSeconds === 0) return item.estDuration;
-
-                // 3. 计算当前曲目的权重并分配时间
-                const itemMusicSeconds = parseTime(item.musicDuration || '00:00');
-                const allocatedSeconds = (itemMusicSeconds / totalMusicSeconds) * blockSeconds;
-
-                return formatSecs(Math.round(allocatedSeconds));
-            };
-
-            // 🟢 [修复版] 获取默认倍率
-            // 修复了读取 undefined 报错的问题
-            // 移除了对 stats 的循环引用，防止死锁
-            const getDefaultRatio = (id, type = 'musician') => {
-                let list = [];
-
-                // 1. 安全地获取列表
-                if (type === 'project') list = settings.projects;
-                else if (type === 'instrument') list = settings.instruments;
-                else list = settings.musicians;
-
-                // 🛡️ 防御代码：如果列表尚未初始化或为空，直接返回默认值
-                if (!list || !Array.isArray(list)) return 20;
-
-                // 2. 查找设置
-                const item = list.find(i => i.id === id);
-
-                // 3. 仅读取设置里的默认值 (断开循环依赖)
-                if (item && item.defaultRatio && item.defaultRatio > 0) {
-                    return item.defaultRatio;
-                }
-
-                return 20;
-            };
-
-            const pushHistory = () => {
-                if (historyIndex.value < history.value.length - 1) history.value = history.value.slice(0, historyIndex.value + 1);
-
-                // 🟢 修复: 将 settings 也加入到历史记录快照中
-                history.value.push(JSON.stringify({
-                    pool: itemPool.value,
-                    tasks: scheduledTasks.value,
-                    settings: settings // 关键修改：保存设置状态
-                }));
-
-                historyIndex.value++;
-                if (history.value.length > 50) {
-                    history.value.shift();
-                    historyIndex.value--;
-                }
-            };
-
-            // 🟢 修复: Undo 撤销函数 (加入 sectionIndex 排序支持)
-            const undo = () => {
-                if (historyIndex.value > 0) {
-                    historyIndex.value--;
-                    const s = JSON.parse(history.value[historyIndex.value]);
-                    itemPool.value = s.pool;
-                    scheduledTasks.value = s.tasks;
-
-                    if (s.settings) {
-                        Object.assign(settings, s.settings);
-                    }
-
-                    // --- 🟢 TrackList 视图实时刷新 ---
-                    if (showTrackList.value && trackListData.value.taskRef) {
-                        // 获取当前视图类型 (确保能读到正确的时间记录)
-                        const viewType = trackListData.value.viewType || 'musician';
-
-                        // 1. 根据当前上下文筛选任务
-                        let list = [];
-                        // 如果是按项目查看，就筛选同项目的任务
-                        if (viewType === 'project') {
-                            list = itemPool.value.filter(i =>
-                                i.projectId === trackListData.value.taskRef.projectId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        }
-                        // 如果是按乐器查看
-                        else if (viewType === 'instrument') {
-                            list = itemPool.value.filter(i =>
-                                i.instrumentId === trackListData.value.taskRef.instrumentId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        }
-                        // 默认按演奏员查看
-                        else {
-                            list = itemPool.value.filter(i =>
-                                i.musicianId === trackListData.value.taskRef.musicianId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        }
-                        syncItemsForView(list, viewType);
-
-                        // 2. 🟢 关键修复: 使用完整的排序逻辑 (先分段，后时间)
-                        list.sort((a, b) => {
-                            // 第一优先级: 分段索引 (Section)
-                            const secA = a.sectionIndex || 0;
-                            const secB = b.sectionIndex || 0;
-                            if (secA !== secB) return secA - secB;
-
-                            // 第二优先级: 时间 (Time)
-                            const recA = a.records?.[viewType];
-                            const recB = b.records?.[viewType];
-                            const tA = recA?.recStart || '99:99';
-                            const tB = recB?.recStart || '99:99';
-                            return tA.localeCompare(tB);
-                        });
-
-                        // 3. 赋值更新 UI
-                        trackListData.value.items = list;
-                    }
-                }
-            };
-
-// 🟢 修复: Redo 重做函数 (加入 sectionIndex 排序支持)
-            const redo = () => {
-                if (historyIndex.value < history.value.length - 1) {
-                    historyIndex.value++;
-                    const s = JSON.parse(history.value[historyIndex.value]);
-                    itemPool.value = s.pool;
-                    scheduledTasks.value = s.tasks;
-
-                    if (s.settings) {
-                        Object.assign(settings, s.settings);
-                    }
-
-                    // --- 🟢 TrackList 视图实时刷新 ---
-                    if (showTrackList.value && trackListData.value.taskRef) {
-                        const viewType = trackListData.value.viewType || 'musician';
-
-                        let list = [];
-                        if (viewType === 'project') {
-                            list = itemPool.value.filter(i =>
-                                i.projectId === trackListData.value.taskRef.projectId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        } else if (viewType === 'instrument') {
-                            list = itemPool.value.filter(i =>
-                                i.instrumentId === trackListData.value.taskRef.instrumentId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        } else {
-                            list = itemPool.value.filter(i =>
-                                i.musicianId === trackListData.value.taskRef.musicianId &&
-                                (i.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                isItemVisibleForView(i, viewType)
-                            );
-                        }
-                        syncItemsForView(list, viewType);
-
-                        // 🟢 关键修复: 同样的排序逻辑
-                        list.sort((a, b) => {
-                            const secA = a.sectionIndex || 0;
-                            const secB = b.sectionIndex || 0;
-                            if (secA !== secB) return secA - secB;
-
-                            const recA = a.records?.[viewType];
-                            const recB = b.records?.[viewType];
-                            const tA = recA?.recStart || '99:99';
-                            const tB = recB?.recStart || '99:99';
-                            return tA.localeCompare(tB);
-                        });
-
-                        trackListData.value.items = list;
-                    }
-                }
-            };
-
-            const recInfoFeature = registerRecInfoFeature({
+            ratioFeature = registerRatioFeature({
                 refs: {
                     trackListData,
+                    showTrackList,
                     sidebarTab,
+                    itemPool,
                     scheduledTasks,
+                    currentSessionId,
+                    musicianStats: { get value() { return musicianStats.value; } },
                 },
                 state: {
                     settings,
                 },
                 utils: {
-                    generateUniqueId,
+                    parseTime: timeUtils.parseTime,
+                    formatSecs: formatUtils.formatSecs,
+                },
+                actions: {
+                    ensureItemSplitViews: splitStateUtils.ensureItemSplitViews,
+                    pushHistory: () => pushHistory(),
+                    openConfirmModal,
+                    openAlertModal,
+                },
+            });
+            const {
+                ensureItemRecords,
+                getDefaultRatio,
+                calculateEstTime,
+                getTaskRatio,
+                calculateSingleRatio,
+                isDefaultRatio,
+                autoUpdateEfficiency,
+                cleanOldRatios,
+            } = ratioFeature;
+
+            historyFeature = registerHistoryFeature({
+                refs: {
+                    itemPool,
+                    scheduledTasks,
+                    history,
+                    historyIndex,
+                    showTrackList,
+                    trackListData,
+                    currentSessionId,
+                },
+                state: {
+                    settings,
+                },
+                actions: {
+                    isItemVisibleForView,
+                    syncItemsForView,
+                },
+            });
+            const {
+                pushHistory,
+                undo,
+                redo,
+            } = historyFeature;
+
+            sessionFeature = registerSessionFeature({
+                refs: {
+                    currentSessionId,
+                    activeDropdown,
+                },
+                state: {
+                    settings,
+                },
+                utils: {
+                    generateUniqueId: idUtils.generateUniqueId,
+                },
+                actions: {
+                    openInputModal,
+                    openConfirmModal,
+                    openAlertModal,
+                    pushHistory,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                },
+            });
+            const {
+                currentSessionName,
+                switchSession,
+                handleSessionAction,
+            } = sessionFeature;
+
+            const pickerControlsFeature = registerPickerControlsFeature({
+                refs: {
+                    showDurationPicker: store.showDurationPicker,
+                    tempDuration: store.tempDuration,
+                    pickerMinRef: store.pickerMinRef,
+                    pickerSecRef: store.pickerSecRef,
+                    pickerPos: store.pickerPos,
+                },
+                utils: {
+                    calculateEstTime,
                 },
                 actions: {
                     pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    triggerTouchHaptic: triggerTouchHaptic,
                 },
             });
-            const showRecInfoModal = recInfoFeature.showRecInfoModal;
-            const recInfoForm = recInfoFeature.recInfoForm;
-            const openRecInfoModal = recInfoFeature.openRecInfoModal;
-            const saveRecInfo = recInfoFeature.saveRecInfo;
-            const activeRecDropdown = recInfoFeature.activeRecDropdown;
-            const recDropdownSearch = recInfoFeature.recDropdownSearch;
-            const filteredRecOptions = recInfoFeature.filteredRecOptions;
-            const selectRecOption = recInfoFeature.selectRecOption;
-            const createRecOption = recInfoFeature.createRecOption;
-            const newRecInputs = recInfoFeature.newRecInputs;
-            const addRecItem = recInfoFeature.addRecItem;
-            const removeRecItem = recInfoFeature.removeRecItem;
+            const {
+                showColorPickerModal,
+                colorPickerTarget,
+                tempColor,
+                presetColors,
+                getTextColor,
+                generateRandomHexColor,
+                adjustColor,
+                getDefaultColorByType,
+                openColorPicker,
+                resetColorPicker,
+                saveColorPicker,
+                onDragStart,
+                onDragMove,
+                onDragEnd,
+                openDurationPicker,
+                closePicker,
+                onScroll,
+                confirmDurationPicker,
+                resetDuration,
+            } = pickerControlsFeature;
 
-            // 🟢 修改后的 exportToICS
-            const exportToICS = () => {
-                if (scheduledTasks.value.length === 0) {
-                    openAlertModal("日程表是空的");
-                    return;
-                }
-
-                openInputModal('导出日历 (ICS)', 'recording_schedule.ics', '请输入文件名', (inputName) => {
-                    if (!inputName) return;
-
-                    let fileName = inputName;
-                    if (!fileName.toLowerCase().endsWith('.ics')) fileName += '.ics';
-
-                    let ics = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//AudioScheduler//CN\n";
-                    scheduledTasks.value.forEach(t => {
-                        // ... (中间的生成逻辑保持不变，完全不需要改动) ...
-                        const dStr = t.date.replace(/-/g, '');
-                        const [sh, sm] = t.startTime.split(':').map(Number);
-                        const startStr = `${String(sh).padStart(2, '0')}${String(sm).padStart(2, '0')}00`;
-                        const durSec = parseTime(t.estDuration);
-                        const endD = new Date(new Date(t.date + 'T' + t.startTime).getTime() + durSec * 1000);
-                        const endStr = `${endD.getFullYear()}${String(endD.getMonth() + 1).padStart(2, '0')}${String(endD.getDate()).padStart(2, '0')}T${String(endD.getHours()).padStart(2, '0')}${String(endD.getMinutes()).padStart(2, '0')}00`;
-
-                        const musicianName = getNameById(t.musicianId, 'musician');
-                        const instrumentName = getNameById(t.instrumentId, 'instrument');
-                        const projectName = getNameById(t.projectId, 'project');
-
-                        ics += `BEGIN:VEVENT\nUID:${t.scheduleId}\nDTSTAMP:${dStr}T${startStr}\nDTSTART:${dStr}T${startStr}\nDTEND:${endStr}\nSUMMARY:${musicianName} - ${instrumentName} (${projectName})\nDESCRIPTION:录制时长:${t.estDuration}\nEND:VEVENT\n`;
-                    });
-                    ics += "END:VCALENDAR";
-
-                    const blob = new Blob([ics], {type: 'text/calendar'});
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileName; // 使用输入的文件名
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                });
-            };
-
-            const exportCSV = () => exportCsvFeature.exportCSV();
-            const openExportModal = () => exportCsvFeature.openExportModal();
-            const toggleFilterItem = (...args) => exportCsvFeature.toggleFilterItem(...args);
-            const toggleFilterAll = (...args) => exportCsvFeature.toggleFilterAll(...args);
-            const confirmExport = () => exportCsvFeature.confirmExport();
-
-            // 🟢 修改后的 exportJSON
-            const exportJSON = () => {
-                // 自动生成默认文件名
-                const now = new Date();
-                const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
-                const defaultName = `backup_${dateStr}.json`;
-
-                openInputModal('备份数据 (JSON)', defaultName, '请输入文件名', (inputName) => {
-                    if (!inputName) return;
-
-                    // 自动补全后缀
-                    let fileName = inputName;
-                    if (!fileName.toLowerCase().endsWith('.json')) fileName += '.json';
-
-                    const data = {
-                        pool: itemPool.value,
-                        tasks: scheduledTasks.value,
-                        settings: settings
-                    };
-                    const blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a");
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, '文件将保存到您的下载文件夹');
-            };
-
-            // --- 🟢 导入弹窗状态 ---
-            const showImportModal = ref(false);
-
-            // 1. 点击菜单中的“恢复数据”时，只打开漂亮的弹窗
-            const importJSON = () => {
-                showImportModal.value = true;
-            };
-
-            // 2. 点击弹窗中间的大区域时，触发隐藏的 input
-            const triggerFileSelect = () => {
-                const input = document.getElementById("json-upload");
-                if (input) {
-                    input.value = ''; // 清空上次记录，确保重复选文件有效
-                    input.click();
-                }
-            };
-
-            // 🟢 修改后的 handleJSONFile
-            const handleJSONFile = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    try {
-                        const data = JSON.parse(ev.target.result);
-
-                        // 简单校验
-                        if (!data.pool && !data.tasks && !data.settings) {
-                            throw new Error("无效的备份文件");
-                        }
-
-                        pushHistory();
-                        itemPool.value = data.pool || [];
-                        scheduledTasks.value = data.tasks || [];
-                        if (data.settings) Object.assign(settings, data.settings);
-                        pushHistory();
-
-                        // ✅ 成功后关闭导入弹窗
-                        showImportModal.value = false;
-
-                        // 使用我们刚才做的漂亮 Alert 提示成功
-                        openAlertModal('导入成功', '数据已成功恢复！');
-
-                    } catch (err) {
-                        console.error(err);
-                        openAlertModal('导入失败', '文件格式错误或已损坏。');
-                    }
-                };
-                reader.readAsText(file, "UTF-8");
-                e.target.value = "";
-            };
-
-
-            onMounted(async () => {
-                // 🟢 [新增] 如果默认是滚动月视图，初始化时自动滚动到今天
-                if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-                    nextTick(() => {
-                        scrollToMonthDate(viewDate.value);
-                    });
-                }
-                // 绑定全局事件
-                const appElement = document.getElementById('app');
-                if (appElement) {
-                    appElement.addEventListener('click', (event) => {
-                        const target = event.target.closest('button, a, [role="button"], .cursor-pointer, .segment-btn');
-                        if (target && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.hasAttribute('disabled')) {
-                            window.triggerTouchHaptic('Medium');
-                        }
-                    });
-                }
-                window.addEventListener('keydown', handleGlobalKey);
-                window.addEventListener('mousemove', handleResizeMove);
-                window.addEventListener('mouseup', handleResizeEnd);
-                window.addEventListener('click', closeDropdowns);
-
-                // 2. 移除加载动画
-                const loader = document.getElementById('global-loader');
-                if (loader) {
-                    setTimeout(() => loader.classList.add('hidden'), 300);
-                }
-
-                // ---------------------------------------------------------
-                // 🟢 核心数据加载逻辑开始
-                // ---------------------------------------------------------
-                isBootstrappingData.value = true;
-                try {
-                    await authFeature.bootSessionData({
-                        isSidebarOpen,
-                        skipHistory: true,
-                    });
-                } finally {
-                    await nextTick();
-                    isBootstrappingData.value = false;
-                }
+            nameLookupFeature = registerNameLookupFeature({
+                state: {
+                    settings,
+                },
             });
+            const getNameById = (...args) => nameLookupFeature.getNameById(...args);
 
-            onUnmounted(() => {
-                window.removeEventListener('keydown', handleGlobalKey);
-                window.removeEventListener('mousemove', handleResizeMove);
-                window.removeEventListener('mouseup', handleResizeEnd);
-                window.removeEventListener('click', closeDropdowns);
+            const {
+                showRecInfoModal,
+                recInfoForm,
+                activeRecDropdown,
+                recDropdownSearch,
+                newRecInputs,
+                projectInfoForm,
+                metadataModalsFeatureRef,
+            } = createRootMetadataModalState();
+            const metadataModalsFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadMetadataModalsFeature()
+                    .then((registerMetadataModalsFeature) => {
+                        const metadataModalsFeature = registerMetadataModalsFeature({
+                            refs: {
+                                trackListData,
+                                sidebarTab,
+                                itemPool,
+                                scheduledTasks,
+                                currentSessionId,
+                                showCreditModal,
+                                generatedCreditText,
+                                showProjectInfoModal,
+                                showRecInfoModal,
+                                recInfoForm,
+                                activeRecDropdown,
+                                recDropdownSearch,
+                                newRecInputs,
+                                projectInfoForm,
+                            },
+                            state: {
+                                settings,
+                            },
+                            utils: {
+                                generateUniqueId: idUtils.generateUniqueId,
+                                getNameById,
+                            },
+                            actions: {
+                                pushHistory,
+                                triggerTouchHaptic: triggerTouchHaptic,
+                                openConfirmModal,
+                                openAlertModal,
+                            },
+                        });
+                        metadataModalsFeatureRef.value = metadataModalsFeature;
+                        return metadataModalsFeature;
+                    }),
             });
-
-            watch([itemPool, scheduledTasks, settings, currentSessionId], () => {
-                if (isBootstrappingData.value) return;
-
-                if (user.value) {
-                    // 只要数据一变，立刻变橙色
-                    if (saveStatus.value !== 'saving') {
-                        saveStatus.value = 'unsaved'; // 🟠 变橙：有改动
-                    }
-
-                    clearTimeout(syncTimeout);
-
-                    // ⚡️ 1秒后执行保存 (比之前的2秒更灵敏)
-                    syncTimeout = setTimeout(() => {
-                        saveToCloud();
-                    }, 1000);
-                } else {
-                    // 【未登录/游客状态】
-                    // 1. 仅保存到本地，作为离线数据
-                    const dataToSave = {
-                        pool: itemPool.value,
-                        tasks: scheduledTasks.value,
-                        settings: {...settings, lastSessionId: currentSessionId.value}
-                    };
-                    storageService.saveData('v9_data', dataToSave);
-                }
-
-            }, {deep: true});
-
-            // 🟢 修改: addProject (不再生成颜色)
-            const addProject = () => settingsFeature.addProject();
-
-            const jumpToGhostContext = (task) => {
-                // 🟢 [新增] 上锁：防止原生 dblclick 事件穿透导致误开弹窗
-                isContextSwitching.value = true;
-                setTimeout(() => {
-                    isContextSwitching.value = false;
-                }, 600);
-
-                let changed = false;
-                let message = [];
-
-                // 1. 检查 Session 是否不同
-                const taskSession = task.sessionId || 'S_DEFAULT';
-                if (currentSessionId.value !== taskSession) {
-                    currentSessionId.value = taskSession;
-                    changed = true;
-                    const sessionName = settings.sessions.find(s => s.id === taskSession)?.name || '目标日程';
-                    message.push(`已切换到: ${sessionName}`);
-                }
-
-                // 2. 检查视图类型 (Sidebar Tab) 是否不同
-                // 逻辑：如果任务有 projectId，就应该在 Project 视图下看；有 instrumentId 去 Instrument 视图...
-                let targetTab = 'musician';
-                if (task.musicianId) targetTab = 'musician';
-                else if (task.projectId) targetTab = 'project';
-                else if (task.instrumentId) targetTab = 'instrument';
-
-                if (sidebarTab.value !== targetTab) {
-                    sidebarTab.value = targetTab;
-                    changed = true;
-                    // const tabName = targetTab === 'project' ? '项目视图' : (targetTab === 'instrument' ? '乐器视图' : '人员视图');
-                    // message.push(`已切换到 ${tabName}`);
-                }
-
-                if (changed) {
-                    window.triggerTouchHaptic('Medium');
-
-                    // 高亮一下该任务，让用户知道跳到了哪里
-                    flashingTaskId.value = task.scheduleId;
-                    setTimeout(() => {
-                        if (flashingTaskId.value === task.scheduleId) flashingTaskId.value = null;
-                    }, 1500);
-
-                    // 可选：弹个提示
-                    // openAlertModal("视图跳转", message.join('\n'));
-                } else {
-                    // 如果上下文都一样，说明可能是逻辑判断漏了，或者它本来就不是幽灵
-                    window.triggerTouchHaptic('Error');
-                }
-            };
-
-
-            // --- V9.7: 软排期逻辑 ---
-            const scheduledTemplateIds = computed(() => {
-                return new Set(scheduledTasks.value.map(t => t.templateId).filter(id => id !== undefined));
+            const metadataModalHandlers = metadataModalsFeatureProxy.methods([
+                'openRecInfoModal',
+                'saveRecInfo',
+                'selectRecOption',
+                'createRecOption',
+                'addRecItem',
+                'removeRecItem',
+                'handleRecRename',
+                'openCreditModal',
+                'copyCreditText',
+                'openProjectInfoModal',
+                'saveProjectInfo',
+            ]);
+            const filteredRecOptions = computed(() => metadataModalsFeatureRef.value?.filteredRecOptions.value || []);
+            const {
+                showImportModal,
+                showExportModal,
+                exportFilter,
+                dataIoFeatureRef,
+            } = createRootDataIoState();
+            const dataIoFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadDataIoFeature()
+                    .then((registerDataIoFeature) => {
+                        const dataIoFeature = registerDataIoFeature({
+                            refs: {
+                                itemPool,
+                                scheduledTasks,
+                                currentSessionId,
+                            },
+                            state: {
+                                settings,
+                            },
+                            utils: {
+                                parseTime: timeUtils.parseTime,
+                                getNameById,
+                            },
+                            actions: {
+                                openInputModal,
+                                openAlertModal,
+                                pushHistory,
+                            },
+                            ioState: {
+                                showImportModal,
+                                showExportModal,
+                                exportFilter,
+                            },
+                        });
+                        dataIoFeatureRef.value = dataIoFeature;
+                        return dataIoFeature;
+                    }),
             });
-            const isScheduled = templateId => scheduledTemplateIds.value.has(templateId);
-
-            const handlePoolItemClick = (poolItemId) => {
-                selectTask(poolItemId, 'pool');
-                // 原来的逻辑是手动找 task 然后 scrollTo
-                // 现在 selectTask 内部已经调用了 smartScrollToTask，所以这里其实只需要保留 selectTask 即可
-                // 但为了保险，如果你这里有特殊的逻辑，也可以直接调用：
-                /* const firstScheduled = scheduledTasks.value.find(t => t.templateId === poolItemId);
-                    if (firstScheduled) {
-                        smartScrollToTask(firstScheduled);
-                    }
-                    */
-            };
-
-            // --- V9.7.4: CSV 导入逻辑 (基于 ID) ---
-            const getOrCreateProjectId = (projectName) => {
-                let project = settings.projects.find(p => p.name === projectName);
-                if (!project) {
-                    project = {id: generateUniqueId('P'), name: projectName, color: generateRandomHexColor()};
-                    settings.projects.push(project);
-                }
-                return project.id;
-            };
-
-            // --- 🟢 新增辅助函数: 查找或创建设置项 ---
-            const getOrCreateSettingItem = (type, name, group = '') =>
-                settingsFeature.getOrCreateSettingItem(type, name, group);
-
-
-
-            // --- 🟢 辅助函数：将 HH:MM 转换为分钟数 (用于计算时间距离) ---
-            const getMins = (timeStr) => {
-                if (!timeStr) return 0;
-                const [h, m] = timeStr.split(':').map(Number);
-                return h * 60 + m;
-            };
-
-            // 🟢 [新增] 同步家族编制信息
-            const getSplitFamilyMembers = (item) => {
-                const connectedIds = getConnectedSplitItemIds(itemPool.value, item.id);
-                return itemPool.value.filter(member => connectedIds.has(member.id));
-            };
-
-            const syncFamilyLegacyFields = (item, viewType) => {
-                getSplitFamilyMembers(item).forEach(member => syncLegacySplitFields(member, viewType));
-            };
-
-            const syncFamilySharedIdentity = (item, fields) => {
-                const familyMembers = getSplitFamilyMembers(item);
-                familyMembers.forEach(member => {
-                    if (fields.projectId !== undefined) member.projectId = fields.projectId;
-                    if (fields.instrumentId !== undefined) member.instrumentId = fields.instrumentId;
-                    if (fields.musicianId !== undefined) member.musicianId = fields.musicianId;
-                    if (fields.group !== undefined) member.group = fields.group;
-                });
-
-                const familyIds = new Set(familyMembers.map(member => member.id));
-                scheduledTasks.value.forEach(task => {
-                    if (!familyIds.has(task.templateId)) return;
-                    if (fields.projectId !== undefined) task.projectId = fields.projectId;
-                    if (fields.instrumentId !== undefined) task.instrumentId = fields.instrumentId;
-                    if (fields.musicianId !== undefined) task.musicianId = fields.musicianId;
-                });
-            };
-
-            const syncFamilyOrchestration = (item, newOrch) => {
-                const familyMembers = getSplitFamilyMembers(item);
-
-                // 3. 批量更新
-                familyMembers.forEach(member => {
-                    if (member.orchestration !== newOrch) {
-                        member.orchestration = newOrch;
-                    }
-                });
-            };
-
-            const syncScheduledDurationsFromFamily = (item) => {
-                const familyMembers = getSplitFamilyMembers(item);
-                const familyById = new Map(familyMembers.map(member => [member.id, member]));
-
-                scheduledTasks.value.forEach(task => {
-                    const template = familyById.get(task.templateId);
-                    if (!template) return;
-
-                    const taskViewType = task.projectId ? 'project' : 'musician';
-                    const taskState = peekSplitViewState(template, taskViewType);
-
-                    task.musicDuration = taskState.musicDuration || template.musicDuration;
-                    task.estDuration = taskState.estDuration || template.estDuration;
-                    task.ratio = template.ratio;
-                });
-            };
-
-            // 3. 触发文件选择 (适配你现有的 input id)
-            const triggerCSV = () => {
-                const input = document.getElementById('csv-import-input');
-                if(input) {
-                    input.value = '';
-                    input.click();
-                }
-            };
-
-            // 2. 辅助函数：解析 CSV 单行 (处理引号包裹的情况)
-            const parseCSVLine = (text) => importCsvFeature.parseCSVLine(text);
-
-            // CSV 核心解析引擎 (解析双引号、换行符等复杂情况)
-            const parseCSVRobust = (text) => importCsvFeature.parseCSVRobust(text);
-
-            const handleCSVImport = (event) => importCsvFeature.handleCSVImport(event);
-
-            const refreshCsvPreview = () => importCsvFeature.refreshCsvPreview();
-
-            // 🔍 辅助：根据名字查找 ID (仅查找，不创建)
-            const findSettingId = (type, name) => {
-                if (!name || !settings[type + 's']) return null;
-                const found = settings[type + 's'].find(i => i.name.trim().toLowerCase() === name.trim().toLowerCase());
-                return found ? found.id : null;
-            };
-
-
-            // 4. 辅助：全局日程块自动调整
-            const autoResizeSchedules = (taskIds) => scheduleFeature.autoResizeSchedules(taskIds);
-
-            // 🟢 [新增] 设置项重命名处理 (支持重名自动合并)
-            const handleItemRename = (type, item, event) => settingsFeature.handleItemRename(type, item, event);
-
-            // 🟢 [新增] 录音元数据重命名 (支持级联更新任务 + 自动合并)
-            const handleRecRename = (type, item, event) => {
-                const newName = event.target.value.trim();
-                const oldName = item.name; // 记录修改前的名字
-
-                // 1. 基础检查
-                if (!newName) {
-                    event.target.value = oldName; // 不能为空，回滚
-                    return;
-                }
-                if (newName === oldName) return; // 没变化
-
-                // 2. 获取对应的列表 (studio -> studios)
-                const listKey = type + 's';
-                const list = settings[listKey];
-                if (!list) return;
-
-                // 3. 查重：检查是否改成了已存在的名字
-                const existing = list.find(i => i.name.toLowerCase() === newName.toLowerCase() && i.id !== item.id);
-
-                // 定义更新任务的通用逻辑
-                const updateAllTasks = (targetName) => {
-                    let count = 0;
-                    // 更新任务池
-                    itemPool.value.forEach(t => {
-                        if (t.recordingInfo && t.recordingInfo[type] === oldName) {
-                            t.recordingInfo[type] = targetName;
-                            count++;
-                        }
-                    });
-                    // 更新日程表
-                    scheduledTasks.value.forEach(t => {
-                        if (t.recordingInfo && t.recordingInfo[type] === oldName) {
-                            t.recordingInfo[type] = targetName;
-                            count++;
-                        }
-                    });
-                    return count;
-                };
-
-                if (existing) {
-                    // === 🅰️ 发现重名 -> 触发合并流程 ===
-                    event.target.value = oldName; // 先在 UI 上回滚，等待确认
-
-                    openConfirmModal(
-                        '合并条目',
-                        `检测到 "${existing.name}" 已存在。\n确定要将 "${oldName}" 合并归入 "${existing.name}" 吗？\n\n⚠ 注意：所有使用 "${oldName}" 的任务都将自动更新。`,
-                        () => {
-                            // 1. 更新所有任务
-                            updateAllTasks(existing.name);
-
-                            // 2. 删除当前条目 (因为合并到了 existing)
-                            const idx = list.findIndex(i => i.id === item.id);
-                            if (idx !== -1) list.splice(idx, 1);
-
-                            // 3. 保存
-                            pushHistory();
-                            window.triggerTouchHaptic('Success');
-                            openAlertModal("合并成功", `相关任务信息已更新为 "${existing.name}"。`);
-                        },
-                        true, // 红色按钮
-                        '确认合并'
-                    );
-                } else {
-                    // === 🅱️ 无重名 -> 直接重命名 ===
-
-                    // 1. 更新设置项本身
-                    item.name = newName;
-
-                    // 2. 级联更新所有引用了旧名字的任务
-                    updateAllTasks(newName);
-
-                    // 3. 保存
-                    pushHistory();
-                    window.triggerTouchHaptic('Success');
-                }
-            };
-
-            // --- V9.7.4 名称和颜色查找器 (新增项目类型) ---
-            const getNameById = (id, type) => {
-                if (!id) return '未选择'; // 这里的文字对应你的截图
-
-                // 确保 list 获取正确
-                const list = type === 'instrument' ? settings.instruments :
-                    type === 'musician' ? settings.musicians :
-                        type === 'project' ? settings.projects : [];
-
-                // 🟢 关键: 使用 == 而不是 ===，防止 id 类型(string/number)不一致导致找不到
-                const item = list.find(i => i.id == id);
-
-                return item ? item.name : (type === 'project' ? '未知项目' : (type === 'instrument' ? '未知乐器' : '未知演奏员'));
-            };
-
-            // 🟢 修改: getGroupColor (强制统一颜色：紫/金/蓝)
-            const getGroupColor = (item, key, isBorder) => {
-                // 这里的 key 决定了我们要获取哪种类型的颜色
-
-                // 1. 演奏员 = 紫色
-                if (key === 'musicianId') return '#a855f7';
-
-                // 2. 项目 = 金色
-                if (key === 'projectId') return '#eab308';
-
-                // 3. 乐器 = 蓝色
-                if (key === 'instrumentId') return '#3b82f6';
-
-                // 默认灰色
-                return isBorder ? '#9ca3af' : '#f3f4f6';
-            };
-
-            const creditsFeature = registerCreditsFeature({
+            const dataIoHandlers = dataIoFeatureProxy.methods([
+                'exportToICS',
+                'exportJSON',
+                'importJSON',
+                'triggerFileSelect',
+                'handleJSONFile',
+                'exportCSV',
+                'openExportModal',
+                'toggleFilterItem',
+                'toggleFilterAll',
+                'confirmExport',
+            ]);
+            const exportSessionOptions = computed(() => dataIoFeatureRef.value?.exportSessionOptions.value || []);
+            const filteredExportProjects = computed(() => dataIoFeatureRef.value?.filteredExportProjects.value || []);
+            const filteredExportMusicians = computed(() => dataIoFeatureRef.value?.filteredExportMusicians.value || []);
+            const filteredExportInstruments = computed(() => dataIoFeatureRef.value?.filteredExportInstruments.value || []);
+            const exportDateRange = computed(() => dataIoFeatureRef.value?.exportDateRange.value || { min: '', max: '' });
+            const exportPreviewCount = computed(() => dataIoFeatureRef.value?.exportPreviewCount.value || 0);
+            const appRuntimeFeature = registerAppRuntimeFeature({
                 refs: {
                     itemPool,
                     scheduledTasks,
                     currentSessionId,
-                    showCreditModal,
-                    generatedCreditText,
+                    user,
+                    saveStatus,
+                    currentView,
+                    monthViewMode,
+                    viewDate,
+                    isBootstrappingData,
+                },
+                values: {
+                    isSidebarOpen,
+                },
+                handlers: {
+                    handleGlobalKey: (...args) => handleGlobalKey(...args),
+                    handleResizeMove: (...args) => handleResizeMove(...args),
+                    handleResizeEnd: (...args) => handleResizeEnd(...args),
+                    closeDropdowns: (...args) => closeDropdowns(...args),
+                },
+                state: {
+                    settings,
+                },
+                services: {
+                    storageService,
+                },
+                actions: {
+                    triggerTouchHaptic: triggerTouchHaptic,
+                    scrollToMonthDate: (date) => scrollToMonthDate(date),
+                    bootSessionData: (options) => authFeature.bootSessionData(options),
+                    saveToCloud: () => saveToCloud(),
+                    nextTick,
+                },
+                vue: {
+                    watch,
+                },
+            });
+            appRuntimeFeature.mountAppRuntime();
+            onMounted(() => appRuntimeFeature.mountAppLifecycle());
+            onUnmounted(() => appRuntimeFeature.unmountAppLifecycle());
+
+            const isScheduled = (...args) => scheduleFeature.isScheduled(...args);
+
+            const handlePoolItemClick = (...args) => poolInteractionsFeature.handlePoolItemClick(...args);
+
+            // 4. 辅助：全局日程块自动调整
+            const autoResizeSchedules = (taskIds) => scheduleFeature.autoResizeSchedules(taskIds);
+
+            // --- V9.7.4 名称和颜色查找器 (新增项目类型) ---
+
+            orchestrationFeature = registerOrchestrationFeature({
+                refs: {
+                    editingItem,
+                    showEditor,
+                    sidebarTab,
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
                 },
                 state: {
                     settings,
@@ -4537,1501 +706,389 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     getNameById,
                 },
                 actions: {
-                    openAlertModal,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    triggerTouchHaptic: triggerTouchHaptic,
                 },
             });
-            const openCreditModal = creditsFeature.openCreditModal;
-            const copyCreditText = creditsFeature.copyCreditText;
+            const {
+                activeOrchPresets,
+                orchTemplates,
+                parsedRoster,
+                getRosterName,
+                updateRosterName,
+                showOrchestrationField,
+                percKeywords,
+                percState,
+                isPercussionMode,
+                scanPercussionTags,
+                addPercPlayer,
+                removePercPlayer,
+                togglePercTagSelect,
+                assignTagsToPlayer,
+                updatePercOrchestration,
+            } = orchestrationFeature;
 
-            const projectInfoFeature = registerProjectInfoFeature({
+            const getGroupColor = (...args) => pickerControlsFeature.getGroupColor(...args);
+
+            quickAddFeature = registerQuickAddFeature({
                 refs: {
-                    showProjectInfoModal,
+                    quickAddType,
+                    quickAddForm,
+                    showQuickAddModal,
+                    activeDropdown,
+                    itemPool,
+                    currentSessionId,
+                    isMobile,
+                    showMobileTaskInput,
+                },
+                state: {
+                    settings,
+                    newItem,
+                },
+                utils: {
+                    getExistingGroups: (...args) => getExistingGroups(...args),
+                    generateUniqueId: idUtils.generateUniqueId,
+                    generateRandomHexColor,
+                    getDefaultRatio,
+                    getNameById,
+                    calculateEstTime,
+                    ensureItemRecords,
+                },
+                actions: {
+                    openAlertModal,
+                    pushHistory,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                },
+            });
+            const {
+                currentQuickAddGroups,
+                openQuickAdd,
+                onMusicianSelect,
+                confirmQuickAdd,
+                addItemToPool,
+            } = quickAddFeature;
+
+            const scheduleInteractionsFeature = registerScheduleInteractionsFeature({
+                refs: {
+                    scheduledTasks,
+                    itemPool,
+                    pxPerMin,
+                    sidebarTab,
+                    currentSessionId,
+                    isMobile,
+                    trackListData,
+                    showTrackList,
+                    trackListContainerRef,
                 },
                 state: {
                     settings,
                 },
+                utils: {
+                    parseTime: timeUtils.parseTime,
+                    formatSecs: formatUtils.formatSecs,
+                },
                 actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    checkOverlap: (...args) => checkOverlap(...args),
+                    openAlertModal,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                    pushHistory,
+                    isResourceCompleted: (...args) => isResourceCompleted(...args),
+                    clearPoolRecord: (...args) => clearPoolRecord(...args),
+                    clearAggregateRecords: (...args) => clearAggregateRecords(...args),
+                    isContextSwitchingActive: () => isContextSwitching.value,
+                    isTaskGhost: (...args) => isTaskGhost(...args),
+                    jumpToGhostContext: (...args) => jumpToGhostContext(...args),
+                    normalizeSplitViewType: splitStateUtils.normalizeSplitViewType,
+                    isItemVisibleForView,
+                    syncItemForView,
+                    ensureItemRecords,
+                    getNameById,
+                    autoSortTrackList: (...args) => autoSortTrackList(...args),
+                    preloadTrackList: () => { getTrackListFeature(); },
                 },
             });
-            const projectInfoForm = projectInfoFeature.projectInfoForm;
-            const openProjectInfoModal = projectInfoFeature.openProjectInfoModal;
-            const saveProjectInfo = projectInfoFeature.saveProjectInfo;
+            const dragStart = (...args) => scheduleInteractionsFeature.dragStart(...args);
+            const handleDragEnd = (...args) => scheduleInteractionsFeature.handleDragEnd(...args);
+            const dragEnterPool = (...args) => scheduleInteractionsFeature.dragEnterPool(...args);
+            const dragLeavePool = (...args) => scheduleInteractionsFeature.dragLeavePool(...args);
+            const dropToPool = (...args) => scheduleInteractionsFeature.dropToPool(...args);
+            const dragEnterSlot = (...args) => scheduleInteractionsFeature.dragEnterSlot(...args);
+            const dragLeaveSlot = (...args) => scheduleInteractionsFeature.dragLeaveSlot(...args);
+            const dropToSchedule = (...args) => scheduleInteractionsFeature.dropToSchedule(...args);
+            const dropToMonth = (...args) => scheduleInteractionsFeature.dropToMonth(...args);
 
-            // V9.5 任务移动助手：添加分钟
-            const addMinutesToTime = (timeStr, minutes) => addMinutesToTimeValue(timeStr, minutes, {
-                minMinutes: settings.startHour * 60,
-                maxMinutes: settings.endHour * 60 - 30,
-                stepMinutes: 30
+
+            const desktopResizeFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadDesktopResizeFeature()
+                    .then((registerDesktopResizeFeature) => registerDesktopResizeFeature({
+                        refs: {
+                            resizing: store.resizing,
+                            pxPerMin,
+                        },
+                        utils: {
+                            timeToMinutes: timeUtils.timeToMinutes,
+                            formatSecs: formatUtils.formatSecs,
+                            parseTime: timeUtils.parseTime,
+                        },
+                        actions: {
+                            checkOverlap: (...args) => checkOverlap(...args),
+                            openAlertModal,
+                            triggerTouchHaptic: triggerTouchHaptic,
+                            pushHistory,
+                        },
+                    })),
             });
+            const initResize = desktopResizeFeatureProxy.method('initResize');
+            const handleResizeMove = desktopResizeFeatureProxy.method('handleResizeMove');
+            const handleResizeEnd = desktopResizeFeatureProxy.method('handleResizeEnd');
 
-            // V9.5 任务移动助手：添加天数
+            const scrollToSidebarItem = (...args) => sidebarFeature.scrollToSidebarItem(...args);
 
-            const onMusicianSelect = () => {
-                const m = settings.musicians.find(x => x.id === newItem.musicianId);
-                if (m) newItem.ratio = m.defaultRatio;
-            };
+            const poolInteractionsFeature = registerPoolInteractionsFeature({
+                refs: {
+                    selectedSource,
+                    selectedTaskId,
+                    selectedPoolIds,
+                    lastPoolFocusId,
+                    lastPoolClickId,
+                    itemPool,
+                    scheduledTasks,
+                    currentSessionId,
+                    sidebarTab,
+                    isSidebarOpen,
+                    isMobile,
+                },
+                actions: {
+                    getGroupedItemPool: () => groupedItemPool.value,
+                    getCurrentSidebarList: () => currentSidebarList.value,
+                    isGroupExpanded: (key) => expandedGroups.has(key),
+                    isStatExpanded: (id) => expandedStatsIds.has(id),
+                    scrollToSidebarItem,
+                    smartScrollToTask,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                },
+            });
+            const getVisiblePoolItems = (...args) => poolInteractionsFeature.getVisiblePoolItems(...args);
 
-            const addItemToPool = () => {
-                if (!newItem.projectId || !newItem.instrumentId || !newItem.musicianId || !newItem.musicDuration) {
-                    openAlertModal('信息不完整', '请务必填写所有信息');
-                    return;
-                }
+            const selectTask = (...args) => poolInteractionsFeature.selectTask(...args);
 
-                const rMusician = getDefaultRatio(newItem.musicianId, 'musician');
-                const baseInstName = getNameById(newItem.instrumentId, 'instrument');
+            const clearSelection = () => poolInteractionsFeature.clearSelection();
 
-                // 🟢 修改: 优先使用自动识别的具体名字 (Flute 1/2)，如果没有则用基础名
-                let finalName = newItem._autoSuggestedName || baseInstName;
+            const getOverlapCount = (...args) => scheduleFeature.getOverlapCount(...args);
 
-                // 检查重复并自动编号 (如果名字完全一样才编号)
-                // 比如如果已经有了 "Flute 1", 新来的也是 "Flute 1", 才会变成 "Flute 1 2"
-                // 但如果新来的是 "Flute 2", 则不会冲突
-                const siblings = itemPool.value.filter(t =>
-                    (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                    t.projectId === newItem.projectId &&
-                    t.instrumentId === newItem.instrumentId &&
-                    t.name === finalName // 只检查完全同名的
-                );
+            const moveTask = (...args) => scheduleFeature.moveTask(...args);
 
-                if (siblings.length > 0) {
-                    finalName = `${finalName} ${siblings.length + 1}`;
-                }
+            const scheduleDeletionFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadScheduleDeletionFeature()
+                    .then((registerScheduleDeletionFeature) => {
+                        scheduleDeletionFeature = registerScheduleDeletionFeature({
+                            refs: {
+                                itemPool,
+                                scheduledTasks,
+                                currentSessionId,
+                                trackListData,
+                                showTrackList,
+                                sidebarTab,
+                            },
+                            state: {
+                                musicianStats,
+                                projectStats,
+                                instrumentStats,
+                            },
+                            actions: {
+                                openAlertModal,
+                                pushHistory,
+                                triggerTouchHaptic: triggerTouchHaptic,
+                                autoUpdateEfficiency,
+                            },
+                        });
+                        return scheduleDeletionFeature;
+                    }),
+            });
+            const isResourceCompleted = scheduleDeletionFeatureProxy.method('isResourceCompleted');
+            const deleteCurrentSchedule = scheduleDeletionFeatureProxy.method('deleteCurrentSchedule');
+            const clearPoolRecord = scheduleDeletionFeatureProxy.method('clearPoolRecord');
+            const clearAggregateRecords = scheduleDeletionFeatureProxy.method('clearAggregateRecords');
 
-                const rawItem = {
-                    id: generateUniqueId('T'),
-                    sessionId: currentSessionId.value,
-                    projectId: newItem.projectId,
-                    instrumentId: newItem.instrumentId,
-                    musicianId: newItem.musicianId,
-                    musicDuration: newItem.musicDuration,
-                    orchestration: '',
-                    ratios: { musician: null, project: null, instrument: null },
-                    ratio: rMusician,
-                    estDuration: calculateEstTime(newItem.musicDuration, rMusician),
-                    name: finalName // 使用新名字
-                };
-
-                const finalItem = ensureItemRecords(rawItem);
-                itemPool.value.push(finalItem);
-
-                // 清理临时标记
-                newItem._autoSuggestedName = null;
-
-                pushHistory();
-                if(isMobile.value) window.triggerTouchHaptic('Success');
-                showMobileTaskInput.value = false;
-            };
-
-            // 🟢 [重写] 获取任务倍率 (支持动态继承)
-            // 逻辑: 如果任务自己有设定倍率，就用任务的；否则去读全局设置(settings)里的默认倍率
-            const getTaskRatio = (item, contextType = null) => {
-                if (!item.ratios) ensureItemRecords(item);
-
-                // 1. 确定当前上下文类型
-                let type = contextType;
-                if (!type) {
-                    if (trackListData.value && showTrackList.value) {
-                        type = trackListData.value.viewType;
-                    } else {
-                        type = sidebarTab.value || 'musician';
-                    }
-                }
-
-                // 2. 优先读取任务自身的“私有倍率” (Manual Override)
-                const localRatio = item.ratios[type];
-                if (localRatio && localRatio > 0) {
-                    return localRatio;
-                }
-
-                // 3. 如果任务没有私有倍率，则“动态继承”全局设置的默认倍率
-                let targetId = null;
-                if (type === 'project') targetId = item.projectId;
-                else if (type === 'instrument') targetId = item.instrumentId;
-                else targetId = item.musicianId;
-
-                // 调用之前修好的 getDefaultRatio (只读 settings，不产生死锁)
-                return getDefaultRatio(targetId, type);
-            };
-
-            // 🟢 [新增] 清理旧倍率数据 (Data Cleaning)
-            const cleanOldRatios = () => {
-                openConfirmModal(
-                    '清理旧倍率数据',
-                    '此操作将把所有倍率为 x20 (默认值) 的任务重置为“自动跟随模式”。\n\n清理后，这些任务将不再锁定倍率，而是实时跟随大卡片的平均效率计算时长。\n(手动设置的其他特殊倍率不会受影响)',
-                    () => {
-                        let count = 0;
-
-                        // 定义处理单条数据的逻辑
-                        const processItem = (item) => {
-                            let changed = false;
-
-                            // 确保结构存在
-                            ensureItemRecords(item);
-
-                            // 遍历三个维度
-                            ['musician', 'project', 'instrument'].forEach(type => {
-                                // 核心逻辑：如果倍率等于 20，就设为 null (自动)
-                                if (parseFloat(item.ratios[type]) === 20) {
-                                    item.ratios[type] = null;
-                                    changed = true;
-                                }
-                            });
-
-                            // 兼容性清理：如果主 ratio 也是 20，也可以重置一下
-                            // (虽然主要是靠 ratios 对象，但为了数据整洁)
-                            if (parseFloat(item.ratio) === 20) {
-                                // 这里不置空，保留数值类型，但在下次计算时它会被覆盖
-                            }
-
-                            if (changed) count++;
-                        };
-
-                        // 1. 清理任务池
-                        itemPool.value.forEach(processItem);
-
-                        // 2. 清理日程表
-                        scheduledTasks.value.forEach(processItem);
-
-                        // 3. 强制保存并反馈
-                        pushHistory();
-
-                        // 触发一次全局重算，确保界面时长立即刷新
-                        // (虽然 calculateGroupStats 是自动的，但这里手动触发一下更稳)
-                        if (musicianStats.value.length > 0) {
-                            // 随意触发一个更新来强制视图重绘
-                            const firstId = musicianStats.value[0].id;
-                            autoUpdateEfficiency(firstId, 'musician', false);
-                        }
-
-                        window.triggerTouchHaptic('Success');
-                        openAlertModal('清理完成', `已成功将 ${count} 个任务重置为自动跟随模式。\n现在它们会乖乖跟随大卡片的效率了！`);
+            const globalKeyboardFeature = registerGlobalKeyboardFeature({
+                refs: {
+                    showSettings,
+                    showEditor,
+                    showTrackList,
+                    showAuthModal,
+                    showCropModal,
+                    showMobileMenu,
+                    showColorPickerModal,
+                    showMobileTaskInput,
+                    showQuickAddModal,
+                    showRecInfoModal,
+                    showConfirmModal,
+                    showInputModal,
+                    showSplitModal,
+                    showCreditModal,
+                    showMidiManager,
+                    showMidiImportModal,
+                    showCsvImportModal,
+                    showProjectInfoModal,
+                    showDurationPicker: store.showDurationPicker,
+                    showImportModal,
+                    showProfileMenu,
+                    showGroupSuggestions,
+                    activeRecDropdown,
+                    activeMidiGroupRow: store.activeMidiGroupRow,
+                    activeDropdown,
+                    settingsGroupFocus,
+                    selectedTaskId,
+                    selectedPoolIds,
+                    selectedSource,
+                    isMobile,
+                    currentSessionId,
+                    currentView,
+                    sidebarTab,
+                    sortKey,
+                    activeColorKey,
+                    scheduledTasks,
+                    itemPool,
+                    lastPoolFocusId,
+                    lastPoolClickId,
+                },
+                state: {
+                    activeImportMenu: store.activeImportMenu,
+                    expandedGroups,
+                    expandedStatsIds: {
+                        has: (id) => expandedStatsIds.has(id),
+                        add: (id) => expandedStatsIds.add(id),
+                        clear: () => expandedStatsIds.clear(),
                     },
-                    false, // 非破坏性操作 (虽然改了数据，但是是良性的)
-                    '立即清理'
-                );
-            };
-
-            // 🟢 修复: 列表分组折叠 (新增震动反馈)
-            const toggleCollapse = (groupKey) => {
-                if (isMobile.value) window.triggerTouchHaptic('Medium'); // 🟢 增加震动反馈
-
-                if (expandedGroups.has(groupKey)) {
-                    expandedGroups.delete(groupKey);
-                } else {
-                    expandedGroups.add(groupKey);
-                }
-            };
-
-            // --- Drag & Drop ---
-            let draggedData = null;
-            // 🟢 修改: 拖拽开始时，计算鼠标相对于任务顶部的偏移量
-            const dragStart = (e, item, source) => {
-                let offsetMinutes = 0;
-
-                // 如果是拖动日程表上的任务
-                if (source === 'schedule' && e.target) {
-                    const rect = e.target.getBoundingClientRect();
-                    // 计算鼠标距离任务顶部的像素距离
-                    const offsetY = e.clientY - rect.top;
-                    // 将像素转换为分钟 (pxPerMin.value 是每分钟的高度)
-                    const rawMinutes = offsetY / pxPerMin.value;
-                    // 向下取整到最近的 30 分钟刻度，保证吸附
-                    offsetMinutes = Math.floor(rawMinutes / 30) * 30;
-                }
-
-                // 将 offsetMinutes 存入 draggedData
-                draggedData = {item, source, isCopy: e.altKey, offsetMinutes};
-
-                e.dataTransfer.effectAllowed = 'move';
-
-                // ... (后续的克隆样式逻辑保持不变) ...
-                if (source === 'schedule' && e.target) {
-                    const clone = e.target.cloneNode(true);
-                    // ... (克隆样式代码省略，保持原样即可) ...
-                    clone.classList.remove('is-selected');
-                    clone.style.setProperty('opacity', '0.4', 'important');
-                    clone.style.position = 'absolute';
-                    clone.style.top = '-9999px';
-                    clone.style.zIndex = '9999';
-                    clone.style.width = `${e.target.offsetWidth}px`;
-                    document.body.appendChild(clone);
-                    // 这里为了视觉对齐，拖拽时的“把手”位置也建议减去 offset
-                    // 但为了简单，原有的 setDragImage 逻辑通常够用了，这里只用改数据逻辑
-                    const rect = e.target.getBoundingClientRect();
-                    const offsetX = e.clientX - rect.left;
-                    const offsetY = e.clientY - rect.top;
-                    e.dataTransfer.setDragImage(clone, offsetX, offsetY);
-
-                    setTimeout(() => {
-                        document.body.removeChild(clone);
-                        e.target.classList.add('pointer-events-none');
-                        e.target.style.transition = 'none';
-                        e.target.style.opacity = '0';
-                    }, 0);
-                }
-            };
-
-            // --- 新增开始: 拖拽结束处理 ---
-            const handleDragEnd = (e) => {
-                if (e.target) {
-                    e.target.classList.remove('pointer-events-none');
-                    // 清除行内样式，恢复 CSS 类中定义的默认样式
-                    e.target.style.opacity = '';
-                    e.target.style.transition = '';
-                }
-                draggedData = null;
-            };
-            // --- 新增结束 ---
-
-            const dragEnterPool = e => e.currentTarget.classList.add('drag-over');
-            const dragLeavePool = e => e.currentTarget.classList.remove('drag-over');
-
-            // 🟢 修复: 拖动已排程任务回任务池 (同步执行数据清理)
-            const dropToPool = e => {
-                e.currentTarget.classList.remove('drag-over');
-                if (!draggedData) return;
-
-                // 仅处理从日程表拖回的情况
-                if (draggedData.source === 'schedule') {
-                    const taskToDelete = draggedData.item;
-
-                    // 🟢 新增: 拦截已完成任务
-                    if (isResourceCompleted(taskToDelete)) {
-                        window.triggerTouchHaptic('Error');
-                        return openAlertModal("操作被拒绝", "该任务所属对象已处于【完成】状态，禁止移回任务池。");
-                    }
-
-                    // 🟢 1. 执行数据清理 (复用键盘删除的核心逻辑)
-                    if (taskToDelete.templateId) {
-                        // 情况 A: 单曲任务 (有明确 ID) -> 清理指定 ID 的录音数据
-                        clearPoolRecord(taskToDelete.templateId);
-                    } else {
-                        // 情况 B: 聚合任务 (大卡片) -> 清理对应 Section 的数据并修正索引
-                        // 注意：必须确保 clearAggregateRecords 函数已定义且在作用域内
-                        if (typeof clearAggregateRecords === 'function') {
-                            clearAggregateRecords(taskToDelete);
-                        } else {
-                            console.error("找不到 clearAggregateRecords 函数，无法清理聚合数据");
-                        }
-                    }
-
-                    // 🟢 2. 物理删除日程块
-                    scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== taskToDelete.scheduleId);
-
-                    // 3. 反馈与保存
-                    if (isMobile.value) window.triggerTouchHaptic('Medium');
-                    pushHistory();
-                }
-
-                draggedData = null;
-            };
-
-            const dragEnterSlot = e => {
-                if (e.target.closest('.droppable-slot')) e.target.closest('.droppable-slot').classList.add('drag-over');
-            };
-            const dragLeaveSlot = e => {
-                if (e.target.closest('.droppable-slot')) e.target.closest('.droppable-slot').classList.remove('drag-over');
-            };
-            // 🟢 修改: dropToSchedule (加入防重叠检测)
-            // 🟢 [重写] dropToSchedule (基于坐标计算，解决遮挡问题)
-            const dropToSchedule = (e, dateStr) => {
-                // 清除高亮样式
-                document.querySelectorAll('.grid-slot.drag-over').forEach(el => el.classList.remove('drag-over'));
-
-                if (!draggedData) return;
-
-                // 1. 获取列容器 (Column) 和 时间容器 (Grid Container)
-                // 无论 e.target 是 slot 还是 task-block，往上找都能找到 data-date-str
-                const colEl = e.target.closest('[data-date-str]');
-                if (!colEl) return;
-
-                const container = colEl.querySelector('.relative[style*="min-height"]');
-                if (!container) return;
-
-                const {item, source, offsetMinutes} = draggedData;
-
-                // 2. 基于鼠标 Y 坐标计算时间 (而不是依赖 slot.dataset.time)
-                const rect = container.getBoundingClientRect();
-                const relativeY = e.clientY - rect.top; // 鼠标在容器内的相对高度
-
-                // 如果是从日程内部拖动，需要减去鼠标抓取位置的偏移，保持视觉不跳动
-                let adjustY = relativeY;
-                if (source === 'schedule' && offsetMinutes) {
-                    adjustY -= (offsetMinutes * pxPerMin.value);
-                }
-
-                // 转换为分钟
-                const rawMins = adjustY / pxPerMin.value;
-                // 加上起始小时 (如 10:00)
-                const totalMins = (settings.startHour * 60) + rawMins;
-
-                // 吸附到 30 分钟网格
-                let snappedMins = Math.round(totalMins / 30) * 30;
-
-                // 边界限制
-                const minStart = settings.startHour * 60;
-                const maxStart = settings.endHour * 60 - 30; // 至少留30分钟
-                snappedMins = Math.max(minStart, Math.min(maxStart, snappedMins));
-
-                // 生成 HH:MM 字符串
-                const h = Math.floor(snappedMins / 60);
-                const m = snappedMins % 60;
-                const newStartTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-
-                // 3. 准备检测参数
-                let checkType = 'musician'; // 默认为人员
-                let newDuration = '';
-                let excludeId = null;
-
-                if (source === 'aggregate') {
-                    // 从侧边栏拖入：类型由当前 Tab 决定
-                    checkType = sidebarTab.value;
-                    // 计算统计卡片剩余时长
-                    const remainingSecs = item.totalSeconds - item.scheduledSeconds;
-                    if (remainingSecs <= 0) {
-                        pushHistory(); // 甚至可能无法拖动，这里做个防御
-                        draggedData = null;
-                        return;
-                    }
-                    let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
-                    if (remainingMins === 0) remainingMins = 30;
-                    newDuration = formatSecs(remainingMins * 60);
-
-                } else if (source === 'schedule') {
-                    // 日程内部移动
-                    if (item.projectId) checkType = 'project';
-                    else if (item.instrumentId) checkType = 'instrument';
-
-                    newDuration = item.estDuration;
-                    excludeId = item.scheduleId; // 移动时排除自己
-
-                } else if (source === 'pool') {
-                    // 从任务池拖入
-                    if (item.projectId) checkType = 'project';
-                    else if (item.instrumentId) checkType = 'instrument';
-
-                    newDuration = item.estDuration;
-                }
-
-                // 4. 执行冲突检测
-                // 注意：checkOverlap 内部已经包含了 "不同类型允许重叠" 的逻辑 (tType !== checkType return false)
-                if (checkOverlap(dateStr, newStartTime, newDuration, excludeId, checkType)) {
-                    openAlertModal('时间冲突', '该时间段已有同类型的其他安排。');
-                    window.triggerTouchHaptic('Error');
-                    draggedData = null;
-                    return;
-                }
-
-                // 5. 执行放置逻辑 (Create / Update)
-                if (source === 'aggregate') {
-                    const nt = {
-                        scheduleId: Date.now(),
-                        sessionId: currentSessionId.value,
-                        musicianId: sidebarTab.value === 'musician' ? item.id : '',
-                        projectId: sidebarTab.value === 'project' ? item.id : '',
-                        instrumentId: sidebarTab.value === 'instrument' ? item.id : '',
-                        date: dateStr,
-                        startTime: newStartTime,
-                        estDuration: newDuration,
-                        trackCount: item.trackCount,
-                        ratio: item.defaultRatio || 20,
-                        reminderMinutes: 15,
-                        sound: 'default'
-                    };
-                    scheduledTasks.value.push(nt);
-                    window.triggerTouchHaptic('Success');
-
-                } else if (source === 'schedule') {
-                    const idx = scheduledTasks.value.findIndex(t => t.scheduleId === item.scheduleId);
-                    if (idx !== -1) {
-                        // 必须深拷贝并更新，确保 Vue 响应式触发
-                        const nt = JSON.parse(JSON.stringify(item));
-                        nt.date = dateStr;
-                        nt.startTime = newStartTime;
-                        scheduledTasks.value[idx] = nt;
-                        window.triggerTouchHaptic('Success');
-                    }
-
-                } else if (source === 'pool') {
-                    const nt = {
-                        scheduleId: Date.now(),
-                        templateId: item.id,
-                        sessionId: currentSessionId.value,
-                        projectId: item.projectId,
-                        instrumentId: item.instrumentId,
-                        musicianId: item.musicianId,
-                        musicDuration: item.musicDuration,
-                        ratio: item.ratio,
-                        estDuration: item.estDuration,
-                        date: dateStr,
-                        startTime: newStartTime,
-                        reminderMinutes: 15,
-                        sound: 'default'
-                    };
-                    scheduledTasks.value.push(nt);
-                    window.triggerTouchHaptic('Success');
-                }
-
-                pushHistory();
-                draggedData = null;
-            };
-
-            // 🟢 修改: dropToMonth (加入防重叠检测)
-            const dropToMonth = (e, dateStr) => {
-                document.querySelectorAll('.droppable-slot.drag-over').forEach(el => el.classList.remove('drag-over'));
-                if (!draggedData) return;
-                const {item, source} = draggedData;
-
-                // 1. 确定目标时间和时长
-                let targetStartTime = settings.startHour + ':00'; // 默认插在开头
-                let targetDuration = '';
-                let excludeId = null;
-                let checkType = 'musician';
-                if (source === 'aggregate') {
-                    checkType = sidebarTab.value;
-                } else {
-                    if (item.projectId) checkType = 'project';
-                    else if (item.instrumentId) checkType = 'instrument';
-                }
-
-                if (source === 'schedule') {
-                    targetStartTime = item.startTime; // 保持原有时间不变
-                    targetDuration = item.estDuration;
-                    excludeId = item.scheduleId;
-                } else {
-                    // 新任务默认时长 30分钟 或 剩余时长
-                    targetDuration = item.estDuration || '00:30';
-                }
-
-                if (checkOverlap(dateStr, targetStartTime, targetDuration, excludeId, checkType)) {
-                    openAlertModal('时间冲突', '该日期已有同类型的其他安排。');
-                    window.triggerTouchHaptic('Error');
-                    draggedData = null;
-                    return;
-                }
-
-                // --- 3. 通过检测，执行原有逻辑 ---
-                if (source === 'schedule') {
-                    const task = scheduledTasks.value.find(t => t.scheduleId === item.scheduleId);
-                    if (task) {
-                        task.date = dateStr;
-                        pushHistory();
-                    }
-                } else if (source === 'aggregate' || source === 'pool') {
-                    // ... (保持你上一轮改好的构建 ID 的逻辑) ...
-                    let mId = '', pId = '', iId = '';
-                    let ratio = 20;
-                    let estDur = '00:30';
-                    let tCount = 0;
-                    let musDur = '';
-
-                    if (source === 'pool') {
-                        mId = item.musicianId;
-                        pId = item.projectId;
-                        iId = item.instrumentId;
-                        ratio = item.ratio;
-                        estDur = item.estDuration;
-                        musDur = item.musicDuration;
-                    } else {
-                        if (sidebarTab.value === 'musician') mId = item.id;
-                        else if (sidebarTab.value === 'project') pId = item.id;
-                        else if (sidebarTab.value === 'instrument') iId = item.id;
-                        ratio = item.defaultRatio || 20;
-                        estDur = item.estDuration || '00:30';
-                        tCount = item.trackCount || 0;
-                    }
-                    const tId = source === 'pool' ? item.id : undefined;
-
-                    const nt = {
-                        scheduleId: Date.now(),
-                        templateId: tId, // <--- 添加这行
-                        sessionId: currentSessionId.value,
-                        musicianId: mId,
-                        projectId: pId,
-                        instrumentId: iId,
-                        date: dateStr,
-                        startTime: targetStartTime,
-                        estDuration: estDur,
-                        trackCount: tCount,
-                        ratio: ratio,
-                        musicDuration: musDur,
-                        reminderMinutes: 15,
-                        sound: 'default'
-                    };
-                    scheduledTasks.value.push(nt);
-                    pushHistory();
-                }
-                draggedData = null;
-            };
-
-
-            const initResize = (e, t) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const el = e.target.closest('.task-block');
-                resizing.value = {
-                    task: t,
-                    startY: e.clientY,
-                    startH: el.offsetHeight,
-                    // 🟢 记录原始时长以便回退
-                    originalDuration: t.estDuration
-                };
-                document.body.style.cursor = 'ns-resize';
-            };
-
-
-            // 🟢 修改: 调整时长 (吸附到 Grid 绝对时间刻度)
-            const handleResizeMove = e => {
-                if (!resizing.value) return;
-                const {task, startY, startH} = resizing.value;
-
-                // 1. 计算鼠标移动后的物理高度
-                const delta = e.clientY - startY;
-                const rawHeight = Math.max(5, startH + delta); // 最小 5px
-
-                // 2. 将高度转换为分钟数 (不取整)
-                const rawDurationMins = rawHeight / pxPerMin.value;
-
-                // 3. 获取任务开始的绝对分钟数 (例如 10:15 = 615)
-                const startMins = timeToMinutes(task.startTime);
-
-                // 4. 计算拖动后的“理论结束时间”
-                const rawEndMins = startMins + rawDurationMins;
-
-                // 5. 🟢 核心修改: 将结束时间吸附到最近的 30 分钟刻度 (:00 或 :30)
-                // 这样无论开始时间是多少(如10:15)，结束时间总是对齐网格的(如10:30, 11:00)
-                const snappedEndMins = Math.round(rawEndMins / 30) * 30;
-
-                // 6. 反算新时长
-                let newDurationMins = snappedEndMins - startMins;
-
-                // 7. 最小保护 (防止负数或0，至少保留5分钟)
-                if (newDurationMins < 5) newDurationMins = 5;
-
-                // 8. 更新视图
-                const newDurationStr = formatSecs(newDurationMins * 60);
-                if (task.estDuration !== newDurationStr) {
-                    task.estDuration = newDurationStr;
-                }
-            };
-
-            // 🟢 修改: handleResizeEnd
-            const handleResizeEnd = () => {
-                if (!resizing.value) return;
-                const t = resizing.value.task;
-
-                // 确定类型
-                let type = 'musician';
-                if (t.projectId) type = 'project';
-                else if (t.instrumentId) type = 'instrument';
-
-                // 传入 type
-                if (checkOverlap(t.date, t.startTime, t.estDuration, t.scheduleId, type)) {
-                    t.estDuration = resizing.value.originalDuration;
-                    openAlertModal('冲突', '调整后的时间有重叠');
-                    window.triggerTouchHaptic('Error');
-                } else {
-                    // ✅ 无冲突，正常保存
-                    const m = parseTime(t.musicDuration);
-                    const r = parseTime(t.estDuration);
-                    if (m > 0) t.ratio = (r / m).toFixed(1);
-                    pushHistory();
-                }
-
-                resizing.value = null;
-                document.body.style.cursor = '';
-            };
-
-            // 🟢 新增: 滚动侧边栏到指定 ID
-            const scrollToSidebarItem = (targetId) => {
-                if (!targetId) return;
-
-                // 稍微延迟，确保 DOM 状态稳定
-                setTimeout(() => {
-                    // 使用刚才在 HTML 中添加的 data-stat-id 查找元素
-                    const el = document.querySelector(`[data-stat-id="${targetId}"]`);
-
-                    if (el) {
-                        el.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'center' // 滚动到视口中间，体验更好
-                        });
-
-                        // 可选: 给一个临时的闪烁高亮，提示用户位置
-                        el.classList.add('ring-2', 'ring-[#ffffff]');
-                        setTimeout(() => {
-                            el.classList.remove('ring-2', 'ring-[#ffffff]');
-                        }, 800);
-                    }
-                }, 50);
-            };
-
-            // 🟢 [修改] 选中任务逻辑 (增强跳转能力：支持 Section 索引精准定位)
-            const selectTask = (id, src, event) => {
-                // 1. 如果点击的是日程表中的任务
-                if (src === 'schedule') {
-                    selectedSource.value = src;
-                    selectedTaskId.value = id;
-                    selectedPoolIds.value.clear();
-
-                    // --- 🟢 新增部分开始: 侧边栏联动滚动 ---
-                    const task = scheduledTasks.value.find(t => t.scheduleId === id);
-                    if (task) {
-                        // 根据当前侧边栏的 Tab 类型，决定我们要找哪个 ID
-                        let targetId = null;
-                        if (sidebarTab.value === 'project') targetId = task.projectId;
-                        else if (sidebarTab.value === 'instrument') targetId = task.instrumentId;
-                        else targetId = task.musicianId; // 默认为 musician
-
-                        // 如果找到了关联 ID，并且侧边栏是打开的，执行滚动
-                        if (targetId && (isSidebarOpen.value || isMobile.value)) {
-                            scrollToSidebarItem(targetId);
-                        }
-                    }
-                    // --- 🟢 新增部分结束 ---
-
-                    return;
-                }
-
-                // 2. 如果点击的是侧边栏(Pool)中的任务
-                if (src === 'pool') {
-                    selectedSource.value = src;
-                    selectedTaskId.value = id;
-                    lastPoolFocusId.value = id;
-
-                    const isShift = event && event.shiftKey;
-                    const isCtrl = event && (event.metaKey || event.ctrlKey);
-
-                    // 单选时，尝试跳转
-                    if (!isShift && !isCtrl) {
-                        const poolItem = itemPool.value.find(i => i.id === id);
-                        if (poolItem) {
-                            // --- 策略 A: 精确匹配 (单曲模式) ---
-                            // 检查是否有日程块直接引用了这个 templateId
-                            let specificTask = scheduledTasks.value.find(t =>
-                                (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                t.templateId === id
-                            );
-
-                            if (specificTask) {
-                                // 如果找到了具体的日程块，直接跳过去
-                                smartScrollToTask(specificTask);
-                                if (isMobile.value) window.triggerTouchHaptic('Light');
-                            } else {
-                                // --- 策略 B: 聚合匹配 (Section 模式) ---
-                                // 如果没有具体引用，说明是聚合在某个大日程块里，通过 sectionIndex 定位
-
-                                // 1. 根据当前侧边栏视图，决定匹配哪个维度的 ID
-                                let filterKey = 'musicianId'; // 默认按人员
-                                if (sidebarTab.value === 'project') filterKey = 'projectId';
-                                else if (sidebarTab.value === 'instrument') filterKey = 'instrumentId';
-
-                                const filterId = poolItem[filterKey];
-
-                                if (filterId) {
-                                    // 2. 找到该资源在当前 Session 下的所有日程块
-                                    const relatedSchedules = scheduledTasks.value.filter(t =>
-                                        (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                                        t[filterKey] === filterId
-                                    );
-
-                                    // 3. 排序 (按时间顺序，确保索引对应正确)
-                                    relatedSchedules.sort((a, b) => {
-                                        if (a.date !== b.date) return a.date.localeCompare(b.date);
-                                        return a.startTime.localeCompare(b.startTime);
-                                    });
-
-                                    if (relatedSchedules.length > 0) {
-                                        // 4. 🟢 核心修复: 使用 sectionIndex 定位目标块
-                                        let targetIndex = 0;
-                                        if (poolItem.sectionIndex !== undefined && poolItem.sectionIndex >= 0) {
-                                            // 确保索引不越界 (防止日程块被删后索引未更新的情况)
-                                            targetIndex = Math.min(poolItem.sectionIndex, relatedSchedules.length - 1);
-                                        }
-
-                                        const targetTask = relatedSchedules[targetIndex];
-                                        smartScrollToTask(targetTask);
-
-                                        // 给个反馈
-                                        if (isMobile.value) window.triggerTouchHaptic('Light');
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 多选逻辑 (保持不变)
-                    if (isShift && lastPoolClickId.value) {
-                        const visibleItems = [];
-                        if (sidebarTab.value === 'browse') {
-                            groupedItemPool.value.forEach(group => {
-                                if (expandedGroups.has(group.key)) visibleItems.push(...group.items);
-                            });
-                        } else {
-                            currentSidebarList.value.forEach(stat => {
-                                if (expandedStatsIds.has(stat.id)) visibleItems.push(...stat.items);
-                            });
-                        }
-                        const startIdx = visibleItems.findIndex(i => i.id === lastPoolClickId.value);
-                        const endIdx = visibleItems.findIndex(i => i.id === id);
-                        if (startIdx !== -1 && endIdx !== -1) {
-                            const min = Math.min(startIdx, endIdx);
-                            const max = Math.max(startIdx, endIdx);
-                            for (let i = min; i <= max; i++) {
-                                selectedPoolIds.value.add(visibleItems[i].id);
-                            }
-                        }
-                    } else if (isCtrl) {
-                        if (selectedPoolIds.value.has(id)) selectedPoolIds.value.delete(id);
-                        else selectedPoolIds.value.add(id);
-                        lastPoolClickId.value = id;
-                    } else {
-                        // 普通单击，重置多选
-                        selectedPoolIds.value.clear();
-                        selectedPoolIds.value.add(id);
-                        lastPoolClickId.value = id;
-                    }
-                }
-            };
-
-            // 替换原有的 clearSelection 函数
-            const clearSelection = () => {
-                selectedTaskId.value = null;
-                selectedSource.value = null;
-                selectedPoolIds.value.clear(); // 新增：清空多选
-            };
-
-            // V9.5 任务重叠计算
-            const getOverlapCount = (targetTask) => {
-                const dayTasks = scheduledTasks.value.filter(t => t.date === targetTask.date);
-                const targetStart = timeToMinutes(targetTask.startTime);
-                const targetEnd = targetStart + parseTime(targetTask.estDuration) / 60;
-
-                let overlapCount = 0;
-                for (const task of dayTasks) {
-                    if (task.scheduleId === targetTask.scheduleId) continue;
-
-                    const taskStart = timeToMinutes(task.startTime);
-                    const taskEnd = taskStart + parseTime(task.estDuration) / 60;
-
-                    if (targetStart < taskEnd && targetEnd > taskStart) {
-                        overlapCount++;
-                    }
-                }
-                return overlapCount;
-            };
-
-            // V9.5 任务键盘移动逻辑
-            // V9.5 任务键盘移动逻辑 (V11.2 修改：左右移动自动切换周视图)
-            // V11.3 升级：支持周视图(改时间)和月视图(改日期)的键盘移动
-            // 🟢 修复: moveTask (修复变量未定义报错，确保冲突检测逻辑正确)
-            const moveTask = (task, direction) => {
-                let updated = false;
-                const isMonth = currentView.value === 'month';
-
-                const checkMonthViewSwitch = (dStr) => {
-                    if (!isMonth) return;
-                    const newD = new Date(dStr);
-                    const currentD = new Date(viewDate.value);
-                    if (newD.getMonth() !== currentD.getMonth() || newD.getFullYear() !== currentD.getFullYear()) {
-                        viewDate.value = newD;
-                    }
-                };
-
-                // 确定类型
-                let type = 'musician';
-                if (task.projectId) type = 'project';
-                else if (task.instrumentId) type = 'instrument';
-
-                // 🟢 修复: 将计算逻辑和冲突检测移到具体的方向判断内部
-                // 这样能确保 newTime/newDate 在检测前已经计算出来
-
-                if (direction === 'up') {
-                    if (isMonth) {
-                        const newDate = addDaysToDate(task.date, -7);
-                        // 检测日期冲突
-                        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-                            window.triggerTouchHaptic('Error');
-                            return;
-                        }
-                        if (newDate !== task.date) {
-                            pushHistory();
-                            task.date = newDate;
-                            updated = true;
-                            checkMonthViewSwitch(newDate);
-                        }
-                    } else {
-                        const newTime = addMinutesToTime(task.startTime, -30);
-                        // 检测时间冲突
-                        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
-                            window.triggerTouchHaptic('Error');
-                            return;
-                        }
-                        if (newTime !== task.startTime) {
-                            pushHistory();
-                            task.startTime = newTime;
-                            updated = true;
-                        }
-                    }
-                } else if (direction === 'down') {
-                    if (isMonth) {
-                        const newDate = addDaysToDate(task.date, 7);
-                        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-                            window.triggerTouchHaptic('Error');
-                            return;
-                        }
-                        if (newDate !== task.date) {
-                            pushHistory();
-                            task.date = newDate;
-                            updated = true;
-                            checkMonthViewSwitch(newDate);
-                        }
-                    } else {
-                        const newTime = addMinutesToTime(task.startTime, 30);
-                        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
-                            window.triggerTouchHaptic('Error');
-                            return;
-                        }
-                        if (newTime !== task.startTime) {
-                            pushHistory();
-                            task.startTime = newTime;
-                            updated = true;
-                        }
-                    }
-                } else if (direction === 'left') {
-                    const newDate = addDaysToDate(task.date, -1);
-                    if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-                        window.triggerTouchHaptic('Error');
-                        return;
-                    }
-                    if (newDate !== task.date) {
-                        pushHistory();
-                        task.date = newDate;
-                        updated = true;
-                        if (isMonth) checkMonthViewSwitch(newDate);
-                        else if (currentView.value === 'week' && newDate < currentWeekDays.value[0].dateStr) viewDate.value = new Date(newDate);
-                    }
-                } else if (direction === 'right') {
-                    const newDate = addDaysToDate(task.date, 1);
-                    if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-                        window.triggerTouchHaptic('Error');
-                        return;
-                    }
-                    if (newDate !== task.date) {
-                        pushHistory();
-                        task.date = newDate;
-                        updated = true;
-                        if (isMonth) checkMonthViewSwitch(newDate);
-                        else if (currentView.value === 'week' && newDate > currentWeekDays.value[6].dateStr) viewDate.value = new Date(newDate);
-                    }
-                }
-            };
-
-            // 🟢 [新增] 专门用于清理聚合任务录音数据的函数
-            const clearAggregateRecords = (task) => {
-                // 1. 确定任务类型和 ID
-                let filterKey = 'musicianId';
-                let filterId = task.musicianId;
-                let viewType = 'musician';
-
-                if (task.projectId) {
-                    filterKey = 'projectId';
-                    filterId = task.projectId;
-                    viewType = 'project';
-                } else if (task.instrumentId) {
-                    filterKey = 'instrumentId';
-                    filterId = task.instrumentId;
-                    viewType = 'instrument';
-                }
-
-                // 2. 找到该任务在当前 Session 中的顺序 (Section Index)
-                // 因为聚合任务是通过索引与任务池条目关联的
-                const relatedSchedules = scheduledTasks.value.filter(t =>
-                    (t.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-                    t[filterKey] === filterId
-                ).sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-                const sectionIndex = relatedSchedules.findIndex(t => t.scheduleId === task.scheduleId);
-                if (sectionIndex === -1) return;
-
-                // 3. 遍历任务池，清理对应 Section 的数据
-                let hasCleared = false;
-                itemPool.value.forEach(item => {
-                    // 必须匹配 ID 且 匹配 SectionIndex
-                    if (item[filterKey] === filterId) {
-                        if (item.sectionIndex === sectionIndex) {
-                            // --- 执行清理 ---
-                            if (item.records && item.records[viewType]) {
-                                const rec = item.records[viewType];
-                                if (rec.actualDuration || rec.recStart) {
-                                    rec.actualDuration = '';
-                                    rec.recStart = '';
-                                    rec.recEnd = '';
-                                    rec.breakMinutes = 0;
-                                    hasCleared = true;
-                                }
-                            }
-                        }
-
-                        // 🟢 关键: 删除中间的一个块后，后面的块索引需要前移
-                        // 否则后面的任务会找不到对应的日程块
-                        if (item.sectionIndex > sectionIndex) {
-                            item.sectionIndex--;
-                        }
-                    }
-                });
-
-                // 4. 如果有数据被清理，强制更新效率计算
-                if (hasCleared) {
-                    autoUpdateEfficiency(filterId, viewType, false);
-                }
-            };
-
-            // 🟢 修复: 全局快捷键控制 (优化 ESC 关闭顺序)
-            const handleGlobalKey = e => {
-                const isAnyModalOpen =
-                    showSettings.value || showEditor.value || showTrackList.value ||
-                    showAuthModal.value || showCropModal.value || showMobileMenu.value ||
-                    showColorPickerModal.value || showMobileTaskInput.value ||
-                    showQuickAddModal.value || showRecInfoModal.value ||
-                    showConfirmModal.value || showInputModal.value ||
-                    showSplitModal.value || showCreditModal.value ||
-                    showMidiManager.value || showMidiImportModal.value || showCsvImportModal.value ||
-                    showProjectInfoModal.value;
-
-
-                // 2. ESC 键特权处理 (按视觉层级，由上至下逐层处理)
-                if (e.key === 'Escape') {
-
-                    // === 层级 1: 全局顶层浮窗 (优先级最高，无论下面是什么) ===
-                    if (showDurationPicker.value) { closePicker(); e.preventDefault(); return; }
-                    if (showColorPickerModal.value) { showColorPickerModal.value = false; e.preventDefault(); return; }
-                    // 确认框/输入框通常在最顶层
-                    if (showConfirmModal.value) { closeConfirmModal(); e.preventDefault(); return; }
-                    if (showInputModal.value) { closeInputModal(); e.preventDefault(); return; }
-
-                    // === 层级 2: 业务弹窗 (按堆叠顺序判断) ===
-                    // 关键逻辑：先判断顶层弹窗，再判断该弹窗内部的下拉/状态‘
-
-                    if (showProjectInfoModal.value) {
-                        showProjectInfoModal.value = false;
-                        return;
-                    }
-
-                    // [Top] 快速添加弹窗 (可能叠加在 MobileTaskInput 之上)
-                    if (showQuickAddModal.value) {
-                        // 优先关闭内部的分组建议
-                        if (showGroupSuggestions.value) { showGroupSuggestions.value = false; }
-                        // 否则关闭弹窗本身
-                        else { showQuickAddModal.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Top] 录音信息弹窗 (可能叠加在 TrackList 之上)
-                    if (showRecInfoModal.value) {
-                        if (activeRecDropdown.value) { activeRecDropdown.value = null; }
-                        else { showRecInfoModal.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Top] 拆分/Credit/裁切/导入 (独立弹窗)
-                    if (showSplitModal.value) { showSplitModal.value = false; e.preventDefault(); return; }
-                    if (showCreditModal.value) { showCreditModal.value = false; e.preventDefault(); return; }
-                    if (showCropModal.value) { showCropModal.value = false; e.preventDefault(); return; }
-                    if (showImportModal.value) { showImportModal.value = false; e.preventDefault(); return; }
-                    // 🟢 新增：处理 CSV 导入弹窗的关闭
-                    if (showCsvImportModal.value) {
-                        showCsvImportModal.value = false;
-                        e.preventDefault();
-                        return;
-                    }
-
-                    // [Top] MIDI 导入界面 (🟢 修复: 加入 ESC 支持)
-                    if (showMidiImportModal.value) {
-                        // 如果打开了右键菜单，先关菜单
-                        if (activeImportMenu.rowId) { closeImportMenu(); }
-                        else { showMidiImportModal.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Top] MIDI 管理界面 (🟢 修复: 加入 ESC 支持)
-                    if (showMidiManager.value) {
-                        // 如果打开了分组菜单，先关菜单
-                        if (activeMidiGroupRow.value) { activeMidiGroupRow.value = null; }
-                        else { showMidiManager.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Middle] TrackList 详情页
-                    if (showTrackList.value) { showTrackList.value = false; e.preventDefault(); return; }
-
-                    // [Middle] 编辑/新建页 (MobileTaskInput / Editor)
-                    if (showMobileTaskInput.value) {
-                        // 如果内部的主下拉菜单打开了，先关下拉
-                        if (activeDropdown.value) { activeDropdown.value = null; }
-                        else { showMobileTaskInput.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    if (showEditor.value) {
-                        // Editor 内部也有下拉
-                        if (activeDropdown.value && activeDropdown.value.startsWith('edit_')) { activeDropdown.value = null; }
-                        else { showEditor.value = false; }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Bottom] 设置页
-                    if (showSettings.value) {
-                        if (settingsNameFocus.value || settingsGroupFocus.value) {
-                            settingsNameFocus.value = null; settingsGroupFocus.value = null;
-                        } else {
-                            showSettings.value = false;
-                        }
-                        e.preventDefault(); return;
-                    }
-
-                    // [Bottom] 侧边栏菜单/用户菜单
-                    if (showMobileMenu.value) { showMobileMenu.value = false; e.preventDefault(); return; }
-                    if (showProfileMenu.value) { showProfileMenu.value = false; e.preventDefault(); return; }
-                    if (showAuthModal.value) { showAuthModal.value = false; e.preventDefault(); return; }
-
-                    // === 层级 3: 基础界面交互 (最低优先级) ===
-
-                    // 如果没有任何弹窗，但在主界面打开了下拉 (如 Session 切换)
-                    if (activeDropdown.value) { activeDropdown.value = null; e.preventDefault(); return; }
-
-                    // 清除任务选择
-                    if (selectedTaskId.value || selectedPoolIds.value.size > 0) {
-                        clearSelection();
-                        e.preventDefault();
-                        return;
-                    }
-                }
-
-                if (e.shiftKey && e.key.toLowerCase() === 'f') {
-                    // 输入框保护：如果在打字，不触发折叠
-                    const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
-                    if (isTyping) return;
-
-                    e.preventDefault();
-
-                    // --- 场景 1: CSV 导入弹窗 ---
-                    if (showCsvImportModal.value) {
-                        const allGroups = groupedCsvData.value.map(g => g.projectName);
-                        const isAllCollapsed = allGroups.every(name => collapsedProjects.has(name));
-                        if (isAllCollapsed) {
-                            collapsedProjects.clear();
-                        } else {
-                            allGroups.forEach(name => collapsedProjects.add(name));
-                        }
-                        if (isMobile.value) window.triggerTouchHaptic('Light');
-                        return;
-                    }
-
-                    // --- 场景 2: MIDI 管理器弹窗 (修复点) ---
-                    if (showMidiManager.value) {
-                        // 修正：从数组中提取组名，并移除 Set 的 .value
-                        const allGroups = projectMidiGroups.value.map(g => g.name);
-                        const isAllExpanded = allGroups.every(name => midiManagerExpandedGroups.has(name));
-
-                        if (isAllExpanded) {
-                            midiManagerExpandedGroups.clear();
-                        } else {
-                            midiManagerExpandedGroups.clear();
-                            allGroups.forEach(name => midiManagerExpandedGroups.add(name));
-                        }
-                        if (isMobile.value) window.triggerTouchHaptic('Light');
-                        return;
-                    }
-
-                    // --- 场景 3: 侧边栏任务池 (原逻辑) ---
-                    const allItems = filteredSidebarList.value;
-                    if (allItems.length > 0) {
-                        const isAllExpanded = allItems.every(item => expandedStatsIds.has(item.id));
-                        if (isAllExpanded) {
-                            expandedStatsIds.clear();
-                        } else {
-                            allItems.forEach(item => expandedStatsIds.add(item.id));
-                        }
-                    }
-                    return;
-                }
-
-                // 4. 撤销/重做 (Cmd+Z / Ctrl+Z) - 这些通常允许在无弹窗时全局触发
-                if ((e.metaKey || e.ctrlKey)) {
-                    if (e.key.toLowerCase() === 'z') {
-                        e.preventDefault();
-                        if (e.shiftKey) redo(); else undo();
-                        return;
-                    }
-                    if (e.key.toLowerCase() === 'y') {
-                        e.preventDefault();
-                        redo();
-                        return;
-                    }
-                }
-
-                // 3. 🟢 核心修复: 如果有任何弹窗打开，直接停止后续逻辑
-                // 这防止了在弹窗打开时，按下 Delete 键误删背景里的任务，或者按方向键移动任务
-                if (isAnyModalOpen) return;
-
-                // 5. 输入框保护: 防止在侧边栏搜索框打字时触发快捷键
-                const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
-                if (isTyping) return;
-
-                // 🟢 修改: handleGlobalKey 中的 Tab 键逻辑
-                if (e.key === 'Tab') {
-                    e.preventDefault();
-                    if (e.altKey) {
-                        // Alt+Tab: 切换 Session (保持不变)
-                        const sessions = settings.sessions;
-                        const currentIndex = sessions.findIndex(s => s.id === currentSessionId.value);
-                        let nextIndex = e.shiftKey ? (currentIndex - 1 + sessions.length) % sessions.length : (currentIndex + 1) % sessions.length;
-                        if (sessions.length > 0) currentSessionId.value = sessions[nextIndex].id;
-                    } else if (e.shiftKey) {
-                        // Shift+Tab: 切换 周/月 视图 (保持不变)
-                        currentView.value = currentView.value === 'week' ? 'month' : 'week';
-                        switchView(target);
-                    } else {
-                        // 🟢 Tab: 在 REC(乐手) 和 EDIT(项目) 之间循环切换
-                        if (sidebarTab.value === 'musician') {
-                            sidebarTab.value = 'project';
-                        } else {
-                            sidebarTab.value = 'musician';
-                        }
-
-                        // 可选: 切换时给个轻微震动反馈
-                        if (isMobile.value) window.triggerTouchHaptic('Light');
-                    }
-                    return;
-                }
-
-                // 8. 侧边栏导航 (仅当未选中日程表任务时生效)
-                if (selectedSource.value !== 'schedule' && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-                    // Browse 模式下的左右键 (切换分组)
-                    if (sidebarTab.value === 'browse' && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-                        e.preventDefault();
-                        const keys = ['projectId', 'musicianId', 'instrumentId'];
-                        const currentIndex = keys.indexOf(sortKey.value);
-                        let newIndex = e.key === 'ArrowRight' ? (currentIndex + 1) % keys.length : (currentIndex - 1 + keys.length) % keys.length;
-                        sortKey.value = keys[newIndex];
-                        activeColorKey.value = keys[newIndex];
-                        return;
-                    }
-
-                    // 上下键选择列表项
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        const visibleItems = [];
-                        if (sidebarTab.value === 'browse') {
-                            groupedItemPool.value.forEach(group => {
-                                if (expandedGroups.has(group.key)) visibleItems.push(...group.items);
-                            });
-                        } else {
-                            musicianStats.value.forEach(stat => {
-                                if (expandedStatsIds.has(stat.id)) visibleItems.push(...stat.items);
-                            });
-                        }
-                        if (visibleItems.length === 0) return;
-
-                        let currentIdx = -1;
-                        const focusId = lastPoolFocusId.value || lastPoolClickId.value;
-                        if (focusId) currentIdx = visibleItems.findIndex(i => i.id === focusId);
-
-                        let newIdx = currentIdx === -1
-                            ? (e.key === 'ArrowDown' ? 0 : visibleItems.length - 1)
-                            : (e.key === 'ArrowDown' ? Math.min(currentIdx + 1, visibleItems.length - 1) : Math.max(currentIdx - 1, 0));
-
-                        const targetItem = visibleItems[newIdx];
-                        if (targetItem) {
-                            selectTask(targetItem.id, 'pool', e);
-                            // 简单的滚动跟随逻辑
-                            setTimeout(() => {
-                                const activeEl = document.querySelector('#sidebar .border-blue-600') || document.querySelector('#sidebar .ring-2');
-                                if (activeEl) activeEl.scrollIntoView({behavior: 'smooth', block: 'nearest'});
-                            }, 0);
-                        }
-                        return;
-                    }
-                }
-
-                // 9. 日程表操作 (移动任务)
-                if (selectedTaskId.value && selectedSource.value === 'schedule') {
-                    const task = scheduledTasks.value.find(t => t.scheduleId === selectedTaskId.value);
-                    if (!task) return;
-
-                    const keyMap = {'ArrowUp': 'up', 'ArrowDown': 'down', 'ArrowLeft': 'left', 'ArrowRight': 'right'};
-                    const direction = keyMap[e.key];
-
-                    if (direction) {
-                        e.preventDefault();
-                        moveTask(task, direction);
-                    }
-                }
-
-                // 10. 删除操作
-                if (e.key === 'Backspace' || e.key === 'Delete') {
-                    // 情况 A: 删除侧边栏选中的任务池项目 ... (保持不变)
-                    if (selectedSource.value === 'pool' && selectedPoolIds.value.size > 0) {
-
-                        // 🛡️ [新增] 批量删除前的安全检查
-                        let canDeleteAll = true;
-                        for (const id of selectedPoolIds.value) {
-                            const task = itemPool.value.find(i => i.id === id);
-                            if (task) {
-                                // 复用检查函数，如果返回 false，标记为不可删除
-                                if (!checkCanDeleteSplit(task)) {
-                                    canDeleteAll = false;
-                                    break; // 只要有一个不行，就全部打断
-                                }
-                            }
-                        }
-                        if (!canDeleteAll) return; // ⛔️ 阻止删除
-
-                        // ... (原有的删除逻辑) ...
-                        selectedPoolIds.value.forEach(id => {
-                            const task = itemPool.value.find(i => i.id === id);
-                            if (task) {
-                                const shouldRemoveTask = restoreSplitTime(task);
-                                if (!shouldRemoveTask) {
-                                    selectedPoolIds.value.delete(id);
-                                }
-                            }
-                        });
-                        scheduledTasks.value = scheduledTasks.value.filter(t => !selectedPoolIds.value.has(t.templateId));
-                        itemPool.value = itemPool.value.filter(i => !selectedPoolIds.value.has(i.id));
-                        cleanupEmptySchedules();
-                        clearSelection();
-                        pushHistory();
-                    }
-                    // 情况 B: 删除日程表选中的任务 (单选)
-                    else if (selectedTaskId.value && selectedSource.value === 'schedule') {
-                        const taskToDelete = scheduledTasks.value.find(t => t.scheduleId === selectedTaskId.value);
-
-                        // 🟢 新增: 拦截已完成任务
-                        if (taskToDelete && isResourceCompleted(taskToDelete)) {
-                            window.triggerTouchHaptic('Error');
-                            // 这里使用轻提示或者不做动作，避免频繁弹窗打断，或者可以选择弹窗
-                            return openAlertModal("无法删除", "该任务处于【完成】保护状态。");
-                        }
-
-                        if (taskToDelete) {
-                            // 🟢 修复开始: 区分 单曲任务 和 聚合任务 进行清理
-                            if (taskToDelete.templateId) {
-                                // 1. 单曲任务 (有 templateId) -> 清理指定 ID
-                                clearPoolRecord(taskToDelete.templateId);
-                            } else {
-                                // 2. 聚合任务 (无 templateId) -> 使用新函数清理关联数据
-                                clearAggregateRecords(taskToDelete);
-                            }
-                            // 🟢 修复结束
-
-                            // 物理删除
-                            scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== selectedTaskId.value);
-
-                            // 触发震动反馈
-                            if (isMobile.value) window.triggerTouchHaptic('Medium');
-
-                            clearSelection();
-                            pushHistory();
-                        }
-                    }
-                }
-            };
-
-            // 🟢 修改: handleTaskDblClick 适配三种视图逻辑
-            const handleTaskDblClick = (e, task) => {
-                if (isContextSwitching.value) return;
-                if (isTaskGhost(task)) {
-                    jumpToGhostContext(task);
-                    return;
-                }
-                window.triggerTouchHaptic('Heavy');
-
-                if (e.metaKey || e.ctrlKey) {
-                    // ... (保留原有的拆分逻辑不变) ...
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickY = e.clientY - rect.top;
-                    const splitM = Math.round((clickY / pxPerMin.value) / 30) * 30;
-                    const tot = parseTime(task.estDuration);
-                    if (splitM * 60 >= tot || splitM <= 0) return;
-                    const t1 = JSON.parse(JSON.stringify(task));
-                    t1.scheduleId = Date.now();
-                    t1.estDuration = formatSecs(splitM * 60);
-                    const t2 = JSON.parse(JSON.stringify(task));
-                    t2.scheduleId = Date.now() + 1;
-                    const [h, m] = task.startTime.split(':').map(Number);
-                    const sm = h * 60 + m + splitM;
-                    t2.startTime = `${Math.floor(sm / 60)}:${String(sm % 60).padStart(2, '0')}`;
-                    t2.estDuration = formatSecs(tot - splitM * 60);
-                    scheduledTasks.value = scheduledTasks.value.filter(t => t.scheduleId !== task.scheduleId);
-                    scheduledTasks.value.push(t1, t2);
-                    pushHistory();
-                } else {
-                    const currentSchedule = scheduledTasks.value.find(t => t.scheduleId === task.scheduleId);
-                    if (!currentSchedule) return;
-
-                    // 1. 确定日程块类型 (用于后续筛选和显示)
-                    let blockType = 'musician';
-                    let filterId = task.musicianId;
-
-                    if (task.musicianId) {
-                        blockType = 'musician';
-                        filterId = task.musicianId;
-                    } else if (task.projectId) {
-                        blockType = 'project';
-                        filterId = task.projectId;
-                    } else if (task.instrumentId) {
-                        blockType = 'instrument';
-                        filterId = task.instrumentId;
-                    }
-
-                    // 2. 筛选相关的日程 (用于计算分段)
-                    // 注意：这里要根据类型筛选，比如是项目块，就要找同项目同Session的所有块
-                    const relatedSchedules = scheduledTasks.value
-                        .filter(t => {
-                            if ((t.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-                            if (blockType === 'musician') return t.musicianId === filterId;
-                            if (blockType === 'project') return t.projectId === filterId && !t.musicianId; // 严格匹配类型
-                            if (blockType === 'instrument') return t.instrumentId === filterId && !t.musicianId && !t.projectId;
-                            return false;
-                        })
-                        .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-                    const currentSectionIndex = relatedSchedules.findIndex(t => t.scheduleId === task.scheduleId);
-                    const totalSections = relatedSchedules.length;
-
-                    // 3. 筛选任务池 (Pool Items)
-                    // 根据 blockType 决定筛选条件
-                    const viewType = normalizeSplitViewType(blockType);
-                    const poolItems = itemPool.value.filter(i => {
-                        if (!isItemVisibleForView(i, viewType)) return false;
-                        if ((i.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-                        if (blockType === 'musician') return i.musicianId === filterId;
-                        if (blockType === 'project') return i.projectId === filterId;
-                        if (blockType === 'instrument') return i.instrumentId === filterId;
-                        return false;
-                    });
-
-                    // 初始化分段
-                    poolItems.forEach(i => {
-                        ensureItemRecords(i);
-                        syncItemForView(i, viewType);
-                        if (i.sectionIndex === undefined) i.sectionIndex = 0;
-                        if (i.sectionIndex >= totalSections) i.sectionIndex = totalSections - 1;
-                    });
-
-                    // 4. 设置弹窗数据
-                    let modalTitle = '';
-                    if (blockType === 'musician') modalTitle = getNameById(filterId, 'musician');
-                    else if (blockType === 'project') modalTitle = getNameById(filterId, 'project');
-                    else if (blockType === 'instrument') modalTitle = getNameById(filterId, 'instrument');
-
-                    trackListData.value = {
-                        name: modalTitle,
-                        items: poolItems,
-                        taskRef: currentSchedule,
-                        totalSections: totalSections,
-                        currentSectionIndex: currentSectionIndex,
-                        schedules: relatedSchedules,
-                        viewType: blockType // 🟢 关键：传入视图类型，供 HTML 模板判断显示内容
-                    };
-
-                    // ... (前面的代码保持不变)
-                    autoSortTrackList();
-                    showTrackList.value = true;
-
-                    // ✨✨✨ 修复版：自动滚动逻辑 ✨✨✨
-                    // 使用 setTimeout 代替单纯的 nextTick，给浏览器 50ms-100ms 的渲染缓冲时间
-                    setTimeout(() => {
-                        const container = trackListContainerRef.value;
-                        if (!container) return;
-
-                        const targetIdx = trackListData.value.currentSectionIndex;
-
-                        // 如果是第 0 段，直接滚到顶部 (最稳妥)
-                        if (targetIdx === 0) {
-                            container.scrollTo({ top: 0, behavior: 'auto' });
-                        } else {
-                            const dividerId = 'sec-divider-' + targetIdx;
-                            const dividerEl = document.getElementById(dividerId);
-
-                            if (dividerEl) {
-                                // 🟢 关键：先尝试瞬移
-                                dividerEl.scrollIntoView({ behavior: 'auto', block: 'start' });
-
-                                // 🟢 双重保险：
-                                // 因为 TransitionGroup 的动画可能会在滚动后把元素位置挤偏
-                                // 所以在动画结束(300ms)后，再微调一次，确保位置绝对正确
-                                setTimeout(() => {
-                                    const retryEl = document.getElementById(dividerId);
-                                    if(retryEl) retryEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }, 350);
-                            } else {
-                                // 调试用：如果找不到元素，打印日志
-                                // console.warn('未找到分割线元素:', dividerId);
-                            }
-                        }
-                    }, 50); // 👈 这里设置 50ms 延迟，既不明显卡顿，又能避开渲染冲突
-                    // ✨✨✨ 修复结束 ✨✨✨
-                }
-            };
-
-            const setTrackNow = (...args) => trackListFeature.setTrackNow(...args);
+                },
+                actions: {
+                    closePicker,
+                    closeConfirmModal,
+                    closeInputModal,
+                    closeImportMenu: (...args) => closeImportMenu(...args),
+                    toggleAllProjectCollapse: (...args) => toggleAllProjectCollapse(...args),
+                    undo: (...args) => undo(...args),
+                    redo: (...args) => redo(...args),
+                    switchView: (...args) => switchView(...args),
+                    selectTask: (...args) => selectTask(...args),
+                    moveTask: (...args) => moveTask(...args),
+                    checkCanDeleteSplit: (...args) => checkCanDeleteSplit(...args),
+                    restoreSplitTime: (...args) => restoreSplitTime(...args),
+                    cleanupEmptySchedules: (...args) => cleanupEmptySchedules(...args),
+                    clearSelection: (...args) => clearSelection(...args),
+                    pushHistory: (...args) => pushHistory(...args),
+                    isResourceCompleted: (...args) => isResourceCompleted(...args),
+                    clearPoolRecord: (...args) => clearPoolRecord(...args),
+                    clearAggregateRecords: (...args) => clearAggregateRecords(...args),
+                    openAlertModal: (...args) => openAlertModal(...args),
+                    triggerTouchHaptic: (...args) => triggerTouchHaptic(...args),
+                    getSettings: () => settings,
+                    getSettingsNameFocus: () => settingsNameFocus,
+                    getFilteredSidebarList: () => filteredSidebarList.value,
+                    getProjectMidiGroups: () => projectMidiGroups.value,
+                    getMidiManagerExpandedGroups: () => midiManagerExpandedGroups,
+                    getGroupedItemPool: () => groupedItemPool.value,
+                    getMusicianStats: () => musicianStats.value,
+                },
+            });
+            const handleGlobalKey = (...args) => globalKeyboardFeature.handleGlobalKey(...args);
+
+            const handleTaskDblClick = (...args) => scheduleInteractionsFeature.handleTaskDblClick(...args);
 
             // 🟢 修改: checkOverlap (支持分层检测)
             const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
                 scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
 
-
-            const saveTrackRecord = (...args) => trackListFeature.saveTrackRecord(...args);
-            const clearTrackTime = (...args) => trackListFeature.clearTrackTime(...args);
-            const getOrchSize = (...args) => trackListFeature.getOrchSize(...args);
-            const isOrchestraGroup = (...args) => trackListFeature.isOrchestraGroup(...args);
-            const isPercussionGroup = (...args) => trackListFeature.isPercussionGroup(...args);
-            const isStringGroup = (...args) => trackListFeature.isStringGroup(...args);
-            const sortTrackList = (...args) => trackListFeature.sortTrackList(...args);
-            const autoSortTrackList = (...args) => trackListFeature.autoSortTrackList(...args);
-            const startTrackDrag = (...args) => trackListFeature.startTrackDrag(...args);
-
             // 🟢 修改: 增加 shouldSaveHistory 参数，防止拖动时卡顿
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
-            trackListFeature = registerTrackListFeature({
-                refs: {
-                    trackListData,
-                    trackListContainerRef,
-                    draggingSectionIndex,
-                    itemPool,
-                    scheduledTasks,
-                    showTrackList,
-                    isMobile,
-                    isDark,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime,
-                    formatSecs,
-                    getNameById,
-                },
-                actions: {
-                    openAlertModal,
-                    openInputModal,
-                    pushHistory,
-                    autoUpdateEfficiency,
-                    checkCanDeleteSplit,
-                    restoreSplitTime,
-                    updateTaskNotification,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                    moveDivider,
-                    pruneEmptySchedules,
-                },
+            const notificationsFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadNotificationsFeature()
+                    .then((registerNotificationsFeature) => registerNotificationsFeature({
+                        services: {
+                            deviceService,
+                        },
+                        utils: {
+                            getNameById,
+                        },
+                        actions: {
+                            openAlertModal,
+                        },
+                    })),
             });
+            const updateTaskNotification = notificationsFeatureProxy.method('updateTaskNotification');
+            const scheduleReminder = notificationsFeatureProxy.method('scheduleReminder');
+
+            const { trackListReady } = createRootTrackListState();
+            const trackListFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadTrackListFeature()
+                    .then((registerTrackListFeature) => {
+                        trackListFeature = registerTrackListFeature({
+                            refs: {
+                                trackListData,
+                                trackListContainerRef,
+                                draggingSectionIndex,
+                                itemPool,
+                                scheduledTasks,
+                                showTrackList,
+                                isMobile,
+                                isDark,
+                                sidebarTab,
+                            },
+                            state: {
+                                settings,
+                            },
+                            utils: {
+                                parseTime: timeUtils.parseTime,
+                                formatSecs: formatUtils.formatSecs,
+                                getNameById,
+                            },
+                            actions: {
+                                openAlertModal,
+                                openInputModal,
+                                pushHistory,
+                                autoUpdateEfficiency,
+                                checkCanDeleteSplit: (...args) => checkCanDeleteSplit(...args),
+                                restoreSplitTime,
+                                updateTaskNotification,
+                                triggerTouchHaptic: triggerTouchHaptic,
+                                moveDivider,
+                                pruneEmptySchedules,
+                                calculateSingleRatio,
+                            },
+                        });
+                        trackListReady.value = true;
+                        return trackListFeature;
+                    }),
+            });
+            const getTrackListFeature = trackListFeatureProxy.getFeature;
+            const withTrackListFeature = trackListFeatureProxy.method;
+            const autoDistributeSections = withTrackListFeature('autoDistributeSections');
+            const autoResizeScheduleByRecords = withTrackListFeature('autoResizeScheduleByRecords');
+            const startDividerDrag = withTrackListFeature('startDividerDrag');
+            const onDividerDragMove = withTrackListFeature('onDividerDragMove');
+            const onDividerDragEnd = withTrackListFeature('onDividerDragEnd');
+            const handleTrackListAutoScroll = withTrackListFeature('handleTrackListAutoScroll');
+            const stopTrackListAutoScroll = withTrackListFeature('stopTrackListAutoScroll');
+            const calcTrackDiff = withTrackListFeature('calcTrackDiff');
+            const setTrackBreak = withTrackListFeature('setTrackBreak');
+            const deleteTrackFromList = withTrackListFeature('deleteTrackFromList');
+            const autoCalcDuration = withTrackListFeature('autoCalcDuration');
+            const saveScheduleActualTime = withTrackListFeature('saveScheduleActualTime');
+            const saveTrackActual = withTrackListFeature('saveTrackActual');
+            const onTrackListReminderChange = withTrackListFeature('onTrackListReminderChange');
+            const setTrackNow = withTrackListFeature('setTrackNow');
+            const saveTrackRecord = withTrackListFeature('saveTrackRecord');
+            const clearTrackTime = withTrackListFeature('clearTrackTime');
+            const getOrchSize = withTrackListFeature('getOrchSize', 0);
+            const isOrchestraGroup = withTrackListFeature('isOrchestraGroup', false);
+            const isPercussionGroup = withTrackListFeature('isPercussionGroup', false);
+            const isStringGroup = withTrackListFeature('isStringGroup', false);
+            const sortTrackList = withTrackListFeature('sortTrackList');
+            const autoSortTrackList = withTrackListFeature('autoSortTrackList');
+            const startTrackDrag = withTrackListFeature('startTrackDrag');
+            const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
+            const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
 
             // 🟢 修改: getTaskStyle (增加 z-index 控制)
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
@@ -6042,73 +1099,14 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             // 🟢 新增: 判断任务是否为"幽灵"状态 (Session不匹配 或 视图类型不匹配)
             const isTaskGhost = (task) => scheduleFeature.isTaskGhost(task);
 
-            const hasRecordingInfo = (task) => {
-                // 定义一个辅助函数来检查对象是否有内容
-                const checkInfo = (info) => {
-                    if (!info) return false;
-                    return !!(
-                        (info.studio && info.studio.trim()) ||
-                        (info.engineer && info.engineer.trim()) ||
-                        (info.operator && info.operator.trim()) ||
-                        (info.assistant && info.assistant.trim()) ||
-                        (info.notes && info.notes.trim())
-                    );
-                };
+            const hasRecordingInfo = (task) => scheduleFeature.hasRecordingInfo(task);
 
-                // 同时检查录音信息和编辑信息
-                return checkInfo(task.recordingInfo) || checkInfo(task.editInfo);
-            };
-
-            // 🟢 [修改] ensureItemRecords: 修复“自动跟随”失效的问题
-            const ensureItemRecords = (item) => {
-                ensureItemSplitViews(item);
-
-                // 1. 初始化时间记录 records (保持不变)
-                if (!item.records) {
-                    item.records = { musician: {}, project: {}, instrument: {} };
-                    if (item.actualDuration || item.recStart || item.recEnd) {
-                        item.records.musician = {
-                            recStart: item.recStart || '',
-                            recEnd: item.recEnd || '',
-                            actualDuration: item.actualDuration || '',
-                            breakMinutes: item.breakMinutes || 0
-                        };
-                    }
-                }
-                if (!item.records.musician) item.records.musician = {};
-                if (!item.records.project) item.records.project = {};
-                if (!item.records.instrument) item.records.instrument = {};
-
-                // 2. 初始化多维倍率 ratios
-                if (!item.ratios) {
-                    // 旧数据迁移：如果是旧数据，保留原 ratio；如果是新初始化，设为 null (自动)
-                    const oldRatio = item.ratio || 20;
-
-                    item.ratios = {
-                        // 演奏员：保留旧值作为初始值
-                        musician: item.musicianId ? oldRatio : null,
-                        // 项目/乐器：默认为 null (开启自动跟随)
-                        project: null,
-                        instrument: null
-                    };
-                }
-
-                // 🛑 删除或注释掉下面这三行！它们是罪魁祸首！
-                // if (!item.ratios.musician) item.ratios.musician = 20;
-                // if (!item.ratios.project) item.ratios.project = 20;
-                // if (!item.ratios.instrument) item.ratios.instrument = 20;
-
-                // 🟢 改为：如果键不存在(undefined)，才初始化为 null；如果是 null 则保留 null
-                if (item.ratios.musician === undefined) item.ratios.musician = null;
-                if (item.ratios.project === undefined) item.ratios.project = null;
-                if (item.ratios.instrument === undefined) item.ratios.instrument = null;
-
-                return item;
-            };
-
-            const isToday = d => formatDate(new Date()) === d;
-
-            const sidebarTab = ref('musician');
+            const toggleSidebar = sidebarFeature.toggleSidebar;
+            const onSidebarTouchStart = sidebarFeature.onSidebarTouchStart;
+            const onSidebarTouchEnd = sidebarFeature.onSidebarTouchEnd;
+            const sidebarTransitionName = sidebarFeature.sidebarTransitionName;
+            const sidebarScrollRef = sidebarFeature.sidebarScrollRef;
+            const switchSidebarTab = sidebarFeature.switchSidebarTab;
 
             splitTaskFeature = registerSplitTaskFeature({
                 refs: {
@@ -6120,19 +1118,16 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     showTrackList,
                 },
                 split: {
-                    createHiddenSplitState,
-                    deactivateItemInView,
+                    ...splitStateUtils,
                     getSplitViewState,
-                    hasVisibleSplitStateInAnyView,
                     isItemVisibleInView: isItemVisibleForView,
-                    setItemSplitState,
-                    syncLegacySplitFields,
+                    peekSplitViewState,
                 },
                 utils: {
-                    parseTime,
-                    timeToMinutes,
-                    formatSecs,
-                    generateUniqueId,
+                    parseTime: timeUtils.parseTime,
+                    timeToMinutes: timeUtils.timeToMinutes,
+                    formatSecs: formatUtils.formatSecs,
+                    generateUniqueId: idUtils.generateUniqueId,
                     calculateEstTime,
                 },
                 actions: {
@@ -6144,53 +1139,70 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     pushHistory,
                     autoUpdateEfficiency,
                     autoSortTrackList,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    triggerTouchHaptic: triggerTouchHaptic,
                 },
             });
             splitState = splitTaskFeature.splitState;
+            const {
+                checkCanSplit: splitTaskCheckCanSplit,
+                checkCanDeleteSplit,
+                getFamilyTotalDuration,
+                syncFamilyLegacyFields,
+                syncFamilySharedIdentity,
+                syncFamilyOrchestration,
+                syncScheduledDurationsFromFamily,
+                openSplitSlider: splitTaskOpenSplitSlider,
+                onSplitSliderInput: splitTaskOnSplitSliderInput,
+                confirmSplitSlider: splitTaskConfirmSplitSlider,
+                restoreSplitTime: splitTaskRestoreSplitTime,
+            } = splitTaskFeature;
+            checkCanSplit = splitTaskCheckCanSplit;
+            openSplitSlider = splitTaskOpenSplitSlider;
+            onSplitSliderInput = splitTaskOnSplitSliderInput;
+            confirmSplitSlider = splitTaskConfirmSplitSlider;
+            restoreSplitTime = splitTaskRestoreSplitTime;
 
-            const taskEditorFeature = registerTaskEditorFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    editingItem,
-                    editingSource,
-                    showEditor,
-                    sidebarTab,
-                    trackListData,
-                },
-                split: {
-                    ensureItemSplitViews,
-                    normalizeSplitViewType,
-                    getSplitViewState,
-                    setItemSplitState,
-                    syncLegacySplitFields,
-                    rebalanceSplitFamilyDuration,
-                    syncFamilyLegacyFields,
-                    syncFamilySharedIdentity,
-                    syncFamilyOrchestration,
-                    syncFamilyTotalDuration,
-                    syncScheduledDurationsFromFamily,
-                },
-                utils: {
-                    calculateEstTime,
-                    getDefaultRatio,
-                },
-                actions: {
-                    checkCanDeleteSplit,
-                    restoreSplitTime,
-                    clearPoolRecord,
-                    cleanupEmptySchedules,
-                    openAlertModal,
-                    autoUpdateEfficiency,
-                    updateTaskNotification,
-                    pushHistory,
-                    cancelNotification: (notificationId) => deviceService.cancelNotification(notificationId),
-                },
+            const taskEditorFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadTaskEditorFeature()
+                    .then((registerTaskEditorFeature) => registerTaskEditorFeature({
+                        refs: {
+                            itemPool,
+                            scheduledTasks,
+                            editingItem,
+                            editingSource,
+                            showEditor,
+                            sidebarTab,
+                            trackListData,
+                        },
+                        split: {
+                            ...splitStateUtils,
+                            getSplitViewState,
+                            syncFamilyLegacyFields,
+                            syncFamilySharedIdentity,
+                            syncFamilyOrchestration,
+                            syncScheduledDurationsFromFamily,
+                        },
+                        utils: {
+                            calculateEstTime,
+                            getDefaultRatio,
+                        },
+                        actions: {
+                            checkCanDeleteSplit,
+                            restoreSplitTime,
+                            clearPoolRecord: (...args) => clearPoolRecord(...args),
+                            clearAggregateRecords: (...args) => clearAggregateRecords(...args),
+                            cleanupEmptySchedules,
+                            openAlertModal,
+                            autoUpdateEfficiency,
+                            updateTaskNotification,
+                            pushHistory,
+                            cancelNotification: (notificationId) => deviceService.cancelNotification(notificationId),
+                        },
+                    })),
             });
-            const openEditModal = taskEditorFeature.openEditModal;
-            const saveEdit = taskEditorFeature.saveEdit;
-            const deleteEditingItem = taskEditorFeature.deleteEditingItem;
+            const openEditModal = taskEditorFeatureProxy.method('openEditModal');
+            const saveEdit = taskEditorFeatureProxy.method('saveEdit');
+            const deleteEditingItem = taskEditorFeatureProxy.method('deleteEditingItem');
 
             scheduleFeature = registerScheduleFeature({
                 refs: {
@@ -6201,137 +1213,192 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     showTrackList,
                     pxPerMin,
                     sidebarTab,
+                    currentView,
+                    viewDate,
                 },
                 state: {
                     settings,
                 },
                 utils: {
-                    parseTime,
-                    timeToMinutes,
+                    parseTime: timeUtils.parseTime,
+                    timeToMinutes: timeUtils.timeToMinutes,
                     getNameById,
+                    addDaysToDate: timeUtils.addDaysToDate,
+                    addMinutesToTimeValue: timeUtils.addMinutesToTimeValue,
                 },
                 actions: {
                     pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                    getCurrentWeekDays: () => currentWeekDays.value,
                 },
             });
-
-            settingsFeature = registerSettingsFeature({
+            const settingsSyncFeature = registerSettingsSyncFeature({
                 refs: {
-                    itemPool,
-                    scheduledTasks,
                     settingsExpandedGroups,
-                    newSettingsItem,
+                    settingsGroupFocus,
                 },
                 state: {
                     settings,
                 },
                 utils: {
-                    generateUniqueId,
+                    generateUniqueId: idUtils.generateUniqueId,
                     generateRandomHexColor,
                 },
-                actions: {
-                    pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                    openConfirmModal,
-                    openAlertModal,
-                    cleanupEmptySchedules,
-                    autoUpdateEfficiency,
-                },
+                actions: {},
             });
+            const {
+                inputRects,
+                settingsNameFocus,
+                updateInputRect,
+                getFloatingStyle,
+                onSettingsScroll,
+                getUngroupedItems,
+                sortedInstruments,
+                sortedMusicians,
+                sortedProjects,
+                isAllGroupsExpanded,
+                toggleAllGroups,
+                toggleSettingsGroup,
+                getSettingsGroupedList,
+                findSettingId,
+                getOrCreateProjectId,
+                getExistingGroups,
+                getOrCreateSettingItem,
+            } = settingsSyncFeature;
+            let allSettingsGrouped = settingsSyncFeature.allSettingsGrouped;
+            const settingsFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadSettingsFeature()
+                    .then((registerSettingsFeature) => {
+                        settingsFeature = registerSettingsFeature({
+                            refs: {
+                                itemPool,
+                                scheduledTasks,
+                                settingsExpandedGroups,
+                                newSettingsItem,
+                                settingsGroupFocus,
+                            },
+                            state: {
+                                settings,
+                            },
+                            utils: {
+                                generateUniqueId: idUtils.generateUniqueId,
+                                generateRandomHexColor,
+                            },
+                            actions: {
+                                pushHistory,
+                                triggerTouchHaptic: triggerTouchHaptic,
+                                openConfirmModal,
+                                openAlertModal,
+                                cleanupEmptySchedules,
+                                autoUpdateEfficiency,
+                            },
+                        });
+                        allSettingsGrouped = computed(() => settingsFeature.getAllSettingsGrouped());
+                        return settingsFeature;
+                    }),
+            });
+            const settingsHandlers = settingsFeatureProxy.methods([
+                'onSettingsItemDragStart',
+                'onSettingsItemDragEnd',
+                'disableRowDrag',
+                'enableRowDrag',
+                'onSettingsDragOver',
+                'onSettingsDragLeave',
+                'onSettingsDrop',
+                'renameGroup',
+                'addSettingsItem',
+                'removeSettingsItem',
+                'clearSettingsList',
+                'handleItemRename',
+            ]);
 
-            importCsvFeature = registerImportCsvFeature({
-                refs: {
-                    csvSearchQuery,
-                    csvImportData,
-                    csvImportConfig,
-                    activeImportTab,
-                    collapsedProjects,
-                    rawCsvRows,
-                    csvHeadersMap,
-                    showCsvImportModal,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    formatSecs,
-                    parseTime,
-                    normalizeDate,
-                    getOrchString,
-                    getNameById,
-                    getOrCreateSettingItem,
-                    calculateEstTime,
-                    generateUniqueId,
-                },
-                actions: {
-                    pushHistory,
-                    openAlertModal,
-                    autoUpdateEfficiency,
-                    autoResizeSchedules,
-                },
+            const importDataFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadImportDataFeature().then(({ registerImportDataFeature, csvUtils, midiUtils }) => {
+                    importDataFeature = registerImportDataFeature({
+                        refs: {
+                            csvSearchQuery: store.csvSearchQuery,
+                            csvImportData: store.csvImportData,
+                            csvImportConfig: store.csvImportConfig,
+                            activeImportTab: store.activeImportTab,
+                            collapsedProjects: store.collapsedProjects,
+                            rawCsvRows: store.rawCsvRows,
+                            csvHeadersMap: store.csvHeadersMap,
+                            showCsvImportModal,
+                            itemPool,
+                            scheduledTasks,
+                            currentSessionId,
+                            managingProject,
+                            showMidiImportModal,
+                            midiImportData: store.midiImportData,
+                            midiBpm: store.midiBpm,
+                            midiTempoMap: store.midiTempoMap,
+                            midiTimeSigs: store.midiTimeSigs,
+                            midiViewMode: store.midiViewMode,
+                            midiTimeSig: store.midiTimeSig,
+                            activeImportMenu: store.activeImportMenu,
+                            importMenuPos: store.importMenuPos,
+                            importSearchQuery: store.importSearchQuery,
+                        },
+                        state: {
+                            settings,
+                        },
+                        utils: {
+                            formatSecs: formatUtils.formatSecs,
+                            parseTime: timeUtils.parseTime,
+                            normalizeDate: csvUtils.normalizeDate,
+                            getOrchString: csvUtils.getOrchString,
+                            getNameById,
+                            getOrCreateSettingItem,
+                            calculateEstTime,
+                            generateUniqueId: idUtils.generateUniqueId,
+                            buildTempoMap: midiUtils.buildTempoMap,
+                            buildTimeSigMap: midiUtils.buildTimeSigMap,
+                            extractNotesFromJZZTrack: midiUtils.extractNotesFromJZZTrack,
+                            calculateBarQuantizedDuration: midiUtils.calculateBarQuantizedDuration,
+                            normalizeForMatch: midiUtils.normalizeForMatch,
+                            generateRandomHexColor,
+                        },
+                        actions: {
+                            openAlertModal,
+                            pushHistory,
+                            autoUpdateEfficiency,
+                            autoResizeSchedules,
+                            triggerTouchHaptic: triggerTouchHaptic,
+                            sortedInstruments,
+                            nextTick,
+                        },
+                    });
+                    groupedCsvData = importDataFeature.groupedCsvData;
+                    isAllSelected = importDataFeature.isAllSelected;
+                    availableInstrumentGroups = importDataFeature.availableInstrumentGroups;
+                    midiGroupExpanded = importDataFeature.midiGroupExpanded;
+                    midiGroupData = importDataFeature.midiGroupData;
+                    currentMidiDisplayList = importDataFeature.currentMidiDisplayList;
+                    filteredImportOptions = importDataFeature.filteredImportOptions;
+                    return importDataFeature;
+                }),
             });
-
-            exportCsvFeature = registerExportCsvFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime,
-                    getNameById,
-                },
-                actions: {
-                    openAlertModal,
-                    openInputModal,
-                },
-            });
-            const showExportModal = exportCsvFeature.showExportModal;
-            const exportFilter = exportCsvFeature.exportFilter;
-            const exportSessionOptions = exportCsvFeature.exportSessionOptions;
-            const filteredExportProjects = exportCsvFeature.filteredExportProjects;
-            const filteredExportMusicians = exportCsvFeature.filteredExportMusicians;
-            const filteredExportInstruments = exportCsvFeature.filteredExportInstruments;
-            const exportDateRange = exportCsvFeature.exportDateRange;
-            const exportPreviewCount = exportCsvFeature.exportPreviewCount;
-
-            importMidiFeature = registerImportMidiFeature({
-                refs: {
-                    settings,
-                    managingProject,
-                    showMidiImportModal,
-                    midiImportData,
-                    midiBpm,
-                    midiTempoMap,
-                    midiTimeSigs,
-                    midiViewMode,
-                    midiTimeSig,
-                },
-                utils: {
-                    buildTempoMap,
-                    buildTimeSigMap,
-                    extractNotesFromJZZTrack,
-                    calculateBarQuantizedDuration,
-                    normalizeForMatch,
-                    findGroupSmart,
-                    generateUniqueId,
-                    generateRandomHexColor,
-                    formatSecs,
-                    midiSmf: JZZ.MIDI.SMF,
-                },
-                actions: {
-                    openAlertModal,
-                    pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
+            const calculateRowStatusText = importDataFeatureProxy.method('calculateRowStatusText');
+            const refreshCsvStatus = importDataFeatureProxy.method('refreshCsvStatus');
+            const toggleCsvSelection = importDataFeatureProxy.method('toggleCsvSelection');
+            const confirmCsvImport = importDataFeatureProxy.method('confirmCsvImport');
+            const addDataToPrepared = importDataFeatureProxy.method('addDataToPrepared');
+            const triggerMidiImportForProject = importDataFeatureProxy.method('triggerMidiImportForProject');
+            const triggerMidiImport = importDataFeatureProxy.method('triggerMidiImport');
+            const handleMidiFile = importDataFeatureProxy.method('handleMidiFile');
+            const processMidiFile = importDataFeatureProxy.method('processMidiFile');
+            const isGroupSelected = importDataFeatureProxy.method('isGroupSelected');
+            const toggleGroupSelection = importDataFeatureProxy.method('toggleGroupSelection');
+            const toggleAllRows = importDataFeatureProxy.method('toggleAllRows');
+            const findGroupFromLibrary = importDataFeatureProxy.method('findGroupFromLibrary');
+            const onImportInstChange = importDataFeatureProxy.method('onImportInstChange');
+            const getSmartName = (row) => importDataFeature?.getSmartName(row) ?? '';
+            const confirmMidiImport = importDataFeatureProxy.method('confirmMidiImport');
+            const triggerCSV = importDataFeatureProxy.method('triggerCSV');
+            const parseCSVLine = importDataFeatureProxy.method('parseCSVLine');
+            const parseCSVRobust = importDataFeatureProxy.method('parseCSVRobust');
+            const handleCSVImport = importDataFeatureProxy.method('handleCSVImport');
+            const refreshCsvPreview = importDataFeatureProxy.method('refreshCsvPreview');
 
             authFeature = registerAuthFeature({
                 refs: {
@@ -6342,7 +1409,7 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     activeDropdown,
                     showProfileMenu,
                     showMobileMenu,
-                    tempAvatarUrl,
+                    tempAvatarUrl: store.tempAvatarUrl,
                     tempNickname,
                     localDataVersion,
                     saveStatus,
@@ -6355,10 +1422,10 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     settings,
                 },
                 utils: {
-                    formatDate,
+                    formatDate: formatUtils.formatDate,
                     ensureItemRecords,
                     calculateEstTime,
-                    generateUniqueId,
+                    generateUniqueId: idUtils.generateUniqueId,
                 },
                 services: {
                     storageService,
@@ -6368,53 +1435,122 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     pushHistory,
                     openAlertModal,
                     openConfirmModal,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                    reloadPage: () => window.location.reload(),
+                    triggerTouchHaptic: triggerTouchHaptic,
                     setSaveStatus: (value) => {
                         saveStatus.value = value;
                     },
                 },
             });
+            const toggleProjectCollapse = importDataFeatureProxy.method('toggleProjectCollapse');
+            const toggleAllProjectCollapse = importDataFeatureProxy.method('toggleAllProjectCollapse');
+            const toggleMidiGroupExpand = importDataFeatureProxy.method('toggleMidiGroupExpand');
+            const findGroupSmart = importDataFeatureProxy.method('findGroupSmart');
+            const openImportMenu = importDataFeatureProxy.method('openImportMenu');
+            const closeImportMenu = importDataFeatureProxy.method('closeImportMenu');
+            const selectImportInst = importDataFeatureProxy.method('selectImportInst');
+            const selectImportNewInst = importDataFeatureProxy.method('selectImportNewInst');
+            const selectImportGroup = importDataFeatureProxy.method('selectImportGroup');
+            const midiManagerFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadMidiManagerFeature()
+                    .then((registerMidiManagerFeature) => {
+                        midiManagerFeature = registerMidiManagerFeature({
+                            refs: {
+                                showMidiManager,
+                                managingProject,
+                                activeMidiGroupRow: store.activeMidiGroupRow,
+                                midiGroupPos: store.midiGroupPos,
+                                midiGroupSearchQuery: store.midiGroupSearchQuery,
+                                newItem,
+                                itemPool,
+                                scheduledTasks,
+                                currentSessionId,
+                                showMobileTaskInput,
+                                isMobile,
+                            },
+                            state: {
+                                settings,
+                            },
+                            utils: {
+                                calculateEstTime,
+                                getNameById,
+                            },
+                            actions: {
+                                getAvailableInstrumentGroups: () => availableInstrumentGroups,
+                                openConfirmModal,
+                                pushHistory,
+                                triggerTouchHaptic: triggerTouchHaptic,
+                            },
+                        });
+                        midiManagerExpandedGroups = midiManagerFeature.midiManagerExpandedGroups;
+                        projectMidiList = midiManagerFeature.projectMidiList;
+                        projectMidiGroups = midiManagerFeature.projectMidiGroups;
+                        filteredMidiGroups = midiManagerFeature.filteredMidiGroups;
+                        return midiManagerFeature;
+                    }),
+            });
+            const getMidiManagerFeature = midiManagerFeatureProxy.getFeature;
+            const withMidiManagerFeature = midiManagerFeatureProxy.method;
+            const toggleMidiManagerGroup = withMidiManagerFeature('toggleMidiManagerGroup');
+            const openMidiGroupDropdown = withMidiManagerFeature('openMidiGroupDropdown');
+            const selectMidiGroup = withMidiManagerFeature('selectMidiGroup');
+            const openMidiManager = withMidiManagerFeature('openMidiManager');
+            const updateMidiDuration = withMidiManagerFeature('updateMidiDuration');
+            const removeMidiMapping = withMidiManagerFeature('removeMidiMapping');
+            const clearProjectMidi = withMidiManagerFeature('clearProjectMidi');
+            const updateInstrumentGroup = withMidiManagerFeature('updateInstrumentGroup');
+            const isOverlapping = withMidiManagerFeature('isOverlapping', false);
+            const calculateEffectiveDuration = withMidiManagerFeature('calculateEffectiveDuration', 0);
+            const calculateAccurateDuration = withMidiManagerFeature('calculateAccurateDuration', 0);
+            const convertTicksToSeconds = withMidiManagerFeature('convertTicksToSeconds', 0);
+            const calculateQuantizedDuration = withMidiManagerFeature('calculateQuantizedDuration', { seconds: 0 });
+            const autoFillMidiDuration = withMidiManagerFeature('autoFillMidiDuration');
+            userAvatar = authFeature.userAvatar;
+            userDisplayName = authFeature.userDisplayName;
 
-            groupedCsvData = importCsvFeature.groupedCsvData;
-            isAllSelected = importCsvFeature.isAllSelected;
-            availableInstrumentGroups = importMidiFeature.availableInstrumentGroups;
-            midiGroupData = importMidiFeature.midiGroupData;
-            currentMidiDisplayList = importMidiFeature.currentMidiDisplayList;
-            midiManagerFeature = registerMidiManagerFeature({
+            let currentSidebarList;
+            searchFeature = registerSearchFeature({
                 refs: {
-                    showMidiManager,
-                    managingProject,
-                    activeMidiGroupRow,
-                    midiGroupPos,
-                    midiGroupSearchQuery,
-                    newItem,
                     itemPool,
                     scheduledTasks,
-                    currentSessionId,
-                    showMobileTaskInput,
+                    globalSearchQuery,
+                    currentSearchIndex: store.currentSearchIndex,
+                    searchHighlightTimer: store.searchHighlightTimer,
+                    lastHighlightedTrackId: store.lastHighlightedTrackId,
+                    lastTrackSearchQuery: store.lastTrackSearchQuery,
+                    trackSearchIndex: store.trackSearchIndex,
+                    trackListSearchQuery: store.trackListSearchQuery,
+                    trackListData,
+                    showTrackList,
+                    isSearchFocused,
                     isMobile,
                 },
                 state: {
+                    sidebarTab,
                     settings,
+                    musicianStats: { get value() { return musicianStats.value; } },
+                    projectStats: { get value() { return projectStats.value; } },
+                    instrumentStats: { get value() { return instrumentStats.value; } },
                 },
                 utils: {
-                    calculateEstTime,
                     getNameById,
                 },
                 actions: {
-                    getAvailableInstrumentGroups: () => availableInstrumentGroups,
-                    openConfirmModal,
-                    pushHistory,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    openAlertModal,
+                    smartScrollToTask,
+                    triggerTouchHaptic: triggerTouchHaptic,
+                    getSidebarList: () => currentSidebarList.value,
                 },
             });
-            midiManagerExpandedGroups = midiManagerFeature.midiManagerExpandedGroups;
-            projectMidiList = midiManagerFeature.projectMidiList;
-            projectMidiGroups = midiManagerFeature.projectMidiGroups;
-            filteredMidiGroups = midiManagerFeature.filteredMidiGroups;
-            userAvatar = authFeature.userAvatar;
-            userDisplayName = authFeature.userDisplayName;
+            const {
+                filteredScheduledTasks,
+                filteredSidebarList,
+                getFullSearchText,
+                smartMatch,
+                handleSearchEnter,
+                handleSearchBlur,
+                onSearchFocus,
+                handleTrackListSearchAction,
+            } = searchFeature;
 
             const sidebarStatsFeature = registerSidebarStatsFeature({
                 refs: {
@@ -6425,15 +1561,16 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     sidebarTab,
                     sortField,
                     sortAsc,
-                    statClickIndexMap,
+                    statClickIndexMap: store.statClickIndexMap,
                     isMobile,
+                    expandedGroups,
                 },
                 state: {
                     settings,
                 },
                 utils: {
-                    parseTime,
-                    formatSecs,
+                    parseTime: timeUtils.parseTime,
+                    formatSecs: formatUtils.formatSecs,
                     calculateEstTime,
                     getNameById,
                     getFullSearchText,
@@ -6445,22 +1582,27 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     pushHistory,
                     openAlertModal,
                     smartScrollToTask,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    triggerTouchHaptic: triggerTouchHaptic,
                 },
             });
-            const calculateGroupStats = sidebarStatsFeature.calculateGroupStats;
-            const musicianStats = sidebarStatsFeature.musicianStats;
-            const projectStats = sidebarStatsFeature.projectStats;
-            const instrumentStats = sidebarStatsFeature.instrumentStats;
-            const activeTaskCount = sidebarStatsFeature.activeTaskCount;
-            const currentSidebarList = sidebarStatsFeature.currentSidebarList;
-            const expandedStatsIds = sidebarStatsFeature.expandedStatsIds;
-            const toggleStatCollapse = sidebarStatsFeature.toggleStatCollapse;
-            const updateMusicianRatio = sidebarStatsFeature.updateMusicianRatio;
-            const jumpToStatSchedule = sidebarStatsFeature.jumpToStatSchedule;
-            const handleStatCardClick = sidebarStatsFeature.handleStatCardClick;
+            const {
+                calculateGroupStats,
+                musicianStats,
+                projectStats,
+                instrumentStats,
+                activeTaskCount,
+                expandedStatsIds,
+                toggleSort,
+                getSortIcon,
+                toggleCollapse,
+                toggleStatCollapse,
+                updateMusicianRatio,
+                jumpToStatSchedule,
+                handleStatCardClick,
+            } = sidebarStatsFeature;
+            currentSidebarList = sidebarStatsFeature.currentSidebarList;
 
-            const calendarViewFeature = registerCalendarViewFeature({
+            const viewNavigationFeature = registerViewNavigationFeature({
                 refs: {
                     currentView,
                     monthViewMode,
@@ -6472,130 +1614,68 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
                     weekContainer,
                     pxPerMin,
                     isMobile,
+                    flashingTaskId,
+                    mobileTab,
+                    dayColWidth,
+                    isResizingMobile,
+                    currentSessionId,
+                    sidebarTab,
+                    isContextSwitching,
                 },
                 state: {
                     settings,
                 },
-                utils: {
-                    formatDate,
-                },
-                actions: {
-                    triggerTouchHaptic: window.triggerTouchHaptic,
-                },
-            });
-            const renderedRange = calendarViewFeature.renderedRange;
-            const isLoadingMore = calendarViewFeature.isLoadingMore;
-            const setMonthRef = calendarViewFeature.setMonthRef;
-            const initMonthObserver = calendarViewFeature.initMonthObserver;
-            const timeSlots = calendarViewFeature.timeSlots;
-            const dateTransitionName = calendarViewFeature.dateTransitionName;
-            const changeDate = calendarViewFeature.changeDate;
-            const currentWeekDays = calendarViewFeature.currentWeekDays;
-            const generateMonthGrid = calendarViewFeature.generateMonthGrid;
-            const currentMonthDays = calendarViewFeature.currentMonthDays;
-            const flatScrolledDays = calendarViewFeature.flatScrolledDays;
-            const handleInfiniteScroll = calendarViewFeature.handleInfiniteScroll;
-            const scrollToMonthDate = calendarViewFeature.scrollToMonthDate;
-            const currentDateLabel = calendarViewFeature.currentDateLabel;
-            const tasksByDateMap = calendarViewFeature.tasksByDateMap;
-            const getTasksForDate = calendarViewFeature.getTasksForDate;
-            const switchToWeek = calendarViewFeature.switchToWeek;
-            const jumpToToday = calendarViewFeature.jumpToToday;
-
-            searchFeature = registerSearchFeature({
-                refs: {
-                    globalSearchQuery,
-                    currentSearchIndex,
-                    searchHighlightTimer,
-                    lastHighlightedTrackId,
-                    lastTrackSearchQuery,
-                    trackSearchIndex,
-                    trackListSearchQuery,
-                    trackListData,
-                    filteredScheduledTasks,
-                    sidebarList: currentSidebarList,
-                    showTrackList,
-                    isSearchFocused,
-                    isMobile,
+                services: {
+                    storageService,
                 },
                 utils: {
-                    getNameById,
+                    formatDate: formatUtils.formatDate,
+                    timeToMinutes: timeUtils.timeToMinutes,
                 },
                 actions: {
-                    openAlertModal,
-                    smartScrollToTask,
-                    triggerTouchHaptic: window.triggerTouchHaptic,
+                    isDragActive: () => !!dragState.dragElClone,
+                    triggerTouchHaptic: triggerTouchHaptic,
                 },
             });
+            const {
+                renderedRange,
+                isLoadingMore,
+                setMonthRef,
+                initMonthObserver,
+                timeSlots,
+                dateTransitionName,
+                changeDate,
+                currentWeekDays,
+                generateMonthGrid,
+                currentMonthDays,
+                flatScrolledDays,
+                handleInfiniteScroll,
+                scrollToMonthDate,
+                currentDateLabel,
+                tasksByDateMap,
+                getTasksForDate,
+                switchToWeek,
+                handleHeaderDoubleTap,
+                handleMonthCellDoubleTap,
+                jumpToToday,
+                isToday,
+                viewTransitionName,
+                onMainMouseDown,
+                onMainMouseUp,
+                onMainWheel,
+                onMainTouchStart,
+                onMainTouchEnd,
+                isMouseViewDrag,
+                widthIcon,
+                cycleDayWidth,
+                jumpToGhostContext,
+            } = viewNavigationFeature;
+            switchView = viewNavigationFeature.switchView;
 
-            const filteredSidebarList = searchFeature.filteredSidebarList;
-            const handleSearchEnter = searchFeature.handleSearchEnter;
-            const handleSearchBlur = searchFeature.handleSearchBlur;
-            const onSearchFocus = searchFeature.onSearchFocus;
-            const handleTrackListSearchAction = searchFeature.handleTrackListSearchAction;
-
-            // 🟢 新增: 计算当前弹窗内日程块的实时比率
-            const getSessionRatio = () => {
-                const actual = trackListData.value.actualDuration;
-                const items = trackListData.value.items;
-
-                if (!actual || !items || items.length === 0) return '-';
-
-                const actualSec = parseTime(actual);
-                if (actualSec === 0) return '-';
-
-                // 计算该块内所有曲目的谱面总长
-                const totalMusicSec = items.reduce((sum, item) => sum + parseTime(item.musicDuration), 0);
-
-                if (totalMusicSec === 0) return '-';
-
-                return (actualSec / totalMusicSec).toFixed(1);
-            };
-
-            const musicianScheduledStats = computed(() => {
-                const map = {};
-
-                for (const mus of settings.musicians) {
-                    map[mus.id] = {
-                        id: mus.id,
-                        name: mus.name,
-                        color: mus.color,
-                        scheduledSeconds: 0
-                    };
-                }
-
-                for (const task of scheduledTasks.value) {
-                    const sec = parseTime(task.estDuration);
-                    if (map[task.musicianId]) {
-                        map[task.musicianId].scheduledSeconds += sec;
-                    }
-                }
-
-                // 格式化
-                return Object.values(map).map(m => ({
-                    ...m,
-                    scheduledFormatted: formatSecs(m.scheduledSeconds)
-                }));
-            });
-
-            const handlePageUnload = () => {
-                if (saveStatus.value === 'unsaved') {
-                    // 尝试发送最后的数据 (利用 Beacon API 或同步请求，但最简单的是由浏览器尽力发送)
-                    saveToCloud(true);
-                }
-            };
-
-            // 🟢 修改: 清空列表 (级联删除任务，增加确认弹窗)
-            const clearAllInstruments = () => settingsFeature.clearAllInstruments();
-            const clearAllMusicians = () => settingsFeature.clearAllMusicians();
-            const clearAllProjects = () => settingsFeature.clearAllProjects();
-
+            const handlePageUnload = authFeature.handlePageUnload;
 
             // --- 🟢 手机端适配逻辑 ---
             // --- 🟢 手机端适配 & 布局自动修复 ---
-            const isContextSwitching = ref(false); // 🟢 [新增] 上下文切换锁
-            const mobileTab = ref('schedule');
-
             mobileUiFeature = registerMobileUiFeature({
                 refs: {
                     isMobile,
@@ -6616,18 +1696,716 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
             getThemeLabel = mobileUiFeature.getThemeLabel;
 
             // 🟢 优化: 增强版布局刷新函数
-            const refreshLayout = () => mobileUiFeature.refreshLayout();
+
+            const tourFeatureProxy = createLazyFeatureProxy({
+                loadFeature: () => loadTourFeature()
+                    .then((registerTourFeature) => registerTourFeature({
+                        refs: {
+                            isMobile,
+                            isSidebarOpen,
+                            mobileTab,
+                            showMobileTaskInput,
+                            sidebarScrollRef,
+                        },
+                        services: {
+                            storageService,
+                        },
+                    })),
+            });
+            const startTour = tourFeatureProxy.method('startTour');
+            const mountTourAutostart = tourFeatureProxy.method('mountTourAutostart');
+
+            const appSidebar = createRootSidebarShellState({
+                refs: {
+                    isMobile,
+                    mobileTab,
+                    isSidebarOpen,
+                    sidebarWidth,
+                    showMobileTaskInput,
+                    sidebarTab,
+                    activeTaskCount,
+                    musicianStats,
+                    projectStats,
+                    instrumentStats,
+                    sidebarScrollRef,
+                    sidebarTransitionName,
+                    sortField,
+                    filteredSidebarList,
+                    selectedPoolIds,
+                },
+                state: {
+                    dragState,
+                    expandedStatsIds,
+                },
+                actions: {
+                    dragEnterPool,
+                    dragLeavePool,
+                    dropToPool,
+                    clearSelection,
+                    onSidebarTouchStart,
+                    onSidebarTouchEnd,
+                    switchSidebarTab,
+                    toggleSort,
+                    getSortIcon,
+                    dragStart,
+                    handleStatCardClick,
+                    handlePoolTouchStart: mobileTouchHandlers.handlePoolTouchStart,
+                    handleTouchMove: mobileTouchHandlers.handleTouchMove,
+                    handleTouchEnd: mobileTouchHandlers.handleTouchEnd,
+                    jumpToStatSchedule,
+                    autoUpdateEfficiency,
+                    selectTask,
+                    openEditModal,
+                    getGroupColor,
+                    getNameById,
+                    calculateSingleRatio,
+                    getTaskRatio,
+                },
+                utils: {
+                    formatSecs: formatUtils.formatSecs,
+                },
+            });
+
+            const appMainContent = createRootMainContentShellState({
+                refs: {
+                    isMobile,
+                    mobileTab,
+                    isSidebarOpen,
+                    currentDateLabel,
+                    viewDate,
+                    currentView,
+                    widthIcon,
+                    viewTransitionName,
+                    dayColWidth,
+                    isZooming,
+                    weekContainer,
+                    slotHeight,
+                    weekGridWrapper,
+                    dateTransitionName,
+                    currentWeekDays,
+                    timeSlots,
+                    tasksByDateMap,
+                    selectedTaskId,
+                    flashingTaskId,
+                    monthViewMode,
+                    currentMonthDays,
+                    flatScrolledDays,
+                },
+                state: {
+                    settings,
+                    isMouseViewDrag,
+                },
+                actions: {
+                    handleInfiniteScroll,
+                    onMainTouchStart,
+                    onMainTouchEnd,
+                    onMainMouseDown,
+                    onMainMouseUp,
+                    onMainWheel,
+                    toggleSidebar,
+                    changeDate,
+                    jumpToToday,
+                    isToday,
+                    switchView,
+                    cycleDayWidth,
+                    clearSelection,
+                    onBeforeLeave,
+                    onAfterLeave,
+                    handleHeaderDoubleTap,
+                    dragEnterSlot,
+                    dragLeaveSlot,
+                    dropToSchedule,
+                    dragStart,
+                    handleDragEnd,
+                    handleTouchStart: mobileTouchHandlers.handleTouchStart,
+                    handleTouchMove: mobileTouchHandlers.handleTouchMove,
+                    handleTouchEnd: mobileTouchHandlers.handleTouchEnd,
+                    handleTaskDblClick,
+                    getOverlapCount,
+                    isTaskGhost,
+                    getTaskStyle,
+                    selectTask,
+                    getBlockTitle,
+                    initResize,
+                    hasRecordingInfo,
+                    initMobileResize: mobileTouchHandlers.initMobileResize,
+                    switchToWeek,
+                    handleMonthCellDoubleTap,
+                    dropToMonth,
+                    setMonthRef,
+                },
+                utils: {
+                    formatDate: formatUtils.formatDate,
+                },
+            });
+
+            const appSettingsModal = createRootSettingsModalShellState({
+                refs: {
+                    showSettings,
+                    settingsNameFocus,
+                    settingsGroupFocus,
+                    showMetadataManager,
+                },
+                state: {
+                    settings,
+                    settingsExpandedGroups,
+                    newSettingsItem,
+                    newRecInputs,
+                },
+                computedState: {
+                    allSettingsGrouped,
+                },
+                actions: {
+                    pushHistory,
+                    onSettingsScroll,
+                    toggleAllGroups,
+                    isAllGroupsExpanded,
+                    clearSettingsList: settingsHandlers.clearSettingsList,
+                    onSettingsDragOver: settingsHandlers.onSettingsDragOver,
+                    onSettingsDragLeave: settingsHandlers.onSettingsDragLeave,
+                    onSettingsDrop: settingsHandlers.onSettingsDrop,
+                    toggleSettingsGroup,
+                    renameGroup: settingsHandlers.renameGroup,
+                    onSettingsItemDragStart: settingsHandlers.onSettingsItemDragStart,
+                    onSettingsItemDragEnd: settingsHandlers.onSettingsItemDragEnd,
+                    openMidiManager,
+                    openColorPicker,
+                    handleItemRename: settingsHandlers.handleItemRename,
+                    disableRowDrag: settingsHandlers.disableRowDrag,
+                    enableRowDrag: settingsHandlers.enableRowDrag,
+                    openProjectInfoModal: metadataModalHandlers.openProjectInfoModal,
+                    removeSettingsItem: settingsHandlers.removeSettingsItem,
+                    updateInputRect,
+                    getFloatingStyle,
+                    getUngroupedItems,
+                    getExistingGroups,
+                    addSettingsItem: settingsHandlers.addSettingsItem,
+                    handleRecRename: metadataModalHandlers.handleRecRename,
+                    removeRecItem: metadataModalHandlers.removeRecItem,
+                    addRecItem: metadataModalHandlers.addRecItem,
+                    triggerCSV,
+                    handleCSVImport,
+                    factoryReset,
+                },
+            });
+
+            const appMobileControls = createRootMobileControlsShellState({
+                refs: {
+                    isMobile,
+                    globalSearchQuery,
+                    isSearchFocused,
+                    mobileTab,
+                    showMobileTaskInput,
+                },
+                actions: {
+                    onSearchFocus,
+                    handleSearchBlur,
+                    handleSearchEnter,
+                },
+            });
+
+            const appMobileTaskInput = createRootMobileTaskInputShellState({
+                refs: {
+                    showMobileTaskInput,
+                    activeDropdown,
+                    dropdownSearch,
+                    isMobile,
+                },
+                state: {
+                    newItem,
+                    dropdownExpandedGroups,
+                },
+                computedState: {
+                    filteredOptions,
+                },
+                actions: {
+                    getGroupColor,
+                    getNameById,
+                    getGroupedOptions,
+                    toggleDropdown,
+                    toggleDropdownGroup,
+                    selectOption,
+                    openQuickAdd,
+                    openDurationPicker,
+                    addItemToPool,
+                },
+            });
+
+            const appExportModal = createRootExportModalShellState({
+                refs: {
+                    showExportModal,
+                },
+                state: {
+                    exportFilter,
+                },
+                computedState: {
+                    exportSessionOptions,
+                    filteredExportProjects,
+                    filteredExportMusicians,
+                    filteredExportInstruments,
+                    exportDateRange,
+                    exportPreviewCount,
+                },
+                actions: {
+                    toggleFilterItem: dataIoHandlers.toggleFilterItem,
+                    toggleFilterAll: dataIoHandlers.toggleFilterAll,
+                    confirmExport: dataIoHandlers.confirmExport,
+                },
+            });
+
+            const appCreditModal = createRootCreditModalShellState({
+                refs: {
+                    showCreditModal,
+                    generatedCreditText,
+                    managingProject,
+                },
+                midiRefs: {
+                    midiBpm: store.midiBpm,
+                    midiTimeSig: store.midiTimeSig,
+                },
+                actions: {
+                    copyCreditText: metadataModalHandlers.copyCreditText,
+                },
+            });
+
+            const appExportCreditModalsShell = createRootExportCreditModalsShellState({
+                appExportModal,
+                appCreditModal,
+            });
+
+            const appMidiManagerModal = createRootMidiManagerModalShellState({
+                refs: {
+                    showMidiManager,
+                    managingProject,
+                    activeMidiGroupRow: store.activeMidiGroupRow,
+                    midiGroupSearchQuery: store.midiGroupSearchQuery,
+                },
+                state: {
+                    midiManagerExpandedGroups,
+                    midiGroupPos: store.midiGroupPos,
+                    settings,
+                },
+                computedState: {
+                    projectMidiGroups,
+                    filteredMidiGroups,
+                },
+                actions: {
+                    triggerMidiImportForProject,
+                    clearProjectMidi,
+                    toggleMidiManagerGroup,
+                    openMidiGroupDropdown,
+                    updateMidiDuration,
+                    removeMidiMapping,
+                    updateInstrumentGroup,
+                },
+            });
+
+            const appMidiImportModal = createRootMidiImportModalShellState({
+                refs: {
+                    showMidiImportModal,
+                    midiBpm: store.midiBpm,
+                    managingProject,
+                    midiViewMode: store.midiViewMode,
+                    midiImportData: store.midiImportData,
+                    importSearchQuery: store.importSearchQuery,
+                },
+                state: {
+                    midiGroupExpanded,
+                    activeImportMenu: store.activeImportMenu,
+                    importMenuPos: store.importMenuPos,
+                },
+                computedState: {
+                    midiGroupData,
+                    availableInstrumentGroups,
+                    filteredImportOptions,
+                    currentMidiDisplayList,
+                },
+                actions: {
+                    getNameById,
+                    getSmartName,
+                    openImportMenu,
+                    closeImportMenu,
+                    toggleGroupSelection,
+                    toggleMidiGroupExpand,
+                    confirmMidiImport,
+                    selectImportNewInst,
+                    selectImportInst,
+                    selectImportGroup,
+                },
+                utils: {
+                    formatSecs: formatUtils.formatSecs,
+                },
+            });
+
+            const appCsvImportModal = createRootCsvImportModalShellState({
+                refs: {
+                    showCsvImportModal,
+                    activeImportTab: store.activeImportTab,
+                    csvSearchQuery: store.csvSearchQuery,
+                    csvImportData: store.csvImportData,
+                    groupedCsvData,
+                },
+                state: {
+                    csvImportConfig: store.csvImportConfig,
+                    collapsedProjects: store.collapsedProjects,
+                },
+                actions: {
+                    refreshCsvStatus,
+                    toggleAllRows,
+                    toggleProjectCollapse,
+                    isGroupSelected,
+                    toggleGroupSelection,
+                    confirmCsvImport,
+                },
+            });
+
+            const appMidiCsvImportModalsShell = createRootMidiCsvImportModalsShellState({
+                appMidiManagerModal,
+                appMidiImportModal,
+                appCsvImportModal,
+            });
+
+            const appProjectInfoModal = createRootProjectInfoModalShellState({
+                refs: {
+                    showProjectInfoModal,
+                },
+                state: {
+                    projectInfoForm,
+                },
+                actions: {
+                    saveProjectInfo: metadataModalHandlers.saveProjectInfo,
+                },
+            });
+
+            const appEditModal = createRootEditModalShellState({
+                refs: {
+                    showEditor,
+                    editingItem,
+                    editingSource,
+                    activeDropdown,
+                    dropdownSearch,
+                    isMobile,
+                },
+                state: {
+                    dropdownExpandedGroups,
+                    percState,
+                },
+                computed: {
+                    filteredOptions,
+                    showOrchestrationField,
+                    parsedRoster,
+                    activeOrchPresets,
+                    isPercussionMode,
+                    timeSlots,
+                },
+                actions: {
+                    triggerTouchHaptic,
+                    toggleDropdown,
+                    getNameById,
+                    getGroupedOptions,
+                    toggleDropdownGroup,
+                    selectOption,
+                    openDurationPicker,
+                    getRosterName,
+                    updateRosterName,
+                    scanPercussionTags,
+                    addPercPlayer,
+                    removePercPlayer,
+                    togglePercTagSelect,
+                    assignTagsToPlayer,
+                    updatePercOrchestration,
+                    deleteEditingItem,
+                    saveEdit,
+                    pushHistory,
+                },
+            });
+
+            const appAuthModal = createRootAuthModalShellState({
+                refs: {
+                    showAuthModal,
+                    authLoading,
+                    authPasswordRef,
+                },
+                state: {
+                    authForm,
+                },
+                actions: {
+                    handleLogin,
+                    handleRegister,
+                    handleResetPwd,
+                },
+            });
+
+            const appCropModal = createRootCropModalShellState({
+                refs: {
+                    showCropModal,
+                    cropImgSrc,
+                    cropImgRef,
+                    authLoading,
+                },
+                actions: {
+                    cancelCrop,
+                    confirmCrop,
+                },
+            });
+
+            const appAccountModalsShell = createRootAccountModalsShellState({
+                appAuthModal,
+                appCropModal,
+            });
+
+            const appTrackListModal = createRootTrackListModalShellState({
+                refs: {
+                    showTrackList,
+                    trackListData,
+                    trackListSearchQuery: store.trackListSearchQuery,
+                    trackListContainerRef,
+                    draggingSectionIndex,
+                    sidebarTab,
+                },
+                actions: {
+                    openRecInfoModal: metadataModalHandlers.openRecInfoModal,
+                    handleTrackListSearchAction,
+                    autoDistributeSections,
+                    sortTrackList,
+                    startDividerDrag,
+                    startTrackDrag,
+                    deleteTrackFromList,
+                    openSplitSlider,
+                    getGroupColor,
+                    getNameById,
+                    isPercussionGroup,
+                    isStringGroup,
+                    pushHistory,
+                    triggerTouchHaptic,
+                    calcTrackDiff,
+                    setTrackNow,
+                    setTrackBreak,
+                    clearTrackTime,
+                    calculateSingleRatio,
+                    onTrackListReminderChange,
+                    deleteCurrentSchedule,
+                },
+            });
+
+            const appStandaloneOverlaysShell = createRootStandaloneOverlaysShellState({
+                appSettingsModal,
+                appTrackListModal,
+                appMobileTaskInput,
+            });
+
+            const appQuickAddModal = createRootQuickAddModalShellState({
+                refs: {
+                    showQuickAddModal,
+                    quickAddType,
+                    showGroupSuggestions,
+                },
+                state: {
+                    quickAddForm,
+                    currentQuickAddGroups,
+                },
+                actions: {
+                    confirmQuickAdd,
+                },
+            });
+
+            const appImportModal = createRootImportModalShellState({
+                refs: {
+                    showImportModal,
+                },
+                actions: {
+                    triggerFileSelect: dataIoHandlers.triggerFileSelect,
+                },
+            });
+
+            const appUtilityModalsShell = createRootUtilityModalsShellState({
+                appQuickAddModal,
+                appImportModal,
+            });
+
+            const appRecInfoModal = createRootRecInfoModalShellState({
+                refs: {
+                    showRecInfoModal,
+                    sidebarTab,
+                    activeRecDropdown,
+                    recDropdownSearch,
+                },
+                state: {
+                    recInfoForm,
+                    filteredRecOptions,
+                },
+                actions: {
+                    selectRecOption: metadataModalHandlers.selectRecOption,
+                    createRecOption: metadataModalHandlers.createRecOption,
+                    saveRecInfo: metadataModalHandlers.saveRecInfo,
+                },
+            });
+
+            const appMetadataInfoModalsShell = createRootMetadataInfoModalsShellState({
+                appProjectInfoModal,
+                appRecInfoModal,
+            });
+
+            const appColorPickerModal = createRootColorPickerModalShellState({
+                refs: {
+                    showColorPickerModal,
+                    tempColor,
+                },
+                state: {
+                    presetColors,
+                },
+                actions: {
+                    resetColorPicker,
+                    saveColorPicker,
+                },
+            });
+
+            const appDurationPicker = createRootDurationPickerModalShellState({
+                refs: {
+                    showDurationPicker: store.showDurationPicker,
+                    pickerMinRef: store.pickerMinRef,
+                    pickerSecRef: store.pickerSecRef,
+                },
+                state: {
+                    pickerPos: store.pickerPos,
+                    tempDuration: store.tempDuration,
+                },
+                actions: {
+                    closePicker,
+                    onScroll,
+                    onDragStart,
+                    resetDuration,
+                    confirmDurationPicker,
+                },
+            });
+
+            const appPickerModalsShell = createRootPickerModalsShellState({
+                appColorPickerModal,
+                appDurationPicker,
+            });
+
+            const appSplitModal = createRootSplitModalShellState({
+                refs: {
+                    showSplitModal,
+                },
+                state: {
+                    splitState,
+                },
+                actions: {
+                    onSplitSliderInput,
+                    confirmSplitSlider,
+                },
+            });
+
+            const appTaskActionModalsShell = createRootTaskActionModalsShellState({
+                appEditModal,
+                appSplitModal,
+            });
+
+            const openSettings = () => {
+                showSettings.value = true;
+                showMobileMenu.value = false;
+            };
+
+            const appInputModal = createRootInputModalShellState({
+                refs: {
+                    showInputModal,
+                    inputModalConfig,
+                    universalInputRef,
+                },
+                actions: {
+                    closeInputModal,
+                    confirmInputModal,
+                },
+            });
+
+            const appConfirmModal = createRootConfirmModalShellState({
+                refs: {
+                    showConfirmModal,
+                    confirmModalConfig,
+                },
+                actions: {
+                    closeConfirmModal,
+                    handleConfirmAction,
+                },
+            });
+
+            const appUniversalModalsShell = createRootUniversalModalsShellState({
+                appInputModal,
+                appConfirmModal,
+            });
+
+            const appHeader = createRootHeaderShellState({
+                refs: {
+                    showMobileMenu,
+                    themeMode,
+                    isSyncing,
+                    user,
+                    saveStatus,
+                    historyIndex,
+                    history,
+                    activeDropdown,
+                    currentSessionId,
+                    globalSearchQuery,
+                    userAvatar,
+                    showProfileMenu,
+                    tempNickname,
+                    authLoading,
+                },
+                state: {
+                    settings,
+                },
+                computedState: {
+                    getThemeLabel,
+                    currentSessionName,
+                    userDisplayName,
+                },
+                actions: {
+                    openSettings,
+                    toggleMobileMenu,
+                    toggleTheme,
+                    exportCSV: dataIoHandlers.exportCSV,
+                    exportToICS: dataIoHandlers.exportToICS,
+                    exportJSON: dataIoHandlers.exportJSON,
+                    importJSON: dataIoHandlers.importJSON,
+                    openCreditModal: metadataModalHandlers.openCreditModal,
+                    handleManualSync,
+                    undo,
+                    redo,
+                    toggleDropdown,
+                    switchSession,
+                    handleSessionAction,
+                    handleSearchEnter,
+                    handleUserBtnClick,
+                    updateNickname,
+                    onFileSelect,
+                    handleLogout,
+                    startTour,
+                    handleJSONFile: dataIoHandlers.handleJSONFile,
+                    handleMidiFile,
+                },
+            });
+
+            const { appRootShell, appRootOverlaysShell } = createRootShellState({
+                appHeader,
+                appSidebar,
+                appMainContent,
+                appMobileControls,
+                appStandaloneOverlaysShell,
+                appTaskActionModalsShell,
+                appAccountModalsShell,
+                appUtilityModalsShell,
+                appUniversalModalsShell,
+                appPickerModalsShell,
+                appExportCreditModalsShell,
+                appMidiCsvImportModalsShell,
+                appMetadataInfoModalsShell,
+            });
 
             onMounted(() => {
                 mobileUiFeature.mountShellLifecycle();
-                // 检查 LocalStorage
-                const hasSeenTour = storageService.getItem('musche_tour_seen');
-                if (!hasSeenTour) {
-                    // 稍微延迟，等页面加载完、数据渲染完再显示
-                    setTimeout(() => {
-                        startTour();
-                        storageService.setItem('musche_tour_seen', 'true');
-                    }, 1500);
+                if (!storageService.getItem('musche_tour_seen')) {
+                    mountTourAutostart();
                 }
             });
 
@@ -6638,478 +2416,8 @@ import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 
 
             return {
-                sidebarTab,
-                showMetadataManager,
-                activeTaskCount,
-                isResourceCompleted,
-                musicianStats,
-                projectStats,
-                instrumentStats,
-                itemPool,
-                scheduledTasks,
-                settings,
-                currentView,
-                currentDateLabel,
-                currentWeekDays,
-                currentMonthDays,
-                timeSlots,
-                selectedTaskId,
-                showSettings,
-                showEditor,
-                editingItem,
-                editingSource,
-                newItem,
-                weekContainer,
-                dragStart,
-                dragEnterPool,
-                dragLeavePool,
-                dropToPool,
-                dragEnterSlot,
-                dragLeaveSlot,
-                dropToSchedule,
-                dropToMonth,
-                handleDragEnd,
-                initResize,
-                selectTask,
-                clearSelection,
-                onMusicianSelect,
-                addItemToPool,
-                changeDate,
-                isToday,
-                getTasksForDate,
-                getTaskStyle,
-                switchToWeek,
-                calculateEstTime,
-                openEditModal,
-                saveEdit,
-                deleteEditingItem,
-                handleTaskDblClick,
-                handleGlobalKey,
-                undo,
-                redo,
-                historyIndex,
-                history,
-                pushHistory,
-                exportToICS,
-                currentSidebarList,
-                handleRecRename,
-                sortKey,
-                expandedGroups,
-                toggleCollapse,
-                cleanupEmptySchedules,
-                sortField,
-                sortAsc,
-                toggleSort,
-                getSortIcon,
-                calculateGroupStats,
-                expandedStatsIds,
-                toggleStatCollapse,
-                resetAutoHide,
-                showTrackList,
-                trackListData,
-                slotHeight,
-                getNameById,
-                generateUniqueId,
-                getOverlapCount,
-                jumpToGhostContext,
-                activeColorKey,
-                getGroupColor,
-                getTextColor,
-
-                exportCSV,
-                showExportModal,
-                exportFilter,
-                exportSessionOptions,
-                filteredExportProjects,
-                filteredExportMusicians,
-                filteredExportInstruments,
-                exportDateRange,
-                exportPreviewCount,
-                openExportModal,
-                toggleFilterItem,
-                toggleFilterAll,
-                confirmExport,
-                exportJSON,
-                importJSON,
-                handleJSONFile,
-
-                selectedPoolIds,
-                lastPoolClickId,
-                sidebarWidth,
-
-                handlePoolItemClick,
-                isScheduled,
-                clearAllInstruments,
-                clearAllMusicians,
-                clearAllProjects,
-
-                flashingTaskId,
-                handleStatCardClick,
-                isSidebarOpen,
-
-                activeDropdown,
-                dropdownSearch,
-                toggleDropdown,
-                selectOption,
-                filteredOptions,
-                getOrCreateSettingItem,
-
-                user,
-                showAuthModal,
-                authForm,
-                authLoading,
-                handleLogin,
-                handleRegister,
-                handleResetPwd,
-                handleLogout,
-
-                showProfileMenu,
-                tempAvatarUrl,
-                userAvatar,
-                handleUserBtnClick,
-                updateAvatar,
-
-                currentSessionId,
-                currentSessionName,
-                switchSession,
-                handleSessionAction,
-                tempNickname,
-                userDisplayName,
-                updateNickname,
-                ensureItemRecords,
-
-                handleCSVImport,
-                handleAvatarUpload,
-                authPasswordRef,
-                addProject,
-                deleteCurrentSchedule,
-                clearTrackTime,
-                isTaskGhost,
-                deleteProject,
-                deleteTrackFromList,
-                getGroupedOptions,
-                isSyncing,
-                handleManualSync,
-                viewTransitionName,
-                switchView,
-                onMainTouchStart,
-                onMainTouchEnd,
-
-                isMobile,
-                mobileTab,
-                showMobileMenu,
-                isDark,
-                toggleTheme,
-                themeMode,
-                applyTheme,
-                getThemeLabel,
-                showMobileTaskInput,
-                calculateSingleRatio,
-                updateMusicianRatio,
-                getSessionRatio,
-                autoCalcDuration,
-                saveScheduleActualTime,
-                saveTrackActual,
-                setTrackNow,
-                calcTrackDiff,
-                autoUpdateEfficiency,
-                toggleMobileMenu,
-                closeDropdowns,
-                calculateProportionalDuration,
-                getDefaultRatio,
-                onDragStart,
-                showInputModal,
-                inputModalConfig,
-                openInputModal,
-                closeInputModal,
-                confirmInputModal,
-                universalInputRef,
-                showConfirmModal,
-                confirmModalConfig,
-                openAlertModal,
-                openConfirmModal,
-                closeConfirmModal,
-                handleConfirmAction,
-                showImportModal,
-                triggerFileSelect,
-                showOrchestrationField,
-                showCropModal,
-                cropImgSrc,
-                cropImgRef,
-                checkOverlap,
-                autoResizeScheduleByRecords,
-                onFileSelect,
-                cancelCrop,
-                confirmCrop,
-                smartScrollToTask,
-                currentQuickAddGroups,
-                activeGroupFilter,
-                availableGroups,
-                factoryReset,
-                jumpToToday,
-                tasksByDateMap,
-                showQuickAddModal,
-                quickAddForm,
-                openQuickAdd,
-                confirmQuickAdd,
-                draggingTaskElement,
-                scheduleReminder,
-                onTrackListReminderChange,
-                initialTouchCoords,
-                dayColWidth,
-                widthIcon,
-                cycleDayWidth,
-                settingsExpandedGroups,
-                toggleSettingsGroup,
-                dropdownExpandedGroups,
-                toggleDropdownGroup,
-                showGroupSuggestions,
-                settingsGroupFocus,
-                dragElClone,
-                dragSourceType,
-                showDurationPicker,
-                tempDuration,
-                pickerMinRef,
-                pickerPos,
-                closePicker,
-                resetDuration,
-                formatDate,
-                viewDate,
-                isDefaultRatio,
-                isResizingMobile,
-                mobileResizeState,
-                initMobileResize,
-                handleMobileResizeMove,
-                handleMobileResizeEnd,
-                pickerSecRef,
-                openDurationPicker,
-                onScroll,
-                confirmDurationPicker,
-                formatSecs,
-                handleTouchStart,
-                handleTouchMove,
-                handleTouchEnd,
-                handlePoolTouchStart,
-                sortedInstruments,
-                sortedMusicians,
-                sortedProjects,
-                removeInstrument,
-                removeMusician,
-                startAutoScroll,
-                stopAutoScroll,
-                updateAutoScrollDirection,
-                setTrackBreak,
-                sortTrackList,
-                moveDivider,
-                autoSortTrackList,
-                trackListContainerRef,
-                startDividerDrag,
-                draggingSectionIndex,
-                onDividerDragMove,
-                onDividerDragEnd,
-                getBlockTitle,
-                dateTransitionName,
-                jumpToStatSchedule,
-                getSettingsGroupedList,
-                allSettingsGrouped,
-                renameGroup,
-                addSettingsItem,
-                removeSettingsItem,
-                newSettingsItem,
-                getExistingGroups,
-                clearSettingsList,
-                onSettingsItemDragStart,
-                onSettingsDragOver,
-                onSettingsDragLeave,
-                onSettingsDrop,
-                onSidebarTouchStart,
-                onSidebarTouchEnd,
-                sidebarTransitionName,
-                sidebarScrollRef,
-                switchSidebarTab,
-                isAllGroupsExpanded,
-                toggleAllGroups,
-                showColorPickerModal,
-                presetColors,
-                tempColor,
-                openColorPicker,
-                resetColorPicker,
-                saveColorPicker,
-                settingsNameFocus,
-                getUngroupedItems,
-                inputRects,
-                updateInputRect,
-                getFloatingStyle,
-                onSettingsScroll,
-                splitTrack,
-                restoreSplitTime,
-                showSplitModal,
-                splitState,
-                smartMatch,
-                getFullSearchText,
-                openSplitSlider,
-                onSplitSliderInput,
-                confirmSplitSlider,
-                startTour,
-                toggleSidebar,
-                desktopSteps,
-                mobileSteps,
-                onSettingsItemDragEnd,
-                disableRowDrag,
-                enableRowDrag,
-                saveStatus,
-                handlePageUnload,
-                isContextSwitching,
-                getTaskRatio,
-                cleanOldRatios,
-                clearPoolRecord,
-                clearAggregateRecords,
-                onMainMouseDown,
-                onMainMouseUp,
-                isMouseViewDrag,
-                onMainWheel,
-                showRecInfoModal,
-                recInfoForm,
-                openRecInfoModal,
-                saveRecInfo,
-                activeRecDropdown,
-                recDropdownSearch,
-                filteredRecOptions,
-                selectRecOption,
-                createRecOption,
-                newRecInputs,
-                addRecItem,
-                removeRecItem,
-                globalSearchQuery,
-                handleSearchEnter,
-                filteredSidebarList,
-                handleItemRename,
-                hasRecordingInfo,
-                autoDistributeSections,
-                startTrackDrag,
-                isSearchFocused,
-                handleSearchBlur,
-                onSearchFocus,
-                triggerTouchHaptic: window.triggerTouchHaptic,
-                orchTemplates,
-                parsedRoster,
-                getRosterName,
-                updateRosterName,
-                percKeywords,
-                percState,
-                isPercussionMode,
-                scanPercussionTags,
-                addPercPlayer,
-                removePercPlayer,
-                togglePercTagSelect,
-                assignTagsToPlayer,
-                updatePercOrchestration,
-                getOrchSize,
-                isOrchestraGroup,
-                isPercussionGroup,
-                isStringGroup,
-                activeOrchPresets,
-                getNameWithGroup,
-                getFamilyTotalDuration,
-                syncFamilyOrchestration,
-                triggerCSV,
-                showCreditModal,
-                generatedCreditText,
-                openCreditModal,
-                copyCreditText,
-                monthViewMode, // 新增
-                flatScrolledDays, // 新增
-                generateMonthGrid, // 新增
-                setMonthRef,
-                scrollToMonthDate,
-                handleInfiniteScroll,
-                handleHeaderDoubleTap,      // <--- 新增导出
-                handleMonthCellDoubleTap,
-                triggerMidiImport, // 🟢 新增
-                openMidiManager,
-                showMidiManager,
-                managingProject,
-                projectMidiList,
-                updateMidiDuration,
-                removeMidiMapping,
-                clearProjectMidi,
-                triggerMidiImportForProject,
-                showMidiImportModal,
-                midiImportData,
-                midiBpm,
-                handleMidiFile,
-                confirmMidiImport,
-                calculateAccurateDuration,
-                convertTicksToSeconds,
-                calculateQuantizedDuration,
-                isOverlapping,
-                calculateEffectiveDuration,
-                processMidiFile,
-                onImportInstChange,
-                availableInstrumentGroups,
-                activeImportMenu,
-                importMenuPos,
-                importSearchQuery,
-                openImportMenu,
-                closeImportMenu,
-                selectImportInst,
-                selectImportNewInst,
-                selectImportGroup,
-                filteredImportOptions,
-                midiGroupSearchQuery,
-                filteredMidiGroups,
-                updateInstrumentGroup,
-                selectMidiGroup,
-                activeMidiGroupRow,
-                midiGroupPos,
-                openMidiGroupDropdown,
-                midiTimeSig,
-                findGroupFromLibrary,
-                cleanMidiTrackName,
-                sortedLibrary,
-                normalizeForMatch,
-                findGroupSmart,
-                instrumentLibrary,
-                midiGroupData,
-                midiViewMode,
-                currentMidiDisplayList,
-                midiGroupExpanded,
-                toggleMidiGroupExpand,
-                toggleGroupSelection,
-                projectMidiGroups,
-                midiManagerExpandedGroups,
-                toggleMidiManagerGroup,
-                autoFillMidiDuration,
-                getSmartName,
-                trackListSearchQuery,
-                handleTrackListSearchAction,
-                showCsvImportModal,
-                csvImportData,
-                csvImportConfig,
-                toggleCsvSelection, // 🟢 新增
-                handleCSVImport,     // 🟢 新增
-                confirmCsvImport,
-                getOrchString,
-                addDataToPrepared,
-                refreshCsvPreview,
-                findSettingId,
-                normalizeDate,
-                refreshCsvStatus,
-                toggleAllRows,
-                calculateRowStatusText,
-                showProjectInfoModal,
-                projectInfoForm,
-                openProjectInfoModal,
-                saveProjectInfo,
-                groupedCsvData,       // 🟢 新增
-                collapsedProjects,    // 🟢 新增
-                toggleProjectCollapse,
-                activeImportTab,
-                isAllSelected,
-                isGroupSelected,
-                csvSearchQuery,
-                extractTime
-
+                appRootShell,
+                appRootOverlaysShell,
             };
         }
     }).mount('#app');

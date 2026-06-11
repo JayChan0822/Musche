@@ -9,6 +9,7 @@ export function registerTrackListFeature(context) {
     showTrackList,
     isMobile,
     isDark,
+    sidebarTab,
   } = refs;
   const { settings } = state;
   const { parseTime, formatSecs, getNameById } = utils;
@@ -23,6 +24,7 @@ export function registerTrackListFeature(context) {
     triggerTouchHaptic,
     moveDivider,
     pruneEmptySchedules,
+    calculateSingleRatio = () => '-',
   } = actions;
 
   let dividerDragState = null;
@@ -956,6 +958,44 @@ export function registerTrackListFeature(context) {
     trackListData.value.items.sort((a, b) => compareTrackItems(a, b, viewType, false));
   };
 
+  const getSessionRatio = () => {
+    const actual = trackListData.value.actualDuration;
+    const items = trackListData.value.items;
+
+    if (!actual || !items || items.length === 0) return '-';
+
+    const actualSeconds = parseTime(actual);
+    if (actualSeconds === 0) return '-';
+
+    const totalMusicSeconds = items.reduce(
+      (sum, item) => sum + parseTime(item.musicDuration),
+      0,
+    );
+
+    if (totalMusicSeconds === 0) return '-';
+
+    return (actualSeconds / totalMusicSeconds).toFixed(1);
+  };
+
+  const calculateProportionalDuration = (item) => {
+    if (!trackListData.value.taskRef || !trackListData.value.items || trackListData.value.items.length === 0) {
+      return item.estDuration;
+    }
+
+    const blockSeconds = parseTime(trackListData.value.taskRef.estDuration);
+    const totalMusicSeconds = trackListData.value.items.reduce(
+      (sum, trackItem) => sum + parseTime(trackItem.musicDuration || '00:00'),
+      0,
+    );
+
+    if (totalMusicSeconds === 0) return item.estDuration;
+
+    const itemMusicSeconds = parseTime(item.musicDuration || '00:00');
+    const allocatedSeconds = (itemMusicSeconds / totalMusicSeconds) * blockSeconds;
+
+    return formatSecs(Math.round(allocatedSeconds));
+  };
+
   const compareTrackItems = (a, b, viewType, sectionFirst) => {
     if (sectionFirst) {
       const secA = a.sectionIndex || 0;
@@ -1027,6 +1067,9 @@ export function registerTrackListFeature(context) {
     isStringGroup,
     sortTrackList,
     autoSortTrackList,
+    getSessionRatio,
+    calculateProportionalDuration,
+    calculateSingleRatio,
     isDividerDragging: () => !!dividerDragState,
   };
 }

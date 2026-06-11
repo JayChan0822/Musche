@@ -27,6 +27,7 @@ export function registerTaskEditorFeature(context) {
     checkCanDeleteSplit,
     restoreSplitTime,
     clearPoolRecord,
+    clearAggregateRecords = () => {},
     cleanupEmptySchedules,
     openAlertModal,
     autoUpdateEfficiency,
@@ -124,18 +125,24 @@ export function registerTaskEditorFeature(context) {
     syncFamilyTotalDuration(itemPool.value, savedItem.id, editViewType, estimateDurationForItem);
     syncScheduledDurationsFromFamily(savedItem);
 
-    scheduledTasks.value
-      .filter((task) => task.templateId === editingItem.value.id)
-      .forEach((task) => {
-        task.musicDuration = editingItem.value.musicDuration;
-        task.ratio = editingItem.value.ratio;
-        task.estDuration = editingItem.value.estDuration;
-        if (sharedIdentityChanged) {
-          if (task.projectId) task.projectId = editingItem.value.projectId;
-          if (task.instrumentId) task.instrumentId = editingItem.value.instrumentId;
-          if (task.musicianId) task.musicianId = editingItem.value.musicianId;
-        }
-      });
+    scheduledTasks.value = scheduledTasks.value.map((task) => {
+      if (task.templateId !== editingItem.value.id) return task;
+
+      const nextTask = {
+        ...task,
+        musicDuration: editingItem.value.musicDuration,
+        ratio: editingItem.value.ratio,
+        estDuration: editingItem.value.estDuration,
+      };
+
+      if (sharedIdentityChanged) {
+        if (nextTask.projectId) nextTask.projectId = editingItem.value.projectId;
+        if (nextTask.instrumentId) nextTask.instrumentId = editingItem.value.instrumentId;
+        if (nextTask.musicianId) nextTask.musicianId = editingItem.value.musicianId;
+      }
+
+      return nextTask;
+    });
 
     return true;
   };
@@ -239,10 +246,12 @@ export function registerTaskEditorFeature(context) {
     pushHistory();
   };
 
-  const deleteEditingItem = () => {
+  const deleteEditingItem = async () => {
     if (editingSource.value !== 'pool') {
-      const notifId = editingItem.value.scheduleId % 2147483647;
-      cancelNotification(notifId);
+      const scheduleIdNumber = Number(editingItem.value.scheduleId);
+      if (Number.isFinite(scheduleIdNumber)) {
+        cancelNotification(scheduleIdNumber % 2147483647);
+      }
     }
 
     if (editingSource.value === 'pool') {
@@ -261,7 +270,9 @@ export function registerTaskEditorFeature(context) {
       cleanupEmptySchedules();
     } else {
       if (editingItem.value.templateId) {
-        clearPoolRecord(editingItem.value.templateId);
+        await clearPoolRecord(editingItem.value.templateId);
+      } else {
+        await clearAggregateRecords(editingItem.value);
       }
       scheduledTasks.value = scheduledTasks.value.filter(
         (task) => task.scheduleId !== editingItem.value.scheduleId,

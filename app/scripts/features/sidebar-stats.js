@@ -12,6 +12,7 @@ export function registerSidebarStatsFeature(context) {
     sortAsc,
     statClickIndexMap,
     isMobile,
+    expandedGroups,
   } = refs;
   const { settings } = state;
   const {
@@ -30,6 +31,33 @@ export function registerSidebarStatsFeature(context) {
     smartScrollToTask,
     triggerTouchHaptic,
   } = actions;
+
+  const toggleSort = (field) => {
+    if (sortField.value === field) {
+      sortAsc.value = !sortAsc.value;
+    } else {
+      sortField.value = field;
+      sortAsc.value = field === 'name';
+    }
+  };
+
+  const getSortIcon = (field) => {
+    if (sortField.value !== field) return '';
+    if (field === 'name') return sortAsc.value ? 'fa-arrow-down-a-z' : 'fa-arrow-up-a-z';
+    if (field === 'duration') return sortAsc.value ? 'fa-arrow-up-short-wide' : 'fa-arrow-down-wide-short';
+    if (field === 'status') return sortAsc.value ? 'fa-arrow-down-short-wide' : 'fa-arrow-up-wide-short';
+    return '';
+  };
+
+  const toggleCollapse = (groupKey) => {
+    if (isMobile.value) triggerTouchHaptic('Medium');
+
+    if (expandedGroups.has(groupKey)) {
+      expandedGroups.delete(groupKey);
+    } else {
+      expandedGroups.add(groupKey);
+    }
+  };
 
   const calculateGroupStats = (sourceList, filterKey) => {
     const recordTypeMap = {
@@ -440,6 +468,9 @@ export function registerSidebarStatsFeature(context) {
     activeTaskCount,
     currentSidebarList,
     expandedStatsIds,
+    toggleSort,
+    getSortIcon,
+    toggleCollapse,
     toggleStatCollapse,
     updateMusicianRatio,
     jumpToStatSchedule,

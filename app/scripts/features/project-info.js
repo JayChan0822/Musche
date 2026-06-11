@@ -19,7 +19,7 @@ export function registerProjectInfoFeature(context) {
   const { settings } = state;
   const { triggerTouchHaptic } = actions;
 
-  const projectInfoForm = reactive({
+  const projectInfoForm = refs.projectInfoForm || reactive({
     id: null,
     title: '',
     composer: '',

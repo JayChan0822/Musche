@@ -373,6 +373,10 @@ html.dark .segment-btn.active {
     padding-left: 2.4rem !important;
 }
 
+.track-list-search-input {
+    padding-left: 2rem !important;
+}
+
 html.dark .glass-input {
     background: rgba(255, 255, 255, 0.1);
     color: inherit;

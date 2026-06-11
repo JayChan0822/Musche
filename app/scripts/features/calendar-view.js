@@ -12,10 +12,19 @@ export function registerCalendarViewFeature(context) {
     filteredScheduledTasks,
     weekContainer,
     pxPerMin,
+    isMobile,
+    flashingTaskId,
+    mobileTab,
   } = refs;
   const { settings } = state;
-  const { formatDate } = utils;
-  const { triggerTouchHaptic } = actions;
+  const { formatDate, timeToMinutes } = utils;
+  const {
+    triggerTouchHaptic,
+    switchView,
+    getNow = () => Date.now(),
+    getDate = () => new Date(),
+    setTimeoutFn = setTimeout,
+  } = actions;
 
   const renderedRange = reactive({
     past: 6,
@@ -23,6 +32,10 @@ export function registerCalendarViewFeature(context) {
   });
   const isLoadingMore = ref(false);
   const dateTransitionName = ref('slide-next');
+  let lastHeaderTap = 0;
+  let lastMonthTap = { time: 0, date: null };
+
+  const isToday = (dateStr) => formatDate(getDate()) === dateStr;
 
   const setMonthRef = (el) => {
     if (el) monthRefs.value.push(el);
@@ -314,6 +327,89 @@ export function registerCalendarViewFeature(context) {
     currentView.value = 'week';
   };
 
+  const handleHeaderDoubleTap = (event) => {
+    const now = getNow();
+
+    if (now - lastHeaderTap < 300) {
+      event.preventDefault();
+      switchView('month');
+    }
+
+    lastHeaderTap = now;
+  };
+
+  const handleMonthCellDoubleTap = (event, dateStr) => {
+    if (event.target.closest('.task-block') || event.target.closest('.text-\\[11px\\]')) {
+      return;
+    }
+
+    const now = getNow();
+
+    if (now - lastMonthTap.time < 300 && lastMonthTap.date === dateStr) {
+      event.preventDefault();
+      triggerTouchHaptic('Light');
+      switchToWeek(dateStr);
+    }
+
+    lastMonthTap.time = now;
+    lastMonthTap.date = dateStr;
+  };
+
+  const smartScrollToTask = (targetTask) => {
+    if (!targetTask) return;
+
+    if (isMobile?.value && mobileTab) {
+      mobileTab.value = 'schedule';
+    }
+
+    const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
+
+    if (targetDateObj.getTime() > viewDate.value.getTime()) {
+      dateTransitionName.value = 'slide-next';
+    } else if (targetDateObj.getTime() < viewDate.value.getTime()) {
+      dateTransitionName.value = 'slide-prev';
+    }
+
+    currentView.value = 'week';
+    viewDate.value = targetDateObj;
+
+    if (flashingTaskId) {
+      flashingTaskId.value = targetTask.scheduleId;
+      setTimeoutFn(() => {
+        if (flashingTaskId.value === targetTask.scheduleId) flashingTaskId.value = null;
+      }, 2500);
+    }
+
+    setTimeoutFn(() => {
+      const container = weekContainer.value;
+      if (!container) return;
+
+      const startMins = timeToMinutes(targetTask.startTime);
+      const offsetMins = startMins - settings.startHour * 60;
+      const targetTopPixel = offsetMins * pxPerMin.value;
+      const scrollTop = Math.max(0, targetTopPixel - 50);
+
+      const dayIndex = targetDateObj.getDay();
+      const timeColW = isMobile?.value ? 40 : 70;
+      const totalW = container.scrollWidth - timeColW;
+      const singleDayW = totalW / 7;
+      const targetCenterX = timeColW + dayIndex * singleDayW + singleDayW / 2;
+      const scrollLeft = Math.max(0, targetCenterX - container.clientWidth / 2);
+
+      container.scrollTo({
+        top: scrollTop,
+        left: scrollLeft,
+        behavior: 'smooth',
+      });
+
+      setTimeoutFn(() => {
+        if (Math.abs(container.scrollTop - scrollTop) > 10) {
+          container.scrollTo({ top: scrollTop, left: scrollLeft, behavior: 'auto' });
+        }
+      }, 600);
+    }, 1000);
+  };
+
   const jumpToToday = () => {
     const now = new Date();
 
@@ -369,6 +465,10 @@ export function registerCalendarViewFeature(context) {
     tasksByDateMap,
     getTasksForDate,
     switchToWeek,
+    handleHeaderDoubleTap,
+    handleMonthCellDoubleTap,
+    smartScrollToTask,
     jumpToToday,
+    isToday,
   };
 }

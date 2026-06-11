@@ -1,0 +1,75 @@
+export function createTrackListModalShellState({
+    reactive,
+    refs,
+    state,
+    actions,
+} = {}) {
+    if (typeof reactive !== 'function') {
+        throw new TypeError('createTrackListModalShellState requires Vue reactive factory');
+    }
+
+    const {
+        showTrackList,
+        trackListData,
+        trackListSearchQuery,
+        trackListContainerRef,
+        draggingSectionIndex,
+        sidebarTab,
+    } = refs;
+    const {
+        openRecInfoModal,
+        handleTrackListSearchAction,
+        autoDistributeSections,
+        sortTrackList,
+        startDividerDrag,
+        startTrackDrag,
+        deleteTrackFromList,
+        openSplitSlider,
+        getGroupColor,
+        getNameById,
+        isPercussionGroup,
+        isStringGroup,
+        pushHistory,
+        triggerTouchHaptic,
+        calcTrackDiff,
+        setTrackNow,
+        setTrackBreak,
+        clearTrackTime,
+        calculateSingleRatio,
+        onTrackListReminderChange,
+        deleteCurrentSchedule,
+    } = actions;
+
+    return reactive({
+        get showTrackList() { return showTrackList.value; },
+        set showTrackList(value) { showTrackList.value = value; },
+        get trackListData() { return trackListData.value; },
+        get trackListSearchQuery() { return trackListSearchQuery.value; },
+        set trackListSearchQuery(value) { trackListSearchQuery.value = value; },
+        get trackListContainerRef() { return trackListContainerRef.value; },
+        set trackListContainerRef(value) { trackListContainerRef.value = value; },
+        get draggingSectionIndex() { return draggingSectionIndex.value; },
+        get sidebarTab() { return sidebarTab.value; },
+        openRecInfoModal,
+        handleTrackListSearchAction,
+        autoDistributeSections,
+        sortTrackList,
+        startDividerDrag,
+        startTrackDrag,
+        deleteTrackFromList,
+        openSplitSlider,
+        getGroupColor,
+        getNameById,
+        isPercussionGroup,
+        isStringGroup,
+        pushHistory,
+        triggerTouchHaptic,
+        calcTrackDiff,
+        setTrackNow,
+        setTrackBreak,
+        clearTrackTime,
+        calculateSingleRatio,
+        onTrackListReminderChange,
+        deleteCurrentSchedule,
+    });
+}

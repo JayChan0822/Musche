@@ -1,6 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-export function createSupabaseService({ url, key } = {}) {
+export function createSupabaseService({
+  url,
+  key,
+  createClientLoader = async () => {
+    const module = await import('@supabase/supabase-js');
+    return module.createClient;
+  },
+} = {}) {
   if (!url || !key) {
     const createConfigError = () => ({
       message: 'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY for hosted builds, or fill app/config.local.js for local-only development.',
@@ -39,52 +44,63 @@ export function createSupabaseService({ url, key } = {}) {
     };
   }
 
-  const client = createClient(url, key);
+  let clientPromise = null;
+  const getClient = () => {
+    if (!clientPromise) {
+      clientPromise = createClientLoader().then((createClient) => createClient(url, key));
+    }
+    return clientPromise;
+  };
+  const withClient = async (callback) => callback(await getClient());
+  const publicUrlBase = url.replace(/\/+$/, '');
 
   return {
-    client,
+    client: null,
     signInWithPassword(credentials) {
-      return client.auth.signInWithPassword(credentials);
+      return withClient((client) => client.auth.signInWithPassword(credentials));
     },
     signUp(credentials) {
-      return client.auth.signUp(credentials);
+      return withClient((client) => client.auth.signUp(credentials));
     },
     resetPasswordForEmail(email, options) {
-      return client.auth.resetPasswordForEmail(email, options);
+      return withClient((client) => client.auth.resetPasswordForEmail(email, options));
     },
     updateUser(payload) {
-      return client.auth.updateUser(payload);
+      return withClient((client) => client.auth.updateUser(payload));
     },
     getUser() {
-      return client.auth.getUser();
+      return withClient((client) => client.auth.getUser());
     },
     getSession() {
-      return client.auth.getSession();
+      return withClient((client) => client.auth.getSession());
     },
     signOut() {
-      return client.auth.signOut();
+      return withClient((client) => client.auth.signOut());
     },
     uploadAvatar(filePath, file, options = {}) {
-      return client.storage.from('avatars').upload(filePath, file, options);
+      return withClient((client) => client.storage.from('avatars').upload(filePath, file, options));
     },
     getAvatarPublicUrl(filePath) {
-      return client.storage.from('avatars').getPublicUrl(filePath);
+      return {
+        data: { publicUrl: `${publicUrlBase}/storage/v1/object/public/avatars/${filePath}` },
+        error: null,
+      };
     },
     loadUserData(userId) {
-      return client.from('user_data').select('content, version').eq('user_id', userId).single();
+      return withClient((client) => client.from('user_data').select('content, version').eq('user_id', userId).single());
     },
     fetchUserDataVersion(userId) {
-      return client.from('user_data').select('version').eq('user_id', userId).single();
+      return withClient((client) => client.from('user_data').select('version').eq('user_id', userId).single());
     },
     saveUserData(userId, content, version) {
-      return client.from('user_data').upsert({
+      return withClient((client) => client.from('user_data').upsert({
         user_id: userId,
         content,
         version,
-      }, { onConflict: 'user_id' });
+      }, { onConflict: 'user_id' }));
     },
     deleteUserData(userId) {
-      return client.from('user_data').delete().eq('user_id', userId);
+      return withClient((client) => client.from('user_data').delete().eq('user_id', userId));
     },
   };
 }

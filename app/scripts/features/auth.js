@@ -31,7 +31,9 @@ export function registerAuthFeature(context) {
     openAlertModal,
     openConfirmModal,
     triggerTouchHaptic,
-    reloadPage,
+    reloadPage = () => window.location.reload(),
+    getLocationOrigin = () => window.location.origin,
+    getUploadTextElement = () => document.getElementById('upload-text'),
     setSaveStatus,
   } = actions;
   const {
@@ -53,6 +55,23 @@ export function registerAuthFeature(context) {
     return user.value ? user.value.email.split('@')[0] : 'Guest';
   });
 
+  function ensureDefaultSession() {
+    if (!Array.isArray(settings.sessions) || settings.sessions.length === 0) {
+      settings.sessions = [{ id: 'S_DEFAULT', name: '默认录音日程' }];
+    }
+    return settings.sessions[0];
+  }
+
+  function restoreCurrentSession(lastSessionId) {
+    const fallbackSession = ensureDefaultSession();
+    if (!lastSessionId) {
+      currentSessionId.value = fallbackSession.id;
+      return;
+    }
+    const exists = settings.sessions.find((session) => session.id === lastSessionId);
+    currentSessionId.value = exists ? exists.id : fallbackSession.id;
+  }
+
   function initDefaultData(isSidebarOpen) {
     const demoMusicianId = 'M_DEMO_A';
     const demoProjectId = 'P_DEMO_A';
@@ -62,10 +81,7 @@ export function registerAuthFeature(context) {
     settings.projects = [{ id: demoProjectId, name: 'Project A', color: '#eab308', group: '' }];
     settings.instruments = [{ id: demoInstrumentId, name: 'Instrument A', color: '#3b82f6', group: '' }];
 
-    if (settings.sessions.length === 0) {
-      settings.sessions = [{ id: 'S_DEFAULT', name: '默认录音日程' }];
-    }
-    currentSessionId.value = settings.sessions[0].id;
+    currentSessionId.value = ensureDefaultSession().id;
 
     const demoTaskId = 'T_DEMO_001';
     itemPool.value = [{
@@ -116,7 +132,7 @@ export function registerAuthFeature(context) {
       localDataVersion.value = data.version || 0;
       const content = data.content;
 
-      if (content.pool) itemPool.value = content.pool;
+      if (content.pool) itemPool.value = content.pool.map((item) => ensureItemRecords(item));
       if (content.tasks) scheduledTasks.value = content.tasks;
 
       if (content.settings) {
@@ -131,10 +147,7 @@ export function registerAuthFeature(context) {
         if (content.settings.operators) settings.operators = content.settings.operators;
         if (content.settings.assistants) settings.assistants = content.settings.assistants;
 
-        if (content.settings.lastSessionId) {
-          const exists = settings.sessions.find((session) => session.id === content.settings.lastSessionId);
-          currentSessionId.value = exists ? exists.id : settings.sessions[0].id;
-        }
+        restoreCurrentSession(content.settings.lastSessionId);
       }
       return;
     }
@@ -217,6 +230,13 @@ export function registerAuthFeature(context) {
     }
   }
 
+  const handlePageUnload = () => {
+    if (saveStatus.value === 'unsaved') {
+      return saveToCloud(handleManualSync, true);
+    }
+    return undefined;
+  };
+
   async function handleLogin() {
     if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
     authLoading.value = true;
@@ -266,7 +286,7 @@ export function registerAuthFeature(context) {
 
     authLoading.value = true;
     const { error } = await supabaseService.resetPasswordForEmail(authForm.email, {
-      redirectTo: window.location.origin,
+      redirectTo: getLocationOrigin(),
     });
 
     if (error) {
@@ -335,7 +355,7 @@ export function registerAuthFeature(context) {
       return openAlertModal('图片太大了，请选择 2MB 以下的图片');
     }
 
-    const btnText = document.getElementById('upload-text');
+    const btnText = getUploadTextElement();
     if (btnText) btnText.innerText = '上传中...';
 
     try {
@@ -452,10 +472,7 @@ export function registerAuthFeature(context) {
         if (localData.settings.operators) settings.operators = localData.settings.operators;
         if (localData.settings.assistants) settings.assistants = localData.settings.assistants;
 
-        if (localData.settings.lastSessionId) {
-          const exists = settings.sessions.find((session) => session.id === localData.settings.lastSessionId);
-          currentSessionId.value = exists ? exists.id : settings.sessions[0].id;
-        }
+        restoreCurrentSession(localData.settings.lastSessionId);
       }
 
       if (localData.pool && localData.pool.length > 0) {
@@ -487,6 +504,7 @@ export function registerAuthFeature(context) {
     handleLogout,
     factoryReset,
     handleManualSync,
+    handlePageUnload,
     bootSessionData,
   };
 }

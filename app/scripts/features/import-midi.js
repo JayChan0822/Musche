@@ -1,4 +1,34 @@
-import { computed } from 'vue';
+import { computed, reactive } from 'vue';
+
+const instrumentLibrary = {
+  Brass: [
+    'Horn', 'French Horn', 'Hn', 'Trumpet', 'Tpt', 'Cornet', 'Trombone', 'Tbn',
+    'Bass Trombone', 'B.Tbn', 'Tuba', 'Tba', 'Euphonium', 'Brass',
+  ],
+  Woodwinds: [
+    'Flute', 'Fl', 'Piccolo', 'Picc', 'Oboe', 'Ob', 'English Horn', 'Cor Anglais', 'E.H',
+    'Clarinet', 'Cl', 'Bass Clarinet', 'B.Cl', 'Bassoon', 'Bsn', 'Contrabassoon', 'C.Bsn',
+    'Saxophone', 'Sax', 'Recorder', 'Woodwinds',
+  ],
+  Strings: [
+    'Violin', 'Vln', 'Viola', 'Vla', 'Cello', 'Violoncello', 'Vc',
+    'Double Bass', 'Contrabass', 'Db', 'Cb', 'Bass', 'Strings', 'Str',
+  ],
+  Percussion: [
+    'Timpani', 'Timp', 'Snare', 'SD', 'Bass Drum', 'BD', 'Cymbals', 'Cym', 'Piatti',
+    'Triangle', 'Tri', 'Tambourine', 'Tamb', 'Glockenspiel', 'Glock', 'Xylophone', 'Xyl',
+    'Vibraphone', 'Vib', 'Marimba', 'Mar', 'Tubular Bells', 'Chimes', 'Drum', 'Percussion', 'Perc',
+  ],
+  Keys: [
+    'Piano', 'Pno', 'Celesta', 'Cel', 'Harpsichord', 'Organ', 'Accordion',
+  ],
+  Plucks: [
+    'Harp', 'Hp', 'Guitar', 'Gtr', 'Mandolin', 'Lute',
+  ],
+  Vocal: [
+    'Soprano', 'Alto', 'Tenor', 'Baritone', 'Bass Voice', 'Choir', 'Voice', 'Vocal',
+  ],
+};
 
 export function registerImportMidiFeature(context) {
   const { refs, state, utils, actions } = context;
@@ -12,6 +42,9 @@ export function registerImportMidiFeature(context) {
     midiTimeSigs,
     midiViewMode,
     midiTimeSig,
+    activeImportMenu,
+    importMenuPos,
+    importSearchQuery,
   } = refs;
   const {
     buildTempoMap,
@@ -19,13 +52,74 @@ export function registerImportMidiFeature(context) {
     extractNotesFromJZZTrack,
     calculateBarQuantizedDuration,
     normalizeForMatch,
-    findGroupSmart,
     generateUniqueId,
     generateRandomHexColor,
     formatSecs,
-    midiSmf,
   } = utils;
-  const { openAlertModal, pushHistory, triggerTouchHaptic } = actions;
+  const {
+    openAlertModal,
+    pushHistory,
+    triggerTouchHaptic,
+    sortedInstruments,
+    nextTick,
+    getElementById = (id) => document.getElementById(id),
+    loadMidiSmf,
+  } = actions;
+
+  const midiGroupExpanded = reactive(new Set());
+
+  const toggleMidiGroupExpand = (groupName) => {
+    if (midiGroupExpanded.has(groupName)) {
+      midiGroupExpanded.delete(groupName);
+    } else {
+      midiGroupExpanded.add(groupName);
+    }
+  };
+
+  const sortedLibrary = (() => {
+    const list = [];
+    Object.entries(instrumentLibrary).forEach(([group, names]) => {
+      names.forEach((name) => {
+        list.push({ name, group });
+      });
+    });
+    return list.sort((a, b) => b.name.length - a.name.length);
+  })();
+
+  const findGroupSmart = (trackName) => {
+    const cleanName = normalizeForMatch(trackName);
+
+    for (const item of sortedLibrary) {
+      const libName = normalizeForMatch(item.name);
+      const escapedLibName = libName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedLibName}\\b`, 'i');
+
+      if (regex.test(cleanName)) return item.group;
+      if (libName.length < 3 && cleanName === libName) return item.group;
+    }
+
+    if (cleanName.includes('string') || cleanName.includes('vln') || cleanName.includes('vla') || cleanName.includes('cello')) return 'Strings';
+    if (cleanName.includes('brass') || cleanName.includes('horn') || cleanName.includes('tpt')) return 'Brass';
+    if (cleanName.includes('wood') || cleanName.includes('flute') || cleanName.includes('oboe')) return 'Woodwinds';
+    if (cleanName.includes('perc') || cleanName.includes('drum')) return 'Percussion';
+
+    return '';
+  };
+
+  const findGroupFromLibrary = (cleanName) => {
+    const target = cleanName.toLowerCase();
+
+    for (const [groupName, instruments] of Object.entries(instrumentLibrary)) {
+      const match = instruments.find((instrument) => {
+        const libInst = instrument.toLowerCase();
+        return libInst === target || target.includes(libInst);
+      });
+
+      if (match) return groupName;
+    }
+
+    return '';
+  };
 
   const availableInstrumentGroups = computed(() => {
     const groups = new Set(['Unassigned']);
@@ -123,6 +217,73 @@ export function registerImportMidiFeature(context) {
     midiViewMode.value === 'groups' ? midiGroupData.value : midiImportData.value,
   );
 
+  const filteredImportOptions = computed(() => {
+    const search = importSearchQuery.value.toLowerCase();
+
+    if (activeImportMenu.type === 'inst') {
+      return sortedInstruments.value.filter((item) =>
+        item.name.toLowerCase().includes(search) ||
+        (item.group && item.group.toLowerCase().includes(search)),
+      );
+    }
+
+    if (activeImportMenu.type === 'group') {
+      return availableInstrumentGroups.value.filter((group) =>
+        group.toLowerCase().includes(search),
+      );
+    }
+
+    return [];
+  });
+
+  function closeImportMenu() {
+    activeImportMenu.rowId = null;
+    activeImportMenu.type = null;
+  }
+
+  function openImportMenu(event, rowId, type) {
+    if (activeImportMenu.rowId === rowId && activeImportMenu.type === type) {
+      closeImportMenu();
+      return;
+    }
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    importMenuPos.top = rect.bottom + 5;
+    importMenuPos.left = rect.left;
+    importMenuPos.width = rect.width;
+
+    activeImportMenu.rowId = rowId;
+    activeImportMenu.type = type;
+    importSearchQuery.value = '';
+
+    nextTick(() => {
+      const input = getElementById('midi-import-search');
+      if (input) input.focus();
+    });
+  }
+
+  function selectImportInst(track, inst) {
+    track.instrumentId = inst.id;
+
+    if (inst.group && midiViewMode.value !== 'groups') {
+      track.group = inst.group;
+    }
+
+    track.createNew = false;
+    closeImportMenu();
+  }
+
+  function selectImportNewInst(track) {
+    track.instrumentId = '';
+    track.createNew = true;
+    closeImportMenu();
+  }
+
+  function selectImportGroup(track, groupName) {
+    track.group = groupName;
+    closeImportMenu();
+  }
+
   function triggerMidiImportForProject() {
     const input = document.getElementById('midi-import-input');
     if (input) {
@@ -161,11 +322,6 @@ export function registerImportMidiFeature(context) {
   }
 
   function processMidiFile(file) {
-    if (typeof midiSmf !== 'function') {
-      openAlertModal('库丢失', 'JZZ MIDI 库未加载，请检查网络。');
-      return;
-    }
-
     const getMatchName = (name) => {
       if (!name) return '';
       return name.replace(/[_\s-]*\d+$/, '').trim();
@@ -173,8 +329,14 @@ export function registerImportMidiFeature(context) {
 
     const reader = new FileReader();
     reader.readAsBinaryString(file);
-    reader.onload = (loadEvent) => {
+    reader.onload = async (loadEvent) => {
       try {
+        const midiSmf = await loadMidiSmf();
+        if (typeof midiSmf !== 'function') {
+          openAlertModal('库丢失', 'JZZ MIDI 库未加载，请检查网络。');
+          return;
+        }
+
         const data = loadEvent.target.result;
         const smf = midiSmf(data);
 
@@ -322,8 +484,10 @@ export function registerImportMidiFeature(context) {
       let targetInstrumentId = row.instrumentId;
 
       if (!targetInstrumentId && row.createNew) {
-        const finalName = row.name !== row.originalName ? row.name : row.suggestedInstName || row.name;
-        const existing = settings.instruments.find((item) => item.name === finalName);
+        const rawFinalName = row.name !== row.originalName ? row.name : row.suggestedInstName || row.name;
+        const finalName = rawFinalName.trim();
+        const normalizedFinalName = normalizeForMatch(finalName);
+        const existing = settings.instruments.find((item) => normalizeForMatch(item.name) === normalizedFinalName);
 
         if (existing) {
           targetInstrumentId = existing.id;
@@ -350,6 +514,11 @@ export function registerImportMidiFeature(context) {
       count++;
     });
 
+    if (count === 0) {
+      openAlertModal('提示', '请至少选择一条可导入的 MIDI 轨道。');
+      return;
+    }
+
     Object.entries(tempMap).forEach(([instId, items]) => {
       items.sort((a, b) => a._sortIndex - b._sortIndex);
       managingProject.value.midiData[instId] = items.map((item) => ({
@@ -367,8 +536,18 @@ export function registerImportMidiFeature(context) {
 
   return {
     availableInstrumentGroups,
+    midiGroupExpanded,
     midiGroupData,
     currentMidiDisplayList,
+    filteredImportOptions,
+    toggleMidiGroupExpand,
+    findGroupSmart,
+    findGroupFromLibrary,
+    openImportMenu,
+    closeImportMenu,
+    selectImportInst,
+    selectImportNewInst,
+    selectImportGroup,
     triggerMidiImportForProject,
     triggerMidiImport,
     handleMidiFile,

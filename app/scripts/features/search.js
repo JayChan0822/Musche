@@ -1,8 +1,10 @@
 import { computed, watch } from 'vue';
 
 export function registerSearchFeature(context) {
-  const { refs, actions, utils } = context;
+  const { refs, actions, utils, state = {} } = context;
   const {
+    itemPool,
+    scheduledTasks,
     globalSearchQuery,
     currentSearchIndex,
     searchHighlightTimer,
@@ -11,20 +13,196 @@ export function registerSearchFeature(context) {
     trackSearchIndex,
     trackListSearchQuery,
     trackListData,
-    filteredScheduledTasks,
-    sidebarList,
     showTrackList,
     isSearchFocused,
     isMobile,
   } = refs;
-  const { getNameById } = utils;
+  const { sidebarTab, musicianStats, projectStats, instrumentStats, settings = {} } = state;
+  const {
+    getNameById,
+    pinyinMatch,
+    ensurePinyinMatch = () => Promise.resolve(),
+  } = utils;
   const {
     openAlertModal,
     smartScrollToTask,
     triggerTouchHaptic,
+    getSidebarList = () => [],
   } = actions;
 
-  const filteredSidebarList = computed(() => sidebarList.value);
+  const filteredSidebarList = computed(() => getSidebarList());
+
+  const resolvePinyinMatch = () => {
+    if (!pinyinMatch) return null;
+    if (typeof pinyinMatch === 'function') return pinyinMatch;
+    return pinyinMatch.value || null;
+  };
+
+  let pinyinLoadRequested = false;
+  const requestPinyinMatch = () => {
+    if (pinyinLoadRequested || resolvePinyinMatch()) return;
+    pinyinLoadRequested = true;
+    Promise.resolve(ensurePinyinMatch()).catch(() => {
+      pinyinLoadRequested = false;
+    });
+  };
+
+  const getNameWithGroup = (id, type) => {
+    if (!id) return '';
+
+    let list = [];
+    if (type === 'project') list = settings.projects || [];
+    else if (type === 'instrument') list = settings.instruments || [];
+    else list = settings.musicians || [];
+
+    const item = list.find((candidate) => candidate.id == id);
+    return item ? `${item.name} ${item.group || ''}` : '';
+  };
+
+  const smartMatch = (text, keyword) => {
+    if (!text) return false;
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes(keyword)) return true;
+    if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
+    const currentPinyinMatch = resolvePinyinMatch();
+    if (currentPinyinMatch) {
+      return !!currentPinyinMatch(text, keyword, { continuous: true });
+    }
+    return false;
+  };
+
+  const getFullSearchText = (task, groupName) => {
+    const mText = getNameWithGroup(task.musicianId, 'musician');
+    const pText = getNameWithGroup(task.projectId, 'project');
+    const iText = getNameWithGroup(task.instrumentId, 'instrument');
+    const info = task.recordingInfo || {};
+    const infoText = [
+      info.studio,
+      info.engineer,
+      info.operator,
+      info.assistant,
+      info.notes,
+    ].join(' ');
+
+    return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
+  };
+
+  const getStatsForCurrentSidebar = () => {
+    if (sidebarTab.value === 'project') return { targetList: projectStats.value, getTargetId: (task) => task.projectId };
+    if (sidebarTab.value === 'instrument') return { targetList: instrumentStats.value, getTargetId: (task) => task.instrumentId };
+    return { targetList: musicianStats.value, getTargetId: (task) => task.musicianId };
+  };
+
+  const filteredScheduledTasks = computed(() => {
+    const rawQuery = globalSearchQuery.value.trim().toLowerCase();
+    if (!rawQuery) return scheduledTasks.value;
+
+    const statusDefinitions = {
+      '完成': ['completed'],
+      finished: ['completed'],
+      '进行中': ['in-progress'],
+      ing: ['in-progress'],
+      '缺时': ['insufficient'],
+      missing: ['insufficient'],
+      '已排': ['full', 'completed'],
+      full: ['full', 'completed'],
+    };
+
+    const textKeywords = [];
+    const statusFilters = new Set();
+
+    rawQuery.split(/\s+/).filter(Boolean).forEach((inputWord) => {
+      let isStatus = false;
+      for (const [key, statuses] of Object.entries(statusDefinitions)) {
+        if (key.includes(inputWord) || inputWord.includes(key)) {
+          statuses.forEach((status) => statusFilters.add(status));
+          isStatus = true;
+          break;
+        }
+      }
+      if (!isStatus) textKeywords.push(inputWord);
+    });
+
+    const checkTaskStatus = (task) => {
+      if (statusFilters.size === 0) return true;
+
+      const { targetList, getTargetId } = getStatsForCurrentSidebar();
+      const targetId = getTargetId(task);
+      if (!targetId) return false;
+
+      const statItem = targetList.find((stat) => stat.id === targetId);
+      return !!statItem && statusFilters.has(statItem.statusKey);
+    };
+
+    const scheduleSectionMap = new Map();
+    const groups = {};
+    scheduledTasks.value.forEach((task) => {
+      const sessionId = task.sessionId || 'S_DEFAULT';
+      let key = '';
+      if (task.musicianId) key = `M|${task.musicianId}`;
+      else if (task.projectId) key = `P|${task.projectId}`;
+      else if (task.instrumentId) key = `I|${task.instrumentId}`;
+
+      const fullKey = `${sessionId}|${key}`;
+      if (!groups[fullKey]) groups[fullKey] = [];
+      groups[fullKey].push(task);
+    });
+
+    Object.values(groups).forEach((group) => {
+      group.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+      group.forEach((task, index) => {
+        scheduleSectionMap.set(task.scheduleId, index);
+      });
+    });
+
+    return scheduledTasks.value.filter((task) => {
+      const sessionId = task.sessionId || 'S_DEFAULT';
+      if (!checkTaskStatus(task)) return false;
+      if (textKeywords.length === 0) return true;
+
+      const selfText = [
+        getNameWithGroup(task.musicianId, 'musician'),
+        getNameWithGroup(task.projectId, 'project'),
+        getNameWithGroup(task.instrumentId, 'instrument'),
+        task.recordingInfo?.studio,
+        task.recordingInfo?.engineer,
+        task.recordingInfo?.notes,
+      ].join(' ');
+
+      if (textKeywords.every((keyword) => smartMatch(selfText, keyword))) return true;
+
+      let subItems = [];
+      if (task.templateId) {
+        const exactItem = itemPool.value.find((item) => item.id === task.templateId);
+        if (exactItem) subItems.push(exactItem);
+      } else {
+        const mySectionIndex = scheduleSectionMap.get(task.scheduleId);
+        subItems = itemPool.value.filter((item) => {
+          if ((item.sessionId || 'S_DEFAULT') !== sessionId) return false;
+          let idMatch = false;
+          if (task.musicianId) idMatch = item.musicianId === task.musicianId;
+          else if (task.projectId) idMatch = item.projectId === task.projectId;
+          else if (task.instrumentId) idMatch = item.instrumentId === task.instrumentId;
+          if (!idMatch) return false;
+
+          const itemIndex = item.sectionIndex !== undefined ? item.sectionIndex : 0;
+          return itemIndex === mySectionIndex;
+        });
+      }
+
+      return subItems.some((item) => {
+        const itemText = [
+          getNameWithGroup(item.projectId, 'project'),
+          getNameWithGroup(item.instrumentId, 'instrument'),
+          getNameWithGroup(item.musicianId, 'musician'),
+          item.splitTag,
+          item.recordingInfo?.notes,
+        ].join(' ');
+        const combinedText = `${itemText} ${selfText}`;
+        return textKeywords.every((keyword) => smartMatch(combinedText, keyword));
+      });
+    });
+  });
 
   watch(showTrackList, (val) => {
     if (!val) trackListSearchQuery.value = '';
@@ -32,6 +210,7 @@ export function registerSearchFeature(context) {
 
   watch(globalSearchQuery, () => {
     currentSearchIndex.value = 0;
+    if (globalSearchQuery.value.trim()) requestPinyinMatch();
   });
 
   const handleTrackListSearchAction = (isEnter = false) => {
@@ -155,7 +334,11 @@ export function registerSearchFeature(context) {
   };
 
   return {
+    filteredScheduledTasks,
     filteredSidebarList,
+    getFullSearchText,
+    getNameWithGroup,
+    smartMatch,
     handleSearchEnter,
     handleSearchBlur,
     onSearchFocus,

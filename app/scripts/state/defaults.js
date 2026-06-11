@@ -1,5 +1,42 @@
-export const DEFAULT_APP_STATE = Object.freeze({});
-
 export function createDefaultSettings() {
-  throw new Error('createDefaultSettings not implemented');
+  return {
+    startHour: 10,
+    endHour: 22,
+    sessions: [
+      { id: 'S_DEFAULT', name: '默认录音日程' },
+    ],
+    instruments: [
+      { id: 'Imi7d0318nsj', name: '曲笛 Qudi', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d1wio42g', name: '大笛 Dadi', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d1zhnrin', name: '箫 Xiao', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d22qbj3x', name: '管子 Guanzi', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d25hgyts', name: '葫芦丝 Hulusi', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d28dmhcu', name: '嘟嘟克 Duduk', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d2czbme5', name: '奈伊笛 Ney', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d2fipt2s', name: '古筝 Guzheng', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d2irx4rn', name: '琵琶 Pipa', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d2lzuq1k', name: '中阮 Zhongruan', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d2okw95k', name: '大阮 Daruan', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d2usilyh', name: '扬琴 Yangqin', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d2ypsa3n', name: '三弦 Sanxian', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d321n3ff', name: '二胡 Erhu', color: '#60a5fa', group: 'Ethnic Strings' },
+      { id: 'Imi7d35n8ore', name: '马头琴 Matouqin', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d38kux53', name: '萨塔尔 Sataer', color: '#60a5fa', group: 'Ethnic Strings' },
+      { id: 'Imi7d3b4omfr', name: '古典吉他 Classical Guitar', color: '#60a5fa', group: 'Plucks' },
+      { id: 'Imi7d3drxrgi', name: '钢弦吉他 Acoustic Guitar', color: '#60a5fa', group: 'Plucks' },
+      { id: 'Imi7d3gz35vm', name: '萨兹琴 Saz', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d3jqoe3p', name: '西塔尔 Sitar', color: '#60a5fa', group: 'Ethnic Plucks' },
+      { id: 'Imi7d3lxykzm', name: '笙 Sheng', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d3pcnpbh', name: '尺八 Shakuhachi', color: '#60a5fa', group: 'Ethnic Woodwinds' },
+      { id: 'Imi7d3s0hrcp', name: '人声 Vocal', color: '#60a5fa', group: 'Vocal' },
+      { id: 'tmi8ygljxuqkaatv', name: '低音马头琴 Diyin Matouqin', color: '#60a5fa', group: 'Ethnic Strings' },
+      { id: 'tmifto6q9igynzmf', name: '钢琴 Piano', color: '#60a5fa', group: 'Keys' },
+    ],
+    musicians: [],
+    projects: [],
+    studios: [],
+    engineers: [],
+    operators: [],
+    assistants: [],
+  };
 }

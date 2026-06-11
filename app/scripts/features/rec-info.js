@@ -12,26 +12,28 @@ function getMetadataList(settings, type) {
 
 export function registerRecInfoFeature(context) {
   const { refs, state, utils, actions } = context;
-  const { trackListData, sidebarTab, scheduledTasks } = refs;
+  const { trackListData, sidebarTab, itemPool, scheduledTasks } = refs;
   const { settings } = state;
   const { generateUniqueId } = utils;
   const {
     pushHistory,
     triggerTouchHaptic,
+    openConfirmModal = () => {},
+    openAlertModal = () => {},
     promptForValue = (message) => prompt(message),
   } = actions;
 
-  const showRecInfoModal = ref(false);
-  const recInfoForm = reactive({
+  const showRecInfoModal = refs.showRecInfoModal || ref(false);
+  const recInfoForm = refs.recInfoForm || reactive({
     studio: '',
     engineer: '',
     operator: '',
     assistant: '',
     notes: '',
   });
-  const activeRecDropdown = ref(null);
-  const recDropdownSearch = ref('');
-  const newRecInputs = reactive({
+  const activeRecDropdown = refs.activeRecDropdown || ref(null);
+  const recDropdownSearch = refs.recDropdownSearch || ref('');
+  const newRecInputs = refs.newRecInputs || reactive({
     studio: '',
     engineer: '',
     operator: '',
@@ -154,6 +156,64 @@ export function registerRecInfoFeature(context) {
     triggerTouchHaptic('Medium');
   };
 
+  const updateRecordingInfoReferences = (type, oldName, targetName) => {
+    let count = 0;
+    const updateTask = (task) => {
+      if (task.recordingInfo && task.recordingInfo[type] === oldName) {
+        task.recordingInfo[type] = targetName;
+        count += 1;
+      }
+    };
+
+    itemPool?.value?.forEach(updateTask);
+    scheduledTasks.value.forEach(updateTask);
+    return count;
+  };
+
+  const handleRecRename = (type, item, event) => {
+    const newName = event.target.value.trim();
+    const oldName = item.name;
+
+    if (!newName) {
+      event.target.value = oldName;
+      return;
+    }
+    if (newName === oldName) return;
+
+    const list = getMetadataList(settings, type);
+    if (!list) return;
+
+    const existing = list.find((candidate) =>
+      candidate.name.toLowerCase() === newName.toLowerCase() && candidate.id !== item.id
+    );
+
+    if (existing) {
+      event.target.value = oldName;
+
+      openConfirmModal(
+        '合并条目',
+        `检测到 "${existing.name}" 已存在。\n确定要将 "${oldName}" 合并归入 "${existing.name}" 吗？\n\n⚠ 注意：所有使用 "${oldName}" 的任务都将自动更新。`,
+        () => {
+          updateRecordingInfoReferences(type, oldName, existing.name);
+
+          const idx = list.findIndex((candidate) => candidate.id === item.id);
+          if (idx !== -1) list.splice(idx, 1);
+
+          pushHistory();
+          triggerTouchHaptic('Success');
+          openAlertModal('合并成功', `相关任务信息已更新为 "${existing.name}"。`);
+        },
+        true,
+        '确认合并',
+      );
+    } else {
+      item.name = newName;
+      updateRecordingInfoReferences(type, oldName, newName);
+      pushHistory();
+      triggerTouchHaptic('Success');
+    }
+  };
+
   return {
     showRecInfoModal,
     recInfoForm,
@@ -167,5 +227,6 @@ export function registerRecInfoFeature(context) {
     createRecOption,
     addRecItem,
     removeRecItem,
+    handleRecRename,
   };
 }

@@ -13,9 +13,11 @@ export function registerSplitTaskFeature(context) {
   const {
     createHiddenSplitState,
     deactivateItemInView,
+    getConnectedSplitItemIds,
     getSplitViewState,
     hasVisibleSplitStateInAnyView,
     isItemVisibleInView,
+    peekSplitViewState = getSplitViewState,
     setItemSplitState,
     syncLegacySplitFields,
   } = split;
@@ -83,6 +85,91 @@ export function registerSplitTaskFeature(context) {
       return false;
     }
     return true;
+  };
+
+  const checkCanDeleteSplit = (item) => {
+    const viewType = getCurrentSplitView();
+    const directChild = itemPool.value.find((task) => (
+      isItemVisibleInView(task, viewType) &&
+      getSplitViewState(task, viewType).splitFromId === item.id
+    ));
+
+    if (directChild) {
+      const childName = getSplitViewState(directChild, viewType).splitTag || '后续部分';
+      openAlertModal(
+        '无法删除',
+        `检测到后续任务 ${childName} 存在。\n\n为了保证时间计算正确，请务必按顺序先删除最后一个 Part，才能逐级归还时间。`,
+      );
+      triggerTouchHaptic('Error');
+      return false;
+    }
+
+    return true;
+  };
+
+  const getFamilyTotalDuration = (targetItem) => {
+    const viewType = getCurrentSplitView();
+    const rootId = getSplitViewState(targetItem, viewType).splitFromId || targetItem.id;
+    const familyMembers = itemPool.value.filter((item) => (
+      isItemVisibleInView(item, viewType) &&
+      (item.id === rootId || getSplitViewState(item, viewType).splitFromId === rootId)
+    ));
+
+    return familyMembers.reduce((sum, item) => (
+      sum + parseTime(getSplitViewState(item, viewType).musicDuration || '00:00')
+    ), 0);
+  };
+
+  const getSplitFamilyMembers = (item) => {
+    const connectedIds = getConnectedSplitItemIds(itemPool.value, item.id);
+    return itemPool.value.filter((member) => connectedIds.has(member.id));
+  };
+
+  const syncFamilyLegacyFields = (item, viewType) => {
+    getSplitFamilyMembers(item).forEach((member) => syncLegacySplitFields(member, viewType));
+  };
+
+  const syncFamilySharedIdentity = (item, fields) => {
+    const familyMembers = getSplitFamilyMembers(item);
+    familyMembers.forEach((member) => {
+      if (fields.projectId !== undefined) member.projectId = fields.projectId;
+      if (fields.instrumentId !== undefined) member.instrumentId = fields.instrumentId;
+      if (fields.musicianId !== undefined) member.musicianId = fields.musicianId;
+      if (fields.group !== undefined) member.group = fields.group;
+    });
+
+    const familyIds = new Set(familyMembers.map((member) => member.id));
+    scheduledTasks.value.forEach((task) => {
+      if (!familyIds.has(task.templateId)) return;
+      if (fields.projectId !== undefined) task.projectId = fields.projectId;
+      if (fields.instrumentId !== undefined) task.instrumentId = fields.instrumentId;
+      if (fields.musicianId !== undefined) task.musicianId = fields.musicianId;
+    });
+  };
+
+  const syncFamilyOrchestration = (item, newOrch) => {
+    getSplitFamilyMembers(item).forEach((member) => {
+      if (member.orchestration !== newOrch) {
+        member.orchestration = newOrch;
+      }
+    });
+  };
+
+  const syncScheduledDurationsFromFamily = (item) => {
+    const familyMembers = getSplitFamilyMembers(item);
+    const familyById = new Map(familyMembers.map((member) => [member.id, member]));
+
+    scheduledTasks.value.forEach((task) => {
+      const template = familyById.get(task.templateId);
+      if (!template) return;
+
+      const taskViewType = task.projectId ? 'project' : 'musician';
+      const taskState = peekSplitViewState(template, taskViewType);
+
+      task.musicDuration = taskState.musicDuration || template.musicDuration;
+      task.estDuration = taskState.estDuration || template.estDuration;
+      task.ratio = template.ratio;
+    });
   };
 
   const updateSplitStrings = () => {
@@ -394,6 +481,13 @@ export function registerSplitTaskFeature(context) {
   return {
     splitState,
     checkCanSplit,
+    checkCanDeleteSplit,
+    getFamilyTotalDuration,
+    getSplitFamilyMembers,
+    syncFamilyLegacyFields,
+    syncFamilySharedIdentity,
+    syncFamilyOrchestration,
+    syncScheduledDurationsFromFamily,
     openSplitSlider,
     onSplitSliderInput,
     updateSplitStrings,

@@ -1,3 +1,5 @@
+import { computed, reactive, ref } from 'vue';
+
 export function registerSettingsFeature(context) {
   const { refs, state, utils, actions } = context;
   const {
@@ -5,6 +7,7 @@ export function registerSettingsFeature(context) {
     scheduledTasks,
     settingsExpandedGroups,
     newSettingsItem,
+    settingsGroupFocus,
   } = refs;
   const { settings } = state;
   const { generateUniqueId, generateRandomHexColor } = utils;
@@ -15,7 +18,16 @@ export function registerSettingsFeature(context) {
     openAlertModal,
     cleanupEmptySchedules,
     autoUpdateEfficiency,
+    getWindowInnerHeight = () => window.innerHeight,
+    querySelectorAll = (selector) => document.querySelectorAll(selector),
   } = actions;
+
+  const inputRects = reactive({
+    name: { top: 0, left: 0, width: 0, height: 0 },
+    group: { top: 0, left: 0, width: 0, height: 0 },
+  });
+  const settingsNameFocus = ref(null);
+  let settingsDragItem = null;
 
   function getListForType(type) {
     if (type === 'instrument') return settings.instruments;
@@ -63,6 +75,185 @@ export function registerSettingsFeature(context) {
         items: groups[key].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true })),
       }));
   }
+
+  const updateInputRect = (event, kind) => {
+    const wrapperClass = kind === 'name' ? '.settings-name-wrapper' : '.settings-group-wrapper';
+    const el = event.target.closest(wrapperClass);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      inputRects[kind] = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    }
+  };
+
+  const getFloatingStyle = (kind) => {
+    const rect = inputRects[kind];
+    const windowHeight = getWindowInnerHeight();
+    const inputBottom = rect.top + rect.height;
+    const spaceBelow = windowHeight - inputBottom;
+    const menuHeight = 220;
+    const isDropUp = spaceBelow < menuHeight;
+
+    const style = {
+      position: 'fixed',
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      margin: 0,
+      zIndex: 99999,
+    };
+
+    if (isDropUp) {
+      style.top = 'auto';
+      style.bottom = `${windowHeight - rect.top + 5}px`;
+      style.transformOrigin = 'bottom center';
+    } else {
+      style.top = `${inputBottom + 5}px`;
+      style.bottom = 'auto';
+      style.transformOrigin = 'top center';
+    }
+
+    return style;
+  };
+
+  const onSettingsScroll = () => {
+    if (settingsNameFocus.value || settingsGroupFocus.value) {
+      settingsNameFocus.value = null;
+      settingsGroupFocus.value = null;
+    }
+  };
+
+  const getUngroupedItems = (type) =>
+    getListForType(type)
+      .filter((item) => !item.group || !item.group.trim())
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+  const sortSettingsList = (list) => [...list].sort((a, b) => {
+    const gA = (a.group || '').trim();
+    const gB = (b.group || '').trim();
+
+    if (gA && !gB) return -1;
+    if (!gA && gB) return 1;
+    if (gA !== gB) return gA.localeCompare(gB, 'zh-CN');
+
+    return (a.name || '').localeCompare(b.name || '', 'zh-CN');
+  });
+
+  const findSettingId = (type, name) => {
+    if (!name) return null;
+    const list = settings[`${type}s`];
+    if (!list) return null;
+
+    const targetName = name.trim().toLowerCase();
+    const found = list.find((item) => item.name.trim().toLowerCase() === targetName);
+    return found ? found.id : null;
+  };
+
+  const getOrCreateProjectId = (projectName) => {
+    let project = settings.projects.find((item) => item.name === projectName);
+    if (!project) {
+      project = { id: generateUniqueId('P'), name: projectName, color: generateRandomHexColor() };
+      settings.projects.push(project);
+    }
+    return project.id;
+  };
+
+  const sortedInstruments = computed(() => sortSettingsList(settings.instruments));
+  const sortedMusicians = computed(() => sortSettingsList(settings.musicians));
+  const sortedProjects = computed(() => sortSettingsList(settings.projects));
+
+  const isAllGroupsExpanded = (type) => {
+    const groups = getSettingsGroupedList(type);
+    if (groups.length === 0) return false;
+    return groups.every((group) => settingsExpandedGroups.has(`${type}|${group.name}`));
+  };
+
+  const toggleAllGroups = (type) => {
+    const groups = getSettingsGroupedList(type);
+    const isAllOpen = isAllGroupsExpanded(type);
+
+    if (isAllOpen) {
+      groups.forEach((group) => settingsExpandedGroups.delete(`${type}|${group.name}`));
+    } else {
+      groups.forEach((group) => settingsExpandedGroups.add(`${type}|${group.name}`));
+    }
+  };
+
+  const onSettingsItemDragStart = (item, type, event) => {
+    if (event.target.closest('input, button, select, i')) {
+      event.preventDefault();
+      return;
+    }
+
+    settingsDragItem = { item, type };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify(item));
+
+    if (event.currentTarget) {
+      event.currentTarget.style.opacity = '0.4';
+    }
+  };
+
+  const onSettingsItemDragEnd = (event) => {
+    const rowEl = event.target.closest('.group\\/item');
+    if (rowEl) {
+      rowEl.style.opacity = '1';
+    }
+
+    querySelectorAll('.settings-group-container').forEach((el) => {
+      el.classList.remove('drag-over');
+    });
+
+    settingsDragItem = null;
+  };
+
+  const disableRowDrag = (event) => {
+    const row = event.target.closest('.group\\/item');
+    if (row) {
+      row.setAttribute('draggable', 'false');
+      row.style.cursor = 'text';
+    }
+  };
+
+  const enableRowDrag = (event) => {
+    const row = event.target.closest('.group\\/item');
+    if (row) {
+      row.setAttribute('draggable', 'true');
+      row.style.cursor = '';
+    }
+  };
+
+  const onSettingsDragOver = (event) => {
+    if (settingsDragItem) {
+      event.preventDefault();
+      event.currentTarget.classList.add('drag-over');
+    }
+  };
+
+  const onSettingsDragLeave = (event) => {
+    event.currentTarget.classList.remove('drag-over');
+  };
+
+  const onSettingsDrop = (targetType, targetGroupName, event) => {
+    event.currentTarget.classList.remove('drag-over');
+    querySelectorAll('[draggable=true]').forEach((el) => {
+      el.style.opacity = '1';
+    });
+
+    if (!settingsDragItem) return;
+    if (settingsDragItem.type !== targetType) return;
+
+    const currentGroup = settingsDragItem.item.group || '';
+    const targetGroup = targetGroupName || '';
+
+    if (currentGroup === targetGroup) {
+      settingsDragItem = null;
+      return;
+    }
+
+    settingsDragItem.item.group = targetGroup;
+    pushHistory();
+    settingsDragItem = null;
+    triggerTouchHaptic('Light');
+  };
 
   function getAllSettingsGrouped() {
     return {
@@ -298,9 +489,30 @@ export function registerSettingsFeature(context) {
   }
 
   return {
+    inputRects,
+    settingsNameFocus,
+    updateInputRect,
+    getFloatingStyle,
+    onSettingsScroll,
+    getUngroupedItems,
+    sortSettingsList,
+    sortedInstruments,
+    sortedMusicians,
+    sortedProjects,
+    isAllGroupsExpanded,
+    toggleAllGroups,
+    onSettingsItemDragStart,
+    onSettingsItemDragEnd,
+    disableRowDrag,
+    enableRowDrag,
+    onSettingsDragOver,
+    onSettingsDragLeave,
+    onSettingsDrop,
     toggleSettingsGroup,
     getSettingsGroupedList,
     getAllSettingsGrouped,
+    findSettingId,
+    getOrCreateProjectId,
     getExistingGroups,
     renameGroup,
     addSettingsItem,
