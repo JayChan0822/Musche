@@ -21,7 +21,7 @@ node --test tests/<file>.test.mjs   # 单跑某个测试
   - `loadXxxFeature(...)`——懒加载形态，配合 `services/lazy-feature-proxy.js`（首次调用时动态 import，方法调用自动排队等待加载完成）。
 - **services/**：依赖装配层。`app-dependencies.js` 聚合全部依赖供 app.js 一次性解构；`*-feature-registrar.js` / `*-feature-loader.js` 是 feature 的接线适配器；`*-loader.js`（xlsx/cropper/midi-smf/pinyin）封装第三方库的按需加载。
 - **components/**：Vue 运行时组件（`app-*-modal.js`、`*-shell.js`），通过 `:ctx` prop 接收状态。
-- **state/**：状态工厂；每个弹窗/区块有对应 `*-shell-state.js`，由 `app-state-factories.js` 汇总。
+- **state/**：状态工厂；每个弹窗/区块有对应 `*-shell-state.js`，由 `app-state-factories.js` 汇总。shell state 一律用 `state/shell-state-factory.js` 的 `defineShellState(name, spec)` 声明（bucket：`reads` 只读 ref / `models` 可写 ref / `raw` 延迟取值 / `values` 直传），不要手写 getter 样板。
 - **utils/**：纯函数（time/csv/midi/format/id/split-state），不依赖 Vue。
 
 第三方重依赖（xlsx、JZZ、cropper、driver.js、pinyin-pro）必须保持按需加载，不要静态 import 进主包。
