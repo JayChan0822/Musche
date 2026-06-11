@@ -14,7 +14,7 @@ test('app bootstrap registers dropdowns through the dropdowns registrar without 
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createDropdownsFeatureRegistrar',
-    registerName: 'registerDropdownsFeature',
+    registerName: 'wireDropdownsFeature',
     modulePath: 'dropdowns-feature-registrar.js',
     label: 'dropdowns',
   });

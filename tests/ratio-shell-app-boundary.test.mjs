@@ -14,7 +14,7 @@ test('app bootstrap registers ratio through the ratio registrar without the pass
   });
   assertAppFeatureRegistrarRegistry({
     factoryName: 'createRatioFeatureRegistrar',
-    registerName: 'registerRatioFeature',
+    registerName: 'wireRatioFeature',
     modulePath: 'ratio-feature-registrar.js',
     label: 'ratio',
   });

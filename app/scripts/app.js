@@ -29,12 +29,12 @@ import { createAppDependencies } from './services/app-dependencies.js';
         loadSettingsFeature,
         registerAppRuntimeFeature,
         registerGlobalKeyboardFeature,
-        registerSessionFeature,
-        registerHistoryFeature,
-        registerRatioFeature,
+        wireSessionFeature,
+        wireHistoryFeature,
+        wireRatioFeature,
         registerNameLookupFeature,
         registerSplitViewFeature,
-        registerDropdownsFeature,
+        wireDropdownsFeature,
         registerViewNavigationFeature,
         registerQuickAddFeature,
         registerUniversalModalFeature,
@@ -44,7 +44,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
         registerPoolInteractionsFeature,
         registerSearchFeature,
         registerSidebarStatsFeature,
-        registerSidebarFeature,
+        wireSidebarFeature,
         registerMobileUiFeature,
         registerScheduleFeature,
         registerScheduleInteractionsFeature,
@@ -163,6 +163,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 peekSplitViewState,
                 getCurrentSplitView,
             } = splitViewFeature;
+            assembly.features.splitView = splitViewFeature;
             // --- 🎹 MIDI 高级导入逻辑 ---
             
             // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
@@ -186,20 +187,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const getNameWithGroup = (...args) => searchFeature.getNameWithGroup(...args);
 
-            const sidebarFeature = registerSidebarFeature({
-                refs: {
-                    sidebarWidth,
-                    isMobile,
-                    sidebarTab,
-                },
-                services: {
-                    storageService,
-                },
-                actions: {
-                    isDragActive: () => !!dragState.dragElClone,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            const sidebarFeature = wireSidebarFeature(assembly);
+            assembly.features.sidebar = sidebarFeature;
             const isSidebarOpen = sidebarFeature.isSidebarOpen;
 
             let splitState;
@@ -300,6 +289,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 closeInputModal,
                 confirmInputModal,
             } = universalModalFeature;
+            Object.assign(assembly.helpers, {
+                openAlertModal, openConfirmModal, closeConfirmModal, handleConfirmAction,
+                openInputModal, closeInputModal, confirmInputModal,
+            });
             const avatarCropFeatureProxy = createLazyFeatureProxy({
                 loadFeature: () => loadAvatarCropFeature()
                     .then((registerAvatarCropFeature) => registerAvatarCropFeature({
@@ -369,25 +362,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             // 🟢 修改: 增加版本检查的保存逻辑 (解决 Race Condition)
             const saveToCloud = (force = false) => authFeature.saveToCloud(handleManualSync, force);
 
-            const dropdownsFeature = registerDropdownsFeature({
-                refs: {
-                    activeDropdown,
-                    showMobileMenu,
-                    showProfileMenu,
-                    settingsGroupFocus,
-                    showGroupSuggestions,
-                    editingItem,
-                },
-                state: {
-                    settings,
-                    newItem,
-                },
-                actions: {
-                    onMusicianSelect: () => onMusicianSelect(),
-                    getSettingsNameFocus: () => settingsNameFocus,
-                    getActiveRecDropdown: () => activeRecDropdown,
-                },
-            });
+            const dropdownsFeature = wireDropdownsFeature(assembly);
+            assembly.features.dropdowns = dropdownsFeature;
             const {
                 dropdownSearch,
                 dropdownExpandedGroups,
@@ -408,30 +384,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             // onMounted(() => { ... window.addEventListener('click', closeDropdowns); ... })
             // 别忘了在 onUnmounted 移除
 
-            ratioFeature = registerRatioFeature({
-                refs: {
-                    trackListData,
-                    showTrackList,
-                    sidebarTab,
-                    itemPool,
-                    scheduledTasks,
-                    currentSessionId,
-                    musicianStats: { get value() { return musicianStats.value; } },
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    parseTime: timeUtils.parseTime,
-                    formatSecs: formatUtils.formatSecs,
-                },
-                actions: {
-                    ensureItemSplitViews: splitStateUtils.ensureItemSplitViews,
-                    pushHistory: () => pushHistory(),
-                    openConfirmModal,
-                    openAlertModal,
-                },
-            });
+            ratioFeature = wireRatioFeature(assembly);
+            assembly.features.ratio = ratioFeature;
             const {
                 ensureItemRecords,
                 getDefaultRatio,
@@ -443,49 +397,17 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 cleanOldRatios,
             } = ratioFeature;
 
-            historyFeature = registerHistoryFeature({
-                refs: {
-                    itemPool,
-                    scheduledTasks,
-                    history,
-                    historyIndex,
-                    showTrackList,
-                    trackListData,
-                    currentSessionId,
-                },
-                state: {
-                    settings,
-                },
-                actions: {
-                    isItemVisibleForView,
-                    syncItemsForView,
-                },
-            });
+            historyFeature = wireHistoryFeature(assembly);
+            assembly.features.history = historyFeature;
             const {
                 pushHistory,
                 undo,
                 redo,
             } = historyFeature;
+            Object.assign(assembly.helpers, { pushHistory, undo, redo });
 
-            sessionFeature = registerSessionFeature({
-                refs: {
-                    currentSessionId,
-                    activeDropdown,
-                },
-                state: {
-                    settings,
-                },
-                utils: {
-                    generateUniqueId: idUtils.generateUniqueId,
-                },
-                actions: {
-                    openInputModal,
-                    openConfirmModal,
-                    openAlertModal,
-                    pushHistory,
-                    triggerTouchHaptic: triggerTouchHaptic,
-                },
-            });
+            sessionFeature = wireSessionFeature(assembly);
+            assembly.features.session = sessionFeature;
             const {
                 currentSessionName,
                 switchSession,
@@ -546,6 +468,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 projectInfoForm,
                 metadataModalsFeatureRef,
             } = createRootMetadataModalState();
+            assembly.refs.activeRecDropdown = activeRecDropdown;
             const metadataModalsFeatureProxy = createLazyFeatureProxy({
                 loadFeature: () => loadMetadataModalsFeature()
                     .then((registerMetadataModalsFeature) => {
@@ -780,6 +703,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 confirmQuickAdd,
                 addItemToPool,
             } = quickAddFeature;
+            assembly.features.quickAdd = quickAddFeature;
 
             const scheduleInteractionsFeature = registerScheduleInteractionsFeature({
                 refs: {
@@ -1279,6 +1203,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 getExistingGroups,
                 getOrCreateSettingItem,
             } = settingsSyncFeature;
+            assembly.refs.settingsNameFocus = settingsNameFocus;
             let allSettingsGrouped = settingsSyncFeature.allSettingsGrouped;
             const settingsFeatureProxy = createLazyFeatureProxy({
                 loadFeature: () => loadSettingsFeature()
@@ -1614,6 +1539,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToStatSchedule,
                 handleStatCardClick,
             } = sidebarStatsFeature;
+            assembly.refs.musicianStats = musicianStats;
             currentSidebarList = sidebarStatsFeature.currentSidebarList;
 
             const viewNavigationFeature = registerViewNavigationFeature({

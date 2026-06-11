@@ -3630,7 +3630,7 @@ assert.equal(
     'app.js must not register the pass-through split-view shell feature'
 );
 
-const ratioFeatureIndex = appScript.indexOf('ratioFeature = registerRatioFeature({');
+const ratioFeatureIndex = appScript.indexOf('ratioFeature = wireRatioFeature(assembly');
 assert.ok(ratioFeatureIndex !== -1, 'app.js must register the ratio feature');
 assert.equal(
     appScript.indexOf('registerRatioShellFeature('),
@@ -3830,7 +3830,7 @@ assert.equal(
     'app.js must not register the pass-through orchestration shell feature'
 );
 
-const dropdownsFeatureIndex = appScript.indexOf('const dropdownsFeature = registerDropdownsFeature({');
+const dropdownsFeatureIndex = appScript.indexOf('const dropdownsFeature = wireDropdownsFeature(assembly');
 assert.ok(dropdownsFeatureIndex !== -1, 'app.js must register the dropdowns feature');
 assert.equal(
     appScript.indexOf('registerDropdownsShellFeature('),
@@ -3854,7 +3854,7 @@ assert.equal(
     'app.js must not register the pass-through quick-add shell feature'
 );
 
-const historyFeatureIndex = appScript.indexOf('historyFeature = registerHistoryFeature({');
+const historyFeatureIndex = appScript.indexOf('historyFeature = wireHistoryFeature(assembly');
 assert.ok(historyFeatureIndex !== -1, 'app.js must register the history feature');
 assert.equal(
     appScript.indexOf('registerHistoryShellFeature('),
@@ -3862,7 +3862,7 @@ assert.equal(
     'app.js must not register the pass-through history shell feature'
 );
 
-const sessionFeatureIndex = appScript.indexOf('sessionFeature = registerSessionFeature({');
+const sessionFeatureIndex = appScript.indexOf('sessionFeature = wireSessionFeature(assembly');
 assert.ok(sessionFeatureIndex !== -1, 'app.js must register the session feature');
 assert.equal(
     appScript.indexOf('registerSessionShellFeature('),
@@ -4534,7 +4534,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createRatioFeatureRegistrar',
-    registerName: 'registerRatioFeature',
+    registerName: 'wireRatioFeature',
     modulePath: 'ratio-feature-registrar.js',
     label: 'ratio',
 });
@@ -4599,9 +4599,9 @@ for (const leakedRootReturnField of [
 }
 
 assert.match(
-    appScript,
-    /registerRatioFeature\(\{[\s\S]{0,800}musicianStats:\s*\{\s*get value\(\)\s*\{\s*return musicianStats\.value;\s*\}\s*\}/,
-    'app.js must inject musicianStats into ratio feature lazily so setup does not read it before sidebar stats initialization'
+    ratioFeatureRegistrarModule,
+    /registerRatioFeature\(\{[\s\S]{0,800}musicianStats:\s*\{\s*get value\(\)\s*\{\s*return assembly\.refs\.musicianStats\.value;\s*\}\s*\}/,
+    'ratio registrar must inject musicianStats into ratio feature lazily so setup does not read it before sidebar stats initialization'
 );
 
 assert.match(
@@ -4611,9 +4611,9 @@ assert.match(
 );
 
 assert.doesNotMatch(
-    appScript,
+    ratioFeatureRegistrarModule,
     /registerRatioFeature\(\{[\s\S]{0,800}currentSessionId,\s*musicianStats,/,
-    'app.js must not inject musicianStats directly into ratio feature before sidebar stats initialization'
+    'ratio registrar must not inject musicianStats directly into ratio feature before sidebar stats initialization'
 );
 
 assert.doesNotMatch(
@@ -5385,7 +5385,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createHistoryFeatureRegistrar',
-    registerName: 'registerHistoryFeature',
+    registerName: 'wireHistoryFeature',
     modulePath: 'history-feature-registrar.js',
     label: 'history',
 });
@@ -5398,7 +5398,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerHistoryFeature\(/,
+    /wireHistoryFeature\(assembly\)/,
     'app.js must register the history feature instead of owning undo/redo logic'
 );
 
@@ -5855,7 +5855,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSessionFeatureRegistrar',
-    registerName: 'registerSessionFeature',
+    registerName: 'wireSessionFeature',
     modulePath: 'session-feature-registrar.js',
     label: 'session',
 });
@@ -5868,7 +5868,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerSessionFeature\(/,
+    /wireSessionFeature\(assembly\)/,
     'app.js must register the session feature instead of owning session action logic'
 );
 
@@ -6739,10 +6739,16 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createSidebarFeatureRegistrar',
-    registerName: 'registerSidebarFeature',
+    registerName: 'wireSidebarFeature',
     modulePath: 'sidebar-feature-registrar.js',
     label: 'sidebar',
 });
+
+assert.match(
+    sidebarFeatureRegistrarModule,
+    /wireSidebarFeature\(assembly\)[\s\S]*registerSidebarFeature\(\{[\s\S]*sidebarWidth,[\s\S]*isDragActive:\s*\(\)\s*=>\s*!!dragState\.dragElClone,[\s\S]*\}\);/,
+    'sidebar registrar must own the sidebar wiring table'
+);
 
 assert.doesNotMatch(
     appScript,
@@ -6752,8 +6758,8 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /registerSidebarFeature\(/,
-    'app.js must register sidebar composition instead of direct sidebar preferences/navigation wiring'
+    /wireSidebarFeature\(assembly\)/,
+    'app.js must register sidebar composition through the assembly-wired registrar'
 );
 
 assert.doesNotMatch(
@@ -7215,7 +7221,7 @@ assert.match(
 
 assertAppFeatureRegistrarRegistry({
     factoryName: 'createDropdownsFeatureRegistrar',
-    registerName: 'registerDropdownsFeature',
+    registerName: 'wireDropdownsFeature',
     modulePath: 'dropdowns-feature-registrar.js',
     label: 'dropdowns',
 });
