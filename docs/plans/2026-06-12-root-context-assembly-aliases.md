@@ -1,5 +1,11 @@
 # Root Context Assembly Aliases Implementation Plan
 
+> **状态（2026-06-12）：已完成。** `locals` 参数已删除：227 项中 31 项 ref 并入 wiring 的
+> `assembly.refs` 解构（59→90），196 项改从 `assembly.helpers` 解构，185 项在 app.js
+> 各 feature 装配块旁就地发布。烟雾测试新增反向守护（app.js 禁出现 `locals:`）与
+> 清单一致性守护（wiring 的 helpers 解构 ⊆ app.js 发布键）。
+> 等价性双向 diff 无差，166 单测 + 4 E2E 冒烟 + 构建全绿。
+
 **Goal:** 删除 `createAppRootContexts` 的 `locals` 参数，wiring 改为从
 `assembly.refs` / `assembly.helpers` 解构，app.js 在各 feature 装配块旁就地发布别名，
 并加守护断言。
