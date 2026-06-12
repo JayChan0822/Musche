@@ -160,6 +160,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 midiGroupExpanded,
             } = createRootImportDataState();
             assembly.refs.availableInstrumentGroups = availableInstrumentGroups;
+            Object.assign(assembly.helpers, { groupedCsvData, midiGroupData, currentMidiDisplayList, filteredImportOptions, midiGroupExpanded });
             let importDataFeature;
 
             let {
@@ -169,6 +170,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 filteredMidiGroups,
             } = createRootMidiManagerState();
             Object.assign(assembly.refs, { midiManagerExpandedGroups, projectMidiGroups });
+            Object.assign(assembly.helpers, { filteredMidiGroups });
 
             const getNameWithGroup = (...args) => searchFeature.getNameWithGroup(...args);
 
@@ -200,8 +202,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 'handleTouchEnd',
                 'initMobileResize',
             ]);
+            Object.assign(assembly.helpers, { mobileTouchHandlers });
 
             const toggleTheme = () => mobileUiFeature.toggleTheme();
+            Object.assign(assembly.helpers, { toggleTheme });
 
             let getThemeLabel;
             let switchView;
@@ -225,6 +229,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const onFileSelect = avatarCropFeatureProxy.method('onFileSelect');
             const cancelCrop = avatarCropFeatureProxy.method('cancelCrop');
             const confirmCrop = avatarCropFeatureProxy.method('confirmCrop');
+            Object.assign(assembly.helpers, { onFileSelect, cancelCrop, confirmCrop });
 
             const settings = createRootSettingsState();
             assembly.state.settings = settings;
@@ -249,6 +254,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const handleLogout = () => authFeature.handleLogout();
 
             const saveToCloud = (force = false) => authFeature.saveToCloud(handleManualSync, force);
+            Object.assign(assembly.helpers, {
+                handleManualSync, handleLogin, handleRegister, handleResetPwd,
+                updateNickname, factoryReset, handleUserBtnClick, handleLogout,
+            });
 
             const dropdownsFeature = wireDropdownsFeature(assembly);
             assembly.features.dropdowns = dropdownsFeature;
@@ -264,8 +273,13 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 getGroupedOptions,
                 selectOption,
             } = dropdownsFeature;
+            Object.assign(assembly.helpers, {
+                dropdownSearch, dropdownExpandedGroups, toggleDropdownGroup, toggleDropdown,
+                filteredOptions, getGroupedOptions, selectOption,
+            });
 
             const toggleMobileMenu = () => mobileUiFeature.toggleMobileMenu();
+            Object.assign(assembly.helpers, { toggleMobileMenu });
 
             ratioFeature = wireRatioFeature(assembly);
             assembly.features.ratio = ratioFeature;
@@ -279,6 +293,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 autoUpdateEfficiency,
                 cleanOldRatios,
             } = ratioFeature;
+            Object.assign(assembly.helpers, { autoUpdateEfficiency, calculateSingleRatio, getTaskRatio });
 
             historyFeature = wireHistoryFeature(assembly);
             assembly.features.history = historyFeature;
@@ -296,6 +311,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 switchSession,
                 handleSessionAction,
             } = sessionFeature;
+            Object.assign(assembly.helpers, { currentSessionName, switchSession, handleSessionAction });
 
             const pickerControlsFeature = wirePickerControlsFeature(assembly);
             assembly.features.pickerControls = pickerControlsFeature;
@@ -321,10 +337,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 resetDuration,
             } = pickerControlsFeature;
             assembly.refs.showColorPickerModal = showColorPickerModal;
+            Object.assign(assembly.helpers, {
+                tempColor, presetColors, openColorPicker, resetColorPicker, saveColorPicker,
+                onDragStart, openDurationPicker, closePicker, onScroll, confirmDurationPicker, resetDuration,
+            });
 
             nameLookupFeature = wireNameLookupFeature(assembly);
             assembly.features.nameLookup = nameLookupFeature;
             const getNameById = (...args) => nameLookupFeature.getNameById(...args);
+            Object.assign(assembly.helpers, { getNameById });
 
             const {
                 showRecInfoModal,
@@ -356,6 +377,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 'saveProjectInfo',
             ]);
             const filteredRecOptions = computed(() => metadataModalsFeatureRef.value?.filteredRecOptions.value || []);
+            Object.assign(assembly.helpers, { metadataModalHandlers, filteredRecOptions });
             const {
                 showImportModal,
                 showExportModal,
@@ -386,6 +408,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const filteredExportInstruments = computed(() => dataIoFeatureRef.value?.filteredExportInstruments.value || []);
             const exportDateRange = computed(() => dataIoFeatureRef.value?.exportDateRange.value || { min: '', max: '' });
             const exportPreviewCount = computed(() => dataIoFeatureRef.value?.exportPreviewCount.value || 0);
+            Object.assign(assembly.helpers, {
+                dataIoHandlers, exportSessionOptions, filteredExportProjects, filteredExportMusicians,
+                filteredExportInstruments, exportDateRange, exportPreviewCount,
+            });
             const appRuntimeFeature = wireAppRuntimeFeature(assembly);
             assembly.features.appRuntime = appRuntimeFeature;
             appRuntimeFeature.mountAppRuntime();
@@ -417,8 +443,14 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 assignTagsToPlayer,
                 updatePercOrchestration,
             } = orchestrationFeature;
+            Object.assign(assembly.helpers, {
+                activeOrchPresets, parsedRoster, getRosterName, updateRosterName, showOrchestrationField,
+                percState, isPercussionMode, scanPercussionTags, addPercPlayer, removePercPlayer,
+                togglePercTagSelect, assignTagsToPlayer, updatePercOrchestration,
+            });
 
             const getGroupColor = (...args) => pickerControlsFeature.getGroupColor(...args);
+            Object.assign(assembly.helpers, { getGroupColor });
 
             quickAddFeature = wireQuickAddFeature(assembly);
             assembly.features.quickAdd = quickAddFeature;
@@ -429,6 +461,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 confirmQuickAdd,
                 addItemToPool,
             } = quickAddFeature;
+            Object.assign(assembly.helpers, { currentQuickAddGroups, openQuickAdd, confirmQuickAdd, addItemToPool });
 
             const scheduleInteractionsFeature = wireScheduleInteractionsFeature(assembly);
             assembly.features.scheduleInteractions = scheduleInteractionsFeature;
@@ -441,12 +474,17 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const dragLeaveSlot = (...args) => scheduleInteractionsFeature.dragLeaveSlot(...args);
             const dropToSchedule = (...args) => scheduleInteractionsFeature.dropToSchedule(...args);
             const dropToMonth = (...args) => scheduleInteractionsFeature.dropToMonth(...args);
+            Object.assign(assembly.helpers, {
+                dragStart, handleDragEnd, dragEnterPool, dragLeavePool, dropToPool,
+                dragEnterSlot, dragLeaveSlot, dropToSchedule, dropToMonth,
+            });
 
 
             const desktopResizeFeatureProxy = wireDesktopResizeFeature(assembly);
             const initResize = desktopResizeFeatureProxy.method('initResize');
             const handleResizeMove = desktopResizeFeatureProxy.method('handleResizeMove');
             const handleResizeEnd = desktopResizeFeatureProxy.method('handleResizeEnd');
+            Object.assign(assembly.helpers, { initResize });
 
             const scrollToSidebarItem = (...args) => sidebarFeature.scrollToSidebarItem(...args);
 
@@ -457,6 +495,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const selectTask = (...args) => poolInteractionsFeature.selectTask(...args);
 
             const clearSelection = () => poolInteractionsFeature.clearSelection();
+            Object.assign(assembly.helpers, { selectTask, clearSelection });
 
             const getOverlapCount = (...args) => scheduleFeature.getOverlapCount(...args);
 
@@ -471,12 +510,14 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const deleteCurrentSchedule = scheduleDeletionFeatureProxy.method('deleteCurrentSchedule');
             const clearPoolRecord = scheduleDeletionFeatureProxy.method('clearPoolRecord');
             const clearAggregateRecords = scheduleDeletionFeatureProxy.method('clearAggregateRecords');
+            Object.assign(assembly.helpers, { deleteCurrentSchedule });
 
             const globalKeyboardFeature = wireGlobalKeyboardFeature(assembly);
             assembly.features.globalKeyboard = globalKeyboardFeature;
             const handleGlobalKey = (...args) => globalKeyboardFeature.handleGlobalKey(...args);
 
             const handleTaskDblClick = (...args) => scheduleInteractionsFeature.handleTaskDblClick(...args);
+            Object.assign(assembly.helpers, { handleTaskDblClick });
 
             const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
                 scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
@@ -523,6 +564,11 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const startTrackDrag = withTrackListFeature('startTrackDrag');
             const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
             const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
+            Object.assign(assembly.helpers, {
+                autoDistributeSections, startDividerDrag, calcTrackDiff, setTrackBreak, deleteTrackFromList,
+                onTrackListReminderChange, setTrackNow, clearTrackTime, isPercussionGroup, isStringGroup,
+                sortTrackList, startTrackDrag,
+            });
 
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
 
@@ -531,6 +577,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const isTaskGhost = (task) => scheduleFeature.isTaskGhost(task);
 
             const hasRecordingInfo = (task) => scheduleFeature.hasRecordingInfo(task);
+            Object.assign(assembly.helpers, { getOverlapCount, getTaskStyle, getBlockTitle, isTaskGhost, hasRecordingInfo });
 
             const toggleSidebar = sidebarFeature.toggleSidebar;
             const onSidebarTouchStart = sidebarFeature.onSidebarTouchStart;
@@ -539,6 +586,9 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const sidebarScrollRef = sidebarFeature.sidebarScrollRef;
             assembly.refs.sidebarScrollRef = sidebarScrollRef;
             const switchSidebarTab = sidebarFeature.switchSidebarTab;
+            Object.assign(assembly.helpers, {
+                toggleSidebar, onSidebarTouchStart, onSidebarTouchEnd, sidebarTransitionName, switchSidebarTab,
+            });
 
             splitTaskFeature = wireSplitTaskFeature(assembly);
             assembly.features.splitTask = splitTaskFeature;
@@ -561,11 +611,13 @@ import { createAppDependencies } from './services/app-dependencies.js';
             onSplitSliderInput = splitTaskOnSplitSliderInput;
             confirmSplitSlider = splitTaskConfirmSplitSlider;
             restoreSplitTime = splitTaskRestoreSplitTime;
+            Object.assign(assembly.helpers, { splitState, openSplitSlider, onSplitSliderInput, confirmSplitSlider });
 
             const taskEditorFeatureProxy = wireTaskEditorFeature(assembly);
             const openEditModal = taskEditorFeatureProxy.method('openEditModal');
             const saveEdit = taskEditorFeatureProxy.method('saveEdit');
             const deleteEditingItem = taskEditorFeatureProxy.method('deleteEditingItem');
+            Object.assign(assembly.helpers, { openEditModal, saveEdit, deleteEditingItem });
 
             scheduleFeature = wireScheduleFeature(assembly);
             assembly.features.schedule = scheduleFeature;
@@ -587,6 +639,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.refs.settingsNameFocus = settingsNameFocus;
             Object.assign(assembly.refs, { sortedInstruments });
             let allSettingsGrouped = settingsSyncFeature.allSettingsGrouped;
+            Object.assign(assembly.helpers, {
+                updateInputRect, getFloatingStyle, onSettingsScroll, getUngroupedItems,
+                isAllGroupsExpanded, toggleAllGroups, toggleSettingsGroup, getExistingGroups, allSettingsGrouped,
+            });
             const settingsFeatureProxy = wireSettingsFeature(assembly, {
                 onLoaded: (feature) => {
                     settingsFeature = feature;
@@ -607,6 +663,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 'clearSettingsList',
                 'handleItemRename',
             ]);
+            Object.assign(assembly.helpers, { settingsHandlers });
 
             const importDataFeatureProxy = wireImportDataFeature(assembly, {
                 onLoaded: (feature) => {
@@ -642,6 +699,11 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const parseCSVRobust = importDataFeatureProxy.method('parseCSVRobust');
             const handleCSVImport = importDataFeatureProxy.method('handleCSVImport');
             const refreshCsvPreview = importDataFeatureProxy.method('refreshCsvPreview');
+            Object.assign(assembly.helpers, {
+                refreshCsvStatus, confirmCsvImport, triggerMidiImportForProject, handleMidiFile,
+                isGroupSelected, toggleGroupSelection, toggleAllRows, getSmartName,
+                confirmMidiImport, triggerCSV, handleCSVImport,
+            });
 
             authFeature = wireAuthFeature(assembly);
             assembly.features.auth = authFeature;
@@ -654,6 +716,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const selectImportInst = importDataFeatureProxy.method('selectImportInst');
             const selectImportNewInst = importDataFeatureProxy.method('selectImportNewInst');
             const selectImportGroup = importDataFeatureProxy.method('selectImportGroup');
+            Object.assign(assembly.helpers, {
+                toggleProjectCollapse, toggleMidiGroupExpand, openImportMenu,
+                selectImportInst, selectImportNewInst, selectImportGroup,
+            });
             const midiManagerFeatureProxy = wireMidiManagerFeature(assembly, {
                 onLoaded: (feature) => {
                     midiManagerFeature = feature;
@@ -681,8 +747,13 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const convertTicksToSeconds = withMidiManagerFeature('convertTicksToSeconds', 0);
             const calculateQuantizedDuration = withMidiManagerFeature('calculateQuantizedDuration', { seconds: 0 });
             const autoFillMidiDuration = withMidiManagerFeature('autoFillMidiDuration');
+            Object.assign(assembly.helpers, {
+                toggleMidiManagerGroup, openMidiGroupDropdown, openMidiManager, updateMidiDuration,
+                removeMidiMapping, clearProjectMidi, updateInstrumentGroup,
+            });
             userAvatar = authFeature.userAvatar;
             userDisplayName = authFeature.userDisplayName;
+            Object.assign(assembly.helpers, { userAvatar, userDisplayName });
 
             let currentSidebarList;
             searchFeature = wireSearchFeature(assembly);
@@ -699,6 +770,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             } = searchFeature;
             assembly.refs.filteredScheduledTasks = filteredScheduledTasks;
             assembly.refs.filteredSidebarList = filteredSidebarList;
+            Object.assign(assembly.helpers, { handleSearchEnter, handleSearchBlur, onSearchFocus, handleTrackListSearchAction });
 
             const sidebarStatsFeature = wireSidebarStatsFeature(assembly);
             assembly.features.sidebarStats = sidebarStatsFeature;
@@ -720,6 +792,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             Object.assign(assembly.refs, { musicianStats, projectStats, instrumentStats, expandedStatsIds });
             currentSidebarList = sidebarStatsFeature.currentSidebarList;
             assembly.refs.currentSidebarList = sidebarStatsFeature.currentSidebarList;
+            Object.assign(assembly.helpers, { activeTaskCount, toggleSort, getSortIcon, jumpToStatSchedule, handleStatCardClick });
 
             const viewNavigationFeature = wireViewNavigationFeature(assembly);
             assembly.features.viewNavigation = viewNavigationFeature;
@@ -758,16 +831,25 @@ import { createAppDependencies } from './services/app-dependencies.js';
             } = viewNavigationFeature;
             switchView = viewNavigationFeature.switchView;
             assembly.refs.currentWeekDays = currentWeekDays;
+            Object.assign(assembly.helpers, {
+                currentDateLabel, dateTransitionName, currentMonthDays, flatScrolledDays, handleInfiniteScroll,
+                tasksByDateMap, switchToWeek, handleHeaderDoubleTap, handleMonthCellDoubleTap, jumpToToday,
+                isToday, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
+                onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,
+                timeSlots, setMonthRef, switchView,
+            });
 
             const handlePageUnload = authFeature.handlePageUnload;
 
             mobileUiFeature = wireMobileUiFeature(assembly);
             assembly.features.mobileUi = mobileUiFeature;
             getThemeLabel = mobileUiFeature.getThemeLabel;
+            Object.assign(assembly.helpers, { getThemeLabel });
 
             const tourFeatureProxy = wireTourFeature(assembly);
             const startTour = tourFeatureProxy.method('startTour');
             const mountTourAutostart = tourFeatureProxy.method('mountTourAutostart');
+            Object.assign(assembly.helpers, { startTour });
 
             Object.assign(assembly.helpers, {
                 autoResizeSchedules,

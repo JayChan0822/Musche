@@ -5190,7 +5190,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /}\s*=\s*orchestrationFeature;\s*const getGroupColor/,
+    /}\s*=\s*orchestrationFeature;\s*Object\.assign\(assembly\.helpers,[\s\S]*?\);\s*const getGroupColor/,
     'app.js must expose orchestration helpers directly from the orchestration feature'
 );
 
