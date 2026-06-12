@@ -95,7 +95,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
         createAppRootOptions,
         createAppAssembly,
         createAppRootContexts,
-        createLazyFeatureProxy,
     } = createAppDependencies();
     createApp({
         ...createAppRootOptions(),
@@ -151,17 +150,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             Object.assign(assembly.helpers, { onBeforeLeave, onAfterLeave });
             splitViewFeature = wireSplitViewFeature(assembly);
             assembly.features.splitView = splitViewFeature;
-            const {
-                syncItemForView,
-                syncItemsForView,
-                isItemVisibleForView,
-                getSplitViewState,
-                peekSplitViewState,
-                getCurrentSplitView,
-            } = splitViewFeature;
-            // --- 🎹 MIDI 高级导入逻辑 ---
-            
-            // --- 🟢 [新增] CSV 导入弹窗状态与配置 ---
             let {
                 groupedCsvData,
                 isAllSelected,
@@ -196,16 +184,12 @@ import { createAppDependencies } from './services/app-dependencies.js';
             let confirmSplitSlider;
             let restoreSplitTime;
 
-            // 🟢 修复: 终极修正版清理函数
-            // 修复了 S_DEFAULT 含下划线导致的分组解析错误，防止误删所有日程
             const cleanupEmptySchedules = () => scheduleFeature.cleanupEmptySchedules();
 
-            // 🟢 新增: 强力扫描并清理当前弹窗内的空日程块
             const pruneEmptySchedules = () => scheduleFeature.pruneEmptySchedules();
 
             const smartScrollToTask = (...args) => viewNavigationFeature.smartScrollToTask(...args);
 
-// 🟢 新增: 手动同步函数
             const handleManualSync = () => authFeature.handleManualSync();
 
             const mobileTouchFeatureProxy = wireMobileTouchFeature(assembly);
@@ -217,14 +201,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 'initMobileResize',
             ]);
 
-            // 🟢 核心修改: 引入三态主题管理 (Auto / Light / Dark)
-
-            // 2. 应用主题的核心函数
-
-            // 3. 切换按钮点击事件 (Auto -> Light -> Dark -> Auto 循环)
             const toggleTheme = () => mobileUiFeature.toggleTheme();
 
-            // 4. 获取当前模式的显示名称和图标 (供 HTML 使用)
             let getThemeLabel;
             let switchView;
 
@@ -252,47 +230,24 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.state.settings = settings;
             currentSessionId.value = 'S_DEFAULT';
 
-            // 🟢 修改: 纯粹的登录逻辑 (不再自动跳转注册)
             const handleLogin = () => authFeature.handleLogin();
 
-            // 🟢 新增: 独立的注册逻辑
             const handleRegister = () => authFeature.handleRegister();
 
-            // 🟢 新增: 找回密码逻辑
             const handleResetPwd = () => authFeature.handleResetPwd();
 
-            // 🟢 新增: 个人中心逻辑
-
-            // 计算当前显示的头像 (优先读取 user_metadata)
             let userAvatar;
 
-            // 计算显示名称 (优先显示 full_name，否则显示邮箱前缀)
             let userDisplayName;
 
-            // 更新昵称到 Supabase
             const updateNickname = () => authFeature.updateNickname();
-
-            // 🚩🚩🚩 替换 factoryReset 函数的完整定义 🚩🚩🚩
 
             const factoryReset = () => authFeature.factoryReset();
 
-            // 处理顶部按钮点击
-            // 🔴 修改: 加入互斥逻辑
-            // 🔴 修改: 处理顶部头像按钮点击 (合并了之前的互斥逻辑和昵称填充)
             const handleUserBtnClick = () => authFeature.handleUserBtnClick();
 
-            // 更新头像到 Supabase
-
-            // 🟢 新增: 处理头像文件上传
-
-            // 🟢 新增: 登出逻辑
-            // 🟢 修改: 暴力清除所有缓存，确保退出后不会自动登录
-            // 🟢 修改: 退出登录时，只清除身份信息，保留本地数据 (v9_data)
             const handleLogout = () => authFeature.handleLogout();
 
-            // 🟢 修改: 优化后的加载逻辑 (支持版本控制)
-
-            // 🟢 修改: 增加版本检查的保存逻辑 (解决 Race Condition)
             const saveToCloud = (force = false) => authFeature.saveToCloud(handleManualSync, force);
 
             const dropdownsFeature = wireDropdownsFeature(assembly);
@@ -310,12 +265,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 selectOption,
             } = dropdownsFeature;
 
-            // 🔴 新增: 切换手机菜单 (互斥其他)
             const toggleMobileMenu = () => mobileUiFeature.toggleMobileMenu();
-
-            // 在 onMounted 里绑定点击外部关闭
-            // onMounted(() => { ... window.addEventListener('click', closeDropdowns); ... })
-            // 别忘了在 onUnmounted 移除
 
             ratioFeature = wireRatioFeature(assembly);
             assembly.features.ratio = ratioFeature;
@@ -446,10 +396,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const handlePoolItemClick = (...args) => poolInteractionsFeature.handlePoolItemClick(...args);
 
-            // 4. 辅助：全局日程块自动调整
             const autoResizeSchedules = (taskIds) => scheduleFeature.autoResizeSchedules(taskIds);
-
-            // --- V9.7.4 名称和颜色查找器 (新增项目类型) ---
 
             orchestrationFeature = wireOrchestrationFeature(assembly);
             assembly.features.orchestration = orchestrationFeature;
@@ -531,11 +478,9 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const handleTaskDblClick = (...args) => scheduleInteractionsFeature.handleTaskDblClick(...args);
 
-            // 🟢 修改: checkOverlap (支持分层检测)
             const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
                 scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
 
-            // 🟢 修改: 增加 shouldSaveHistory 参数，防止拖动时卡顿
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
@@ -579,13 +524,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
             const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
 
-            // 🟢 修改: getTaskStyle (增加 z-index 控制)
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);
 
-            // 🟢 新增: 获取日程块显示的标题
             const getBlockTitle = (task) => scheduleFeature.getBlockTitle(task);
 
-            // 🟢 新增: 判断任务是否为"幽灵"状态 (Session不匹配 或 视图类型不匹配)
             const isTaskGhost = (task) => scheduleFeature.isTaskGhost(task);
 
             const hasRecordingInfo = (task) => scheduleFeature.hasRecordingInfo(task);
@@ -630,21 +572,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const settingsSyncFeature = wireSettingsSyncFeature(assembly);
             assembly.features.settingsSync = settingsSyncFeature;
             const {
-                inputRects,
                 settingsNameFocus,
                 updateInputRect,
                 getFloatingStyle,
                 onSettingsScroll,
                 getUngroupedItems,
                 sortedInstruments,
-                sortedMusicians,
-                sortedProjects,
                 isAllGroupsExpanded,
                 toggleAllGroups,
                 toggleSettingsGroup,
-                getSettingsGroupedList,
-                findSettingId,
-                getOrCreateProjectId,
                 getExistingGroups,
                 getOrCreateSettingItem,
             } = settingsSyncFeature;
@@ -825,13 +761,9 @@ import { createAppDependencies } from './services/app-dependencies.js';
 
             const handlePageUnload = authFeature.handlePageUnload;
 
-            // --- 🟢 手机端适配逻辑 ---
-            // --- 🟢 手机端适配 & 布局自动修复 ---
             mobileUiFeature = wireMobileUiFeature(assembly);
             assembly.features.mobileUi = mobileUiFeature;
             getThemeLabel = mobileUiFeature.getThemeLabel;
-
-            // 🟢 优化: 增强版布局刷新函数
 
             const tourFeatureProxy = wireTourFeature(assembly);
             const startTour = tourFeatureProxy.method('startTour');

@@ -7550,10 +7550,10 @@ assert.match(
     'split-view feature must own current split-view resolution'
 );
 
-assert.match(
+assert.doesNotMatch(
     appScript,
-    /const\s+\{[\s\S]*\bsyncItemForView\b[\s\S]*\bsyncItemsForView\b[\s\S]*\bisItemVisibleForView\b[\s\S]*\bgetSplitViewState\b[\s\S]*\bpeekSplitViewState\b[\s\S]*\bgetCurrentSplitView\b[\s\S]*\}\s*=\s*splitViewFeature;/,
-    'app.js may consume the split-view feature helper surface directly because split-view-shell is a pass-through boundary'
+    /\}\s*=\s*splitViewFeature;/,
+    'app.js should not destructure unused split-view aliases; consumers take them from assembly.features.splitView'
 );
 
 assert.doesNotMatch(
