@@ -1,7 +1,8 @@
-// 最终模板上下文装配：把组合根准备好的 refs / 局部别名装配成
-// appRootShell / appRootOverlaysShell 两个根 ctx。
-// 在 setup 末尾同步调用，此时全部 feature 已注册、别名均已就绪。
-export function createAppRootContexts({ assembly, factories, locals }) {
+// 最终模板上下文装配：把组合根发布到 assembly.refs / assembly.helpers 的别名
+// 装配成 appRootShell / appRootOverlaysShell 两个根 ctx。
+// 在 setup 末尾同步调用，此时全部 feature 已注册、helpers 均已发布完毕，
+// 顶部解构没有注册顺序问题（registrar 的「禁止顶部解构」规约针对装配中途的跨 feature 引用）。
+export function createAppRootContexts({ assembly, factories }) {
     const {
         createRootAccountModalsShellState, createRootAuthModalShellState, createRootColorPickerModalShellState, createRootConfirmModalShellState, createRootCreditModalShellState, createRootCropModalShellState,
         createRootCsvImportModalShellState, createRootDurationPickerModalShellState, createRootEditModalShellState, createRootExportCreditModalsShellState, createRootExportModalShellState, createRootHeaderShellState,
@@ -15,57 +16,57 @@ export function createAppRootContexts({ assembly, factories, locals }) {
     const { triggerTouchHaptic } = assembly.services;
     const { formatUtils } = assembly.utils;
     const {
-        activeDropdown, authForm, authLoading, authPasswordRef, confirmModalConfig, cropImgRef,
-        cropImgSrc, currentSessionId, currentView, dayColWidth, draggingSectionIndex, editingItem,
-        editingSource, flashingTaskId, generatedCreditText, globalSearchQuery, history, historyIndex,
-        inputModalConfig, isSearchFocused, managingProject, monthViewMode, newSettingsItem, quickAddForm,
-        quickAddType, saveStatus, selectedPoolIds, selectedTaskId, settingsExpandedGroups, settingsGroupFocus,
-        showAuthModal, showConfirmModal, showCreditModal, showCropModal, showCsvImportModal, showEditor,
-        showGroupSuggestions, showInputModal, showMetadataManager, showMidiImportModal, showMidiManager, showMobileMenu,
-        showMobileTaskInput, showProfileMenu, showProjectInfoModal, showQuickAddModal, showSettings, showSplitModal,
-        showTrackList, sidebarWidth, slotHeight, tempNickname, themeMode, trackListContainerRef,
-        trackListData, universalInputRef, user, viewDate, weekContainer,
+        activeDropdown, activeRecDropdown, authForm, authLoading, authPasswordRef, availableInstrumentGroups,
+        confirmModalConfig, cropImgRef, cropImgSrc, currentSessionId, currentView, currentWeekDays,
+        dayColWidth, draggingSectionIndex, dragState, editingItem, editingSource, expandedStatsIds,
+        exportFilter, filteredSidebarList, flashingTaskId, generatedCreditText, globalSearchQuery, history,
+        historyIndex, inputModalConfig, instrumentStats, isMobile, isSearchFocused, isSidebarOpen,
+        isSyncing, isZooming, managingProject, midiManagerExpandedGroups, mobileTab, monthViewMode,
+        musicianStats, newItem, newRecInputs, newSettingsItem, projectInfoForm, projectMidiGroups,
+        projectStats, quickAddForm, quickAddType, recDropdownSearch, recInfoForm, saveStatus,
+        selectedPoolIds, selectedTaskId, settingsExpandedGroups, settingsGroupFocus, settingsNameFocus, showAuthModal,
+        showColorPickerModal, showConfirmModal, showCreditModal, showCropModal, showCsvImportModal, showEditor,
+        showExportModal, showGroupSuggestions, showImportModal, showInputModal, showMetadataManager, showMidiImportModal,
+        showMidiManager, showMobileMenu, showMobileTaskInput, showProfileMenu, showProjectInfoModal, showQuickAddModal,
+        showRecInfoModal, showSettings, showSplitModal, showTrackList, sidebarScrollRef, sidebarTab,
+        sidebarWidth, slotHeight, sortField, tempNickname, themeMode, trackListContainerRef,
+        trackListData, universalInputRef, user, viewDate, weekContainer, weekGridWrapper,
     } = assembly.refs;
     const {
-        activeOrchPresets, activeRecDropdown, activeTaskCount, addItemToPool, addPercPlayer, allSettingsGrouped,
-        assignTagsToPlayer, autoDistributeSections, autoUpdateEfficiency, availableInstrumentGroups, calcTrackDiff, calculateSingleRatio,
-        cancelCrop, changeDate, clearProjectMidi, clearSelection, clearTrackTime, closeConfirmModal,
-        closeImportMenu, closeInputModal, closePicker, confirmCrop, confirmCsvImport, confirmDurationPicker,
-        confirmInputModal, confirmMidiImport, confirmQuickAdd, confirmSplitSlider, currentDateLabel, currentMidiDisplayList,
-        currentMonthDays, currentQuickAddGroups, currentSessionName, currentWeekDays, cycleDayWidth, dataIoHandlers,
-        dateTransitionName, deleteCurrentSchedule, deleteEditingItem, deleteTrackFromList, dragEnterPool, dragEnterSlot,
-        dragLeavePool, dragLeaveSlot, dragStart, dragState, dropToMonth, dropToPool,
-        dropToSchedule, dropdownExpandedGroups, dropdownSearch, expandedStatsIds, exportDateRange, exportFilter,
+        activeOrchPresets, activeTaskCount, addItemToPool, addPercPlayer, allSettingsGrouped, assignTagsToPlayer,
+        autoDistributeSections, autoUpdateEfficiency, calcTrackDiff, calculateSingleRatio, cancelCrop, changeDate,
+        clearProjectMidi, clearSelection, clearTrackTime, closeConfirmModal, closeImportMenu, closeInputModal,
+        closePicker, confirmCrop, confirmCsvImport, confirmDurationPicker, confirmInputModal, confirmMidiImport,
+        confirmQuickAdd, confirmSplitSlider, currentDateLabel, currentMidiDisplayList, currentMonthDays, currentQuickAddGroups,
+        currentSessionName, cycleDayWidth, dataIoHandlers, dateTransitionName, deleteCurrentSchedule, deleteEditingItem,
+        deleteTrackFromList, dragEnterPool, dragEnterSlot, dragLeavePool, dragLeaveSlot, dragStart,
+        dropToMonth, dropToPool, dropToSchedule, dropdownExpandedGroups, dropdownSearch, exportDateRange,
         exportPreviewCount, exportSessionOptions, factoryReset, filteredExportInstruments, filteredExportMusicians, filteredExportProjects,
-        filteredImportOptions, filteredMidiGroups, filteredOptions, filteredRecOptions, filteredSidebarList, flatScrolledDays,
-        getBlockTitle, getExistingGroups, getFloatingStyle, getGroupColor, getGroupedOptions, getNameById,
-        getOverlapCount, getRosterName, getSmartName, getSortIcon, getTaskRatio, getTaskStyle,
-        getThemeLabel, getUngroupedItems, groupedCsvData, handleCSVImport, handleConfirmAction, handleDragEnd,
-        handleHeaderDoubleTap, handleInfiniteScroll, handleLogin, handleLogout, handleManualSync, handleMidiFile,
-        handleMonthCellDoubleTap, handleRegister, handleResetPwd, handleSearchBlur, handleSearchEnter, handleSessionAction,
-        handleStatCardClick, handleTaskDblClick, handleTrackListSearchAction, handleUserBtnClick, hasRecordingInfo, initResize,
-        instrumentStats, isAllGroupsExpanded, isGroupSelected, isMobile, isMouseViewDrag, isPercussionGroup,
-        isPercussionMode, isSidebarOpen, isStringGroup, isSyncing, isTaskGhost, isToday,
-        isZooming, jumpToStatSchedule, jumpToToday, metadataModalHandlers, midiGroupData, midiGroupExpanded,
-        midiManagerExpandedGroups, mobileTab, mobileTouchHandlers, musicianStats, newItem, newRecInputs,
-        onAfterLeave, onBeforeLeave, onDragStart, onFileSelect, onMainMouseDown, onMainMouseUp,
-        onMainTouchEnd, onMainTouchStart, onMainWheel, onScroll, onSearchFocus, onSettingsScroll,
-        onSidebarTouchEnd, onSidebarTouchStart, onSplitSliderInput, onTrackListReminderChange, openColorPicker, openDurationPicker,
-        openEditModal, openImportMenu, openMidiGroupDropdown, openMidiManager, openQuickAdd, openSplitSlider,
-        parsedRoster, percState, presetColors, projectInfoForm, projectMidiGroups, projectStats,
-        pushHistory, recDropdownSearch, recInfoForm, redo, refreshCsvStatus, removeMidiMapping,
-        removePercPlayer, resetColorPicker, resetDuration, saveColorPicker, saveEdit, scanPercussionTags,
-        selectImportGroup, selectImportInst, selectImportNewInst, selectOption, selectTask, setMonthRef,
-        setTrackBreak, setTrackNow, settingsHandlers, settingsNameFocus, showColorPickerModal, showExportModal,
-        showImportModal, showOrchestrationField, showRecInfoModal, sidebarScrollRef, sidebarTab, sidebarTransitionName,
-        sortField, sortTrackList, splitState, startDividerDrag, startTour, startTrackDrag,
+        filteredImportOptions, filteredMidiGroups, filteredOptions, filteredRecOptions, flatScrolledDays, getBlockTitle,
+        getExistingGroups, getFloatingStyle, getGroupColor, getGroupedOptions, getNameById, getOverlapCount,
+        getRosterName, getSmartName, getSortIcon, getTaskRatio, getTaskStyle, getThemeLabel,
+        getUngroupedItems, groupedCsvData, handleCSVImport, handleConfirmAction, handleDragEnd, handleHeaderDoubleTap,
+        handleInfiniteScroll, handleLogin, handleLogout, handleManualSync, handleMidiFile, handleMonthCellDoubleTap,
+        handleRegister, handleResetPwd, handleSearchBlur, handleSearchEnter, handleSessionAction, handleStatCardClick,
+        handleTaskDblClick, handleTrackListSearchAction, handleUserBtnClick, hasRecordingInfo, initResize, isAllGroupsExpanded,
+        isGroupSelected, isMouseViewDrag, isPercussionGroup, isPercussionMode, isStringGroup, isTaskGhost,
+        isToday, jumpToStatSchedule, jumpToToday, metadataModalHandlers, midiGroupData, midiGroupExpanded,
+        mobileTouchHandlers, onAfterLeave, onBeforeLeave, onDragStart, onFileSelect, onMainMouseDown,
+        onMainMouseUp, onMainTouchEnd, onMainTouchStart, onMainWheel, onScroll, onSearchFocus,
+        onSettingsScroll, onSidebarTouchEnd, onSidebarTouchStart, onSplitSliderInput, onTrackListReminderChange, openColorPicker,
+        openDurationPicker, openEditModal, openImportMenu, openMidiGroupDropdown, openMidiManager, openQuickAdd,
+        openSplitSlider, parsedRoster, percState, presetColors, pushHistory, redo,
+        refreshCsvStatus, removeMidiMapping, removePercPlayer, resetColorPicker, resetDuration, saveColorPicker,
+        saveEdit, scanPercussionTags, selectImportGroup, selectImportInst, selectImportNewInst, selectOption,
+        selectTask, setMonthRef, setTrackBreak, setTrackNow, settingsHandlers, showOrchestrationField,
+        sidebarTransitionName, sortTrackList, splitState, startDividerDrag, startTour, startTrackDrag,
         switchSession, switchSidebarTab, switchToWeek, switchView, tasksByDateMap, tempColor,
         timeSlots, toggleAllGroups, toggleAllRows, toggleDropdown, toggleDropdownGroup, toggleGroupSelection,
         toggleMidiGroupExpand, toggleMidiManagerGroup, toggleMobileMenu, togglePercTagSelect, toggleProjectCollapse, toggleSettingsGroup,
         toggleSidebar, toggleSort, toggleTheme, triggerCSV, triggerMidiImportForProject, undo,
         updateInputRect, updateInstrumentGroup, updateMidiDuration, updateNickname, updatePercOrchestration, updateRosterName,
-        userAvatar, userDisplayName, viewTransitionName, weekGridWrapper, widthIcon,
-    } = locals;
+        userAvatar, userDisplayName, viewTransitionName, widthIcon,
+    } = assembly.helpers;
 
         const appSidebar = createRootSidebarShellState({
             refs: {

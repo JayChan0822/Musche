@@ -1194,6 +1194,36 @@ assert.match(
 );
 assert.doesNotMatch(
     appScript,
+    /\blocals\s*:/,
+    'app.js must publish root template aliases through assembly instead of a hand-synced locals list'
+);
+assert.doesNotMatch(
+    appRootContextWiringModule,
+    /\blocals\b/,
+    'app-root-context-wiring must read template aliases from assembly.refs/assembly.helpers instead of a locals parameter'
+);
+{
+    const wiringHelpersDestructure = appRootContextWiringModule.match(/const\s*\{([^{}]*)\}\s*=\s*assembly\.helpers;/);
+    assert.ok(
+        wiringHelpersDestructure,
+        'app-root-context-wiring must destructure template aliases from assembly.helpers'
+    );
+    const publishedHelperKeys = new Set();
+    for (const block of appScript.matchAll(/Object\.assign\(assembly\.helpers,\s*\{([\s\S]*?)\}\s*\);/g)) {
+        for (const entry of block[1].split(',')) {
+            const key = entry.match(/^\s*([A-Za-z_$][\w$]*)\s*(?::|$)/);
+            if (key) publishedHelperKeys.add(key[1]);
+        }
+    }
+    for (const [alias] of wiringHelpersDestructure[1].matchAll(/[A-Za-z_$][\w$]*/g)) {
+        assert.ok(
+            publishedHelperKeys.has(alias),
+            `app-root-context-wiring destructures ${alias} from assembly.helpers, so app.js must publish it via Object.assign(assembly.helpers, ...)`
+        );
+    }
+}
+assert.doesNotMatch(
+    appScript,
     /const appRootOverlaysShell\s*=\s*reactive\(\{[\s\S]*appStandaloneOverlaysShell[\s\S]*appTaskActionModalsShell[\s\S]*appAccountModalsShell[\s\S]*appUtilityModalsShell[\s\S]*appUniversalModalsShell[\s\S]*appPickerModalsShell[\s\S]*appExportCreditModalsShell[\s\S]*appMidiCsvImportModalsShell[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);/,
     'app.js should not own the top-level root overlays wrapper after root-shell-state extraction'
 );
