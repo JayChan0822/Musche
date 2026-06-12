@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: supabase-keepalive
@@ -31,3 +32,23 @@ jobs:
 
       - name: Ping Supabase auth settings endpoint
         run: node scripts/supabase-keepalive.mjs
+
+      # 保活失败必须显眼：连续静默失败超过 7 天 Supabase 就会暂停项目
+      # （2026-05-01 ~ 05-10 连续 4 次失败无人察觉，教训记录见 docs/security/2026-05-11-supabase-key-rotation.md）。
+      - name: Open or update an issue when keepalive fails
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Supabase keepalive 失败"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          body=$(printf '%s\n\n%s\n\n%s' \
+            "保活 workflow 运行失败。若连续失败超过 7 天，Supabase 免费项目会被暂停。" \
+            "常见原因：anon key 已轮换但仓库 Secrets（SUPABASE_URL / SUPABASE_ANON_KEY）未更新，或项目已被暂停需要在 Supabase 控制台手动恢复。" \
+            "运行记录：$RUN_URL")
+          if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" --body "保活再次失败：$RUN_URL"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
