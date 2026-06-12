@@ -6,6 +6,7 @@ export function registerMobileTouchMoveFeature(context) {
     setTimeout: setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
     getWindowSize = () => ({ innerWidth: window.innerWidth, innerHeight: window.innerHeight }),
     elementFromPoint = (x, y) => document.elementFromPoint(x, y),
+    requestAnimationFrameFn = (callback) => requestAnimationFrame(callback),
     startAutoScroll = () => {},
     updateAutoScrollDirection = () => {},
     stopAutoScroll = () => {},
@@ -83,6 +84,28 @@ export function registerMobileTouchMoveFeature(context) {
     }
   };
 
+  // 命中测试 / 高亮 / 边缘检测都会强制布局或样式重算，
+  // 合并到每帧最多一次，避免 120Hz 触摸事件把帧预算吃光导致拖拽不跟手。
+  let dragFrameQueued = false;
+  let lastDragTouch = null;
+
+  const processDragFrame = () => {
+    dragFrameQueued = false;
+    const touch = lastDragTouch;
+    if (!touch || !state.dragElClone) return; // 拖拽已结束，丢弃过期帧
+
+    const scrollContainer = weekContainer.value;
+
+    if (currentView.value === 'week' && scrollContainer) {
+      updateWeekAutoScroll(touch, scrollContainer);
+      updateEdgePaging(touch, changeDate);
+    } else if (currentView.value === 'month' && isMobile.value) {
+      updateEdgePaging(touch, changeDate);
+    }
+
+    updateDropSlotHighlight(touch);
+  };
+
   const handleTouchMove = (event) => {
     const touch = event.touches[0];
 
@@ -101,20 +124,16 @@ export function registerMobileTouchMoveFeature(context) {
 
     if (event.cancelable) event.preventDefault();
 
+    // 跟手的部分每个触摸事件都更新：只写 transform，由合成器直接消费，开销极低
     const x = touch.clientX - state.cloneOffsetX;
     const y = touch.clientY - state.cloneOffsetY;
     state.dragElClone.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 
-    const scrollContainer = weekContainer.value;
-
-    if (currentView.value === 'week' && scrollContainer) {
-      updateWeekAutoScroll(touch, scrollContainer);
-      updateEdgePaging(touch, changeDate);
-    } else if (currentView.value === 'month' && isMobile.value) {
-      updateEdgePaging(touch, changeDate);
+    lastDragTouch = { clientX: touch.clientX, clientY: touch.clientY };
+    if (!dragFrameQueued) {
+      dragFrameQueued = true;
+      requestAnimationFrameFn(processDragFrame);
     }
-
-    updateDropSlotHighlight(touch);
   };
 
   return {

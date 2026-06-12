@@ -11848,44 +11848,37 @@ for (const relativePath of requiredFiles) {
 {
     const xContainer = { scrollLeft: 10 };
     const yContainer = { scrollTop: 20 };
-    const intervalCallbacks = [];
-    const clearedIntervals = [];
-    const timeouts = [];
-    let nextIntervalId = 100;
+    const frameCallbacks = [];
+    const cancelledFrames = [];
+    let nextFrameId = 100;
     const feature = registerMobileAutoScrollFeature({
         actions: {
-            setIntervalFn: (callback, delay) => {
-                intervalCallbacks.push({ callback, delay });
-                return nextIntervalId++;
+            requestAnimationFrameFn: (callback) => {
+                frameCallbacks.push(callback);
+                return nextFrameId++;
             },
-            clearIntervalFn: (id) => clearedIntervals.push(id),
-            setTimeoutFn: (callback, delay) => {
-                timeouts.push({ callback, delay });
-                callback();
-                return delay;
-            },
+            cancelAnimationFrameFn: (id) => cancelledFrames.push(id),
         },
     });
 
     feature.startAutoScroll(0.5, -0.25, xContainer, yContainer);
-    assert.equal(intervalCallbacks.length, 1, 'mobile auto-scroll should start one interval');
-    assert.equal(intervalCallbacks[0].delay, 16, 'mobile auto-scroll should preserve the original 60fps interval cadence');
-    intervalCallbacks[0].callback();
-    assert.equal(xContainer.scrollLeft, 22.5, 'mobile auto-scroll should move horizontally by velocity times max speed');
-    assert.equal(yContainer.scrollTop, 13.75, 'mobile auto-scroll should move vertically by velocity times max speed');
-    assert.deepEqual(timeouts.at(-1).delay, 50, 'mobile auto-scroll should preserve the programmatic-scroll reset delay');
+    assert.equal(frameCallbacks.length, 1, 'mobile auto-scroll should schedule one animation frame on start');
+    frameCallbacks.shift()(0);
+    assert.equal(xContainer.scrollLeft, 22.5, 'mobile auto-scroll should move horizontally by velocity times max speed on the first frame');
+    assert.equal(yContainer.scrollTop, 13.75, 'mobile auto-scroll should move vertically by velocity times max speed on the first frame');
+    assert.equal(frameCallbacks.length, 1, 'mobile auto-scroll should queue the next animation frame after each step');
 
     feature.updateAutoScrollDirection(-1, 1);
-    intervalCallbacks[0].callback();
-    assert.equal(xContainer.scrollLeft, -2.5, 'mobile auto-scroll should apply updated horizontal velocity');
-    assert.equal(yContainer.scrollTop, 38.75, 'mobile auto-scroll should apply updated vertical velocity');
+    frameCallbacks.shift()(16.7);
+    assert.equal(xContainer.scrollLeft, -2.5, 'mobile auto-scroll should apply updated horizontal velocity normalized to the frame interval');
+    assert.equal(yContainer.scrollTop, 38.75, 'mobile auto-scroll should apply updated vertical velocity normalized to the frame interval');
 
     feature.startAutoScroll(1, 1, xContainer, yContainer);
-    assert.equal(intervalCallbacks.length, 1, 'mobile auto-scroll should ignore duplicate starts while an interval is active');
+    assert.equal(frameCallbacks.length, 1, 'mobile auto-scroll should ignore duplicate starts while a frame loop is active');
     feature.stopAutoScroll();
-    assert.deepEqual(clearedIntervals, [100], 'mobile auto-scroll should clear the active interval on stop');
+    assert.deepEqual(cancelledFrames, [102], 'mobile auto-scroll should cancel the pending animation frame on stop');
     feature.stopAutoScroll();
-    assert.deepEqual(clearedIntervals, [100], 'mobile auto-scroll stop should be idempotent');
+    assert.deepEqual(cancelledFrames, [102], 'mobile auto-scroll stop should be idempotent');
 }
 
 {
@@ -12089,6 +12082,7 @@ for (const relativePath of requiredFiles) {
     const timeouts = [];
     const haptics = [];
     const changedDates = [];
+    const dragFrames = [];
     let prevented = false;
     state.dragElClone = clone;
     state.longPressTimeout = null;
@@ -12109,6 +12103,10 @@ for (const relativePath of requiredFiles) {
                 return timer;
             },
             clearTimeout: (timer) => clearedTimeouts.push(timer),
+            requestAnimationFrameFn: (callback) => {
+                dragFrames.push(callback);
+                return dragFrames.length;
+            },
             startAutoScroll: (...args) => autoScrollCalls.push(args),
             updateAutoScrollDirection: (...args) => autoScrollUpdates.push(args),
             stopAutoScroll: () => stoppedAutoScroll.push(true),
@@ -12130,7 +12128,12 @@ for (const relativePath of requiredFiles) {
     });
 
     assert.equal(prevented, true, 'touch move should prevent page scrolling while dragging');
-    assert.equal(clone.style.transform, 'translate3d(387px, 748px, 0)', 'touch move should keep the floating clone under the finger');
+    assert.equal(clone.style.transform, 'translate3d(387px, 748px, 0)', 'touch move should keep the floating clone under the finger synchronously');
+    assert.equal(autoScrollCalls.length, 0, 'expensive drag work should be deferred to the next animation frame');
+    assert.equal(dragFrames.length, 1, 'touch move should queue exactly one animation frame for hit-testing and edge detection');
+
+    dragFrames.shift()();
+
     assert.equal(autoScrollCalls.length, 1, 'week touch move should start auto-scroll near the edge');
     assert.deepEqual(autoScrollCalls[0][2], scrollContainer, 'week touch move should use the week container for horizontal auto-scroll');
     assert.deepEqual(autoScrollCalls[0][3], scrollContainer, 'week touch move should use the week container for vertical auto-scroll');
