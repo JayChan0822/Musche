@@ -72,7 +72,6 @@ export function registerGlobalKeyboardFeature(context) {
     clearPoolRecord = () => {},
     clearAggregateRecords = () => {},
     openAlertModal = () => {},
-    triggerTouchHaptic = () => {},
     getActiveElement = () => document.activeElement,
     queryActiveSidebarSelection = () => (
       document.querySelector('#sidebar .border-blue-600') ||
@@ -205,7 +204,6 @@ export function registerGlobalKeyboardFeature(context) {
 
     if (showCsvImportModal.value) {
       toggleAllProjectCollapse();
-      if (isMobile.value) triggerTouchHaptic('Light');
       return true;
     }
 
@@ -220,7 +218,6 @@ export function registerGlobalKeyboardFeature(context) {
         midiGroups.clear();
         allGroups.forEach((name) => midiGroups.add(name));
       }
-      if (isMobile.value) triggerTouchHaptic('Light');
       return true;
     }
 
@@ -270,7 +267,6 @@ export function registerGlobalKeyboardFeature(context) {
     } else {
       if (sidebarTab.value === 'musician') sidebarTab.value = 'project';
       else sidebarTab.value = 'musician';
-      if (isMobile.value) triggerTouchHaptic('Light');
     }
     return true;
   };
@@ -380,7 +376,6 @@ export function registerGlobalKeyboardFeature(context) {
     const taskToDelete = scheduledTasks.value.find((task) => task.scheduleId === selectedTaskId.value);
 
     if (taskToDelete && await isResourceCompleted(taskToDelete)) {
-      triggerTouchHaptic('Error');
       return openAlertModal('无法删除', '该任务处于【完成】保护状态。');
     }
 
@@ -390,7 +385,6 @@ export function registerGlobalKeyboardFeature(context) {
     else await clearAggregateRecords(taskToDelete);
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== selectedTaskId.value);
-    if (isMobile.value) triggerTouchHaptic('Medium');
     clearSelection();
     pushHistory();
     return undefined;

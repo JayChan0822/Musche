@@ -12,7 +12,7 @@ export function registerMobileTouchMoveFeature(context) {
     stopAutoScroll = () => {},
     isAutoScrollActive = () => false,
     changeDate = () => {},
-    triggerTouchHaptic = () => {},
+
   } = actions;
 
   const clearMonthSwitchTimer = () => {
@@ -34,7 +34,7 @@ export function registerMobileTouchMoveFeature(context) {
       if (!state.monthSwitchTimer) {
         state.monthSwitchTimer = setTimeoutFn(() => {
           directionHandler(switchDir);
-          triggerTouchHaptic('Medium');
+
           state.monthSwitchTimer = null;
         }, 800);
       }

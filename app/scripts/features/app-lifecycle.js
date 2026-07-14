@@ -14,7 +14,6 @@ export function registerAppLifecycleFeature(context = {}) {
     closeDropdowns = () => {},
   } = handlers;
   const {
-    attachClickHaptics = () => {},
     scrollToMonthDate = () => {},
     bootSessionData = async () => {},
     nextTick = async (callback) => {
@@ -39,7 +38,6 @@ export function registerAppLifecycleFeature(context = {}) {
       });
     }
 
-    attachClickHaptics();
     const win = getWindow();
     globalListeners.forEach(([type, handler]) => {
       win.addEventListener(type, handler);
@@ -54,7 +52,7 @@ export function registerAppLifecycleFeature(context = {}) {
     try {
       await bootSessionData({
         isSidebarOpen,
-        skipHistory: true,
+        skipHistory: false,
       });
     } finally {
       await nextTick();

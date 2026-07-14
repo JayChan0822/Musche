@@ -34,7 +34,6 @@ export function registerPoolInteractionsFeature(context) {
       getVisiblePoolItems: visiblePoolItemsFeature.getVisiblePoolItems,
       scrollToSidebarItem: actions.scrollToSidebarItem,
       smartScrollToTask: actions.smartScrollToTask,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
 

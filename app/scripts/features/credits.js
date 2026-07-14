@@ -9,7 +9,7 @@ export function registerCreditsFeature(context) {
   } = refs;
   const { settings } = state;
   const { getNameById } = utils;
-  const { openAlertModal, triggerTouchHaptic } = actions;
+  const { openAlertModal } = actions;
 
   const splitCreditNames = (value) =>
     (value || '').split(/[\/,\r\n]|\^\|/).map((name) => name.trim()).filter(Boolean);
@@ -346,7 +346,6 @@ export function registerCreditsFeature(context) {
     if (!generatedCreditText.value) return;
 
     navigator.clipboard.writeText(generatedCreditText.value).then(() => {
-      triggerTouchHaptic('Success');
       const button = document.querySelector('.modal-window button i.fa-copy')?.parentNode;
       if (!button) return;
 

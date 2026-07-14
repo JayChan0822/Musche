@@ -271,17 +271,17 @@ test('modularization smoke reuses shared remaining modal component fixtures', ()
 test('modularization smoke reuses shared service loader fixtures', () => {
   assert.match(
     modularizationSmokeSource,
-    /import \{(?=[\s\S]*\bhapticsServicePath\b)(?=[\s\S]*\bdataIoFeatureLoaderModule\b)(?=[\s\S]*\bscheduleDeletionFeatureLoaderModule\b)[\s\S]*\} from '\.\/helpers\/app-boundary-assertions\.mjs';/,
+    /import \{(?=[\s\S]*\bdataIoFeatureLoaderPath\b)(?=[\s\S]*\bdataIoFeatureLoaderModule\b)(?=[\s\S]*\bscheduleDeletionFeatureLoaderModule\b)[\s\S]*\} from '\.\/helpers\/app-boundary-assertions\.mjs';/,
     'modularization smoke should import service loader fixtures from the shared helper',
   );
   assert.doesNotMatch(
     modularizationSmokeSource,
-    /const\s+hapticsServicePath\s*=\s*resolveFixturePath\(/,
+    /const\s+dataIoFeatureLoaderPath\s*=\s*resolveFixturePath\(/,
     'modularization smoke should not keep local service loader fixture paths',
   );
   assert.doesNotMatch(
     modularizationSmokeSource,
-    /const\s+hapticsServiceModule\s*=\s*readOptionalFixture\(/,
+    /const\s+dataIoFeatureLoaderModule\s*=\s*readOptionalFixture\(/,
     'modularization smoke should not keep local service loader fixture reads',
   );
 });

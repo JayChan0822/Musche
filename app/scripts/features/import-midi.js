@@ -59,7 +59,6 @@ export function registerImportMidiFeature(context) {
   const {
     openAlertModal,
     pushHistory,
-    triggerTouchHaptic,
     sortedInstruments,
     nextTick,
     getElementById = (id) => document.getElementById(id),
@@ -529,7 +528,6 @@ export function registerImportMidiFeature(context) {
     });
 
     pushHistory();
-    triggerTouchHaptic('Success');
     showMidiImportModal.value = false;
     openAlertModal('导入成功', `已导入 ${count} 条轨道数据 (支持分部)。`);
   }

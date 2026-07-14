@@ -1,15 +1,8 @@
-import { registerAppClickHapticsFeature } from './app-click-haptics.js';
 import { registerAppLifecycleFeature } from './app-lifecycle.js';
 import { registerDataAutosaveFeature } from './data-autosave.js';
 
 export function registerAppRuntimeFeature(context = {}) {
   const { refs = {}, values = {}, state = {}, services = {}, handlers = {}, actions = {}, vue = {} } = context;
-
-  const appClickHapticsFeature = registerAppClickHapticsFeature({
-    actions: {
-      triggerTouchHaptic: actions.triggerTouchHaptic,
-    },
-  });
 
   const appLifecycleFeature = registerAppLifecycleFeature({
     refs: {
@@ -28,7 +21,6 @@ export function registerAppRuntimeFeature(context = {}) {
       closeDropdowns: (...args) => handlers.closeDropdowns(...args),
     },
     actions: {
-      attachClickHaptics: () => appClickHapticsFeature.attachClickHaptics(),
       scrollToMonthDate: (date) => actions.scrollToMonthDate(date),
       bootSessionData: (options) => actions.bootSessionData(options),
       nextTick: actions.nextTick,

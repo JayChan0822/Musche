@@ -5,7 +5,7 @@ export function registerSidebarNavigationFeature(context) {
   const { isMobile, isSidebarOpen, sidebarTab } = refs;
   const {
     isDragActive = () => false,
-    triggerTouchHaptic = () => {},
+
     getDocument = () => document,
     setTimeoutFn = setTimeout,
   } = actions;
@@ -92,7 +92,7 @@ export function registerSidebarNavigationFeature(context) {
       if (nextIndex !== currentIndex) {
         sidebarTransitionName.value = direction === 'next' ? 'slide-next' : 'slide-prev';
         sidebarTab.value = sidebarTabsOrder[nextIndex];
-        triggerTouchHaptic('Light');
+
         scrollSidebarToTop();
       }
     }

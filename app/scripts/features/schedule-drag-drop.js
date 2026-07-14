@@ -10,7 +10,6 @@ export function registerScheduleDragDropFeature(context) {
     getNow = () => Date.now(),
     checkOverlap = () => false,
     openAlertModal = () => {},
-    triggerTouchHaptic = () => {},
     pushHistory = () => {},
     isResourceCompleted = () => false,
     clearPoolRecord = () => {},
@@ -95,7 +94,6 @@ export function registerScheduleDragDropFeature(context) {
       const taskToDelete = draggedData.item;
 
       if (await isResourceCompleted(taskToDelete)) {
-        triggerTouchHaptic('Error');
         draggedData = null;
         return openAlertModal('操作被拒绝', '该任务所属对象已处于【完成】状态，禁止移回任务池。');
       }
@@ -110,7 +108,6 @@ export function registerScheduleDragDropFeature(context) {
 
       scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);
 
-      if (isMobile.value) triggerTouchHaptic('Medium');
       pushHistory();
     }
 
@@ -182,7 +179,6 @@ export function registerScheduleDragDropFeature(context) {
 
     if (checkOverlap(dateStr, newStartTime, newDuration, excludeId, checkType)) {
       openAlertModal('时间冲突', '该时间段已有同类型的其他安排。');
-      triggerTouchHaptic('Error');
       draggedData = null;
       return;
     }
@@ -199,11 +195,8 @@ export function registerScheduleDragDropFeature(context) {
         estDuration: newDuration,
         trackCount: item.trackCount,
         ratio: item.defaultRatio || 20,
-        reminderMinutes: 15,
-        sound: 'default',
       };
       scheduledTasks.value.push(newTask);
-      triggerTouchHaptic('Success');
     } else if (source === 'schedule') {
       const index = scheduledTasks.value.findIndex((task) => task.scheduleId === item.scheduleId);
       if (index !== -1) {
@@ -211,7 +204,6 @@ export function registerScheduleDragDropFeature(context) {
         newTask.date = dateStr;
         newTask.startTime = newStartTime;
         scheduledTasks.value[index] = newTask;
-        triggerTouchHaptic('Success');
       }
     } else if (source === 'pool') {
       const newTask = {
@@ -226,11 +218,8 @@ export function registerScheduleDragDropFeature(context) {
         estDuration: item.estDuration,
         date: dateStr,
         startTime: newStartTime,
-        reminderMinutes: 15,
-        sound: 'default',
       };
       scheduledTasks.value.push(newTask);
-      triggerTouchHaptic('Success');
     }
 
     pushHistory();
@@ -264,7 +253,6 @@ export function registerScheduleDragDropFeature(context) {
 
     if (checkOverlap(dateStr, targetStartTime, targetDuration, excludeId, checkType)) {
       openAlertModal('时间冲突', '该日期已有同类型的其他安排。');
-      triggerTouchHaptic('Error');
       draggedData = null;
       return;
     }
@@ -316,8 +304,6 @@ export function registerScheduleDragDropFeature(context) {
         trackCount,
         ratio,
         musicDuration,
-        reminderMinutes: 15,
-        sound: 'default',
       };
       scheduledTasks.value.push(newTask);
       pushHistory();

@@ -94,7 +94,7 @@ export function registerImportDataFeature(context) {
           actions: {
             openAlertModal: actions.openAlertModal,
             pushHistory: actions.pushHistory,
-            triggerTouchHaptic: actions.triggerTouchHaptic,
+
             sortedInstruments: actions.sortedInstruments,
             nextTick: actions.nextTick,
             getElementById,

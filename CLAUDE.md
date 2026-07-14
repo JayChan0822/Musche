@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Musche：音乐人排程应用。Vue 3（运行时组件，无 SFC、无 JSX）+ Vite + Tailwind + Supabase + Capacitor iOS。UI 文案与代码注释以中文为主。
+Musche：音乐人 Web 排程应用。Vue 3（运行时组件，无 SFC、无 JSX）+ Vite + Tailwind + Supabase。UI 文案与代码注释以中文为主。
 
 ## 常用命令
 

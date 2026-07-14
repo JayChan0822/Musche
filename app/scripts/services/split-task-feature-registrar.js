@@ -11,7 +11,7 @@ export function createSplitTaskFeatureRegistrar() {
             showTrackList,
         } = assembly.refs;
         const { timeUtils, formatUtils, idUtils, splitStateUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+
         const { helpers } = assembly;
         return registerSplitTaskFeature({
             refs: {
@@ -44,7 +44,7 @@ export function createSplitTaskFeatureRegistrar() {
                 pushHistory: (...args) => helpers.pushHistory(...args),
                 autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
                 autoSortTrackList: (...args) => helpers.autoSortTrackList(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

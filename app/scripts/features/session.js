@@ -10,7 +10,7 @@ export function registerSessionFeature(context) {
     openConfirmModal,
     openAlertModal,
     pushHistory,
-    triggerTouchHaptic,
+
   } = actions;
 
   const currentSessionName = computed(() => {
@@ -55,7 +55,7 @@ export function registerSessionFeature(context) {
           settings.sessions.splice(idx, 1);
           currentSessionId.value = settings.sessions[0].id;
           pushHistory();
-          triggerTouchHaptic('Success');
+
         },
         true,
       );

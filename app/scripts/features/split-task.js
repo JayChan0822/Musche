@@ -37,7 +37,6 @@ export function registerSplitTaskFeature(context) {
     pushHistory,
     autoUpdateEfficiency,
     autoSortTrackList,
-    triggerTouchHaptic,
   } = actions;
 
   const splitState = reactive({
@@ -81,7 +80,6 @@ export function registerSplitTaskFeature(context) {
         '禁止拆分',
         `当前任务已进行过拆分（存在后续 Part），\n请寻找【${targetName}】进行拆分。`,
       );
-      triggerTouchHaptic('Error');
       return false;
     }
     return true;
@@ -100,7 +98,6 @@ export function registerSplitTaskFeature(context) {
         '无法删除',
         `检测到后续任务 ${childName} 存在。\n\n为了保证时间计算正确，请务必按顺序先删除最后一个 Part，才能逐级归还时间。`,
       );
-      triggerTouchHaptic('Error');
       return false;
     }
 
@@ -200,7 +197,6 @@ export function registerSplitTaskFeature(context) {
 
   const onSplitSliderInput = () => {
     updateSplitStrings();
-    triggerTouchHaptic('Light');
   };
 
   const getBaseSplitNumber = (item, viewType) => {
@@ -250,7 +246,7 @@ export function registerSplitTaskFeature(context) {
     return newTask;
   };
 
-  const addRemainderToTrackList = (newTask, viewType, includeReminderDefaults) => {
+  const addRemainderToTrackList = (newTask, viewType) => {
     if (!showTrackList.value || !trackListData.value.schedules) return;
 
     const currentIdx = trackListData.value.currentSectionIndex;
@@ -281,11 +277,6 @@ export function registerSplitTaskFeature(context) {
         musicDuration: newTask.musicDuration,
       };
 
-      if (includeReminderDefaults) {
-        scheduleEntry.reminderMinutes = 15;
-        scheduleEntry.sound = 'default';
-      }
-
       scheduledTasks.value.push(scheduleEntry);
       setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
       trackListData.value.schedules.push(scheduleEntry);
@@ -301,7 +292,6 @@ export function registerSplitTaskFeature(context) {
 
   const finishSplit = (item) => {
     pushHistory();
-    triggerTouchHaptic('Success');
     if (item.musicianId) autoUpdateEfficiency(item.musicianId, 'musician', false);
   };
 
@@ -347,7 +337,7 @@ export function registerSplitTaskFeature(context) {
     );
     itemPool.value.push(newTask);
 
-    addRemainderToTrackList(newTask, viewType, true);
+    addRemainderToTrackList(newTask, viewType);
     finishSplit(item);
 
     showSplitModal.value = false;
@@ -396,7 +386,7 @@ export function registerSplitTaskFeature(context) {
         const newTask = createSplitRemainderTask(item, viewType, remainingStr, baseNum, 0);
         itemPool.value.push(newTask);
 
-        addRemainderToTrackList(newTask, viewType, false);
+        addRemainderToTrackList(newTask, viewType);
         finishSplit(item);
       },
       `总长 ${totalMusicStr}。`,
@@ -467,7 +457,6 @@ export function registerSplitTaskFeature(context) {
         }
       }
 
-      triggerTouchHaptic('Success');
       deactivateItemInView(taskToDelete, viewType);
       if (hasVisibleSplitStateInAnyView(taskToDelete)) {
         syncLegacySplitFields(taskToDelete, getOtherViewType(viewType));

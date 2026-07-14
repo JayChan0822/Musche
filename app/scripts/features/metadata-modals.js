@@ -72,7 +72,6 @@ export function registerMetadataModalsFeature(context) {
           },
           actions: {
             openAlertModal: actions.openAlertModal,
-            triggerTouchHaptic: actions.triggerTouchHaptic,
           },
         });
         creditsFeatureRef.value = creditsFeature;
@@ -94,7 +93,6 @@ export function registerMetadataModalsFeature(context) {
             settings: state.settings,
           },
           actions: {
-            triggerTouchHaptic: actions.triggerTouchHaptic,
           },
         });
         projectInfoFeatureRef.value = projectInfoFeature;
@@ -127,7 +125,6 @@ export function registerMetadataModalsFeature(context) {
           },
           actions: {
             pushHistory: actions.pushHistory,
-            triggerTouchHaptic: actions.triggerTouchHaptic,
             openConfirmModal: actions.openConfirmModal,
             openAlertModal: actions.openAlertModal,
           },

@@ -59,6 +59,20 @@ html.dark body {
     z-index: -1;
 }
 
+/* Divider 拖动提交会在两种 divider 模板之间切换节点；交接期间禁用
+   TransitionGroup 的淡入淡出，避免分割线在落位后闪烁。 */
+.divider-drag-active .list-move,
+.divider-drag-active .list-enter-active,
+.divider-drag-active .list-leave-active {
+    transition: none !important;
+}
+
+.divider-drag-active .list-enter-from,
+.divider-drag-active .list-leave-to {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 ::-webkit-scrollbar {
     width: 0;
     background: transparent;

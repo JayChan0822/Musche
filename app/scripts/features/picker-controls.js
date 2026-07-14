@@ -23,7 +23,7 @@ export function registerPickerControlsFeature(context) {
     },
     actions: {
       pushHistory: actions.pushHistory,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
+
     },
   });
 

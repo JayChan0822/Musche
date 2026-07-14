@@ -17,7 +17,6 @@ export function registerSelectionFeature(context) {
     getVisiblePoolItems = () => [],
     scrollToSidebarItem = () => {},
     smartScrollToTask = () => {},
-    triggerTouchHaptic = () => {},
   } = actions;
 
   const selectScheduleTask = (id) => {
@@ -86,7 +85,6 @@ export function registerSelectionFeature(context) {
 
     if (specificTask) {
       smartScrollToTask(specificTask);
-      if (isMobile.value) triggerTouchHaptic('Light');
       return;
     }
 
@@ -115,7 +113,6 @@ export function registerSelectionFeature(context) {
     }
 
     smartScrollToTask(relatedSchedules[targetIndex]);
-    if (isMobile.value) triggerTouchHaptic('Light');
   };
 
   const selectTask = (id, src, event) => {

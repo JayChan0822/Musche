@@ -14,7 +14,7 @@ export function registerScheduleTaskActivationFeature(context) {
     isContextSwitchingActive = () => false,
     isTaskGhost = () => false,
     jumpToGhostContext = () => {},
-    triggerTouchHaptic = () => {},
+
     pushHistory = () => {},
     getNow = () => Date.now(),
     normalizeSplitViewType = (value) => value,
@@ -159,7 +159,7 @@ export function registerScheduleTaskActivationFeature(context) {
       return;
     }
 
-    triggerTouchHaptic('Heavy');
+
 
     if (event.metaKey || event.ctrlKey) {
       splitTaskAtEvent(event, task);

@@ -9,7 +9,7 @@ export function createUniversalModalFeatureRegistrar() {
             inputModalConfig,
             universalInputRef,
         } = assembly.refs;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerUniversalModalFeature({
             refs: {
                 showConfirmModal,
@@ -19,7 +19,7 @@ export function createUniversalModalFeatureRegistrar() {
                 universalInputRef,
             },
             actions: {
-                triggerTouchHaptic: triggerTouchHaptic,
+
                 switchView: (...args) => assembly.features.viewNavigation.switchView(...args),
             },
         });

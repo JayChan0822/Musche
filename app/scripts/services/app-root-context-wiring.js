@@ -13,7 +13,6 @@ export function createAppRootContexts({ assembly, factories }) {
     } = factories;
     const store = assembly.refs;
     const { settings } = assembly.state;
-    const { triggerTouchHaptic } = assembly.services;
     const { formatUtils } = assembly.utils;
     const {
         activeDropdown, activeRecDropdown, authForm, authLoading, authPasswordRef, availableInstrumentGroups,
@@ -53,7 +52,7 @@ export function createAppRootContexts({ assembly, factories }) {
         isToday, jumpToStatSchedule, jumpToToday, metadataModalHandlers, midiGroupData, midiGroupExpanded,
         mobileTouchHandlers, onAfterLeave, onBeforeLeave, onDragStart, onFileSelect, onMainMouseDown,
         onMainMouseUp, onMainTouchEnd, onMainTouchStart, onMainWheel, onScroll, onSearchFocus,
-        onSettingsScroll, onSidebarTouchEnd, onSidebarTouchStart, onSplitSliderInput, onTrackListReminderChange, openColorPicker,
+        onSettingsScroll, onSidebarTouchEnd, onSidebarTouchStart, onSplitSliderInput, openColorPicker,
         openDurationPicker, openEditModal, openImportMenu, openMidiGroupDropdown, openMidiManager, openQuickAdd,
         openSplitSlider, parsedRoster, percState, presetColors, pushHistory, redo,
         refreshCsvStatus, removeMidiMapping, removePercPlayer, resetColorPicker, resetDuration, saveColorPicker,
@@ -452,7 +451,6 @@ export function createAppRootContexts({ assembly, factories }) {
                 timeSlots,
             },
             actions: {
-                triggerTouchHaptic,
                 toggleDropdown,
                 getNameById,
                 getGroupedOptions,
@@ -530,13 +528,11 @@ export function createAppRootContexts({ assembly, factories }) {
                 isPercussionGroup,
                 isStringGroup,
                 pushHistory,
-                triggerTouchHaptic,
                 calcTrackDiff,
                 setTrackNow,
                 setTrackBreak,
                 clearTrackTime,
                 calculateSingleRatio,
-                onTrackListReminderChange,
                 deleteCurrentSchedule,
             },
         });

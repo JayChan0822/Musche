@@ -9,7 +9,6 @@ export function registerUniversalModalFeature(context) {
     inputModalConfig,
     universalInputRef,
   } = refs;
-  const { triggerTouchHaptic } = actions;
 
   const openAlertModal = (title, content, callback) => {
     confirmModalConfig.title = title;
@@ -19,7 +18,6 @@ export function registerUniversalModalFeature(context) {
     confirmModalConfig.confirmText = '我知道了';
     confirmModalConfig.onConfirm = callback;
     showConfirmModal.value = true;
-    triggerTouchHaptic('Light');
   };
 
   const openConfirmModal = (
@@ -38,7 +36,6 @@ export function registerUniversalModalFeature(context) {
     confirmModalConfig.cancelText = cancelText;
     confirmModalConfig.onConfirm = onConfirm;
     showConfirmModal.value = true;
-    triggerTouchHaptic('Medium');
   };
 
   const closeConfirmModal = () => {

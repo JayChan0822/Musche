@@ -21,7 +21,7 @@ export function registerMidiManagerFeature(context) {
     getAvailableInstrumentGroups,
     openConfirmModal,
     pushHistory,
-    triggerTouchHaptic,
+
   } = actions;
 
   const midiManagerExpandedGroups = reactive(new Set());
@@ -174,7 +174,7 @@ export function registerMidiManagerFeature(context) {
         }
       });
 
-      if (isMobile.value) triggerTouchHaptic('Light');
+
     }
 
     pushHistory();
@@ -209,7 +209,7 @@ export function registerMidiManagerFeature(context) {
       () => {
         managingProject.value.midiData = {};
         pushHistory();
-        triggerTouchHaptic('Medium');
+
       },
       true,
     );
@@ -226,7 +226,7 @@ export function registerMidiManagerFeature(context) {
       pushHistory();
       activeMidiGroupRow.value = null;
 
-      if (isMobile.value) triggerTouchHaptic('Success');
+
     }
   };
 

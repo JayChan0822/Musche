@@ -15,7 +15,7 @@ export function createQuickAddFeatureRegistrar() {
         } = assembly.refs;
         const { settings } = assembly.state;
         const { idUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerQuickAddFeature({
             refs: {
                 quickAddType,
@@ -43,7 +43,7 @@ export function createQuickAddFeatureRegistrar() {
             actions: {
                 openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

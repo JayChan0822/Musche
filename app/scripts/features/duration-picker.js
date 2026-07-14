@@ -12,7 +12,7 @@ export function registerDurationPickerFeature(context) {
   const { calculateEstTime } = utils;
   const {
     pushHistory,
-    triggerTouchHaptic,
+
     addWindowListener = (type, handler) => window.addEventListener(type, handler),
     removeWindowListener = (type, handler) => window.removeEventListener(type, handler),
     getWindowInnerWidth = () => window.innerWidth,
@@ -121,7 +121,7 @@ export function registerDurationPickerFeature(context) {
     if (newIndex !== oldIndex) {
       if (type === 'm') tempDuration.m = newIndex;
       if (type === 's') tempDuration.s = newIndex;
-      triggerTouchHaptic('Light');
+
     }
 
     scrollTimeout = setTimeout(() => {}, 100);

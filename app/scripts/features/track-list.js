@@ -20,8 +20,6 @@ export function registerTrackListFeature(context) {
     autoUpdateEfficiency,
     checkCanDeleteSplit,
     restoreSplitTime,
-    updateTaskNotification,
-    triggerTouchHaptic,
     moveDivider,
     pruneEmptySchedules,
     calculateSingleRatio = () => '-',
@@ -146,7 +144,6 @@ export function registerTrackListFeature(context) {
     });
 
     pushHistory();
-    triggerTouchHaptic('Success');
   };
 
   const autoResizeScheduleByRecords = (isSilent = false, shouldPushHistory = true) => {
@@ -216,7 +213,6 @@ export function registerTrackListFeature(context) {
 
     if (hasUpdate) {
       if (!isSilent) {
-        triggerTouchHaptic('Success');
         openAlertModal('自动调整完成', '日程块已根据实际录音时间精确调整。');
       }
     } else if (!isSilent) {
@@ -233,12 +229,11 @@ export function registerTrackListFeature(context) {
     const targetEl = triggerEl.closest('.group\\/divider');
     const actualTarget = targetEl || triggerEl;
 
-    actualTarget.style.opacity = '0';
-
     const rect = actualTarget.getBoundingClientRect();
     const clientY = isTouch ? event.touches[0].clientY : event.clientY;
     const container = trackListContainerRef.value;
     const initialScrollTop = container ? container.scrollTop : 0;
+    container?.classList.add('divider-drag-active');
 
     const taskEls = Array.from(container.querySelectorAll('.track-card'));
     const taskHeights = taskEls.map((el) => {
@@ -288,8 +283,6 @@ export function registerTrackListFeature(context) {
       startIndex,
       sectionIndex,
     };
-
-    triggerTouchHaptic('Medium');
 
     if (isTouch) {
       window.addEventListener('touchmove', onDividerDragMove, { passive: false });
@@ -353,7 +346,6 @@ export function registerTrackListFeature(context) {
 
     if (indexChanged || isMobile.value) {
       const virtualIndex = dividerDragState.virtualIndex;
-      if (indexChanged) triggerTouchHaptic('Light');
 
       taskEls.forEach((el, index) => {
         let translateY = 0;
@@ -377,34 +369,7 @@ export function registerTrackListFeature(context) {
   };
 
   const onDividerDragEnd = () => {
-    if (dividerDragState) {
-      const { sectionIndex, startIndex, virtualIndex, taskEls, targetEl } = dividerDragState;
-
-      taskEls.forEach((el) => {
-        el.style.transform = '';
-        el.style.transition = 'none';
-      });
-
-      if (targetEl) targetEl.style.opacity = '';
-
-      if (dividerDragState.ghost && document.body.contains(dividerDragState.ghost)) {
-        document.body.removeChild(dividerDragState.ghost);
-      }
-
-      requestAnimationFrame(() => {
-        if (virtualIndex !== startIndex) {
-          const diff = virtualIndex - startIndex;
-          const direction = diff > 0 ? 'down' : 'up';
-          const moves = Math.abs(diff);
-
-          for (let index = 0; index < moves; index++) {
-            moveDivider(sectionIndex, direction, false);
-          }
-          pushHistory();
-        }
-      });
-    }
-
+    const completedDrag = dividerDragState;
     dividerDragState = null;
     draggingSectionIndex.value = null;
     stopTrackListAutoScroll();
@@ -414,6 +379,52 @@ export function registerTrackListFeature(context) {
     window.removeEventListener('touchcancel', onDividerDragEnd);
     window.removeEventListener('mousemove', onDividerDragMove);
     window.removeEventListener('mouseup', onDividerDragEnd);
+
+    if (!completedDrag) return;
+
+    const cleanupVisuals = () => {
+      const currentTaskEls = Array.from(
+        trackListContainerRef.value?.querySelectorAll('.track-card') || [],
+      );
+      const taskEls = new Set([...completedDrag.taskEls, ...currentTaskEls]);
+      taskEls.forEach((el) => {
+        el.style.transition = 'none';
+        el.style.transform = '';
+      });
+
+      if (completedDrag.targetEl) completedDrag.targetEl.style.opacity = '';
+      const currentDividers = trackListContainerRef.value?.querySelectorAll(
+        `[id="sec-divider-${completedDrag.sectionIndex}"]`,
+      ) || [];
+      currentDividers.forEach((divider) => {
+        divider.style.opacity = '';
+      });
+      if (completedDrag.ghost && document.body.contains(completedDrag.ghost)) {
+        document.body.removeChild(completedDrag.ghost);
+      }
+      trackListContainerRef.value?.classList.remove('divider-drag-active');
+    };
+
+    const { sectionIndex, startIndex, virtualIndex } = completedDrag;
+    if (virtualIndex === startIndex) {
+      cleanupVisuals();
+      return;
+    }
+
+    const diff = virtualIndex - startIndex;
+    const direction = diff > 0 ? 'down' : 'up';
+    const moves = Math.abs(diff);
+
+    for (let index = 0; index < moves; index++) {
+      moveDivider(sectionIndex, direction, false);
+    }
+    pushHistory();
+
+    // 给 Vue / TransitionGroup 两帧完成节点交接；期间保留 ghost 并禁用列表过渡，
+    // 避免旧位置短暂重现或新 divider 淡入造成闪烁。
+    requestAnimationFrame(() => {
+      requestAnimationFrame(cleanupVisuals);
+    });
   };
 
   const handleTrackListAutoScroll = (clientY) => {
@@ -515,7 +526,6 @@ export function registerTrackListFeature(context) {
         virtualDataIndex: dataStartIndex,
       };
 
-      triggerTouchHaptic('Medium');
     };
 
     if (isTouch) {
@@ -612,8 +622,6 @@ export function registerTrackListFeature(context) {
       }
     }
 
-    if (indexChanged) triggerTouchHaptic('Light');
-
     const virtualDomIndex = trackDragState.virtualDomIndex;
     const domStartIndex = trackDragState.domStartIndex;
 
@@ -695,7 +703,6 @@ export function registerTrackListFeature(context) {
 
       syncTrackItemScheduleSection(item, previousSectionIndex);
       pushHistory();
-      triggerTouchHaptic('Success');
     }
 
     trackDragState = null;
@@ -771,8 +778,6 @@ export function registerTrackListFeature(context) {
     if (showTrackList.value) {
       pushHistory();
     }
-
-    triggerTouchHaptic('Medium');
   };
 
   const autoCalcDuration = () => {
@@ -821,17 +826,6 @@ export function registerTrackListFeature(context) {
     }
   };
 
-  const onTrackListReminderChange = (task) => {
-    if (!task) return;
-
-    if (typeof updateTaskNotification === 'function') {
-      updateTaskNotification(task);
-    }
-
-    pushHistory();
-    triggerTouchHaptic('Light');
-  };
-
   const syncTrackItemScheduleSection = (item, previousSectionIndex = null) => {
     if (!item || !trackListData.value?.schedules) return false;
 
@@ -854,9 +848,6 @@ export function registerTrackListFeature(context) {
         didUpdate = true;
       }
 
-      if (didUpdate && typeof updateTaskNotification === 'function') {
-        updateTaskNotification(exactSchedule);
-      }
     }
 
     if (
@@ -910,7 +901,6 @@ export function registerTrackListFeature(context) {
     autoUpdateEfficiency(targetId, viewType, false);
 
     pushHistory();
-    triggerTouchHaptic('Medium');
   };
 
   const getOrchSize = (str) => {
@@ -948,7 +938,6 @@ export function registerTrackListFeature(context) {
 
     autoResizeScheduleByRecords(true, false);
     pushHistory();
-    triggerTouchHaptic('Medium');
   };
 
   const autoSortTrackList = () => {
@@ -1056,7 +1045,6 @@ export function registerTrackListFeature(context) {
     autoCalcDuration,
     saveScheduleActualTime,
     saveTrackActual,
-    onTrackListReminderChange,
     syncTrackItemScheduleSection,
     setTrackNow,
     saveTrackRecord,

@@ -30,7 +30,7 @@ export function registerAuthFeature(context) {
     pushHistory,
     openAlertModal,
     openConfirmModal,
-    triggerTouchHaptic,
+
     reloadPage = () => window.location.reload(),
     getLocationOrigin = () => window.location.origin,
     getUploadTextElement = () => document.getElementById('upload-text'),
@@ -112,8 +112,6 @@ export function registerAuthFeature(context) {
       trackCount: 1,
       ratio: 20,
       musicDuration: '03:00',
-      reminderMinutes: 15,
-      sound: 'default',
     }];
 
     if (isSidebarOpen) {
@@ -195,7 +193,7 @@ export function registerAuthFeature(context) {
       const serverVersion = serverRecord ? serverRecord.version : 0;
       if (serverVersion > localDataVersion.value && !force) {
         setSaveStatus('error');
-        triggerTouchHaptic('Error');
+
 
         openConfirmModal(
           '⚠ 数据同步冲突',
@@ -430,16 +428,16 @@ export function registerAuthFeature(context) {
 
     if (isSyncing && isSyncing.value) return;
     if (isSyncing) isSyncing.value = true;
-    triggerTouchHaptic('Medium');
+
     try {
       await loadCloudData();
       setTimeout(() => {
         if (isSyncing) isSyncing.value = false;
-        triggerTouchHaptic('Success');
+
       }, 500);
     } catch (error) {
       if (isSyncing) isSyncing.value = false;
-      triggerTouchHaptic('Error');
+
       openAlertModal('同步失败', '网络连接异常或服务不可用。');
     }
   }

@@ -23,7 +23,7 @@ export function createViewNavigationFeatureRegistrar() {
             dragState,
         } = assembly.refs;
         const { settings } = assembly.state;
-        const { storageService, triggerTouchHaptic } = assembly.services;
+        const { storageService } = assembly.services;
         const { formatUtils, timeUtils } = assembly.utils;
         return registerViewNavigationFeature({
             refs: {
@@ -57,7 +57,7 @@ export function createViewNavigationFeatureRegistrar() {
             },
             actions: {
                 isDragActive: () => !!dragState.dragElClone,
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

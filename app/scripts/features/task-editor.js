@@ -31,9 +31,7 @@ export function registerTaskEditorFeature(context) {
     cleanupEmptySchedules,
     openAlertModal,
     autoUpdateEfficiency,
-    updateTaskNotification,
     pushHistory,
-    cancelNotification,
   } = actions;
 
   const getEditViewType = () => normalizeSplitViewType(
@@ -200,10 +198,6 @@ export function registerTaskEditorFeature(context) {
       }
     }
 
-    if (idx !== -1) {
-      updateTaskNotification(scheduledTasks.value[idx]);
-    }
-
     return true;
   };
 
@@ -247,13 +241,6 @@ export function registerTaskEditorFeature(context) {
   };
 
   const deleteEditingItem = async () => {
-    if (editingSource.value !== 'pool') {
-      const scheduleIdNumber = Number(editingItem.value.scheduleId);
-      if (Number.isFinite(scheduleIdNumber)) {
-        cancelNotification(scheduleIdNumber % 2147483647);
-      }
-    }
-
     if (editingSource.value === 'pool') {
       if (!checkCanDeleteSplit(editingItem.value)) return;
 

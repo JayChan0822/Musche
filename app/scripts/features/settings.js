@@ -13,7 +13,6 @@ export function registerSettingsFeature(context) {
   const { generateUniqueId, generateRandomHexColor } = utils;
   const {
     pushHistory,
-    triggerTouchHaptic,
     openConfirmModal,
     openAlertModal,
     cleanupEmptySchedules,
@@ -252,7 +251,6 @@ export function registerSettingsFeature(context) {
     settingsDragItem.item.group = targetGroup;
     pushHistory();
     settingsDragItem = null;
-    triggerTouchHaptic('Light');
   };
 
   function getAllSettingsGrouped() {
@@ -310,12 +308,10 @@ export function registerSettingsFeature(context) {
           existingItem.group = groupStr;
           if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
           pushHistory();
-          triggerTouchHaptic('Success');
           form.name = '';
           return;
         }
 
-        triggerTouchHaptic('Error');
         return openAlertModal('重复添加', '该项目已存在于当前分组中。');
       }
     }
@@ -333,7 +329,6 @@ export function registerSettingsFeature(context) {
     if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
     form.name = '';
     pushHistory();
-    triggerTouchHaptic('Success');
   }
 
   function deleteTypeItem(type, id, title) {
@@ -347,7 +342,6 @@ export function registerSettingsFeature(context) {
         scheduledTasks.value = scheduledTasks.value.filter((task) => task[idKey] !== id);
         cleanupEmptySchedules();
         pushHistory();
-        triggerTouchHaptic('Medium');
       },
       true,
     );
@@ -386,7 +380,6 @@ export function registerSettingsFeature(context) {
         scheduledTasks.value = scheduledTasks.value.filter((task) => !idsToDelete.has(task[idKey]));
         cleanupEmptySchedules();
         pushHistory();
-        triggerTouchHaptic('Medium');
       },
       true,
     );
@@ -474,7 +467,6 @@ export function registerSettingsFeature(context) {
           }
 
           pushHistory();
-          triggerTouchHaptic('Success');
           openAlertModal('合并成功', `已将相关任务全部转移至 "${targetItem.name}"。`);
         },
         true,

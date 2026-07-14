@@ -20,7 +20,6 @@ function createEditorHarness({ scheduleId = 501, templateId = 'POOL_1' } = {}) {
     sidebarTab: { value: 'musician' },
     trackListData: { value: { viewType: 'musician' } },
   };
-  const cancelledNotifications = [];
   const clearedPoolRecords = [];
   let historyCount = 0;
 
@@ -51,9 +50,7 @@ function createEditorHarness({ scheduleId = 501, templateId = 'POOL_1' } = {}) {
       cleanupEmptySchedules: () => {},
       openAlertModal: () => {},
       autoUpdateEfficiency: () => {},
-      updateTaskNotification: () => {},
       pushHistory: () => { historyCount += 1; },
-      cancelNotification: (id) => cancelledNotifications.push(id),
     },
   });
 
@@ -61,32 +58,29 @@ function createEditorHarness({ scheduleId = 501, templateId = 'POOL_1' } = {}) {
     feature,
     refs,
     scheduledTask,
-    cancelledNotifications,
     clearedPoolRecords,
     get historyCount() { return historyCount; },
   };
 }
 
-test('deleting a scheduled edit item cancels numeric notifications and clears template records', async () => {
+test('deleting a scheduled edit item clears template records', async () => {
   const harness = createEditorHarness({ scheduleId: 501, templateId: 'POOL_1' });
 
   harness.feature.openEditModal(harness.scheduledTask, 'schedule');
   await harness.feature.deleteEditingItem();
 
-  assert.deepEqual(harness.cancelledNotifications, [501]);
   assert.deepEqual(harness.clearedPoolRecords, ['POOL_1']);
   assert.deepEqual(harness.refs.scheduledTasks.value, []);
   assert.equal(harness.refs.showEditor.value, false);
   assert.equal(harness.historyCount, 1);
 });
 
-test('deleting a scheduled edit item with a non-numeric id never cancels notification NaN', async () => {
+test('deleting an imported schedule id clears template records', async () => {
   const harness = createEditorHarness({ scheduleId: 'SCHED_IMPORTED', templateId: 'POOL_IMPORTED' });
 
   harness.feature.openEditModal(harness.scheduledTask, 'schedule');
   await harness.feature.deleteEditingItem();
 
-  assert.deepEqual(harness.cancelledNotifications, [], 'non-numeric schedule ids should not send NaN to notification cancellation');
   assert.deepEqual(harness.clearedPoolRecords, ['POOL_IMPORTED']);
   assert.deepEqual(harness.refs.scheduledTasks.value, []);
   assert.equal(harness.refs.showEditor.value, false);

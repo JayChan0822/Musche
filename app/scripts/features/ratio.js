@@ -226,7 +226,7 @@ export function registerRatioFeature(context) {
           autoUpdateEfficiency(firstId, 'musician', false);
         }
 
-        window.triggerTouchHaptic('Success');
+
         openAlertModal('清理完成', `已成功将 ${count} 个任务重置为自动跟随模式。\n现在它们会乖乖跟随大卡片的效率了！`);
       },
       false,

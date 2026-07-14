@@ -19,7 +19,6 @@ export function registerCalendarViewFeature(context) {
   const { settings } = state;
   const { formatDate, timeToMinutes } = utils;
   const {
-    triggerTouchHaptic,
     switchView,
     getNow = () => Date.now(),
     getDate = () => new Date(),
@@ -99,7 +98,6 @@ export function registerCalendarViewFeature(context) {
     }
 
     viewDate.value = nextDate;
-    triggerTouchHaptic('Light');
   };
 
   const currentWeekDays = computed(() => {
@@ -347,7 +345,6 @@ export function registerCalendarViewFeature(context) {
 
     if (now - lastMonthTap.time < 300 && lastMonthTap.date === dateStr) {
       event.preventDefault();
-      triggerTouchHaptic('Light');
       switchToWeek(dateStr);
     }
 

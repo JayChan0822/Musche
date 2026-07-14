@@ -5,7 +5,6 @@ export function registerMobileTouchStartFeature(context) {
     setTimeout: setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
     isTaskGhost = () => false,
     startMobileDrag = () => {},
-    triggerTouchHaptic = () => {},
   } = actions;
 
   const storeTouchStartState = (event, item, sourceType, dateStr = null) => {
@@ -56,7 +55,6 @@ export function registerMobileTouchStartFeature(context) {
     state.longPressTimeout = setTimeoutFn(() => {
       startMobileDrag(targetEl, touch);
       mobileTab.value = 'schedule';
-      triggerTouchHaptic('Heavy');
     }, 300);
 
     return state.longPressTimeout;

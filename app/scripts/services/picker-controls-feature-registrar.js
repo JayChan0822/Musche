@@ -9,7 +9,7 @@ export function createPickerControlsFeatureRegistrar() {
             pickerSecRef,
             pickerPos,
         } = assembly.refs;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerPickerControlsFeature({
             refs: {
                 showDurationPicker,
@@ -23,7 +23,7 @@ export function createPickerControlsFeatureRegistrar() {
             },
             actions: {
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

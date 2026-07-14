@@ -11,7 +11,6 @@ export function registerMobileTouchFeature(context) {
   const dragGhostFeature = registerMobileDragGhostFeature({
     state,
     actions: {
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
   const autoScrollFeature = registerMobileAutoScrollFeature();
@@ -25,7 +24,6 @@ export function registerMobileTouchFeature(context) {
     actions: {
       isTaskGhost: actions.isTaskGhost,
       startMobileDrag: dragGhostFeature.startMobileDrag,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
 
@@ -42,7 +40,6 @@ export function registerMobileTouchFeature(context) {
       stopAutoScroll: autoScrollFeature.stopAutoScroll,
       isAutoScrollActive: autoScrollFeature.isAutoScrollActive,
       changeDate: actions.changeDate,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
 
@@ -69,7 +66,6 @@ export function registerMobileTouchFeature(context) {
       selectTask: actions.selectTask,
       checkOverlap: actions.checkOverlap,
       openAlertModal: actions.openAlertModal,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
       pushHistory: actions.pushHistory,
     },
   });
@@ -87,7 +83,6 @@ export function registerMobileTouchFeature(context) {
       parseTime: utils.parseTime,
     },
     actions: {
-      triggerTouchHaptic: actions.triggerTouchHaptic,
       checkOverlap: actions.checkOverlap,
       openAlertModal: actions.openAlertModal,
       pushHistory: actions.pushHistory,

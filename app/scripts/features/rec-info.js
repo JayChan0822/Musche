@@ -17,7 +17,6 @@ export function registerRecInfoFeature(context) {
   const { generateUniqueId } = utils;
   const {
     pushHistory,
-    triggerTouchHaptic,
     openConfirmModal = () => {},
     openAlertModal = () => {},
     promptForValue = (message) => prompt(message),
@@ -87,7 +86,6 @@ export function registerRecInfoFeature(context) {
     }
 
     pushHistory();
-    triggerTouchHaptic('Success');
     showRecInfoModal.value = false;
   };
 
@@ -120,7 +118,6 @@ export function registerRecInfoFeature(context) {
     recInfoForm[type] = name;
     activeRecDropdown.value = null;
     recDropdownSearch.value = '';
-    triggerTouchHaptic('Success');
   };
 
   const addRecItem = (type) => {
@@ -140,7 +137,6 @@ export function registerRecInfoFeature(context) {
         id: Date.now(),
         name: cleanValue,
       });
-      triggerTouchHaptic('Success');
     }
   };
 
@@ -153,7 +149,6 @@ export function registerRecInfoFeature(context) {
 
     list.splice(idx, 1);
     pushHistory();
-    triggerTouchHaptic('Medium');
   };
 
   const updateRecordingInfoReferences = (type, oldName, targetName) => {
@@ -200,7 +195,6 @@ export function registerRecInfoFeature(context) {
           if (idx !== -1) list.splice(idx, 1);
 
           pushHistory();
-          triggerTouchHaptic('Success');
           openAlertModal('合并成功', `相关任务信息已更新为 "${existing.name}"。`);
         },
         true,
@@ -210,7 +204,6 @@ export function registerRecInfoFeature(context) {
       item.name = newName;
       updateRecordingInfoReferences(type, oldName, newName);
       pushHistory();
-      triggerTouchHaptic('Success');
     }
   };
 

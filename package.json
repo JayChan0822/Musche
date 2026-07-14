@@ -24,13 +24,8 @@
     "url": "https://github.com/JayChan0822/Musche/issues"
   },
   "homepage": "https://github.com/JayChan0822/Musche#readme",
-  "description": "Schedule planner for musicians and recording sessions, with MIDI/CSV import, Supabase sync, and a Capacitor iOS app.",
+  "description": "Web schedule planner for musicians and recording sessions, with MIDI/CSV import and Supabase sync.",
   "dependencies": {
-    "@capacitor/cli": "^7.4.4",
-    "@capacitor/core": "^7.4.4",
-    "@capacitor/haptics": "^7.0.2",
-    "@capacitor/ios": "^7.4.4",
-    "@capacitor/local-notifications": "^7.0.3",
     "@supabase/supabase-js": "^2.105.4",
     "cropperjs": "^2.1.1",
     "driver.js": "^1.4.0",

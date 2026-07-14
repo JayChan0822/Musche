@@ -8,7 +8,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
         throw new TypeError('createAppLazyFeatureWirings requires the app feature loaders');
     }
     const {
-        loadNotificationsFeature,
         loadDesktopResizeFeature,
         loadScheduleDeletionFeature,
         loadAvatarCropFeature,
@@ -24,23 +23,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
     } = loaders;
 
     const resolveLoaded = (onLoaded, feature) => (onLoaded ? (onLoaded(feature) ?? feature) : feature);
-
-    function wireNotificationsFeature(assembly) {
-        return createLazyFeatureProxy({
-            loadFeature: () => loadNotificationsFeature()
-                .then((registerNotificationsFeature) => registerNotificationsFeature({
-                    services: {
-                        deviceService: assembly.services.deviceService,
-                    },
-                    utils: {
-                        getNameById: (...args) => assembly.features.nameLookup.getNameById(...args),
-                    },
-                    actions: {
-                        openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
-                    },
-                })),
-        });
-    }
 
     function wireDesktopResizeFeature(assembly) {
         return createLazyFeatureProxy({
@@ -61,7 +43,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         actions: {
                             checkOverlap: (...args) => assembly.helpers.checkOverlap(...args),
                             openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
                         },
                     });
@@ -101,7 +82,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         actions: {
                             openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
                         },
                     });
@@ -189,7 +169,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         pushHistory: (...args) => helpers.pushHistory(...args),
                         autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
                         autoResizeSchedules: (...args) => helpers.autoResizeSchedules(...args),
-                        triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                         sortedInstruments: refs.sortedInstruments,
                         nextTick: assembly.vue.nextTick,
                     },
@@ -288,7 +267,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         },
                         actions: {
                             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
                             openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                         },
@@ -355,7 +333,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             getAvailableInstrumentGroups: () => assembly.refs.availableInstrumentGroups,
                             openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
                             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                         },
                     });
                     return resolveLoaded(onLoaded, feature);
@@ -408,9 +385,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             cleanupEmptySchedules: (...args) => assembly.features.schedule.cleanupEmptySchedules(...args),
                             openAlertModal: (...args) => helpers.openAlertModal(...args),
                             autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
-                            updateTaskNotification: (...args) => helpers.updateTaskNotification(...args),
                             pushHistory: (...args) => helpers.pushHistory(...args),
-                            cancelNotification: (notificationId) => assembly.services.deviceService.cancelNotification(notificationId),
                         },
                     });
                 }),
@@ -466,7 +441,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             jumpToGhostContext: (...args) => assembly.features.viewNavigation.jumpToGhostContext(...args),
                             handleTaskDblClick: (...args) => assembly.features.scheduleInteractions.handleTaskDblClick(...args),
                             selectTask: (...args) => assembly.features.poolInteractions.selectTask(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             checkOverlap: (...args) => helpers.checkOverlap(...args),
                             openAlertModal: (...args) => helpers.openAlertModal(...args),
                             pushHistory: () => helpers.pushHistory(),
@@ -520,8 +494,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
                             checkCanDeleteSplit: (...args) => helpers.checkCanDeleteSplit(...args),
                             restoreSplitTime: (...args) => helpers.restoreSplitTime(...args),
-                            updateTaskNotification: (...args) => helpers.updateTaskNotification(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             moveDivider: (...args) => helpers.moveDivider(...args),
                             pruneEmptySchedules: (...args) => assembly.features.schedule.pruneEmptySchedules(...args),
                             calculateSingleRatio: (...args) => assembly.features.ratio.calculateSingleRatio(...args),
@@ -562,7 +534,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         },
                         actions: {
                             pushHistory: (...args) => helpers.pushHistory(...args),
-                            triggerTouchHaptic: assembly.services.triggerTouchHaptic,
                             openConfirmModal: (...args) => helpers.openConfirmModal(...args),
                             openAlertModal: (...args) => helpers.openAlertModal(...args),
                             cleanupEmptySchedules: (...args) => assembly.features.schedule.cleanupEmptySchedules(...args),
@@ -575,7 +546,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
     }
 
     return {
-        wireNotificationsFeature,
         wireDesktopResizeFeature,
         wireScheduleDeletionFeature,
         wireAvatarCropFeature,

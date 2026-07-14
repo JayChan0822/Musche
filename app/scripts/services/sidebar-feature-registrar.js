@@ -3,7 +3,7 @@ import { registerSidebarFeature } from '../features/sidebar.js';
 export function createSidebarFeatureRegistrar() {
     return function wireSidebarFeature(assembly) {
         const { sidebarWidth, isMobile, sidebarTab, dragState } = assembly.refs;
-        const { storageService, triggerTouchHaptic } = assembly.services;
+        const { storageService } = assembly.services;
         return registerSidebarFeature({
             refs: {
                 sidebarWidth,
@@ -15,7 +15,7 @@ export function createSidebarFeatureRegistrar() {
             },
             actions: {
                 isDragActive: () => !!dragState.dragElClone,
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

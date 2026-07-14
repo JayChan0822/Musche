@@ -21,7 +21,7 @@ export const AppEditModal = {
             </span>
                 <div class="relative w-10 h-5 rounded-full transition-colors duration-300 border border-black/5 dark:border-white/5"
                      :class="editingItem.isSkipped ? 'bg-red-500' : 'bg-black/10 dark:bg-white/10'">
-                    <input type="checkbox" v-model="editingItem.isSkipped" class="hidden" @change="triggerTouchHaptic('Medium')">
+                    <input type="checkbox" v-model="editingItem.isSkipped" class="hidden">
                     <div class="absolute top-1 left-1 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-300"
                          :class="editingItem.isSkipped ? 'translate-x-5' : 'translate-x-0'"></div>
                 </div>

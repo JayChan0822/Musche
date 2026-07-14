@@ -16,7 +16,7 @@ export function createSidebarStatsFeatureRegistrar() {
         } = assembly.refs;
         const { settings } = assembly.state;
         const { timeUtils, formatUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerSidebarStatsFeature({
             refs: {
                 itemPool,
@@ -47,7 +47,7 @@ export function createSidebarStatsFeatureRegistrar() {
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
                 openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                 smartScrollToTask: (...args) => assembly.features.viewNavigation.smartScrollToTask(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

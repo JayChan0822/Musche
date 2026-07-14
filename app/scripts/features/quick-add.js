@@ -25,7 +25,7 @@ export function registerQuickAddFeature(context) {
   const {
     openAlertModal,
     pushHistory,
-    triggerTouchHaptic,
+
     focusElementById = (id) => {
       const input = document.getElementById(id);
       if (input) input.focus();
@@ -74,7 +74,7 @@ export function registerQuickAddFeature(context) {
     }
 
     if (list.some((item) => item.name.toLowerCase() === nameStr.toLowerCase())) {
-      triggerTouchHaptic('Error');
+
       return openAlertModal('无法添加', `该${label}名称 "${nameStr}" 已存在！`);
     }
 
@@ -104,7 +104,7 @@ export function registerQuickAddFeature(context) {
     pushHistory();
     showQuickAddModal.value = false;
     activeDropdown.value = null;
-    triggerTouchHaptic('Success');
+
   };
 
   const addItemToPool = () => {
@@ -147,7 +147,7 @@ export function registerQuickAddFeature(context) {
     newItem._autoSuggestedName = null;
 
     pushHistory();
-    if (isMobile.value) triggerTouchHaptic('Success');
+
     showMobileTaskInput.value = false;
   };
 

@@ -1,6 +1,6 @@
 # Musche
 
-面向音乐人/录音棚的排程应用：以"任务池 + 周/月视图日程"为核心，支持拖拽排程、轨道列表（TrackList）、任务拆分、MIDI / CSV / XLSX 导入导出、Credits 生成、撤销历史、Supabase 账号同步，以及通过 Capacitor 打包的 iOS 客户端。
+面向音乐人/录音棚的 Web 排程应用：以“任务池 + 周/月视图日程”为核心，支持拖拽排程、轨道列表（TrackList）、任务拆分、MIDI / CSV / XLSX 导入导出、Credits 生成、撤销历史和 Supabase 账号同步。
 
 技术栈：Vue 3（ESM 运行时组件，无 SFC）+ Vite + Tailwind CSS + Supabase，部署在 Vercel。
 
@@ -31,13 +31,6 @@ npm test          # 模块化烟雾测试 + node --test 全量测试
 npm run test:e2e  # Playwright E2E 冒烟测试（基于 vite preview，本地模式、不连 Supabase）
 npm run build     # 产物输出到 app/dist（Vercel 部署目录）
 npm run preview
-```
-
-## iOS（Capacitor）
-
-```bash
-npx cap sync ios
-npx cap open ios   # 在 Xcode 中构建运行
 ```
 
 ## 目录结构

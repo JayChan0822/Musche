@@ -21,7 +21,7 @@ export function createAuthFeatureRegistrar() {
         } = assembly.refs;
         const { settings } = assembly.state;
         const { formatUtils, idUtils } = assembly.utils;
-        const { storageService, supabaseService, triggerTouchHaptic } = assembly.services;
+        const { storageService, supabaseService } = assembly.services;
         return registerAuthFeature({
             refs: {
                 user,
@@ -57,7 +57,7 @@ export function createAuthFeatureRegistrar() {
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
                 openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                 openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
                 setSaveStatus: (value) => {
                     saveStatus.value = value;
                 },

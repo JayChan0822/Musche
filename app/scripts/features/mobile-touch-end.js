@@ -15,7 +15,6 @@ export function registerMobileTouchEndFeature(context) {
     selectTask = () => {},
     checkOverlap = () => false,
     openAlertModal = () => {},
-    triggerTouchHaptic = () => {},
     pushHistory = () => {},
   } = actions;
 
@@ -118,8 +117,6 @@ export function registerMobileTouchEndFeature(context) {
       estDuration: formatSecs(remainingMins * 60),
       trackCount: item.trackCount,
       ratio: item.defaultRatio || 20,
-      reminderMinutes: 15,
-      sound: 'default',
     };
   };
 
@@ -134,8 +131,6 @@ export function registerMobileTouchEndFeature(context) {
     estDuration: state.dragSourceTask.estDuration,
     date: dateStr,
     startTime: newTime,
-    reminderMinutes: 15,
-    sound: 'default',
   });
 
   const dropInWeek = (dropColumn, touch) => {
@@ -150,7 +145,6 @@ export function registerMobileTouchEndFeature(context) {
 
     if (checkOverlap(dateStr, newTime, check.checkDuration, check.excludeId, check.checkType)) {
       openAlertModal('时间冲突', '该时间段已有重叠的安排。');
-      triggerTouchHaptic('Error');
       if (state.dragSourceEl) state.dragSourceEl.style.opacity = '';
       state.dragSourceEl = null;
       state.activeDropSlot = null;
@@ -159,11 +153,9 @@ export function registerMobileTouchEndFeature(context) {
 
     if (state.dragSourceType === 'aggregate') {
       scheduledTasks.value.push(createAggregateWeekTask(dateStr, newTime));
-      triggerTouchHaptic('Success');
       pushHistory();
     } else if (state.dragSourceType === 'pool') {
       scheduledTasks.value.push(createPoolWeekTask(dateStr, newTime));
-      triggerTouchHaptic('Success');
       pushHistory();
     } else if (
       state.dragSourceTask.startTime !== newTime ||
@@ -171,7 +163,6 @@ export function registerMobileTouchEndFeature(context) {
     ) {
       state.dragSourceTask.startTime = newTime;
       state.dragSourceTask.date = dateStr;
-      triggerTouchHaptic('Success');
       pushHistory();
     }
   };
@@ -223,7 +214,6 @@ export function registerMobileTouchEndFeature(context) {
     if (state.dragSourceType === 'schedule') {
       if (state.dragSourceTask.date !== dateStr) {
         state.dragSourceTask.date = dateStr;
-        triggerTouchHaptic('Success');
         pushHistory();
       }
       return;
@@ -249,10 +239,8 @@ export function registerMobileTouchEndFeature(context) {
 
     if (checkOverlap(dateStr, defaultStart, estDur, null, checkType)) {
       openAlertModal('冲突', '该日期已有安排，请切换到周视图查看详情。');
-      triggerTouchHaptic('Error');
     } else {
       scheduledTasks.value.push(createMonthTask(dateStr, defaultStart, item, checkType));
-      triggerTouchHaptic('Success');
       pushHistory();
     }
   };

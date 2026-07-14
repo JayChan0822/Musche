@@ -6,7 +6,6 @@ export function registerDesktopResizeFeature(context) {
     getDocumentBody = () => document.body,
     checkOverlap = () => false,
     openAlertModal = () => {},
-    triggerTouchHaptic = () => {},
     pushHistory = () => {},
   } = actions;
 
@@ -56,7 +55,6 @@ export function registerDesktopResizeFeature(context) {
     if (checkOverlap(task.date, task.startTime, task.estDuration, task.scheduleId, type)) {
       task.estDuration = resizing.value.originalDuration;
       openAlertModal('冲突', '调整后的时间有重叠');
-      triggerTouchHaptic('Error');
     } else {
       const musicSeconds = parseTime(task.musicDuration);
       const recordSeconds = parseTime(task.estDuration);

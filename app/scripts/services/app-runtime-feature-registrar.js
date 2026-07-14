@@ -15,7 +15,7 @@ export function createAppRuntimeFeatureRegistrar() {
             isSidebarOpen,
         } = assembly.refs;
         const { settings } = assembly.state;
-        const { storageService, triggerTouchHaptic } = assembly.services;
+        const { storageService } = assembly.services;
         const { watch, nextTick } = assembly.vue;
         const { helpers } = assembly;
         return registerAppRuntimeFeature({
@@ -46,7 +46,6 @@ export function createAppRuntimeFeatureRegistrar() {
                 storageService,
             },
             actions: {
-                triggerTouchHaptic: triggerTouchHaptic,
                 scrollToMonthDate: (date) => assembly.features.viewNavigation.scrollToMonthDate(date),
                 bootSessionData: (options) => assembly.features.auth.bootSessionData(options),
                 saveToCloud: () => helpers.saveToCloud(),

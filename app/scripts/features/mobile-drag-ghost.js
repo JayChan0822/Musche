@@ -1,7 +1,6 @@
 export function registerMobileDragGhostFeature(context) {
   const { state, actions = {} } = context;
   const {
-    triggerTouchHaptic = () => {},
     getDocumentBody = () => document.body,
   } = actions;
 
@@ -9,9 +8,8 @@ export function registerMobileDragGhostFeature(context) {
     state.dragSourceEl = originalEl;
     state.dragSourceEl.style.opacity = '0.3';
 
-    triggerTouchHaptic('Medium');
-
     state.dragElClone = originalEl.cloneNode(true);
+    const documentBody = getDocumentBody();
 
     Object.assign(state.dragElClone.style, {
       position: 'fixed',
@@ -28,7 +26,7 @@ export function registerMobileDragGhostFeature(context) {
     });
     state.dragElClone.style.opacity = '0.9';
 
-    getDocumentBody().appendChild(state.dragElClone);
+    documentBody.appendChild(state.dragElClone);
   };
 
   return {

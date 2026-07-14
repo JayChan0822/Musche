@@ -12,7 +12,6 @@ export function registerOrchestrationFeature(context) {
   } = refs;
   const { settings } = state;
   const { getNameById } = utils;
-  const { triggerTouchHaptic } = actions;
 
   const activeOrchPresets = computed(() => {
     const instId = editingItem.value.instrumentId;
@@ -275,7 +274,6 @@ export function registerOrchestrationFeature(context) {
     });
 
     percState.selectedTagIndices.clear();
-    triggerTouchHaptic('Medium');
     updatePercOrchestration();
   };
 

@@ -19,7 +19,6 @@ export function registerMainViewNavigationFeature(context) {
     changeDate = () => {},
     scrollToMonthDate = () => {},
     isDragActive = () => false,
-    triggerTouchHaptic = () => {},
     getWindow = () => window,
     getElementById = (id) => document.getElementById(id),
     setTimeoutFn = setTimeout,
@@ -48,7 +47,6 @@ export function registerMainViewNavigationFeature(context) {
       currentView.value = targetView;
     }
 
-    triggerTouchHaptic('Light');
   };
 
   const onMainMouseDown = (event) => {
@@ -138,7 +136,6 @@ export function registerMainViewNavigationFeature(context) {
   const cycleDayWidth = () => {
     if (currentView.value === 'month') {
       monthViewMode.value = monthViewMode.value === 'paged' ? 'scrolled' : 'paged';
-      triggerTouchHaptic('Medium');
 
       if (monthViewMode.value === 'scrolled') {
         scrollToMonthDate(viewDate.value);
@@ -156,7 +153,6 @@ export function registerMainViewNavigationFeature(context) {
     }
 
     storageService?.setItem('musche_day_width', dayColWidth.value);
-    triggerTouchHaptic('Medium');
   };
 
   const getGhostTargetTab = (task) => {
@@ -186,13 +182,10 @@ export function registerMainViewNavigationFeature(context) {
     }
 
     if (changed) {
-      triggerTouchHaptic('Medium');
       flashingTaskId.value = task.scheduleId;
       setTimeoutFn(() => {
         if (flashingTaskId.value === task.scheduleId) flashingTaskId.value = null;
       }, 1500);
-    } else {
-      triggerTouchHaptic('Error');
     }
   };
 

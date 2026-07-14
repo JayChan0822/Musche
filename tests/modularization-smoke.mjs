@@ -145,8 +145,6 @@ import {
     dataIoFeatureLoaderPath,
     desktopResizeFeatureLoaderModule,
     desktopResizeFeatureLoaderPath,
-    hapticsServiceModule,
-    hapticsServicePath,
     importDataDependencyLoaderModule,
     importDataDependencyLoaderPath,
     indexHtml,
@@ -158,8 +156,6 @@ import {
     midiSmfLoaderPath,
     mobileTouchFeatureLoaderModule,
     mobileTouchFeatureLoaderPath,
-    notificationsFeatureLoaderModule,
-    notificationsFeatureLoaderPath,
     packageJson,
     pinyinMatchLoaderModule,
     pinyinMatchLoaderPath,
@@ -231,7 +227,6 @@ import {
     mobileControlsShellStatePath,
     splitModalShellStateModule,
     splitModalShellStatePath,
-    appClickHapticsFeature,
     appLifecycleFeature,
     appRuntimeFeature,
     appRuntimeFeaturePath,
@@ -269,7 +264,6 @@ import {
     mobileUiFeature,
     nameLookupFeature,
     nameLookupFeaturePath,
-    notificationsFeature,
     orchestrationFeature,
     pickerControlsFeature,
     pickerControlsFeaturePath,
@@ -340,14 +334,12 @@ const { createExportModalShellState } = existsSync(new URL(exportModalShellState
     : {};
 const { createDefaultSettings } = await import('../app/scripts/state/defaults.js');
 const { createPinyinMatchLoader } = await import('../app/scripts/services/pinyin-match-loader.js');
-const { createHapticsService } = await import('../app/scripts/services/haptics-service.js');
 const { createStorageService } = await import('../app/scripts/services/storage-service.js');
 const { createAvatarCropFeatureLoader } = await import('../app/scripts/services/avatar-crop-feature-loader.js');
 const { createDataIoFeatureLoader } = await import('../app/scripts/services/data-io-feature-loader.js');
 const { createDesktopResizeFeatureLoader } = await import('../app/scripts/services/desktop-resize-feature-loader.js');
 const { createMetadataModalsFeatureLoader } = await import('../app/scripts/services/metadata-modals-feature-loader.js');
 const { createScheduleDeletionFeatureLoader } = await import('../app/scripts/services/schedule-deletion-feature-loader.js');
-const { createNotificationsFeatureLoader } = await import('../app/scripts/services/notifications-feature-loader.js');
 const { createTourFeatureLoader } = await import('../app/scripts/services/tour-feature-loader.js');
 const { createTaskEditorFeatureLoader } = await import('../app/scripts/services/task-editor-feature-loader.js');
 const { createSettingsFeatureLoader } = await import('../app/scripts/services/settings-feature-loader.js');
@@ -420,8 +412,6 @@ const { registerMainViewNavigationFeature } = await import('../app/scripts/featu
 const { registerDropdownsFeature } = await import('../app/scripts/features/dropdowns.js');
 const { registerSplitTaskFeature } = await import('../app/scripts/features/split-task.js');
 const { registerSplitViewFeature } = await import('../app/scripts/features/split-view.js');
-const { registerNotificationsFeature } = await import('../app/scripts/features/notifications.js');
-const { registerAppClickHapticsFeature } = await import('../app/scripts/features/app-click-haptics.js');
 const { registerVisiblePoolItemsFeature } = await import('../app/scripts/features/visible-pool-items.js');
 const { registerPoolInteractionsFeature } = existsSync(poolInteractionsFeaturePath)
     ? await import('../app/scripts/features/pool-interactions.js')
@@ -661,12 +651,6 @@ assertAppBootstrapServicesRegistry({
     serviceName: 'storageService',
     modulePath: 'storage-service.js',
     label: 'storage',
-});
-assertAppBootstrapServicesRegistry({
-    factoryName: 'createDeviceService',
-    serviceName: 'deviceService',
-    modulePath: 'device-service.js',
-    label: 'device',
 });
 assert.doesNotMatch(
     appScript,
@@ -2663,8 +2647,8 @@ assert.match(
 );
 assert.match(
     appTrackListModalComponent,
-    /template:\s*`[\s\S]*v-if="showTrackList"[\s\S]*trackListData\.name[\s\S]*trackListSearchQuery[\s\S]*trackListData\.items[\s\S]*startDividerDrag[\s\S]*startTrackDrag[\s\S]*deleteTrackFromList[\s\S]*openSplitSlider[\s\S]*setTrackNow[\s\S]*clearTrackTime[\s\S]*onTrackListReminderChange[\s\S]*deleteCurrentSchedule[\s\S]*`/,
-    'app-track-list-modal component must own the existing Track List modal template, including search, track cards, timing controls, reminders, and deletion'
+    /template:\s*`[\s\S]*v-if="showTrackList"[\s\S]*trackListData\.name[\s\S]*trackListSearchQuery[\s\S]*trackListData\.items[\s\S]*startDividerDrag[\s\S]*startTrackDrag[\s\S]*deleteTrackFromList[\s\S]*openSplitSlider[\s\S]*setTrackNow[\s\S]*clearTrackTime[\s\S]*deleteCurrentSchedule[\s\S]*`/,
+    'app-track-list-modal component must own the Track List template, including search, track cards, timing controls, and deletion'
 );
 assert.match(
     appTrackListModalComponent,
@@ -3917,14 +3901,6 @@ assert.equal(
     appScript.indexOf('registerAvatarCropShellFeature('),
     -1,
     'app.js must not register the pass-through avatar-crop shell feature'
-);
-
-const notificationsFeatureIndex = appScript.indexOf('const notificationsFeatureProxy = wireNotificationsFeature(assembly');
-assert.ok(notificationsFeatureIndex !== -1, 'app.js must lazily wire the notifications feature');
-assert.equal(
-    appScript.indexOf('registerNotificationsShellFeature('),
-    -1,
-    'app.js must not register the pass-through notifications shell feature'
 );
 
 const scheduleInteractionsFeatureIndex = appScript.indexOf('const scheduleInteractionsFeature = wireScheduleInteractionsFeature(assembly');
@@ -7592,70 +7568,6 @@ assert.doesNotMatch(
     'app.js should not retain split-state view adapter bodies or direct split-view feature surface wiring after split-view extraction'
 );
 
-assert.match(
-    notificationsFeature,
-    /export function registerNotificationsFeature/,
-    'notifications feature must expose a registration function for app-level notification adapters'
-);
-
-assert.match(
-    appClickHapticsFeature,
-    /export function registerAppClickHapticsFeature/,
-    'app-click-haptics feature must expose a registration function for app-level click haptic feedback'
-);
-
-assert.match(
-    appClickHapticsFeature,
-    /button,\s*a,\s*\[role="button"\],\s*\.cursor-pointer,\s*\.segment-btn/,
-    'app-click-haptics feature must own the clickable target selector'
-);
-
-assert.ok(existsSync(hapticsServicePath), 'haptics service must exist for app bootstrap haptic adapter wiring');
-assert.match(
-    hapticsServiceModule,
-    /export function createHapticsService\(\{[\s\S]*deviceService[\s\S]*\}\s*=\s*\{\}\)\s*\{/,
-    'haptics service must expose a factory that wraps the device service haptic API'
-);
-assert.match(
-    hapticsServiceModule,
-    /const triggerTouchHaptic\s*=\s*\(style\s*=\s*'Light'\)\s*=>\s*deviceService\.triggerTouchHaptic\(style\);/,
-    'haptics service must own the default touch haptic adapter'
-);
-assert.match(
-    hapticsServiceModule,
-    /globalTarget\.triggerTouchHaptic\s*=\s*triggerTouchHaptic;/,
-    'haptics service must install the window-compatible triggerTouchHaptic adapter'
-);
-{
-    const haptics = [];
-    const globalTarget = {};
-    const hapticsService = createHapticsService({
-        deviceService: {
-            triggerTouchHaptic: (style) => haptics.push(style),
-        },
-        globalTarget,
-    });
-    hapticsService.triggerTouchHaptic();
-    globalTarget.triggerTouchHaptic('Medium');
-    assert.deepEqual(haptics, ['Light', 'Medium'], 'haptics service must delegate default and explicit haptic styles');
-    assert.equal(
-        globalTarget.triggerTouchHaptic,
-        hapticsService.triggerTouchHaptic,
-        'haptics service must expose the same adapter locally and on the global target'
-    );
-    assert.throws(
-        () => createHapticsService({}),
-        /createHapticsService requires a device service with triggerTouchHaptic/,
-        'haptics service should fail clearly when the device haptic adapter is missing'
-    );
-}
-assertAppBootstrapServicesRegistry({
-    factoryName: 'createHapticsService',
-    serviceName: 'triggerTouchHaptic',
-    modulePath: 'haptics-service.js',
-    label: 'haptics adapter',
-    registryCreationPattern: /const\s+\{\s*triggerTouchHaptic\s*\}\s*=\s*createHapticsService\(\{\s*deviceService\s*\}\);/,
-});
 assert.doesNotMatch(
     appScript,
     /window\.triggerTouchHaptic\s*=/,
@@ -7665,12 +7577,6 @@ assert.doesNotMatch(
     appScript,
     /window\.triggerTouchHaptic/,
     'app.js should pass the local haptics adapter instead of reading triggerTouchHaptic back from window'
-);
-
-assert.match(
-    appRuntimeFeature,
-    /registerAppClickHapticsFeature\(/,
-    'app-runtime feature must register app click haptics instead of app.js owning the app click listener inline'
 );
 
 assert.match(
@@ -7727,115 +7633,6 @@ assert.doesNotMatch(
     'app.js should not retain the global app click haptic listener body after extraction'
 );
 
-assert.match(
-    notificationsFeature,
-    /const\s+updateTaskNotification\s*=\s*async\s*\(task\)\s*=>/,
-    'notifications feature must own task notification title/body adaptation'
-);
-
-assert.match(
-    notificationsFeature,
-    /const\s+scheduleReminder\s*=\s*async\s*\(title,\s*body,\s*delaySeconds\s*=\s*5\)\s*=>/,
-    'notifications feature must own one-off reminder notification adaptation'
-);
-
-assert.doesNotMatch(
-    appScript,
-    /import \{ registerNotificationsFeature \} from '\.\/features\/notifications\.js';/,
-    'app.js must not statically import low-frequency notifications feature into the initial module graph'
-);
-
-assert.match(
-    notificationsFeatureLoaderModule,
-    /export function createNotificationsFeatureLoader\(\{[\s\S]*importNotificationsFeature\s*=\s*\(\)\s*=>\s*import\(['"]\.\.\/features\/notifications\.js['"]\),[\s\S]*\}\s*=\s*\{\}\)\s*\{/,
-    'notifications feature loader service must expose a factory for the low-frequency notifications feature import'
-);
-
-assert.match(
-    notificationsFeatureLoaderModule,
-    /importNotificationsFeature\(\)[\s\S]*registerNotificationsFeature/,
-    'notifications feature loader service must own the notifications feature dynamic import'
-);
-
-{
-    let importCount = 0;
-    const expectedRegisterNotificationsFeature = () => ({ registered: true });
-    const loadNotificationsFeature = createNotificationsFeatureLoader({
-        importNotificationsFeature: async () => {
-            importCount += 1;
-            return { registerNotificationsFeature: expectedRegisterNotificationsFeature };
-        },
-    });
-    assert.equal(importCount, 0, 'notifications feature loader factory must not import the feature during bootstrap');
-    assert.equal(
-        await loadNotificationsFeature(),
-        expectedRegisterNotificationsFeature,
-        'notifications feature loader must resolve the injected feature registration function when invoked'
-    );
-    assert.equal(importCount, 1, 'notifications feature loader must defer importing until the returned loader is invoked');
-    assert.throws(
-        () => createNotificationsFeatureLoader({ importNotificationsFeature: null }),
-        /createNotificationsFeatureLoader requires an importNotificationsFeature function/,
-        'notifications feature loader should fail clearly when no feature importer is available'
-    );
-}
-
-assertAppFeatureLoadersRegistry({
-    factoryName: 'createNotificationsFeatureLoader',
-    loaderName: 'loadNotificationsFeature',
-    appConsumerName: 'wireNotificationsFeature',
-    modulePath: 'notifications-feature-loader.js',
-    label: 'notifications feature',
-});
-
-assert.doesNotMatch(
-    appScript,
-    /import\(['"]\.\/features\/notifications\.js['"]\)/,
-    'app.js must not own the low-frequency notifications feature dynamic import'
-);
-
-assert.doesNotMatch(
-    appScript,
-    /import\s*\(['"]\.\/features\/notifications-shell\.js['"]\)|registerNotificationsShellFeature\(/,
-    'app.js must not import or register the pass-through notifications shell feature'
-);
-
-assert.match(
-    appScript,
-    /const\s+notificationsFeatureProxy\s*=\s*wireNotificationsFeature\(assembly/,
-    'app.js must lazy-load the notifications registration function only when notification handlers are used'
-);
-
-assert.match(
-    appScript,
-    /const\s+updateTaskNotification\s*=\s*notificationsFeatureProxy\.method\('updateTaskNotification'\);/,
-    'app.js must expose task notification updates through a lazy feature proxy'
-);
-
-assert.match(
-    appScript,
-    /const\s+scheduleReminder\s*=\s*notificationsFeatureProxy\.method\('scheduleReminder'\);/,
-    'app.js must expose one-off reminder scheduling through a lazy feature proxy'
-);
-
-assert.doesNotMatch(
-    appScript,
-    /notificationsFeaturePromise|getNotificationsFeature/,
-    'app.js must not keep hand-rolled notifications lazy proxy variables'
-);
-
-assert.match(
-    appLazyFeatureWiringsModule,
-    /registerNotificationsFeature\(\{[\s\S]*openAlertModal/,
-    'lazy wirings must pass notification dependencies through the lazy wrapper'
-);
-
-assert.doesNotMatch(
-    appScript,
-    /const\s+updateTaskNotification\s*=\s*async\s*\(task\)\s*=>\s*\{|const\s+scheduleReminder\s*=\s*async\s*\(title,\s*body,\s*delaySeconds\s*=\s*5\)\s*=>\s*\{|const\s+updateTaskNotification\s*=\s*notificationsFeature\.updateTaskNotification|const\s+scheduleReminder\s*=\s*notificationsFeature\.scheduleReminder/,
-    'app.js should not retain task or one-off reminder notification adapter bodies or direct feature surface wiring after notifications extraction'
-);
-
 assert.ok(existsSync(vercelConfigPath), 'vercel.json must exist to pin deployment output settings');
 const vercelConfig = JSON.parse(readFileSync(vercelConfigPath, 'utf8'));
 assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point Vercel at app/dist');
@@ -7850,7 +7647,6 @@ const requiredFiles = [
     'app/scripts/utils/split-state.js',
     'app/scripts/services/storage-service.js',
     'app/scripts/services/supabase-service.js',
-    'app/scripts/services/device-service.js',
     'app/scripts/services/app-dependencies.js',
     'app/scripts/services/app-vue-runtime.js',
     'app/scripts/features/schedule.js',
@@ -7891,8 +7687,6 @@ const requiredFiles = [
     'app/scripts/features/main-view-navigation.js',
     'app/scripts/features/dropdowns.js',
     'app/scripts/features/name-lookup.js',
-    'app/scripts/features/notifications.js',
-    'app/scripts/features/app-click-haptics.js',
     'app/scripts/features/visible-pool-items.js',
     'app/scripts/features/global-keyboard.js',
     'app/scripts/features/data-autosave.js',
@@ -8255,7 +8049,7 @@ for (const relativePath of requiredFiles) {
     feature.handleMonthCellDoubleTap(bareEvent, '2026-06-02');
     assert.equal(refs.currentView.value, 'week', 'second month-cell tap on the same date inside 300ms should switch to week view');
     assert.equal(refs.viewDate.value.toISOString().slice(0, 10), '2026-06-02', 'month-cell double tap should open the tapped date in week view');
-    assert.equal(haptics.at(-1), 'Light', 'month-cell double tap should preserve light haptic feedback');
+
 }
 
 {
@@ -8443,7 +8237,7 @@ for (const relativePath of requiredFiles) {
     const task = { scheduleId: 'MOVE', date: '2026-05-29', startTime: '10:00', estDuration: '00:30', musicianId: 'M1' };
     feature.moveTask(task, 'down');
     assert.equal(task.startTime, '10:00', 'schedule task movement should not move into an overlapping week slot');
-    assert.deepEqual(haptics, ['Error'], 'schedule task movement should preserve error haptic feedback on overlap');
+
     assert.equal(historyCount, 0, 'schedule task movement should not push history when blocked by overlap');
 
     feature.moveTask(task, 'left');
@@ -8720,7 +8514,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(state.settings.instruments[0].group, 'Strings', 'settings drop should move the item into the target group');
     assert.equal(draggableRows[0].style.opacity, '1', 'settings drop should restore draggable row opacity');
     assert.equal(historyCount, 1, 'settings drop should push history once when moving groups');
-    assert.equal(haptics.at(-1), 'Light', 'settings drop should preserve light haptic feedback after a move');
+
 
     feature.onSettingsItemDragStart(state.settings.instruments[0], 'instrument', {
         target: { closest: () => null },
@@ -8810,11 +8604,11 @@ for (const relativePath of requiredFiles) {
 
     feature.toggleCollapse('Woodwinds');
     assert.equal(refs.expandedGroups.has('Woodwinds'), true, 'sidebar group collapse toggle should expand a collapsed group');
-    assert.deepEqual(haptics, [], 'desktop sidebar group toggling should not trigger haptic feedback');
+
     refs.isMobile.value = true;
     feature.toggleCollapse('Woodwinds');
     assert.equal(refs.expandedGroups.has('Woodwinds'), false, 'sidebar group collapse toggle should collapse an expanded group');
-    assert.deepEqual(haptics, ['Medium'], 'mobile sidebar group toggling should preserve medium haptic feedback');
+
 }
 
 {
@@ -9275,7 +9069,7 @@ for (const relativePath of requiredFiles) {
     feature.onSidebarTouchStart({ touches: [{ clientX: 250, clientY: 100 }] });
     feature.onSidebarTouchEnd({ changedTouches: [{ clientX: 160, clientY: 110 }] });
     assert.equal(refs.sidebarTab.value, 'project', 'left swipe should advance the sidebar tab');
-    assert.equal(haptics.at(-1), 'Light', 'successful swipe tab change should trigger light haptic feedback');
+
 
     dragActive = true;
     feature.onSidebarTouchStart({ touches: [{ clientX: 160, clientY: 100 }] });
@@ -9399,7 +9193,7 @@ for (const relativePath of requiredFiles) {
 
     feature.jumpToPoolSchedule('POOL_DIRECT');
     assert.deepEqual(jumpedTasks, ['DIRECT'], 'pool single-select jump should prefer exact template schedule matches');
-    assert.equal(haptics.at(-1), 'Light', 'pool single-select jump should trigger light mobile haptic feedback after jumping');
+
 
     refs.isMobile.value = false;
     refs.sidebarTab.value = 'project';
@@ -9698,7 +9492,6 @@ for (const relativePath of requiredFiles) {
         },
         handlers,
         actions: {
-            attachClickHaptics: () => events.push('attachClickHaptics'),
             scrollToMonthDate: (date) => events.push(['scrollToMonthDate', date]),
             bootSessionData: async (options) => events.push(['bootSessionData', options]),
             nextTick: async (callback) => {
@@ -9719,10 +9512,9 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(nextTickCalls, ['function', 'undefined'], 'app lifecycle should preserve the initial scroll nextTick and post-bootstrap nextTick');
     assert.deepEqual(events, [
         ['scrollToMonthDate', '2026-06-01'],
-        'attachClickHaptics',
         ['setTimeout', 300],
-        ['bootSessionData', { isSidebarOpen: { value: true }, skipHistory: true }],
-    ], 'app lifecycle should preserve startup scroll, haptics, loader, and boot order');
+        ['bootSessionData', { isSidebarOpen: { value: true }, skipHistory: false }],
+    ], 'app lifecycle should preserve startup scroll, loader, and boot order');
     assert.equal(loader.classList.added[0], 'hidden', 'app lifecycle should hide the global loader after the original delay');
     assert.deepEqual(addedListeners.map((entry) => entry.type), ['keydown', 'mousemove', 'mouseup', 'click'], 'app lifecycle should register the original global listeners');
     assert.equal(refs.isBootstrappingData.value, false, 'app lifecycle should clear bootstrapping after session data finishes');
@@ -9876,7 +9668,7 @@ for (const relativePath of requiredFiles) {
     feature.switchView('month');
     assert.equal(refs.currentView.value, 'month', 'switchView should update current view');
     assert.equal(feature.viewTransitionName.value, 'zoom-out', 'switchView should use zoom-out when switching to month view');
-    assert.equal(haptics.at(-1), 'Light', 'switchView should keep the original light haptic feedback');
+
     assert.equal(feature.widthIcon.value, 'fa-scroll', 'month paged mode should expose the scroll icon');
 
     feature.cycleDayWidth();
@@ -9988,7 +9780,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(ghostRefs.isContextSwitching.value, true, 'jumpToGhostContext should lock context switching immediately');
     assert.equal(ghostRefs.currentSessionId.value, 'S_ALT', 'jumpToGhostContext should switch to the ghost task session');
     assert.equal(ghostRefs.sidebarTab.value, 'project', 'jumpToGhostContext should switch to the project tab for project ghosts');
-    assert.equal(ghostHaptics.at(-1), 'Medium', 'jumpToGhostContext should use success haptic feedback after a context change');
+
     assert.equal(ghostRefs.flashingTaskId.value, 'SCH-1', 'jumpToGhostContext should highlight the target schedule');
     assert.deepEqual(ghostTimeouts.map(({ delay }) => delay), [600, 1500], 'jumpToGhostContext should schedule lock and highlight cleanup timeouts');
     ghostTimeouts[0].callback();
@@ -10001,7 +9793,7 @@ for (const relativePath of requiredFiles) {
         sessionId: 'S_ALT',
         projectId: 'P1',
     });
-    assert.equal(ghostHaptics.at(-1), 'Error', 'jumpToGhostContext should emit an error haptic when no context changes');
+
 }
 
 {
@@ -10017,7 +9809,6 @@ for (const relativePath of requiredFiles) {
         date: '2026-06-04',
         startTime: '11:00'
     };
-    let notificationTarget = null;
     let pruneCalled = false;
     const ratioCalls = [];
     const refs = {
@@ -10066,8 +9857,6 @@ for (const relativePath of requiredFiles) {
             autoUpdateEfficiency: () => {},
             checkCanDeleteSplit: () => true,
             restoreSplitTime: () => false,
-            updateTaskNotification: (task) => { notificationTarget = task; },
-            triggerTouchHaptic: () => {},
             moveDivider: () => {},
             pruneEmptySchedules: () => { pruneCalled = true; },
             calculateSingleRatio: (target) => {
@@ -10089,7 +9878,6 @@ for (const relativePath of requiredFiles) {
     assert.equal(feature.syncTrackItemScheduleSection(item, 0), true);
     assert.equal(movedSchedule.date, '2026-06-04');
     assert.equal(movedSchedule.startTime, '11:00');
-    assert.equal(notificationTarget, movedSchedule);
     assert.equal(pruneCalled, false, 'moving an individually scheduled track must not prune its old schedule section');
 
     refs.trackListData.value.actualDuration = '';
@@ -10161,7 +9949,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(feature.checkCanDeleteSplit(parent), false, 'split delete guard should block deleting a parent with a visible direct child');
     assert.equal(alerts.at(-1)[0], '无法删除', 'split delete guard should preserve the original alert title');
     assert.match(alerts.at(-1)[1], /Part 2/, 'split delete guard should name the blocking child split tag');
-    assert.equal(haptics.at(-1), 'Error', 'split delete guard should preserve error haptic feedback');
+
     assert.equal(feature.checkCanDeleteSplit(child), true, 'split delete guard should allow deleting the last visible split part');
     assert.equal(feature.getFamilyTotalDuration(child), 90, 'split family duration should sum the visible root and child durations');
     assert.equal(feature.getFamilyTotalDuration(siblingRoot), 120, 'split family duration should ignore unrelated split families');
@@ -10186,112 +9974,6 @@ for (const relativePath of requiredFiles) {
     assert.equal(scheduledForParent.musicDuration, '01:00', 'scheduled duration sync should copy template music duration from matching family member');
     assert.equal(scheduledForParent.estDuration, parent.estDuration, 'scheduled duration sync should copy template estimated duration from matching family member');
     assert.equal(unrelatedSchedule.musicDuration, 'keep', 'scheduled duration sync should leave unrelated schedules alone');
-}
-
-{
-    const scheduledCalls = [];
-    const reminderCalls = [];
-    const logs = [];
-    const errors = [];
-    const alerts = [];
-    const feature = registerNotificationsFeature({
-        services: {
-            deviceService: {
-                updateTaskNotification: async (task, details) => {
-                    scheduledCalls.push({ task, details });
-                    return { skipped: false, id: 42 };
-                },
-                scheduleReminder: async (title, body, delaySeconds) => {
-                    reminderCalls.push({ title, body, delaySeconds });
-                    return { skipped: false };
-                },
-            },
-        },
-        utils: {
-            getNameById: (id, type) => ({
-                musician: { M1: 'Alice' },
-                project: { P1: 'Project One' },
-            }[type]?.[id] || ''),
-        },
-        actions: {
-            logInfo: (...args) => logs.push(args),
-            logError: (...args) => errors.push(args),
-            openAlertModal: (...args) => alerts.push(args),
-        },
-    });
-
-    const task = { scheduleId: 42, musicianId: 'M1', projectId: 'P1', startTime: '09:30' };
-    await feature.updateTaskNotification(task);
-    assert.deepEqual(scheduledCalls[0], {
-        task,
-        details: {
-            title: '准备录音: Alice',
-            body: '09:30 开始 (Project One)',
-        },
-    }, 'notifications feature should preserve the task notification title and body formatting');
-    assert.deepEqual(logs[0], ['✅ 通知已设定'], 'notifications feature should preserve success logging when a notification is scheduled');
-    assert.deepEqual(errors, [], 'notifications feature should not log errors for successful notification updates');
-
-    await feature.scheduleReminder('Title', 'Body', 9);
-    assert.deepEqual(reminderCalls[0], { title: 'Title', body: 'Body', delaySeconds: 9 }, 'notifications feature should pass one-off reminder details to the device service');
-    assert.deepEqual(alerts, [], 'successful one-off reminders should not alert');
-
-    const skippedFeature = registerNotificationsFeature({
-        services: {
-            deviceService: {
-                updateTaskNotification: async () => ({ skipped: true }),
-                scheduleReminder: async () => ({ skipped: true }),
-            },
-        },
-        utils: { getNameById: () => '' },
-        actions: {
-            logInfo: (...args) => logs.push(args),
-            logError: (...args) => errors.push(args),
-            openAlertModal: (...args) => alerts.push(args),
-        },
-    });
-    await skippedFeature.updateTaskNotification(task);
-    assert.equal(logs.length, 1, 'notifications feature should not log success when the device service skips scheduling');
-    await skippedFeature.scheduleReminder('Skipped', 'Body');
-    assert.deepEqual(logs.at(-1), ['非 App 环境，跳过通知'], 'notifications feature should preserve skipped one-off reminder logging');
-
-    const deniedFeature = registerNotificationsFeature({
-        services: {
-            deviceService: {
-                updateTaskNotification: async () => ({ skipped: true }),
-                scheduleReminder: async () => ({ skipped: true, reason: 'permission-denied' }),
-            },
-        },
-        utils: { getNameById: () => '' },
-        actions: {
-            logInfo: (...args) => logs.push(args),
-            logError: (...args) => errors.push(args),
-            openAlertModal: (...args) => alerts.push(args),
-        },
-    });
-    await deniedFeature.scheduleReminder('Denied', 'Body');
-    assert.deepEqual(alerts.at(-1), ['请授权通知权限，否则无法提醒！'], 'notifications feature should preserve permission-denied reminder alert');
-
-    const error = new Error('boom');
-    const failingFeature = registerNotificationsFeature({
-        services: {
-            deviceService: {
-                updateTaskNotification: async () => { throw error; },
-                scheduleReminder: async () => { throw error; },
-            },
-        },
-        utils: { getNameById: () => '' },
-        actions: {
-            logInfo: (...args) => logs.push(args),
-            logError: (...args) => errors.push(args),
-            openAlertModal: (...args) => alerts.push(args),
-        },
-    });
-    await failingFeature.updateTaskNotification(task);
-    assert.deepEqual(errors.at(-1), ['设置通知失败:', error], 'notifications feature should preserve notification error logging');
-    await failingFeature.scheduleReminder('Error', 'Body');
-    assert.deepEqual(errors.at(-1), ['通知设置失败', error], 'notifications feature should preserve one-off reminder error logging');
-    assert.deepEqual(alerts.at(-1), ['通知设置出错：boom'], 'notifications feature should preserve one-off reminder error alerts');
 }
 
 {
@@ -10382,7 +10064,6 @@ for (const relativePath of requiredFiles) {
         trackListData: { value: { viewType: 'musician' } },
     };
     const aggregateCleanupCalls = [];
-    const cancelledNotifications = [];
 
     const feature = registerTaskEditorFeature({
         refs,
@@ -10411,9 +10092,7 @@ for (const relativePath of requiredFiles) {
             cleanupEmptySchedules: () => {},
             openAlertModal: () => {},
             autoUpdateEfficiency: () => {},
-            updateTaskNotification: () => {},
             pushHistory: () => {},
-            cancelNotification: (id) => cancelledNotifications.push(id),
         },
     });
 
@@ -10422,7 +10101,6 @@ for (const relativePath of requiredFiles) {
 
     assert.deepEqual(aggregateCleanupCalls, [991], 'deleting an aggregate schedule from Edit Event should clear aggregate records like Track List deletion');
     assert.deepEqual(refs.scheduledTasks.value, [], 'deleting a schedule edit item should remove the scheduled task');
-    assert.deepEqual(cancelledNotifications, [991], 'deleting a schedule edit item should cancel its notification id');
 }
 
 {
@@ -10546,7 +10224,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(state.settings.projects[0].title, 'Updated Title', 'saving Project Info should merge form fields back to the project');
     assert.equal(state.settings.projects[0].producer, 'Updated Producer', 'saving Project Info should preserve updated producer metadata');
     assert.equal(refs.showProjectInfoModal.value, false, 'saving Project Info should close the modal');
-    assert.equal(hapticType, 'Success', 'saving Project Info should trigger success haptic feedback');
+
 }
 
 {
@@ -10627,7 +10305,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(refs.scheduledTasks.value[0], { ...scheduledTask }, 'saving Rec Info should replace the scheduled task entry to refresh the view');
     assert.equal(feature.showRecInfoModal.value, false, 'saving Rec Info should close the modal');
     assert.equal(historyCount, 1, 'saving Rec Info should push history once');
-    assert.equal(hapticType, 'Success', 'saving Rec Info should trigger success haptic feedback');
+
 
     refs.sidebarTab.value = 'project';
     feature.openRecInfoModal();
@@ -10661,7 +10339,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.itemPool.value[1].recordingInfo.studio, 'Other Studio', 'renaming recording metadata should leave unrelated pool recordingInfo intact');
     assert.equal(scheduledTask.recordingInfo.studio, 'Renamed Studio', 'renaming recording metadata should update matching scheduled recordingInfo');
     assert.equal(historyCount, 5, 'renaming recording metadata should push history');
-    assert.equal(hapticType, 'Success', 'renaming recording metadata should trigger success haptic feedback');
+
 
     const blankRenameEvent = { target: { value: '   ' } };
     feature.handleRecRename('studio', renameTarget, blankRenameEvent);
@@ -10747,7 +10425,7 @@ for (const relativePath of requiredFiles) {
     feature.assignTagsToPlayer(2);
 
     assert.equal(feature.percState.tags[0].assignedTo, 2, 'assigning selected tags should attach them to the chosen player');
-    assert.equal(hapticType, 'Medium', 'assigning tags should trigger medium haptic feedback');
+
     assert.equal(editingItem.value.roster.Player_2, 'Perc 2', 'percussion orchestration should update the editing roster');
     assert.match(editingItem.value.orchestration, /Perc 2 \(Snare Drum\)/, 'percussion orchestration should summarize assigned tags');
     assert.equal(state.settings.musicians[0].percConfig.tags[0].assignedTo, 2, 'percussion config should persist on the musician');
@@ -10817,7 +10495,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.showConfirmModal.value, true, 'opening an alert should show the confirm modal');
     assert.equal(refs.confirmModalConfig.isAlert, true, 'alert modals should set alert mode');
     assert.equal(refs.confirmModalConfig.confirmText, '我知道了', 'alert modals should keep the original acknowledgement text');
-    assert.equal(haptics.at(-1), 'Light', 'alert modals should trigger light haptic feedback');
+
 
     feature.handleConfirmAction();
     assert.equal(confirmed, true, 'confirm action should run alert confirm callbacks');
@@ -10922,7 +10600,7 @@ for (const relativePath of requiredFiles) {
     refs.quickAddType.value = 'project';
     refs.quickAddForm.name = 'existing';
     feature.confirmQuickAdd();
-    assert.equal(haptics.at(-1), 'Error', 'saving a duplicate Quick Add should trigger error haptic feedback');
+
     assert.equal(alerts.at(-1)[0], '无法添加', 'saving a duplicate Quick Add should show the duplicate alert');
 
     refs.quickAddType.value = 'musician';
@@ -10943,7 +10621,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(historyCount, 1, 'saving Quick Add should push history once');
     assert.equal(refs.showQuickAddModal.value, false, 'saving Quick Add should close the modal');
     assert.equal(refs.activeDropdown.value, null, 'saving Quick Add should close the active dropdown');
-    assert.equal(haptics.at(-1), 'Success', 'saving Quick Add should trigger success haptic feedback');
+
 
     state.settings.musicians.push({ id: 'M_EXISTING', name: 'Existing Player', defaultRatio: 14 });
     state.newItem.musicianId = 'M_EXISTING';
@@ -10983,7 +10661,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(state.newItem._autoSuggestedName, null, 'adding a draft item should clear the auto-suggested name marker');
     assert.equal(refs.showMobileTaskInput.value, false, 'adding a draft item should close the mobile task input');
     assert.equal(historyCount, 2, 'adding a draft item should push history after the existing Quick Add save');
-    assert.equal(haptics.at(-1), 'Success', 'adding a draft item on mobile should trigger success haptic feedback');
+
 
     refs.itemPool.value = [];
     Object.assign(state.newItem, { projectId: '', instrumentId: '', musicianId: '', musicDuration: '' });
@@ -11044,7 +10722,7 @@ for (const relativePath of requiredFiles) {
 
     feature.onScroll({ target: { scrollTop: 176 } }, 'm');
     assert.equal(refs.tempDuration.m, 4, 'duration picker scroll should snap minutes from scroll position');
-    assert.equal(haptics.at(-1), 'Light', 'duration picker scroll changes should trigger light haptic feedback');
+
     feature.onScroll({ target: { scrollTop: 88 } }, 's');
     assert.equal(refs.tempDuration.s, 2, 'duration picker scroll should snap seconds from scroll position');
 
@@ -11532,7 +11210,7 @@ for (const relativePath of requiredFiles) {
     });
 
     feature.deleteCurrentSchedule();
-    assert.equal(haptics.at(-1), 'Error', 'deleting a completed resource schedule should trigger error haptic feedback');
+
     assert.equal(alerts.at(-1)[0], '无法删除', 'deleting a completed resource schedule should show the original protection alert');
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [1, 2], 'protected schedule deletion should not remove tasks');
 
@@ -11550,7 +11228,7 @@ for (const relativePath of requiredFiles) {
     ], 'single-template schedule deletion should refresh musician and project efficiency');
     assert.equal(refs.showTrackList.value, false, 'schedule deletion should close TrackList');
     assert.equal(historyCount, 1, 'schedule deletion should push history once');
-    assert.equal(haptics.at(-1), 'Medium', 'successful schedule deletion should trigger medium haptic feedback');
+
 
     const aggregateItems = [
         {
@@ -11701,7 +11379,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(state.settings.sessions.some((session) => session.id === 'S_NEW_1'), false, 'delete action should remove the current session after confirmation');
     assert.equal(refs.currentSessionId.value, 'S1', 'delete action should switch back to the first remaining session');
     assert.equal(historyCount, 3, 'delete action should push history after deletion');
-    assert.equal(haptics.at(-1), 'Success', 'delete action should trigger success haptic feedback');
+
 
     state.settings.sessions = [{ id: 'ONLY', name: 'Only Session' }];
     refs.currentSessionId.value = 'ONLY';
@@ -11945,7 +11623,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(state.dragSourceEl, originalEl, 'mobile drag ghost should remember the original source element');
     assert.equal(originalEl.style.opacity, '0.3', 'mobile drag ghost should dim the original source element');
     assert.equal(state.dragElClone, clone, 'mobile drag ghost should store the floating clone');
-    assert.deepEqual(haptics, ['Medium'], 'mobile drag ghost should preserve medium haptic feedback');
+
     assert.deepEqual(appended, [clone], 'mobile drag ghost should append the clone to the document body');
     assert.deepEqual(clone.style, {
         position: 'fixed',
@@ -12055,7 +11733,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(timeouts.at(-1).delay, 300, 'aggregate touch-start should preserve the original long-press delay');
     timeouts.at(-1).callback();
     assert.equal(refs.mobileTab.value, 'schedule', 'aggregate long-press should switch mobile users to the schedule tab');
-    assert.deepEqual(haptics.at(-1), 'Heavy', 'aggregate long-press should preserve heavy haptic feedback');
+
 }
 
 {
@@ -12171,7 +11849,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(timeouts[0].delay, 800, 'week edge paging should preserve the dwell delay');
     timeouts[0].callback();
     assert.deepEqual(changedDates, [1], 'week edge paging should advance the view after dwelling on the right edge');
-    assert.deepEqual(haptics, ['Medium'], 'week edge paging should preserve medium haptic feedback');
+
     assert.deepEqual(removedClasses, ['drag-over'], 'touch move should clear the previous drop-slot highlight');
     assert.deepEqual(addedClasses, ['drag-over'], 'touch move should highlight the drop slot under the finger');
     assert.equal(state.activeDropSlot, nextSlot, 'touch move should remember the active drop slot');
@@ -12329,7 +12007,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(overlapChecks, [['2026-06-02', '09:30', '1800s', 'DRAG_TASK', 'project']], 'week touch drop should preserve snapped time conflict checks for moved schedule tasks');
     assert.equal(task.date, '2026-06-02', 'week touch drop should update the dragged schedule task date');
     assert.equal(task.startTime, '09:30', 'week touch drop should update the dragged schedule task time');
-    assert.deepEqual(haptics, ['Success'], 'successful week touch drop should trigger success haptic feedback');
+
     assert.deepEqual(history, ['push'], 'successful week touch drop should push one history entry');
     assert.equal(sourceEl.style.opacity, '', 'touch end should restore source opacity after cleanup');
     assert.equal(state.dragSourceEl, null, 'touch end should clear source element state after cleanup');
@@ -12414,7 +12092,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.mobileResizeState.startY, 100, 'mobile resize init should store the touch start y');
     assert.equal(refs.mobileResizeState.startHeight, 60, 'mobile resize init should store the task block height');
     assert.equal(refs.mobileResizeState.originalDuration, '1800s', 'mobile resize init should remember the original duration');
-    assert.deepEqual(haptics, ['Heavy'], 'mobile resize init should preserve heavy haptic feedback');
+
     assert.deepEqual(addedListeners.map(([type, , options]) => [type, options]), [
         ['touchmove', { passive: false }],
         ['touchend', true],
@@ -12429,7 +12107,7 @@ for (const relativePath of requiredFiles) {
 
     assert.equal(prevented, true, 'mobile resize move should prevent scrolling when cancelable');
     assert.equal(task.estDuration, '3600s', 'mobile resize move should snap the resized duration to the 30-minute grid');
-    assert.equal(haptics.at(-1), 'Light', 'mobile resize move should trigger light haptic feedback when duration changes');
+
 
     feature.handleMobileResizeEnd({});
     assert.equal(refs.isResizingMobile.value, false, 'mobile resize end should clear resizing state immediately');
@@ -12442,7 +12120,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(taskEl.style.transition, '', 'mobile resize end should restore task element transition');
     assert.equal(task.ratio, '2.0', 'mobile resize end should recalculate task ratio when there is no conflict');
     assert.equal(historyCount, 1, 'mobile resize end should push history once after a successful resize');
-    assert.equal(haptics.at(-1), 'Success', 'mobile resize end should trigger success haptic feedback after saving');
+
     assert.equal(refs.mobileResizeState.task, null, 'mobile resize end should clear the active task reference');
 }
 
@@ -12660,7 +12338,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(refs.itemPool.value[1].ratios, { musician: 8, project: null, instrument: null }, 'legacy ratio cleanup should preserve non-default manual ratios');
     assert.deepEqual(refs.scheduledTasks.value[0].ratios, { musician: null, project: null, instrument: null }, 'legacy ratio cleanup should unlock scheduled x20 ratios');
     assert.equal(historyPushes, 1, 'legacy ratio cleanup should push one history entry after confirmation');
-    assert.deepEqual(haptics, ['Success'], 'legacy ratio cleanup should preserve success haptic feedback');
+
     assert.deepEqual(alerts, [['清理完成', '已成功将 2 个任务重置为自动跟随模式。\n现在它们会乖乖跟随大卡片的效率了！']], 'legacy ratio cleanup should report the number of changed tasks');
     assert.equal(state.settings.musicians[0].defaultRatio, 1.5, 'legacy ratio cleanup should trigger the existing musician efficiency refresh when stats are available');
 
@@ -12685,55 +12363,6 @@ for (const relativePath of requiredFiles) {
     assert.equal(feature.getNameById('missing-project', 'project'), '未知项目', 'name lookup should preserve project missing fallback');
     assert.equal(feature.getNameById('missing-instrument', 'instrument'), '未知乐器', 'name lookup should preserve instrument missing fallback');
     assert.equal(feature.getNameById('missing-musician', 'musician'), '未知演奏员', 'name lookup should preserve musician and unknown-type missing fallback');
-}
-
-{
-    const haptics = [];
-    const listeners = [];
-    const appElement = {
-        addEventListener: (type, handler) => listeners.push({ type, handler }),
-    };
-    const feature = registerAppClickHapticsFeature({
-        actions: {
-            getAppElement: () => appElement,
-            triggerTouchHaptic: (type) => haptics.push(type),
-        },
-    });
-
-    feature.attachClickHaptics();
-    assert.equal(listeners.length, 1, 'app click haptics should attach one app-level click listener');
-    assert.equal(listeners[0].type, 'click', 'app click haptics should listen for click events');
-
-    const clickableTarget = {
-        tagName: 'BUTTON',
-        hasAttribute: () => false,
-    };
-    listeners[0].handler({
-        target: {
-            closest: (selector) => {
-                assert.match(selector, /button,\s*a,\s*\[role="button"\],\s*\.cursor-pointer,\s*\.segment-btn/, 'app click haptics should preserve the clickable selector');
-                return clickableTarget;
-            },
-        },
-    });
-    assert.deepEqual(haptics, ['Medium'], 'clicking a button-like target should trigger medium haptic feedback');
-
-    listeners[0].handler({
-        target: {
-            closest: () => ({ tagName: 'INPUT', hasAttribute: () => false }),
-        },
-    });
-    listeners[0].handler({
-        target: {
-            closest: () => ({ tagName: 'BUTTON', hasAttribute: (name) => name === 'disabled' }),
-        },
-    });
-    listeners[0].handler({
-        target: {
-            closest: () => null,
-        },
-    });
-    assert.deepEqual(haptics, ['Medium'], 'input, disabled, and non-clickable targets should not trigger haptic feedback');
 }
 
 {
@@ -12787,7 +12416,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [1000, 1001], 'double-click split should replace the original schedule with two new blocks');
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.estDuration), ['1800s', '1800s'], 'double-click split should divide durations at the snapped click position');
     assert.equal(refs.scheduledTasks.value[1].startTime, '9:30', 'double-click split should preserve the original non-padded hour formatting');
-    assert.deepEqual(haptics, ['Heavy'], 'double-click activation should preserve heavy haptic feedback');
+
     assert.equal(historyCount, 1, 'double-click split should push one history entry');
 }
 
@@ -12874,7 +12503,7 @@ for (const relativePath of requiredFiles) {
         ctrlKey: false,
     }, currentSchedule);
 
-    assert.deepEqual(haptics, ['Heavy'], 'opening TrackList should preserve heavy haptic feedback');
+
     assert.equal(refs.trackListData.value.name, 'project:P1', 'opening TrackList should title the modal from the active block resource');
     assert.equal(refs.trackListData.value.taskRef.scheduleId, 'ACT_OPEN', 'opening TrackList should store the current schedule reference');
     assert.deepEqual(refs.trackListData.value.schedules.map((task) => task.scheduleId), ['ACT_EARLIER', 'ACT_OPEN'], 'opening TrackList should sort related same-session schedules');
@@ -13006,7 +12635,7 @@ for (const relativePath of requiredFiles) {
     assert.notEqual(refs.scheduledTasks.value[0], task, 'moving an existing schedule block should replace the task object to refresh Vue');
     assert.equal(refs.scheduledTasks.value[0].date, '2026-05-29', 'week drops should update the moved task date');
     assert.equal(refs.scheduledTasks.value[0].startTime, '09:30', 'week drops should snap moved task start time to the 30-minute grid');
-    assert.deepEqual(haptics, ['Success'], 'successful week drops should trigger success haptic feedback');
+
     assert.equal(historyCount, 1, 'successful week drops should push one history entry');
 
     const poolItem = {
@@ -13079,7 +12708,7 @@ for (const relativePath of requiredFiles) {
         target: { closest: (selector) => selector === '[data-date-str]' ? column : null },
     }, '2026-06-01');
     assert.deepEqual(conflictAlerts.at(-1), ['时间冲突', '该时间段已有同类型的其他安排。'], 'conflicting week drops should show the original overlap alert');
-    assert.deepEqual(conflictHaptics, ['Error'], 'conflicting week drops should trigger error haptic feedback');
+
     assert.equal(JSON.stringify(refs.scheduledTasks.value), beforeConflictSnapshot, 'conflicting week drops must not mutate the scheduled task list');
     assert.equal(conflictHistoryCount, 0, 'conflicting week drops must not push history');
 
@@ -13208,7 +12837,7 @@ for (const relativePath of requiredFiles) {
     feature.handleResizeEnd();
     assert.equal(task.estDuration, '3600s', 'desktop resize end should roll back the duration when overlap is detected');
     assert.deepEqual(alerts, [['冲突', '调整后的时间有重叠']], 'desktop resize conflict should preserve the original alert copy');
-    assert.deepEqual(haptics, ['Error'], 'desktop resize conflict should trigger error haptic feedback');
+
 }
 
 {

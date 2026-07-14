@@ -27,7 +27,6 @@ export const createEditModalShellState = defineShellState('createEditModalShellS
         timeSlots,
     } = computed;
     const {
-        triggerTouchHaptic,
         toggleDropdown,
         getNameById,
         getGroupedOptions,
@@ -66,7 +65,6 @@ export const createEditModalShellState = defineShellState('createEditModalShellS
         values: {
             dropdownExpandedGroups,
             percState,
-            triggerTouchHaptic,
             toggleDropdown,
             getNameById,
             getGroupedOptions,

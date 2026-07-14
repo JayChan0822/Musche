@@ -16,7 +16,7 @@ export function createPoolInteractionsFeatureRegistrar() {
             isMobile,
             expandedGroups,
         } = assembly.refs;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerPoolInteractionsFeature({
             refs: {
                 selectedSource,
@@ -38,7 +38,7 @@ export function createPoolInteractionsFeatureRegistrar() {
                 isStatExpanded: (id) => assembly.refs.expandedStatsIds.has(id),
                 scrollToSidebarItem: (...args) => assembly.features.sidebar.scrollToSidebarItem(...args),
                 smartScrollToTask: (...args) => assembly.features.viewNavigation.smartScrollToTask(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

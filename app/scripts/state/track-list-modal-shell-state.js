@@ -27,13 +27,11 @@ export const createTrackListModalShellState = defineShellState('createTrackListM
         isPercussionGroup,
         isStringGroup,
         pushHistory,
-        triggerTouchHaptic,
         calcTrackDiff,
         setTrackNow,
         setTrackBreak,
         clearTrackTime,
         calculateSingleRatio,
-        onTrackListReminderChange,
         deleteCurrentSchedule,
     } = actions;
     return {
@@ -61,13 +59,11 @@ export const createTrackListModalShellState = defineShellState('createTrackListM
             isPercussionGroup,
             isStringGroup,
             pushHistory,
-            triggerTouchHaptic,
             calcTrackDiff,
             setTrackNow,
             setTrackBreak,
             clearTrackTime,
             calculateSingleRatio,
-            onTrackListReminderChange,
             deleteCurrentSchedule,
         },
     };

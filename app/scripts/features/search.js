@@ -26,7 +26,6 @@ export function registerSearchFeature(context) {
   const {
     openAlertModal,
     smartScrollToTask,
-    triggerTouchHaptic,
     getSidebarList = () => [],
   } = actions;
 
@@ -277,7 +276,6 @@ export function registerSearchFeature(context) {
           }
         }, 2000);
 
-        if (isMobile.value) triggerTouchHaptic('Light');
       }
     }
   };
@@ -297,7 +295,6 @@ export function registerSearchFeature(context) {
 
       const target = sorted[currentSearchIndex.value];
       smartScrollToTask(target);
-      triggerTouchHaptic('Success');
 
       const nextIndex = (currentSearchIndex.value + 1) % sorted.length;
       currentSearchIndex.value = nextIndex;
@@ -305,8 +302,6 @@ export function registerSearchFeature(context) {
       const sidebarItems = filteredSidebarList.value;
       if (sidebarItems.length > 0) {
         openAlertModal('查找结果', '日程表中未找到匹配项，但在任务池(Sidebar)中找到了相关任务。');
-      } else {
-        triggerTouchHaptic('Error');
       }
     }
   };

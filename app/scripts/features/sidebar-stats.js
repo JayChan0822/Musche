@@ -29,7 +29,6 @@ export function registerSidebarStatsFeature(context) {
     pushHistory,
     openAlertModal,
     smartScrollToTask,
-    triggerTouchHaptic,
   } = actions;
 
   const toggleSort = (field) => {
@@ -50,8 +49,6 @@ export function registerSidebarStatsFeature(context) {
   };
 
   const toggleCollapse = (groupKey) => {
-    if (isMobile.value) triggerTouchHaptic('Medium');
-
     if (expandedGroups.has(groupKey)) {
       expandedGroups.delete(groupKey);
     } else {
@@ -421,8 +418,6 @@ export function registerSidebarStatsFeature(context) {
   };
 
   const jumpToStatSchedule = (stat) => {
-    if (isMobile.value) triggerTouchHaptic('Medium');
-
     let relatedTasks = [];
     if (sidebarTab.value === 'project') {
       relatedTasks = scheduledTasks.value.filter((task) => task.projectId === stat.id);
@@ -455,8 +450,6 @@ export function registerSidebarStatsFeature(context) {
   };
 
   const handleStatCardClick = (stat) => {
-    if (isMobile.value) triggerTouchHaptic('Medium');
-
     toggleStatCollapse(stat.id);
   };
 

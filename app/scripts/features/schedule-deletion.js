@@ -12,7 +12,6 @@ export function registerScheduleDeletionFeature(context) {
   const {
     openAlertModal,
     pushHistory,
-    triggerTouchHaptic,
     autoUpdateEfficiency,
   } = actions;
 
@@ -112,7 +111,6 @@ export function registerScheduleDeletionFeature(context) {
     if (!taskToDelete) return;
 
     if (isResourceCompleted(taskToDelete)) {
-      triggerTouchHaptic('Error');
       return openAlertModal('无法删除', '当前归属对象（人员/项目/乐器）已标记为【完成】。\n\n为防止误操作，请先清除该对象下部分曲目的录音数据，使其回到“进行中”状态后再尝试删除。');
     }
 
@@ -155,7 +153,6 @@ export function registerScheduleDeletionFeature(context) {
     scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);
     showTrackList.value = false;
     pushHistory();
-    triggerTouchHaptic('Medium');
   };
 
   return {

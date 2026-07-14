@@ -114,7 +114,7 @@ export const AppTrackListModal = {
                                 <input type="checkbox"
                                        v-model="item.isSkipped"
                                        class="hidden"
-                                       @change="pushHistory(); triggerTouchHaptic('Medium')">
+                                       @change="pushHistory()">
 
                                 <div class="absolute top-0.45 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-200"
                                      :class="item.isSkipped ? 'translate-x-4' : 'translate-x-0'"></div>
@@ -256,56 +256,37 @@ export const AppTrackListModal = {
                 </template>
 
                 <template v-if="trackListData.items.length > 0">
-                    <div v-for="secIndex in (trackListData.totalSections - 1)"
-                         :key="'end-div-'+secIndex"
-                         :id="'sec-divider-' + secIndex"
-                         v-show="secIndex > trackListData.items[trackListData.items.length-1].sectionIndex"
-                         class="py-3 flex items-center gap-3 select-none group/divider transition-opacity duration-0"
-                         :class="{ 'opacity-0': draggingSectionIndex === secIndex }">
+                    <template v-for="secIndex in (trackListData.totalSections - 1)" :key="'end-div-'+secIndex">
+                        <div v-if="secIndex > trackListData.items[trackListData.items.length-1].sectionIndex"
+                             :id="'sec-divider-' + secIndex"
+                             class="py-3 flex items-center gap-3 select-none group/divider transition-opacity duration-0"
+                             :class="{ 'opacity-0': draggingSectionIndex === secIndex }">
 
-                        <div class="h-px bg-black/10 dark:bg-white/10 flex-1 group-hover/divider:bg-[#007aff]/50 transition-colors"></div>
+                            <div class="h-px bg-black/10 dark:bg-white/10 flex-1 group-hover/divider:bg-[#007aff]/50 transition-colors"></div>
 
-                        <div class="px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 flex items-center gap-2 text-[10px] font-bold opacity-60 group-hover/divider:opacity-100 group-hover/divider:text-[#007aff] group-hover/divider:bg-[#007aff]/10 transition-all shadow-sm cursor-ns-resize touch-none"
-                             @mousedown="startDividerDrag($event, secIndex)"
-                             @touchstart.prevent.stop="startDividerDrag($event, secIndex)">
-                            <i class="fa-solid fa-grip-lines-vertical mr-1 opacity-50"></i>
-                            <i class="fa-regular fa-calendar"></i>
-                            <span>
+                            <div class="px-3 py-1.5 rounded-full bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/5 flex items-center gap-2 text-[10px] font-bold opacity-60 group-hover/divider:opacity-100 group-hover/divider:text-[#007aff] group-hover/divider:bg-[#007aff]/10 transition-all shadow-sm cursor-ns-resize touch-none"
+                                 @mousedown="startDividerDrag($event, secIndex)"
+                                 @touchstart.prevent.stop="startDividerDrag($event, secIndex)">
+                                <i class="fa-solid fa-grip-lines-vertical mr-1 opacity-50"></i>
+                                <i class="fa-regular fa-calendar"></i>
+                                <span>
                                   {{ trackListData.schedules[secIndex] ? trackListData.schedules[secIndex].date.split('-').slice(1).join('/') : \`Session \${secIndex + 1}\`
-                            }}
-                                  <span class="opacity-50 ml-1 font-mono">
-                                    ({{ trackListData.schedules[secIndex]?.startTime }})
-                                  </span>
-                            </span>
-                        </div>
+                                }}
+                                    <span class="opacity-50 ml-1 font-mono">
+                                        ({{ trackListData.schedules[secIndex]?.startTime }})
+                                    </span>
+                                </span>
+                            </div>
 
-                        <div class="h-px bg-black/10 dark:bg-white/10 flex-1 group-hover/divider:bg-[#007aff]/50 transition-colors"></div>
-                    </div>
+                            <div class="h-px bg-black/10 dark:bg-white/10 flex-1 group-hover/divider:bg-[#007aff]/50 transition-colors"></div>
+                        </div>
+                    </template>
                 </template>
 
             </TransitionGroup>
         </div>
 
         <div class="p-4 border-t border-glass-border dark:border-glass-borderDark bg-gray-50/50 dark:bg-white/5 shrink-0 flex justify-between items-center">
-
-            <div class="flex items-center gap-2" v-if="trackListData.taskRef">
-                <div class="w-6 h-6 rounded-md bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                    <i class="fa-regular fa-bell text-xs opacity-60"></i>
-                </div>
-
-                <select
-                        v-model.number="trackListData.taskRef.reminderMinutes"
-                        @change="onTrackListReminderChange(trackListData.taskRef)"
-                        class="glass-input h-8 text-xs font-bold py-0 pr-8 cursor-pointer bg-transparent focus:bg-white/50 w-32"
-                >
-                    <option :value="0">无提醒</option>
-                    <option :value="5">提前 5 分钟</option>
-                    <option :value="10">提前 10 分钟</option>
-                    <option :value="15">提前 15 分钟</option>
-                    <option :value="30">提前 30 分钟</option>
-                    <option :value="60">提前 1 小时</option>
-                </select>
-            </div>
 
             <button @click="deleteCurrentSchedule"
                     class="px-4 py-2 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white border border-red-500/20 transition text-xs font-bold flex items-center gap-2 shadow-sm">

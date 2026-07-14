@@ -5,7 +5,7 @@ export function createSessionFeatureRegistrar() {
         const { currentSessionId, activeDropdown } = assembly.refs;
         const { settings } = assembly.state;
         const { idUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerSessionFeature({
             refs: {
                 currentSessionId,
@@ -22,7 +22,7 @@ export function createSessionFeatureRegistrar() {
                 openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
                 openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

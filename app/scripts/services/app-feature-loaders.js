@@ -1,4 +1,3 @@
-import { createNotificationsFeatureLoader } from './notifications-feature-loader.js';
 import { createDesktopResizeFeatureLoader } from './desktop-resize-feature-loader.js';
 import { createScheduleDeletionFeatureLoader } from './schedule-deletion-feature-loader.js';
 import { createAvatarCropFeatureLoader } from './avatar-crop-feature-loader.js';
@@ -14,7 +13,6 @@ import { createImportDataDependencyLoader } from './import-data-dependency-loade
 
 export function createAppFeatureLoaders({ cropperSupport, midiSmfSupport, xlsxSupport } = {}) {
     return {
-        loadNotificationsFeature: createNotificationsFeatureLoader(),
         loadDesktopResizeFeature: createDesktopResizeFeatureLoader(),
         loadScheduleDeletionFeature: createScheduleDeletionFeatureLoader(),
         loadAvatarCropFeature: createAvatarCropFeatureLoader({ loadCropper: cropperSupport }),

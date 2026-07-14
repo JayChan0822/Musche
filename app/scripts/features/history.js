@@ -52,10 +52,25 @@ export function registerHistoryFeature(context) {
     currentSessionId,
   } = refs;
   const { settings } = state;
-  const { isItemVisibleForView, syncItemsForView } = actions;
+  const { isItemVisibleForView, syncItemsForView, reopenTrackListForTask } = actions;
 
   const refreshTrackList = () => {
     if (!showTrackList.value || !trackListData.value.taskRef) return;
+
+    if (typeof reopenTrackListForTask === 'function') {
+      const activeScheduleId = trackListData.value.taskRef.scheduleId;
+      const restoredTask = scheduledTasks.value.find((task) => (
+        String(task.scheduleId) === String(activeScheduleId)
+      ));
+
+      if (restoredTask) {
+        reopenTrackListForTask(restoredTask);
+      } else {
+        showTrackList.value = false;
+        trackListData.value = null;
+      }
+      return;
+    }
 
     const { list, viewType } = getTrackListItemsForView({
       itemPool,

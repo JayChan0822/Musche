@@ -28,6 +28,7 @@ export function createHistoryFeatureRegistrar() {
             actions: {
                 isItemVisibleForView: (...args) => assembly.features.splitView.isItemVisibleForView(...args),
                 syncItemsForView: (...args) => assembly.features.splitView.syncItemsForView(...args),
+                reopenTrackListForTask: (task) => assembly.features.scheduleInteractions.openTrackListForTask(task),
             },
         });
     };

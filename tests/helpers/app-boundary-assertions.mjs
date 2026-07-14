@@ -51,7 +51,6 @@ export const supabaseServicePath = resolveFixturePath('app/scripts/services/supa
 export const supabaseServiceModule = readFixture('app/scripts/services/supabase-service.js');
 export const configuredSupabaseServicePath = resolveFixturePath('app/scripts/services/configured-supabase-service.js');
 export const configuredSupabaseServiceModule = readOptionalFixture(configuredSupabaseServicePath);
-export const hapticsServicePath = resolveFixturePath('app/scripts/services/haptics-service.js');
 export const midiSmfLoaderPath = resolveFixturePath('app/scripts/services/midi-smf-loader.js');
 export const xlsxLoaderPath = resolveFixturePath('app/scripts/services/xlsx-loader.js');
 export const dataIoFeatureLoaderPath = resolveFixturePath('app/scripts/services/data-io-feature-loader.js');
@@ -66,7 +65,6 @@ export const cropperLoaderPath = resolveFixturePath('app/scripts/services/croppe
 export const avatarCropFeatureLoaderPath = resolveFixturePath('app/scripts/services/avatar-crop-feature-loader.js');
 export const pinyinMatchLoaderPath = resolveFixturePath('app/scripts/services/pinyin-match-loader.js');
 export const importDataDependencyLoaderPath = resolveFixturePath('app/scripts/services/import-data-dependency-loader.js');
-export const notificationsFeatureLoaderPath = resolveFixturePath('app/scripts/services/notifications-feature-loader.js');
 export const desktopResizeFeatureLoaderPath = resolveFixturePath('app/scripts/services/desktop-resize-feature-loader.js');
 export const scheduleDeletionFeatureLoaderPath = resolveFixturePath('app/scripts/services/schedule-deletion-feature-loader.js');
 export const appRuntimeFeatureRegistrarPath = resolveFixturePath('app/scripts/services/app-runtime-feature-registrar.js');
@@ -120,7 +118,6 @@ export const poolInteractionsFeaturePath = resolveFixturePath('app/scripts/featu
 export const appRuntimeFeaturePath = resolveFixturePath('app/scripts/features/app-runtime.js');
 export const nameLookupFeaturePath = resolveFixturePath('app/scripts/features/name-lookup.js');
 export const selectionFeaturePath = resolveFixturePath('app/scripts/features/selection.js');
-export const hapticsServiceModule = readOptionalFixture(hapticsServicePath);
 export const midiSmfLoaderModule = readOptionalFixture(midiSmfLoaderPath);
 export const xlsxLoaderModule = readOptionalFixture(xlsxLoaderPath);
 export const dataIoFeatureLoaderModule = readOptionalFixture(dataIoFeatureLoaderPath);
@@ -135,7 +132,6 @@ export const cropperLoaderModule = readOptionalFixture(cropperLoaderPath);
 export const avatarCropFeatureLoaderModule = readOptionalFixture(avatarCropFeatureLoaderPath);
 export const pinyinMatchLoaderModule = readOptionalFixture(pinyinMatchLoaderPath);
 export const importDataDependencyLoaderModule = readOptionalFixture(importDataDependencyLoaderPath);
-export const notificationsFeatureLoaderModule = readOptionalFixture(notificationsFeatureLoaderPath);
 export const desktopResizeFeatureLoaderModule = readOptionalFixture(desktopResizeFeatureLoaderPath);
 export const scheduleDeletionFeatureLoaderModule = readOptionalFixture(scheduleDeletionFeatureLoaderPath);
 export const appRuntimeFeatureRegistrarModule = readOptionalFixture(appRuntimeFeatureRegistrarPath);
@@ -230,8 +226,6 @@ export const mainViewNavigationFeature = readFixture('app/scripts/features/main-
 export const dropdownsFeature = readFixture('app/scripts/features/dropdowns.js');
 export const splitTaskFeature = readFixture('app/scripts/features/split-task.js');
 export const splitViewFeature = readFixture('app/scripts/features/split-view.js');
-export const notificationsFeature = readFixture('app/scripts/features/notifications.js');
-export const appClickHapticsFeature = readFixture('app/scripts/features/app-click-haptics.js');
 export const visiblePoolItemsFeature = readFixture('app/scripts/features/visible-pool-items.js');
 export const poolInteractionsFeature = readOptionalFixture(poolInteractionsFeaturePath);
 export const globalKeyboardFeature = readFixture('app/scripts/features/global-keyboard.js');
@@ -744,7 +738,7 @@ export function assertAppDependenciesRegistry() {
   );
   assert.match(
     appScript,
-    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bwireNotificationsFeature\b[\s\S]*\bwireAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
+    /const\s+\{[\s\S]*\bcreateApp\b[\s\S]*\btimeUtils\b[\s\S]*\bstorageService\b[\s\S]*\bwireAppRuntimeFeature\b[\s\S]*\bcreateMuscheStore\b[\s\S]*\bcreateAppRootOptions\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should consume composed app dependencies from createAppDependencies()',
   );
   for (const factoryName of [

@@ -14,8 +14,8 @@ export function createScheduleFeatureRegistrar() {
             viewDate,
         } = assembly.refs;
         const { settings } = assembly.state;
-        const { timeUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+        const { timeUtils, splitStateUtils } = assembly.utils;
+
         return registerScheduleFeature({
             refs: {
                 itemPool,
@@ -37,10 +37,11 @@ export function createScheduleFeatureRegistrar() {
                 getNameById: (...args) => assembly.features.nameLookup.getNameById(...args),
                 addDaysToDate: timeUtils.addDaysToDate,
                 addMinutesToTimeValue: timeUtils.addMinutesToTimeValue,
+                setItemSplitState: splitStateUtils.setItemSplitState,
             },
             actions: {
                 pushHistory: (...args) => assembly.helpers.pushHistory(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
                 getCurrentWeekDays: () => assembly.refs.currentWeekDays.value,
             },
         });

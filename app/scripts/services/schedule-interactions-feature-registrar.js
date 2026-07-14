@@ -16,7 +16,7 @@ export function createScheduleInteractionsFeatureRegistrar() {
         } = assembly.refs;
         const { settings } = assembly.state;
         const { timeUtils, formatUtils, splitStateUtils } = assembly.utils;
-        const { triggerTouchHaptic } = assembly.services;
+
         const { helpers } = assembly;
         return registerScheduleInteractionsFeature({
             refs: {
@@ -40,7 +40,7 @@ export function createScheduleInteractionsFeatureRegistrar() {
             actions: {
                 checkOverlap: (...args) => helpers.checkOverlap(...args),
                 openAlertModal: (...args) => helpers.openAlertModal(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
                 pushHistory: (...args) => helpers.pushHistory(...args),
                 isResourceCompleted: (...args) => helpers.isResourceCompleted(...args),
                 clearPoolRecord: (...args) => helpers.clearPoolRecord(...args),

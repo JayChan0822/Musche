@@ -8,7 +8,6 @@ export function registerMobileResizeFeature(context) {
   } = refs;
   const { timeToMinutes, formatSecs, parseTime } = utils;
   const {
-    triggerTouchHaptic = () => {},
     addWindowListener = (...args) => window.addEventListener(...args),
     removeWindowListener = (...args) => window.removeEventListener(...args),
     requestAnimationFrameFn = requestAnimationFrame,
@@ -26,7 +25,6 @@ export function registerMobileResizeFeature(context) {
     if (!isMobile.value) return;
 
     event.stopPropagation();
-    triggerTouchHaptic('Heavy');
 
     const touch = event.touches[0];
     const taskEl = event.target.closest('.task-block');
@@ -64,7 +62,6 @@ export function registerMobileResizeFeature(context) {
 
     if (mobileResizeState.task.estDuration !== newDurationStr) {
       mobileResizeState.task.estDuration = newDurationStr;
-      triggerTouchHaptic('Light');
     }
   };
 
@@ -105,13 +102,11 @@ export function registerMobileResizeFeature(context) {
         if (checkOverlap(task.date, task.startTime, newDurationStr, task.scheduleId, type)) {
           task.estDuration = mobileResizeState.originalDuration;
           openAlertModal('冲突', '调整后的时间与现有任务冲突');
-          triggerTouchHaptic('Error');
         } else {
           const musicSeconds = parseTime(task.musicDuration);
           const recordSeconds = parseTime(task.estDuration);
           if (musicSeconds > 0) task.ratio = (recordSeconds / musicSeconds).toFixed(1);
           pushHistory();
-          triggerTouchHaptic('Success');
         }
 
         mobileResizeState.task = null;

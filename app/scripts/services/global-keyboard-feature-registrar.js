@@ -45,7 +45,7 @@ export function createGlobalKeyboardFeatureRegistrar() {
             activeImportMenu,
             expandedGroups,
         } = assembly.refs;
-        const { triggerTouchHaptic } = assembly.services;
+
         const { helpers } = assembly;
         return registerGlobalKeyboardFeature({
             refs: {
@@ -118,7 +118,7 @@ export function createGlobalKeyboardFeatureRegistrar() {
                 clearPoolRecord: (...args) => helpers.clearPoolRecord(...args),
                 clearAggregateRecords: (...args) => helpers.clearAggregateRecords(...args),
                 openAlertModal: (...args) => helpers.openAlertModal(...args),
-                triggerTouchHaptic: (...args) => triggerTouchHaptic(...args),
+
                 getSettings: () => assembly.state.settings,
                 getSettingsNameFocus: () => assembly.refs.settingsNameFocus,
                 getFilteredSidebarList: () => assembly.refs.filteredSidebarList.value,

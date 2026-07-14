@@ -19,7 +19,7 @@ export function createSearchFeatureRegistrar() {
             sidebarTab,
         } = assembly.refs;
         const { settings } = assembly.state;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerSearchFeature({
             refs: {
                 itemPool,
@@ -49,7 +49,7 @@ export function createSearchFeatureRegistrar() {
             actions: {
                 openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                 smartScrollToTask: (...args) => assembly.features.viewNavigation.smartScrollToTask(...args),
-                triggerTouchHaptic: triggerTouchHaptic,
+
                 getSidebarList: () => assembly.refs.currentSidebarList.value,
             },
         });

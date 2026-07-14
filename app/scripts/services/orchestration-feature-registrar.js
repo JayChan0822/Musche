@@ -11,7 +11,7 @@ export function createOrchestrationFeatureRegistrar() {
             currentSessionId,
         } = assembly.refs;
         const { settings } = assembly.state;
-        const { triggerTouchHaptic } = assembly.services;
+
         return registerOrchestrationFeature({
             refs: {
                 editingItem,
@@ -28,7 +28,7 @@ export function createOrchestrationFeatureRegistrar() {
                 getNameById: (...args) => assembly.features.nameLookup.getNameById(...args),
             },
             actions: {
-                triggerTouchHaptic: triggerTouchHaptic,
+
             },
         });
     };

@@ -21,10 +21,10 @@ export function registerScheduleFeature(context) {
     addDaysToDate,
     addMinutesToTimeValue,
     addMinutesToTime: rawAddMinutesToTime,
+    setItemSplitState,
   } = utils;
   const {
     pushHistory,
-    triggerTouchHaptic,
     getCurrentWeekDays = () => refs.currentWeekDays?.value || [],
   } = actions;
 
@@ -75,7 +75,6 @@ export function registerScheduleFeature(context) {
 
   function cleanupEmptySchedules() {
     const activePoolIds = new Set(itemPool.value.map((item) => item.id));
-    const originalLength = scheduledTasks.value.length;
     const groups = {};
 
     const getGroupKey = (task) => {
@@ -137,9 +136,6 @@ export function registerScheduleFeature(context) {
       return schedulesKeepSet.has(task.scheduleId);
     });
 
-    if (scheduledTasks.value.length < originalLength) {
-      triggerTouchHaptic('Medium');
-    }
   }
 
   function pruneEmptySchedules() {
@@ -173,11 +169,13 @@ export function registerScheduleFeature(context) {
     const upperSection = dividerIndex - 1;
     const lowerSection = dividerIndex;
     const items = trackListData.value.items;
+    let movedItem = null;
 
     if (direction === 'up') {
       for (let index = items.length - 1; index >= 0; index--) {
         if (items[index].sectionIndex === upperSection) {
           items[index].sectionIndex = lowerSection;
+          movedItem = items[index];
           break;
         }
       }
@@ -185,14 +183,23 @@ export function registerScheduleFeature(context) {
       for (let index = 0; index < items.length; index++) {
         if (items[index].sectionIndex === lowerSection) {
           items[index].sectionIndex = upperSection;
+          movedItem = items[index];
           break;
         }
       }
     }
 
-    if (shouldSaveHistory) {
+    if (movedItem && typeof setItemSplitState === 'function') {
+      setItemSplitState(movedItem, trackListData.value.viewType || sidebarTab.value, {
+        sectionIndex: movedItem.sectionIndex,
+      });
+    }
+
+    if (movedItem && shouldSaveHistory) {
       pushHistory();
     }
+
+    return !!movedItem;
   }
 
   function moveTask(task, direction) {
@@ -216,7 +223,6 @@ export function registerScheduleFeature(context) {
       if (isMonth) {
         const newDate = addDaysToDate(task.date, -7);
         if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-          triggerTouchHaptic('Error');
           return;
         }
         if (newDate !== task.date) {
@@ -228,7 +234,6 @@ export function registerScheduleFeature(context) {
       } else {
         const newTime = addMinutesToTime(task.startTime, -30);
         if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
-          triggerTouchHaptic('Error');
           return;
         }
         if (newTime !== task.startTime) {
@@ -241,7 +246,6 @@ export function registerScheduleFeature(context) {
       if (isMonth) {
         const newDate = addDaysToDate(task.date, 7);
         if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-          triggerTouchHaptic('Error');
           return;
         }
         if (newDate !== task.date) {
@@ -253,7 +257,6 @@ export function registerScheduleFeature(context) {
       } else {
         const newTime = addMinutesToTime(task.startTime, 30);
         if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
-          triggerTouchHaptic('Error');
           return;
         }
         if (newTime !== task.startTime) {
@@ -265,7 +268,6 @@ export function registerScheduleFeature(context) {
     } else if (direction === 'left') {
       const newDate = addDaysToDate(task.date, -1);
       if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-        triggerTouchHaptic('Error');
         return;
       }
       if (newDate !== task.date) {
@@ -282,7 +284,6 @@ export function registerScheduleFeature(context) {
     } else if (direction === 'right') {
       const newDate = addDaysToDate(task.date, 1);
       if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
-        triggerTouchHaptic('Error');
         return;
       }
       if (newDate !== task.date) {

@@ -27,7 +27,6 @@ export function registerViewNavigationFeature(context) {
       timeToMinutes: utils.timeToMinutes,
     },
     actions: {
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
 
@@ -51,7 +50,6 @@ export function registerViewNavigationFeature(context) {
       changeDate: calendarViewFeature.changeDate,
       scrollToMonthDate: calendarViewFeature.scrollToMonthDate,
       isDragActive: actions.isDragActive,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
     },
   });
 

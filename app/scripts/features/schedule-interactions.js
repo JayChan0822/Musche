@@ -21,7 +21,6 @@ export function registerScheduleInteractionsFeature(context) {
     actions: {
       checkOverlap: actions.checkOverlap,
       openAlertModal: actions.openAlertModal,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
       pushHistory: actions.pushHistory,
       isResourceCompleted: actions.isResourceCompleted,
       clearPoolRecord: actions.clearPoolRecord,
@@ -47,7 +46,6 @@ export function registerScheduleInteractionsFeature(context) {
       isContextSwitchingActive: actions.isContextSwitchingActive,
       isTaskGhost: actions.isTaskGhost,
       jumpToGhostContext: actions.jumpToGhostContext,
-      triggerTouchHaptic: actions.triggerTouchHaptic,
       pushHistory: actions.pushHistory,
       normalizeSplitViewType: actions.normalizeSplitViewType,
       isItemVisibleForView: actions.isItemVisibleForView,
@@ -70,5 +68,6 @@ export function registerScheduleInteractionsFeature(context) {
     dropToSchedule: scheduleDragDropFeature.dropToSchedule,
     dropToMonth: scheduleDragDropFeature.dropToMonth,
     handleTaskDblClick: scheduleTaskActivationFeature.handleTaskDblClick,
+    openTrackListForTask: scheduleTaskActivationFeature.openTrackListForTask,
   };
 }

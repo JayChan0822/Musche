@@ -12,10 +12,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
         splitStateUtils,
         storageService,
         supabaseService,
-        deviceService,
-        triggerTouchHaptic,
         wireImportDataFeature,
-        wireNotificationsFeature,
         wireDesktopResizeFeature,
         wireScheduleDeletionFeature,
         wireAvatarCropFeature,
@@ -140,7 +137,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const assembly = createAppAssembly({
                 vue: { computed, watch, nextTick, onMounted, onUnmounted },
                 utils: { timeUtils, formatUtils, idUtils, splitStateUtils },
-                services: { storageService, supabaseService, deviceService, triggerTouchHaptic },
+                services: { storageService, supabaseService },
             });
             Object.assign(assembly.refs, store, {
                 sidebarTab, isMobile, mobileTab, newItem, sortField, sortAsc,
@@ -525,10 +522,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);
 
-            const notificationsFeatureProxy = wireNotificationsFeature(assembly);
-            const updateTaskNotification = notificationsFeatureProxy.method('updateTaskNotification');
-            const scheduleReminder = notificationsFeatureProxy.method('scheduleReminder');
-
             const { trackListReady } = createRootTrackListState();
             const trackListFeatureProxy = wireTrackListFeature(assembly, {
                 onLoaded: (feature) => {
@@ -551,7 +544,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const autoCalcDuration = withTrackListFeature('autoCalcDuration');
             const saveScheduleActualTime = withTrackListFeature('saveScheduleActualTime');
             const saveTrackActual = withTrackListFeature('saveTrackActual');
-            const onTrackListReminderChange = withTrackListFeature('onTrackListReminderChange');
             const setTrackNow = withTrackListFeature('setTrackNow');
             const saveTrackRecord = withTrackListFeature('saveTrackRecord');
             const clearTrackTime = withTrackListFeature('clearTrackTime');
@@ -565,8 +557,9 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
             const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
             Object.assign(assembly.helpers, {
+                autoResizeScheduleByRecords, saveScheduleActualTime, saveTrackActual,
                 autoDistributeSections, startDividerDrag, calcTrackDiff, setTrackBreak, deleteTrackFromList,
-                onTrackListReminderChange, setTrackNow, clearTrackTime, isPercussionGroup, isStringGroup,
+                setTrackNow, clearTrackTime, isPercussionGroup, isStringGroup,
                 sortTrackList, startTrackDrag,
             });
 
@@ -856,7 +849,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 changeDate,
                 getOrCreateSettingItem,
                 moveDivider,
-                updateTaskNotification,
                 syncFamilyLegacyFields,
                 syncFamilySharedIdentity,
                 syncFamilyOrchestration,

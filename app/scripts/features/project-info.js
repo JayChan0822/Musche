@@ -17,7 +17,7 @@ export function registerProjectInfoFeature(context) {
   const { refs, state, actions } = context;
   const { showProjectInfoModal } = refs;
   const { settings } = state;
-  const { triggerTouchHaptic } = actions;
+
 
   const projectInfoForm = refs.projectInfoForm || reactive({
     id: null,
@@ -50,7 +50,7 @@ export function registerProjectInfoFeature(context) {
     if (!target) return;
 
     Object.assign(target, { ...projectInfoForm });
-    triggerTouchHaptic('Success');
+
     showProjectInfoModal.value = false;
   };
 
