@@ -120,6 +120,8 @@ test('divider drag commits before revealing the real divider and removes the gho
     assert.equal(draggingSectionIndex.value, null);
     assert.equal(divider.style.opacity, '', 'divider visibility should be controlled by reactive classes, not inline opacity');
     assert.equal(body.contains(ghost), true, 'the drag ghost should cover the render handoff');
+    assert.equal(taskElements[1].style.transition, 'none');
+    assert.equal(taskElements[1].style.transform, '', 'preview transform should clear synchronously with the data commit');
 
     const renderedDivider = { style: makeStyle() };
     renderedDivider.style.opacity = '0';
@@ -134,7 +136,7 @@ test('divider drag commits before revealing the real divider and removes the gho
     assert.equal(containerClasses.has('divider-drag-active'), false);
     assert.equal(body.contains(ghost), false, 'the ghost should be removed after render');
     taskElements.forEach((element) => {
-      assert.equal(element.style.transition, 'none');
+      assert.equal(element.style.transition, '');
       assert.equal(element.style.transform, '');
     });
   } finally {

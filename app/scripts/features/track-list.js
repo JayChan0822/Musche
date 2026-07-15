@@ -382,14 +382,20 @@ export function registerTrackListFeature(context) {
 
     if (!completedDrag) return;
 
+    const clearTaskTransforms = () => {
+      completedDrag.taskEls.forEach((el) => {
+        el.style.transition = 'none';
+        el.style.transform = '';
+      });
+    };
+
     const cleanupVisuals = () => {
       const currentTaskEls = Array.from(
         trackListContainerRef.value?.querySelectorAll('.track-card') || [],
       );
       const taskEls = new Set([...completedDrag.taskEls, ...currentTaskEls]);
       taskEls.forEach((el) => {
-        el.style.transition = 'none';
-        el.style.transform = '';
+        if (!el.style.transform) el.style.transition = '';
       });
 
       if (completedDrag.targetEl) completedDrag.targetEl.style.opacity = '';
@@ -407,6 +413,7 @@ export function registerTrackListFeature(context) {
 
     const { sectionIndex, startIndex, virtualIndex } = completedDrag;
     if (virtualIndex === startIndex) {
+      clearTaskTransforms();
       cleanupVisuals();
       return;
     }
@@ -419,6 +426,9 @@ export function registerTrackListFeature(context) {
       moveDivider(sectionIndex, direction, false);
     }
     pushHistory();
+    // 与数据提交保持在同一事件栈中清掉预览位移。Vue 会在浏览器绘制前完成
+    // DOM 重排，避免最终布局再叠加一次旧 translateY。
+    clearTaskTransforms();
 
     // 给 Vue / TransitionGroup 两帧完成节点交接；期间保留 ghost 并禁用列表过渡，
     // 避免旧位置短暂重现或新 divider 淡入造成闪烁。

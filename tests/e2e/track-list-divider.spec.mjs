@@ -100,7 +100,42 @@ test('Track List divider drag is stable and undo/redo keeps the active time cont
         secondCardBox.y + secondCardBox.height + 30,
         { steps: 8 },
     );
+    await page.evaluate(() => {
+        window.__cardFrameSamples = [];
+        window.__cardSamplingDone = false;
+        let remaining = 16;
+        const sample = () => {
+            const modalElement = document.querySelector('.modal-overlay #sec-divider-1')?.closest('.modal-overlay');
+            const cards = [...(modalElement?.querySelectorAll('.track-card') || [])];
+            window.__cardFrameSamples.push(cards.map((card) => {
+                const style = getComputedStyle(card);
+                const rect = card.getBoundingClientRect();
+                return {
+                    id: card.id,
+                    top: Math.round(rect.top * 100) / 100,
+                    opacity: style.opacity,
+                };
+            }));
+            remaining -= 1;
+            if (remaining > 0) requestAnimationFrame(sample);
+            else window.__cardSamplingDone = true;
+        };
+        requestAnimationFrame(sample);
+    });
     await page.mouse.up();
+
+    await expect.poll(() => page.evaluate(() => window.__cardSamplingDone)).toBe(true);
+    const cardFrameSamples = await page.evaluate(() => window.__cardFrameSamples);
+    const maxCardFrameJump = cardFrameSamples.slice(1).reduce((maxJump, frame, index) => {
+        const previousFrame = cardFrameSamples[index];
+        frame.forEach((card) => {
+            const previousCard = previousFrame.find((candidate) => candidate.id === card.id);
+            if (previousCard) maxJump = Math.max(maxJump, Math.abs(card.top - previousCard.top));
+        });
+        return maxJump;
+    }, 0);
+    expect(maxCardFrameJump, 'task cards should settle without a one-frame divider-height jump').toBeLessThan(20);
+    expect(cardFrameSamples.flat().every((card) => card.opacity === '1')).toBe(true);
 
     const undoButton = page.locator('button:has(i.fa-rotate-left)');
     const redoButton = page.locator('button:has(i.fa-rotate-right)');
