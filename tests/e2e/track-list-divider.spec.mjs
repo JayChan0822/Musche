@@ -167,6 +167,62 @@ test('Track List divider drag is stable and undo/redo keeps the active time cont
     await expect(modal).not.toContainText('15:30');
 });
 
+test('Track List card reorder does not replay its move animation after pointer release', async ({ page }) => {
+    await seedDividerScenario(page);
+    await page.goto('/');
+    await expect(page.locator('#global-loader')).toBeHidden({ timeout: 15_000 });
+
+    await page.getByText(/10:00.*Musician One/).first().dblclick();
+    const modal = page.locator('.modal-overlay').filter({ has: page.locator('#track-item-T2') });
+    await expect(modal).toBeVisible();
+
+    const firstCard = modal.locator('#track-item-T1');
+    const draggedCard = modal.locator('#track-item-T2');
+    const firstBox = await firstCard.boundingBox();
+    const draggedBox = await draggedCard.boundingBox();
+    if (!firstBox || !draggedBox) throw new Error('Track List card drag targets are not measurable');
+
+    await page.mouse.move(draggedBox.x + 20, draggedBox.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(firstBox.x + 20, firstBox.y - 20, { steps: 10 });
+    await page.waitForTimeout(250);
+
+    await page.evaluate(() => {
+        window.__reorderFrameSamples = [];
+        window.__reorderSamplingDone = false;
+        let remaining = 20;
+        const sample = () => {
+            const cards = [...document.querySelectorAll('.modal-overlay .track-card')];
+            window.__reorderFrameSamples.push(cards.map((card) => ({
+                id: card.id,
+                top: Math.round(card.getBoundingClientRect().top * 100) / 100,
+            })));
+            remaining -= 1;
+            if (remaining > 0) requestAnimationFrame(sample);
+            else window.__reorderSamplingDone = true;
+        };
+        requestAnimationFrame(sample);
+    });
+    await page.mouse.up();
+
+    await expect.poll(() => page.evaluate(() => window.__reorderSamplingDone)).toBe(true);
+    const frameSamples = await page.evaluate(() => window.__reorderFrameSamples);
+    const motionByCard = new Map();
+    frameSamples.flat().forEach((card) => {
+        const range = motionByCard.get(card.id) || { min: card.top, max: card.top };
+        range.min = Math.min(range.min, card.top);
+        range.max = Math.max(range.max, card.top);
+        motionByCard.set(card.id, range);
+    });
+    const maxPostReleaseMotion = Math.max(
+        ...[...motionByCard.values()].map((range) => range.max - range.min),
+    );
+
+    await expect.poll(() => modal.locator('.track-card').evaluateAll((cards) => cards.map((card) => card.id)))
+        .toEqual(['track-item-T2', 'track-item-T1']);
+    expect(maxPostReleaseMotion, 'cards should stay at their committed positions after release').toBeLessThan(5);
+});
+
 function assertDividerBetweenTracks(order) {
     const dividerIndex = order.indexOf('sec-divider-1');
     expect(dividerIndex).toBeGreaterThan(0);

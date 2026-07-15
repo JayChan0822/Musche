@@ -59,16 +59,21 @@ html.dark body {
     z-index: -1;
 }
 
-/* Divider 拖动提交会在两种 divider 模板之间切换节点；交接期间禁用
-   TransitionGroup 的淡入淡出，避免分割线在落位后闪烁。 */
+/* 手动拖动提交期间禁用 TransitionGroup 的二次 move/enter/leave 动画，
+   避免 divider 或任务卡片在落位后重播一次过渡。 */
 .divider-drag-active .list-move,
 .divider-drag-active .list-enter-active,
-.divider-drag-active .list-leave-active {
+.divider-drag-active .list-leave-active,
+.track-drag-active .list-move,
+.track-drag-active .list-enter-active,
+.track-drag-active .list-leave-active {
     transition: none !important;
 }
 
 .divider-drag-active .list-enter-from,
-.divider-drag-active .list-leave-to {
+.divider-drag-active .list-leave-to,
+.track-drag-active .list-enter-from,
+.track-drag-active .list-leave-to {
     opacity: 1 !important;
     transform: none !important;
 }

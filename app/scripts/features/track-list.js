@@ -493,6 +493,7 @@ export function registerTrackListFeature(context) {
       const allMovableEls = Array.from(container.querySelectorAll('.track-card, .group\\/divider'));
       const domStartIndex = allMovableEls.indexOf(triggerEl);
       if (domStartIndex === -1) return;
+      container.classList.add('track-drag-active');
 
       const dataStartIndex = trackListData.value.items.findIndex((listItem) => listItem.id === item.id);
       const elementHeights = allMovableEls.map((element) => {
@@ -660,6 +661,7 @@ export function registerTrackListFeature(context) {
 
     if (!trackDragState || !trackDragState.ghost) {
       trackDragState = null;
+      trackListContainerRef.value?.classList.remove('track-drag-active');
       window.removeEventListener('touchmove', onTrackDragMove);
       window.removeEventListener('touchend', onTrackDragEnd);
       window.removeEventListener('touchcancel', onTrackDragEnd);
@@ -686,7 +688,8 @@ export function registerTrackListFeature(context) {
     });
     stopTrackListAutoScroll();
 
-    if (domStartIndex !== virtualDomIndex || dataStartIndex !== virtualDataIndex) {
+    const didMove = domStartIndex !== virtualDomIndex || dataStartIndex !== virtualDataIndex;
+    if (didMove) {
       const items = trackListData.value.items;
       const previousSectionIndex = item.sectionIndex;
 
@@ -716,6 +719,17 @@ export function registerTrackListFeature(context) {
     }
 
     trackDragState = null;
+
+    const releaseTransitionGuard = () => {
+      trackListContainerRef.value?.classList.remove('track-drag-active');
+    };
+    if (didMove) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(releaseTransitionGuard);
+      });
+    } else {
+      releaseTransitionGuard();
+    }
 
     window.removeEventListener('touchmove', onTrackDragMove);
     window.removeEventListener('touchend', onTrackDragEnd);
