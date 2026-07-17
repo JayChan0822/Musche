@@ -13,7 +13,7 @@ npm run dev
 
 Supabase 配置二选一（本地开发推荐前者，托管构建用后者）：
 
-- **本地文件**：创建 `app/config.local.js`（已被 gitignore）：
+- **本地文件**：创建 `app/config.local.js`（已被 gitignore）。该文件只会由 Vite 开发服务器注入，不会进入生产构建：
 
   ```js
   window.__MUSCHE_CONFIG__ = {
@@ -23,6 +23,8 @@ Supabase 配置二选一（本地开发推荐前者，托管构建用后者）�
   ```
 
 - **环境变量**：`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_KEY`。
+
+登录用户成功读取或保存云端数据后，应用会在浏览器中保留一份按账号标识的最近快照。下次启动会先显示该快照，再在 8 秒启动时限内刷新 Supabase 数据；退出登录或恢复出厂设置时会清除快照。
 
 ## 测试与构建
 

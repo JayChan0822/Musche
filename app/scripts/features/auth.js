@@ -1,5 +1,16 @@
 import { computed } from 'vue';
 
+import { createDefaultSettings } from '../state/defaults.js';
+
+const CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
+const DEFAULT_STARTUP_TIMEOUT_MS = 8000;
+
+function createStartupTimeoutError(label) {
+  const error = new Error(`${label} timed out during startup`);
+  error.code = 'MUSCHE_STARTUP_TIMEOUT';
+  return error;
+}
+
 export function registerAuthFeature(context) {
   const { refs, state, utils, services, actions } = context;
   const {
@@ -35,6 +46,7 @@ export function registerAuthFeature(context) {
     getLocationOrigin = () => window.location.origin,
     getUploadTextElement = () => document.getElementById('upload-text'),
     setSaveStatus,
+    startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS,
   } = actions;
   const {
     storageService,
@@ -70,6 +82,130 @@ export function registerAuthFeature(context) {
     }
     const exists = settings.sessions.find((session) => session.id === lastSessionId);
     currentSessionId.value = exists ? exists.id : fallbackSession.id;
+  }
+
+  function createCloudContent() {
+    return {
+      pool: itemPool.value,
+      tasks: scheduledTasks.value,
+      settings: { ...settings, lastSessionId: currentSessionId.value },
+    };
+  }
+
+  function applyCloudContent(content, version = 0) {
+    if (!content || typeof content !== 'object') return false;
+
+    localDataVersion.value = version || 0;
+    if (Array.isArray(content.pool)) {
+      itemPool.value = content.pool.map((item) => ensureItemRecords(item));
+    }
+    if (Array.isArray(content.tasks)) {
+      scheduledTasks.value = content.tasks;
+    }
+
+    if (content.settings && typeof content.settings === 'object') {
+      if (content.settings.startHour !== undefined) settings.startHour = content.settings.startHour;
+      if (content.settings.endHour !== undefined) settings.endHour = content.settings.endHour;
+      if (content.settings.sessions) settings.sessions = content.settings.sessions;
+      if (content.settings.instruments) settings.instruments = content.settings.instruments;
+      if (content.settings.musicians) settings.musicians = content.settings.musicians;
+      if (content.settings.projects) settings.projects = content.settings.projects;
+      if (content.settings.studios) settings.studios = content.settings.studios;
+      if (content.settings.engineers) settings.engineers = content.settings.engineers;
+      if (content.settings.operators) settings.operators = content.settings.operators;
+      if (content.settings.assistants) settings.assistants = content.settings.assistants;
+
+      restoreCurrentSession(content.settings.lastSessionId);
+    }
+    return true;
+  }
+
+  function getCacheableUser(account = user.value) {
+    if (!account?.id) return null;
+    return {
+      id: account.id,
+      email: account.email || '',
+      user_metadata: account.user_metadata || {},
+    };
+  }
+
+  function clearCloudCache() {
+    if (typeof storageService.removeItem !== 'function') return;
+    try {
+      storageService.removeItem(CLOUD_CACHE_KEY);
+    } catch (error) {
+      console.warn('Cloud cache cleanup failed:', error);
+    }
+  }
+
+  function persistCloudCache() {
+    const cachedUser = getCacheableUser();
+    if (!cachedUser || typeof storageService.saveData !== 'function') return;
+
+    try {
+      storageService.saveData(CLOUD_CACHE_KEY, {
+        user: cachedUser,
+        version: localDataVersion.value,
+        content: createCloudContent(),
+      });
+    } catch (error) {
+      console.warn('Cloud cache save failed:', error);
+    }
+  }
+
+  function restoreCloudCache() {
+    if (typeof storageService.loadData !== 'function') return null;
+    try {
+      const cache = storageService.loadData(CLOUD_CACHE_KEY);
+      if (!cache?.user?.id || !cache.content || typeof cache.content !== 'object') return null;
+
+      user.value = cache.user;
+      applyCloudContent(cache.content, cache.version);
+      return cache;
+    } catch (error) {
+      clearCloudCache();
+      return null;
+    }
+  }
+
+  async function withStartupTimeout(request, label) {
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve(request),
+        new Promise((resolve, reject) => {
+          timer = setTimeout(() => reject(createStartupTimeoutError(label)), startupTimeoutMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function resetWorkingData() {
+    const defaults = createDefaultSettings();
+    Object.keys(settings).forEach((key) => {
+      delete settings[key];
+    });
+    Object.assign(settings, defaults);
+    itemPool.value = [];
+    scheduledTasks.value = [];
+    localDataVersion.value = 0;
+    currentSessionId.value = defaults.sessions[0].id;
+  }
+
+  function restoreGuestData(isSidebarOpen) {
+    const localData = storageService.loadData('v9_data') || {};
+    if (localData.settings) {
+      applyCloudContent({ settings: localData.settings }, 0);
+    }
+
+    if (localData.pool && localData.pool.length > 0) {
+      itemPool.value = localData.pool.map((item) => ensureItemRecords(item));
+      scheduledTasks.value = localData.tasks || [];
+    } else {
+      initDefaultData(isSidebarOpen);
+    }
   }
 
   function initDefaultData(isSidebarOpen) {
@@ -120,42 +256,28 @@ export function registerAuthFeature(context) {
     }
   }
 
-  async function loadCloudData() {
+  async function loadCloudData({ withStartupDeadline = false } = {}) {
     if (!user.value) return;
 
-    const { data, error } = await supabaseService.loadUserData(user.value.id);
+    const request = supabaseService.loadUserData(user.value.id);
+    const { data, error } = withStartupDeadline
+      ? await withStartupTimeout(request, 'Cloud data request')
+      : await request;
     if (error) throw error;
 
     if (data && data.content) {
-      localDataVersion.value = data.version || 0;
-      const content = data.content;
-
-      if (content.pool) itemPool.value = content.pool.map((item) => ensureItemRecords(item));
-      if (content.tasks) scheduledTasks.value = content.tasks;
-
-      if (content.settings) {
-        settings.startHour = content.settings.startHour;
-        settings.endHour = content.settings.endHour;
-        if (content.settings.sessions) settings.sessions = content.settings.sessions;
-        if (content.settings.instruments) settings.instruments = content.settings.instruments;
-        if (content.settings.musicians) settings.musicians = content.settings.musicians;
-        if (content.settings.projects) settings.projects = content.settings.projects;
-        if (content.settings.studios) settings.studios = content.settings.studios;
-        if (content.settings.engineers) settings.engineers = content.settings.engineers;
-        if (content.settings.operators) settings.operators = content.settings.operators;
-        if (content.settings.assistants) settings.assistants = content.settings.assistants;
-
-        restoreCurrentSession(content.settings.lastSessionId);
-      }
-      return;
+      applyCloudContent(data.content, data.version);
+      persistCloudCache();
+      return true;
     }
 
-    localDataVersion.value = 0;
+    clearCloudCache();
+    resetWorkingData();
     const localData = storageService.loadData('v9_data');
-    if (!localData) return;
+    if (!localData) return false;
 
     const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
-    if (!hasRealData) return;
+    if (!hasRealData) return false;
 
     openConfirmModal(
       '数据冲突',
@@ -170,6 +292,9 @@ export function registerAuthFeature(context) {
 
         if (!uploadError) {
           localDataVersion.value = 1;
+          itemPool.value = dataToUpload.pool;
+          scheduledTasks.value = dataToUpload.tasks;
+          persistCloudCache();
           openAlertModal('成功', '✅ 本地数据已成功上传！');
         } else {
           openAlertModal('上传失败', uploadError.message);
@@ -179,6 +304,7 @@ export function registerAuthFeature(context) {
       '上传本地数据',
       '放弃本地数据',
     );
+    return false;
   }
 
   async function saveToCloud(handleManualSync, force = false) {
@@ -209,16 +335,13 @@ export function registerAuthFeature(context) {
       }
 
       const newVersion = serverVersion + 1;
-      const dataToSave = {
-        pool: itemPool.value,
-        tasks: scheduledTasks.value,
-        settings: { ...settings, lastSessionId: currentSessionId.value },
-      };
+      const dataToSave = createCloudContent();
 
       const { error: saveError } = await supabaseService.saveUserData(user.value.id, dataToSave, newVersion);
       if (saveError) throw saveError;
 
       localDataVersion.value = newVersion;
+      persistCloudCache();
       setTimeout(() => {
         setSaveStatus('saved');
       }, 500);
@@ -306,6 +429,7 @@ export function registerAuthFeature(context) {
       });
       if (error) throw error;
       user.value = data.user;
+      persistCloudCache();
     } catch (error) {
       openAlertModal(`更新失败: ${error.message}`);
     } finally {
@@ -341,6 +465,7 @@ export function registerAuthFeature(context) {
       openAlertModal(`更新失败: ${error.message}`);
     } else {
       user.value = data.user;
+      persistCloudCache();
       openAlertModal('头像已更新！');
     }
   }
@@ -372,6 +497,7 @@ export function registerAuthFeature(context) {
       if (updateError) throw updateError;
 
       user.value = userData.user;
+      persistCloudCache();
       openAlertModal('头像上传成功！');
     } catch (error) {
       openAlertModal(`上传失败: ${error.message}`);
@@ -384,6 +510,7 @@ export function registerAuthFeature(context) {
 
   async function handleLogout() {
     user.value = null;
+    clearCloudCache();
     try {
       await supabaseService.signOut();
     } catch (error) {
@@ -411,6 +538,7 @@ export function registerAuthFeature(context) {
         }
 
         storageService.removeItem('v9_data');
+        clearCloudCache();
         storageService.removeItem('musche_tour_seen');
         localDataVersion.value = 0;
         reloadPage();
@@ -448,35 +576,41 @@ export function registerAuthFeature(context) {
       skipHistory = false,
     } = options;
 
-    const { data } = await supabaseService.getSession();
-    if (data.session) {
-      user.value = data.session.user;
-      await loadCloudData();
+    const cachedData = restoreCloudCache();
+    let session;
+    try {
+      const { data } = await withStartupTimeout(supabaseService.getSession(), 'Session recovery');
+      session = data?.session || null;
+    } catch (error) {
+      if (!cachedData) restoreGuestData(isSidebarOpen);
+      if (!skipHistory) pushHistory();
+      return;
+    }
+
+    if (!session) {
+      user.value = null;
+      clearCloudCache();
+      resetWorkingData();
+      restoreGuestData(isSidebarOpen);
+    } else {
+      const cacheMatchesSession = cachedData?.user?.id === session.user.id;
+      user.value = session.user;
+
+      if (cachedData && !cacheMatchesSession) {
+        clearCloudCache();
+        resetWorkingData();
+      }
+
+      try {
+        await loadCloudData({ withStartupDeadline: true });
+      } catch (error) {
+        if (!cacheMatchesSession) {
+          itemPool.value = [];
+          scheduledTasks.value = [];
+        }
+      }
 
       if (itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
-        initDefaultData(isSidebarOpen);
-      }
-    } else {
-      const localData = storageService.loadData('v9_data') || {};
-      if (localData.settings) {
-        settings.startHour = localData.settings.startHour;
-        settings.endHour = localData.settings.endHour;
-        if (localData.settings.sessions) settings.sessions = localData.settings.sessions;
-        if (localData.settings.instruments) settings.instruments = localData.settings.instruments;
-        if (localData.settings.musicians) settings.musicians = localData.settings.musicians;
-        if (localData.settings.projects) settings.projects = localData.settings.projects;
-        if (localData.settings.studios) settings.studios = localData.settings.studios;
-        if (localData.settings.engineers) settings.engineers = localData.settings.engineers;
-        if (localData.settings.operators) settings.operators = localData.settings.operators;
-        if (localData.settings.assistants) settings.assistants = localData.settings.assistants;
-
-        restoreCurrentSession(localData.settings.lastSessionId);
-      }
-
-      if (localData.pool && localData.pool.length > 0) {
-        itemPool.value = localData.pool.map((item) => ensureItemRecords(item));
-        scheduledTasks.value = localData.tasks || [];
-      } else {
         initDefaultData(isSidebarOpen);
       }
     }

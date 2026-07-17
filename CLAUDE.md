@@ -5,7 +5,7 @@ Musche：音乐人 Web 排程应用。Vue 3（运行时组件，无 SFC、无 JS
 ## 常用命令
 
 ```bash
-npm run dev                      # 本地开发（需 app/config.local.js 或 VITE_SUPABASE_* 环境变量）
+npm run dev                      # 本地开发（开发服务器会注入 app/config.local.js，也支持 VITE_SUPABASE_*）
 npm test                         # 全量测试：模块化烟雾 + node --test tests/*.test.mjs
 npm run test:e2e                 # Playwright E2E 冒烟（tests/e2e/，跑在 vite preview 上，不连 Supabase）
 npm run verify:modularization    # 仅跑模块边界烟雾测试
@@ -39,4 +39,4 @@ node --test tests/<file>.test.mjs   # 单跑某个测试
 
 ## 安全
 
-- Supabase 密钥只能来自 `app/config.local.js`（gitignored）或 `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`，禁止硬编码（历史教训见 `docs/security/2026-05-11-supabase-key-rotation.md`）。
+- Supabase 密钥只能来自开发服务器注入的 `app/config.local.js`（gitignored）或 `VITE_SUPABASE_URL` / `VITE_SUPABASE_KEY`，禁止硬编码；生产 HTML 不得引用 `config.local.js`（历史教训见 `docs/security/2026-05-11-supabase-key-rotation.md`）。

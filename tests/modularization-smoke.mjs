@@ -701,14 +701,10 @@ assert.match(
     /<script type="module" src="\.\/scripts\/app\.js"><\/script>/,
     'index.html must load the module app entrypoint'
 );
-assert.match(
+assert.doesNotMatch(
     indexHtml,
-    /<script vite-ignore src="\.\/config\.local\.js"><\/script>/,
-    'index.html must load local runtime config as a Vite-ignored runtime script before the app entrypoint'
-);
-assert.ok(
-    indexHtml.indexOf('<script vite-ignore src="./config.local.js"></script>') < indexHtml.indexOf('<script type="module" src="./scripts/app.js"></script>'),
-    'index.html must load local runtime config before app.js reads Supabase config'
+    /config\.local\.js/,
+    'production index.html must not request the local-only runtime config file'
 );
 
 for (const unusedRootLocalAlias of [
