@@ -9663,7 +9663,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(feature.widthIcon.value, 'fa-expand', 'week view width icon should show expand when columns are compact');
     feature.switchView('month');
     assert.equal(refs.currentView.value, 'month', 'switchView should update current view');
-    assert.equal(feature.viewTransitionName.value, 'zoom-out', 'switchView should use zoom-out when switching to month view');
+    assert.equal(feature.viewTransitionName.value, 'view-slide-up', 'switchView should move upward when switching to month view');
 
     assert.equal(feature.widthIcon.value, 'fa-scroll', 'month paged mode should expose the scroll icon');
 

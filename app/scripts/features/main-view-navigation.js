@@ -36,14 +36,14 @@ export function registerMainViewNavigationFeature(context) {
     if (targetView === currentView.value) return;
 
     if (targetView === 'month') {
-      viewTransitionName.value = 'zoom-out';
+      viewTransitionName.value = 'view-slide-up';
       currentView.value = targetView;
 
       if (monthViewMode.value === 'scrolled') {
         scrollToMonthDate(viewDate.value);
       }
     } else {
-      viewTransitionName.value = 'zoom-in';
+      viewTransitionName.value = 'view-slide-down';
       currentView.value = targetView;
     }
 
