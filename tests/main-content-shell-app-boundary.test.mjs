@@ -49,3 +49,17 @@ test('app bootstrap creates main content shell ctx through a focused state facto
     'AppMainContent should avoid string refs for ctx-backed template refs',
   );
 });
+
+test('continuous month view positions dates without CSS smooth scrolling', () => {
+  const monthScroller = appMainContentComponent.match(
+    /<div v-else-if="currentView === 'month'"[\s\S]*?class="([^"]+)"/,
+  );
+
+  assert.ok(monthScroller, 'AppMainContent should render a dedicated month view scroller');
+  assert.match(monthScroller[1], /\boverflow-y-auto\b/, 'month view should remain vertically scrollable');
+  assert.doesNotMatch(
+    monthScroller[1],
+    /\bscroll-smooth\b/,
+    'month view should let behavior:auto position immediately instead of animating through buffered months',
+  );
+});

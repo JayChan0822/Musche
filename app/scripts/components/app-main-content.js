@@ -182,7 +182,7 @@ export const AppMainContent = {
 
                         <div v-else-if="currentView === 'month'"
                              key="view-month"
-                             class="w-full h-full overflow-y-auto overflow-x-hidden relative scroll-smooth"
+                             class="w-full h-full overflow-y-auto overflow-x-hidden relative"
                              @click="clearSelection">
 
                             <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
