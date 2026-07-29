@@ -48,6 +48,102 @@ test('runKeepalive requests a database-backed keepalive endpoint without exposin
   assert.deepEqual(response.data, { ok: true });
 });
 
+test('runKeepalive retries transient network failures before succeeding', async () => {
+  const { runKeepalive } = await import(pathToFileURL(scriptPath));
+
+  const delays = [];
+  let attempts = 0;
+  const response = await runKeepalive({
+    supabaseUrl: 'https://example.supabase.co',
+    anonKey: 'anon-test-key',
+    retryDelayMs: 1,
+    sleepImpl: async ms => { delays.push(ms); },
+    fetchImpl: async () => {
+      attempts += 1;
+      if (attempts < 3) {
+        throw new TypeError('fetch failed');
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => 'application/json' },
+        text: async () => '{"ok":true}',
+      };
+    },
+  });
+
+  assert.equal(attempts, 3, 'should retry until the request succeeds');
+  assert.equal(delays.length, 2, 'should back off between attempts');
+  assert.ok(delays[1] > delays[0], 'backoff should grow between attempts');
+  assert.deepEqual(response.data, { ok: true });
+});
+
+test('runKeepalive retries server-side errors but not client-side ones', async () => {
+  const { runKeepalive } = await import(pathToFileURL(scriptPath));
+
+  let serverErrorAttempts = 0;
+  await runKeepalive({
+    supabaseUrl: 'https://example.supabase.co',
+    anonKey: 'anon-test-key',
+    retryDelayMs: 1,
+    sleepImpl: async () => {},
+    fetchImpl: async () => {
+      serverErrorAttempts += 1;
+      const failing = serverErrorAttempts === 1;
+      return {
+        ok: !failing,
+        status: failing ? 503 : 200,
+        headers: { get: () => 'application/json' },
+        text: async () => (failing ? '{"message":"unavailable"}' : '{"ok":true}'),
+      };
+    },
+  });
+  assert.equal(serverErrorAttempts, 2, '5xx should be retried');
+
+  // 401/404 是配置问题（密钥轮换、表被删），重试只会拖延告警，必须立即失败。
+  let clientErrorAttempts = 0;
+  await assert.rejects(
+    () => runKeepalive({
+      supabaseUrl: 'https://example.supabase.co',
+      anonKey: 'anon-test-key',
+      retryDelayMs: 1,
+      sleepImpl: async () => {},
+      fetchImpl: async () => {
+        clientErrorAttempts += 1;
+        return {
+          ok: false,
+          status: 401,
+          headers: { get: () => 'application/json' },
+          text: async () => '{"message":"JWT expired"}',
+        };
+      },
+    }),
+    /Supabase keepalive failed with 401/
+  );
+  assert.equal(clientErrorAttempts, 1, '4xx should fail fast without retrying');
+});
+
+test('runKeepalive reports the last error after exhausting every attempt', async () => {
+  const { runKeepalive } = await import(pathToFileURL(scriptPath));
+
+  let attempts = 0;
+  await assert.rejects(
+    () => runKeepalive({
+      supabaseUrl: 'https://example.supabase.co',
+      anonKey: 'anon-test-key',
+      maxAttempts: 4,
+      retryDelayMs: 1,
+      sleepImpl: async () => {},
+      fetchImpl: async () => {
+        attempts += 1;
+        throw new TypeError('fetch failed');
+      },
+    }),
+    /after 4 attempts.*fetch failed/s
+  );
+  assert.equal(attempts, 4, 'should honour the configured attempt budget');
+});
+
 test('runKeepalive throws a readable error when Supabase responds with a failure', async () => {
   const { runKeepalive } = await import(pathToFileURL(scriptPath));
 
