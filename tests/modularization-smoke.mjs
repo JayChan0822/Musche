@@ -300,6 +300,9 @@ import {
     taskEditorFeature,
     tourFeature,
     trackListFeature,
+    trackListLayoutFeature,
+    trackListRecordsFeature,
+    trackListDragFeature,
     universalModalFeature,
     viteConfig,
     viteConfigPath,
@@ -5142,9 +5145,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-    trackListFeature,
+    trackListRecordsFeature,
     /syncTrackItemScheduleSection/,
-    'track-list feature must expose a helper for syncing dragged track sections back to scheduled tasks'
+    'track-list records module must expose a helper for syncing dragged track sections back to scheduled tasks'
 );
 
 assert.match(
@@ -5234,9 +5237,9 @@ assert.doesNotMatch(
 );
 
 assert.match(
-    trackListFeature,
+    trackListDragFeature,
     /startTrackDrag/,
-    'track-list feature must own row drag handlers for dragging tracks between sections'
+    'track-list drag module must own row drag handlers for dragging tracks between sections'
 );
 
 assert.match(
@@ -5246,15 +5249,15 @@ assert.match(
 );
 
 assert.match(
-    trackListFeature,
+    trackListLayoutFeature,
     /const\s+getSessionRatio\s*=/,
-    'track-list feature must own session ratio display calculation'
+    'track-list layout module must own session ratio display calculation'
 );
 
 assert.match(
-    trackListFeature,
+    trackListLayoutFeature,
     /const\s+calculateProportionalDuration\s*=/,
-    'track-list feature must own proportional duration display calculation'
+    'track-list layout module must own proportional duration display calculation'
 );
 
 assert.match(
@@ -7971,6 +7974,9 @@ const requiredFiles = [
     'app/scripts/features/sidebar-stats.js',
     'app/scripts/features/task-editor.js',
     'app/scripts/features/track-list.js',
+    'app/scripts/features/track-list-layout.js',
+    'app/scripts/features/track-list-records.js',
+    'app/scripts/features/track-list-drag.js',
     'app/scripts/features/credits.js',
     'app/scripts/features/project-info.js',
     'app/scripts/features/rec-info.js',
