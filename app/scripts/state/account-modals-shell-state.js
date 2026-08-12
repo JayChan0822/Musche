@@ -1,13 +1,8 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createAccountModalsShellState = defineShellState('createAccountModalsShellState', ({
-    appAuthModal,
-    appCropModal,
-}) => {
-    return {
-        values: {
-            appAuthModal,
-            appCropModal,
-        },
-    };
+export const createAccountModalsShellState = defineShellState('createAccountModalsShellState', {
+    values: [
+        'shells.appAuthModal',
+        'shells.appCropModal',
+    ],
 });

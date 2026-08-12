@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -23,11 +24,14 @@ test('app bootstrap creates task action modal group ctx through a focused state 
     /const\s+\{[\s\S]*\bcreateRootTaskActionModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the task action modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appTaskActionModalsShell\s*=\s*createRootTaskActionModalsShellState\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
-    'app.js should create the task action modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appTaskActionModalsShell',
+    factoryName: 'createRootTaskActionModalsShellState',
+    dependencies: [
+      'appEditModal',
+      'appSplitModal',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appTaskActionModalsShell\s*=\s*reactive\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
@@ -40,8 +44,9 @@ test('task action modal group ctx preserves child modal contexts', () => {
   const appSplitModal = { name: 'split' };
   const ctx = createTaskActionModalsShellState({
     reactive: (value) => value,
-    appEditModal,
-    appSplitModal,
+    resolve: (path) => ({
+      shells: { appEditModal, appSplitModal },
+    }[path.split('.')[0]][path.split('.').slice(1).join('.')]),
   });
 
   assert.equal(ctx.appEditModal, appEditModal);

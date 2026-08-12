@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -23,11 +24,18 @@ test('app bootstrap creates Settings modal ctx through a focused state factory',
     /const\s+\{[\s\S]*\bcreateRootSettingsModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Settings modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appSettingsModal\s*=\s*createRootSettingsModalShellState\(\{(?=[\s\S]*showSettings)(?=[\s\S]*settingsExpandedGroups)(?=[\s\S]*allSettingsGrouped)(?=[\s\S]*showMetadataManager)(?=[\s\S]*clearSettingsList:)(?=[\s\S]*factoryReset)[\s\S]*\}\);/,
-    'app.js should create the Settings modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appSettingsModal',
+    factoryName: 'createRootSettingsModalShellState',
+    dependencies: [
+      'showSettings',
+      'settingsExpandedGroups',
+      'allSettingsGrouped',
+      'showMetadataManager',
+      'clearSettingsList',
+      'factoryReset',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appSettingsModal\s*=\s*reactive\(\{[\s\S]*get showSettings\(\)[\s\S]*factoryReset[\s\S]*\}\);/,
@@ -47,14 +55,15 @@ test('Settings modal shell state owns refs, computed values, and action pass-thr
   };
   const refs = makeBucket();
   const state = makeBucket();
-  const computedState = makeBucket();
-  const actions = makeBucket();
+  const helpers = makeBucket();
   const ctx = createSettingsModalShellState({
     reactive: (value) => value,
-    refs,
-    state,
-    computedState,
-    actions,
+    resolve: (path) => {
+      const [bucket, ...rest] = path.split('.');
+      let node = { refs, state, helpers }[bucket];
+      for (const seg of rest) node = node?.[seg];
+      return node;
+    },
   });
 
   // 可写 ref（v-model）
@@ -65,13 +74,13 @@ test('Settings modal shell state owns refs, computed values, and action pass-thr
     assert.equal(refs[key].value, sentinel, `${key} should write back to the ref`);
   }
   // 直传：reactive Set 不按 ref 解包
-  assert.equal(ctx.settingsExpandedGroups, state.settingsExpandedGroups);
+  assert.equal(ctx.settingsExpandedGroups, refs.settingsExpandedGroups);
   // computed 只读
-  assert.equal(ctx.allSettingsGrouped, computedState.allSettingsGrouped.value);
+  assert.equal(ctx.allSettingsGrouped, helpers.allSettingsGrouped.value);
   assert.equal(Object.getOwnPropertyDescriptor(ctx, 'allSettingsGrouped').set, undefined);
-  // action 透传
-  assert.equal(ctx.clearSettingsList, actions.clearSettingsList);
-  assert.equal(ctx.factoryReset, actions.factoryReset);
+  // action 透传（settingsHandlers 桶 + 顶层 helpers）
+  assert.equal(ctx.clearSettingsList, helpers.settingsHandlers.clearSettingsList);
+  assert.equal(ctx.factoryReset, helpers.factoryReset);
 });
 
 test('Settings modal shell state fails clearly without Vue reactive', () => {

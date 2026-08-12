@@ -1,41 +1,26 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createMobileTaskInputShellState = defineShellState('createMobileTaskInputShellState', ({
-    refs,
-    state,
-    computedState,
-    actions,
-}) => {
-    const {
-        showMobileTaskInput,
-        activeDropdown,
-        dropdownSearch,
-        isMobile,
-    } = refs;
-    return {
-        reads: {
-            activeDropdown,
-            filteredOptions: computedState.filteredOptions,
-            isMobile,
-        },
-        models: {
-            showMobileTaskInput,
-            dropdownSearch,
-        },
-        raw: {
-            newItem: () => state.newItem,
-            dropdownExpandedGroups: () => state.dropdownExpandedGroups,
-        },
-        values: {
-            getGroupColor: actions.getGroupColor,
-            getNameById: actions.getNameById,
-            getGroupedOptions: actions.getGroupedOptions,
-            toggleDropdown: actions.toggleDropdown,
-            toggleDropdownGroup: actions.toggleDropdownGroup,
-            selectOption: actions.selectOption,
-            openQuickAdd: actions.openQuickAdd,
-            openDurationPicker: actions.openDurationPicker,
-            addItemToPool: actions.addItemToPool,
-        },
-    };
+export const createMobileTaskInputShellState = defineShellState('createMobileTaskInputShellState', {
+    reads: [
+        'refs.activeDropdown',
+        'helpers.filteredOptions',
+        'refs.isMobile',
+    ],
+    models: [
+        'refs.showMobileTaskInput',
+        'helpers.dropdownSearch',
+    ],
+    values: [
+        'refs.newItem',
+        'helpers.dropdownExpandedGroups',
+        'helpers.getGroupColor',
+        'helpers.getNameById',
+        'helpers.getGroupedOptions',
+        'helpers.toggleDropdown',
+        'helpers.toggleDropdownGroup',
+        'helpers.selectOption',
+        'helpers.openQuickAdd',
+        'helpers.openDurationPicker',
+        'helpers.addItemToPool',
+    ],
 });

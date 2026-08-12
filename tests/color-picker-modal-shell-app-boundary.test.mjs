@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,17 @@ test('app bootstrap creates Color Picker modal ctx through a focused state facto
     /const\s+\{[\s\S]*\bcreateRootColorPickerModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Color Picker modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appColorPickerModal\s*=\s*createRootColorPickerModalShellState\(\{(?=[\s\S]*showColorPickerModal)(?=[\s\S]*presetColors)(?=[\s\S]*tempColor)(?=[\s\S]*resetColorPicker)(?=[\s\S]*saveColorPicker)[\s\S]*\}\);/,
-    'app.js should create the Color Picker modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appColorPickerModal',
+    factoryName: 'createRootColorPickerModalShellState',
+    dependencies: [
+      'showColorPickerModal',
+      'presetColors',
+      'tempColor',
+      'resetColorPicker',
+      'saveColorPicker',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appColorPickerModal\s*=\s*reactive\(\{[\s\S]*showColorPickerModal[\s\S]*presetColors[\s\S]*tempColor[\s\S]*resetColorPicker[\s\S]*saveColorPicker[\s\S]*\}\);/,

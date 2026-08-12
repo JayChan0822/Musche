@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appMainContentComponent,
   appScript,
@@ -23,11 +24,18 @@ test('app bootstrap creates main content shell ctx through a focused state facto
     /const\s+\{[\s\S]*\bcreateRootMainContentShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the main content shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appMainContent\s*=\s*createRootMainContentShellState\(\{[\s\S]*currentDateLabel[\s\S]*tasksByDateMap[\s\S]*handleInfiniteScroll[\s\S]*dropToSchedule[\s\S]*initMobileResize[\s\S]*setMonthRef[\s\S]*\}\);/,
-    'app.js should create the main content ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appMainContent',
+    factoryName: 'createRootMainContentShellState',
+    dependencies: [
+      'currentDateLabel',
+      'tasksByDateMap',
+      'handleInfiniteScroll',
+      'dropToSchedule',
+      'initMobileResize',
+      'setMonthRef',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appMainContent\s*=\s*reactive\(\{[\s\S]*get currentDateLabel\(\)[\s\S]*setMonthRef[\s\S]*\}\);/,

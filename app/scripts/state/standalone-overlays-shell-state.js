@@ -1,15 +1,9 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createStandaloneOverlaysShellState = defineShellState('createStandaloneOverlaysShellState', ({
-    appSettingsModal,
-    appTrackListModal,
-    appMobileTaskInput,
-}) => {
-    return {
-        values: {
-            appSettingsModal,
-            appTrackListModal,
-            appMobileTaskInput,
-        },
-    };
+export const createStandaloneOverlaysShellState = defineShellState('createStandaloneOverlaysShellState', {
+    values: [
+        'shells.appSettingsModal',
+        'shells.appTrackListModal',
+        'shells.appMobileTaskInput',
+    ],
 });

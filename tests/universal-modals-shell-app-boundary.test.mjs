@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -23,11 +24,14 @@ test('app bootstrap creates universal modal group ctx through a focused state fa
     /const\s+\{[\s\S]*\bcreateRootUniversalModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the universal modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appUniversalModalsShell\s*=\s*createRootUniversalModalsShellState\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
-    'app.js should create the universal modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appUniversalModalsShell',
+    factoryName: 'createRootUniversalModalsShellState',
+    dependencies: [
+      'appInputModal',
+      'appConfirmModal',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appUniversalModalsShell\s*=\s*reactive\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
@@ -40,8 +44,9 @@ test('universal modal group ctx preserves child modal contexts', () => {
   const appConfirmModal = { name: 'confirm' };
   const ctx = createUniversalModalsShellState({
     reactive: (value) => value,
-    appInputModal,
-    appConfirmModal,
+    resolve: (path) => ({
+      shells: { appInputModal, appConfirmModal },
+    }[path.split('.')[0]][path.split('.').slice(1).join('.')]),
   });
 
   assert.equal(ctx.appInputModal, appInputModal);

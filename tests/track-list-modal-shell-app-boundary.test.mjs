@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,22 @@ test('app bootstrap creates Track List modal ctx through a focused state factory
     /const\s+\{[\s\S]*\bcreateRootTrackListModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Track List modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appTrackListModal\s*=\s*createRootTrackListModalShellState\(\{(?=[\s\S]*showTrackList)(?=[\s\S]*trackListData)(?=[\s\S]*trackListSearchQuery)(?=[\s\S]*trackListContainerRef)(?=[\s\S]*draggingSectionIndex)(?=[\s\S]*sidebarTab)(?=[\s\S]*openRecInfoModal)(?=[\s\S]*deleteTrackFromList)(?=[\s\S]*openSplitSlider)(?=[\s\S]*deleteCurrentSchedule)[\s\S]*\}\);/,
-    'app.js should create the Track List modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appTrackListModal',
+    factoryName: 'createRootTrackListModalShellState',
+    dependencies: [
+      'showTrackList',
+      'trackListData',
+      'trackListSearchQuery',
+      'trackListContainerRef',
+      'draggingSectionIndex',
+      'sidebarTab',
+      'openRecInfoModal',
+      'deleteTrackFromList',
+      'openSplitSlider',
+      'deleteCurrentSchedule',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appTrackListModal\s*=\s*reactive\(\{[\s\S]*showTrackList[\s\S]*trackListData[\s\S]*trackListSearchQuery[\s\S]*trackListContainerRef[\s\S]*draggingSectionIndex[\s\S]*openRecInfoModal[\s\S]*deleteTrackFromList[\s\S]*openSplitSlider[\s\S]*deleteCurrentSchedule[\s\S]*\}\);/,

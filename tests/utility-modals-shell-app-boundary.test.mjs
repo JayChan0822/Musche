@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,14 @@ test('app bootstrap creates utility modal group ctx through a focused state fact
     /const\s+\{[\s\S]*\bcreateRootUtilityModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the utility modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appUtilityModalsShell\s*=\s*createRootUtilityModalsShellState\(\{[\s\S]*appQuickAddModal[\s\S]*appImportModal[\s\S]*\}\);/,
-    'app.js should create the utility modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appUtilityModalsShell',
+    factoryName: 'createRootUtilityModalsShellState',
+    dependencies: [
+      'appQuickAddModal',
+      'appImportModal',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appUtilityModalsShell\s*=\s*reactive\(\{[\s\S]*appQuickAddModal[\s\S]*appImportModal[\s\S]*\}\);/,

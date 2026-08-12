@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,18 @@ test('app bootstrap creates header shell ctx through a focused state factory', (
     /const\s+\{[\s\S]*\bcreateRootHeaderShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the header shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appHeader\s*=\s*createRootHeaderShellState\(\{[\s\S]*showMobileMenu[\s\S]*themeMode[\s\S]*globalSearchQuery[\s\S]*tempNickname[\s\S]*openSettings[\s\S]*handleMidiFile[\s\S]*\}\);/,
-    'app.js should create the header ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appHeader',
+    factoryName: 'createRootHeaderShellState',
+    dependencies: [
+      'showMobileMenu',
+      'themeMode',
+      'globalSearchQuery',
+      'tempNickname',
+      'openSettings',
+      'handleMidiFile',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appHeader\s*=\s*reactive\(\{[\s\S]*get showMobileMenu\(\)[\s\S]*handleMidiFile[\s\S]*\}\);/,

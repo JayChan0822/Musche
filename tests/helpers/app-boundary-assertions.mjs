@@ -333,6 +333,73 @@ export const appRootAsyncModals = readOptionalFixture(appRootAsyncModalsPath);
 export const appDurationPickerComponent = readOptionalFixture(appDurationPickerComponentPath);
 export const appSplitModalComponent = readOptionalFixture(appSplitModalComponentPath);
 
+// 根 ctx 名 → 声明其字段清单的 shell state 模块。字段清单只写在 state 层的依赖声明里，
+// wiring 只负责创建，所以两侧要分别断言。
+export const shellStateModuleFiles = {
+  appHeader: 'header-shell-state.js',
+  appSidebar: 'sidebar-shell-state.js',
+  appMainContent: 'main-content-shell-state.js',
+  appMobileControls: 'mobile-controls-shell-state.js',
+  appSettingsModal: 'settings-modal-shell-state.js',
+  appTrackListModal: 'track-list-modal-shell-state.js',
+  appMobileTaskInput: 'mobile-task-input-shell-state.js',
+  appStandaloneOverlaysShell: 'standalone-overlays-shell-state.js',
+  appEditModal: 'edit-modal-shell-state.js',
+  appSplitModal: 'split-modal-shell-state.js',
+  appTaskActionModalsShell: 'task-action-modals-shell-state.js',
+  appAuthModal: 'auth-modal-shell-state.js',
+  appCropModal: 'crop-modal-shell-state.js',
+  appAccountModalsShell: 'account-modals-shell-state.js',
+  appQuickAddModal: 'quick-add-modal-shell-state.js',
+  appImportModal: 'import-modal-shell-state.js',
+  appUtilityModalsShell: 'utility-modals-shell-state.js',
+  appInputModal: 'input-modal-shell-state.js',
+  appConfirmModal: 'confirm-modal-shell-state.js',
+  appUniversalModalsShell: 'universal-modals-shell-state.js',
+  appColorPickerModal: 'color-picker-modal-shell-state.js',
+  appDurationPicker: 'duration-picker-modal-shell-state.js',
+  appPickerModalsShell: 'picker-modals-shell-state.js',
+  appExportModal: 'export-modal-shell-state.js',
+  appCreditModal: 'credit-modal-shell-state.js',
+  appExportCreditModalsShell: 'export-credit-modals-shell-state.js',
+  appMidiManagerModal: 'midi-manager-modal-shell-state.js',
+  appMidiImportModal: 'midi-import-modal-shell-state.js',
+  appCsvImportModal: 'csv-import-modal-shell-state.js',
+  appMidiCsvImportModalsShell: 'midi-csv-import-modals-shell-state.js',
+  appProjectInfoModal: 'project-info-modal-shell-state.js',
+  appRecInfoModal: 'rec-info-modal-shell-state.js',
+  appMetadataInfoModalsShell: 'metadata-info-modals-shell-state.js',
+};
+
+export function readShellStateModule(ctxName) {
+  const file = shellStateModuleFiles[ctxName];
+  assert.ok(file, `unknown root shell ctx ${ctxName}`);
+  return readFixture(`app/scripts/state/${file}`);
+}
+
+// 断言某个根 ctx：wiring 只创建、不再抄写字段；字段清单落在对应 shell state 的依赖声明里。
+export function assertRootShellCtx({ ctxName, factoryName, dependencies = [], label }) {
+  const ctxLabel = label || ctxName;
+  assert.match(
+    appRootContextWiringModule,
+    new RegExp(`shells\\.${ctxName}\\s*=\\s*factories\\.${factoryName}\\(options\\);`),
+    `app root context wiring must create the ${ctxLabel} ctx through the bound ${factoryName} factory`,
+  );
+  const shellStateModule = readShellStateModule(ctxName);
+  assert.match(
+    shellStateModule,
+    new RegExp(`defineShellState\\('${factoryName.replace(/^createRoot/, 'create')}',`),
+    `${ctxLabel} shell state must declare its ctx through defineShellState`,
+  );
+  for (const dependency of dependencies) {
+    assert.match(
+      shellStateModule,
+      new RegExp(`'[\\w.]*\\b${dependency}'`),
+      `${ctxLabel} shell state must declare the ${dependency} dependency`,
+    );
+  }
+}
+
 function escapedFeaturePath(path) {
   return path.replaceAll('/', '\\/');
 }

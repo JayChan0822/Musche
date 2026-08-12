@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,15 @@ test('app bootstrap creates MIDI/CSV import modal group ctx through a focused st
     /const\s+\{[\s\S]*\bcreateRootMidiCsvImportModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the MIDI/CSV import modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appMidiCsvImportModalsShell\s*=\s*createRootMidiCsvImportModalsShellState\(\{[\s\S]*appMidiManagerModal[\s\S]*appMidiImportModal[\s\S]*appCsvImportModal[\s\S]*\}\);/,
-    'app.js should create the MIDI/CSV import modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appMidiCsvImportModalsShell',
+    factoryName: 'createRootMidiCsvImportModalsShellState',
+    dependencies: [
+      'appMidiManagerModal',
+      'appMidiImportModal',
+      'appCsvImportModal',
+    ],
+  });
   assert.match(
     appStateFactoriesModule,
     /import \{ createMidiImportModalShellState \} from '\.\.\/state\/midi-import-modal-shell-state\.js';/,
@@ -42,11 +47,19 @@ test('app bootstrap creates MIDI/CSV import modal group ctx through a focused st
     /const\s+\{[\s\S]*\bcreateRootMidiImportModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the MIDI import modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appMidiImportModal\s*=\s*createRootMidiImportModalShellState\(\{(?=[\s\S]*showMidiImportModal)(?=[\s\S]*midiBpm)(?=[\s\S]*midiViewMode)(?=[\s\S]*midiGroupData)(?=[\s\S]*currentMidiDisplayList)(?=[\s\S]*confirmMidiImport)(?=[\s\S]*selectImportGroup)[\s\S]*\}\);/,
-    'app.js should create the MIDI import modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appMidiImportModal',
+    factoryName: 'createRootMidiImportModalShellState',
+    dependencies: [
+      'showMidiImportModal',
+      'midiBpm',
+      'midiViewMode',
+      'midiGroupData',
+      'currentMidiDisplayList',
+      'confirmMidiImport',
+      'selectImportGroup',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appMidiImportModal\s*=\s*reactive\(\{[\s\S]*get showMidiImportModal\(\)[\s\S]*selectImportGroup[\s\S]*\}\);/,

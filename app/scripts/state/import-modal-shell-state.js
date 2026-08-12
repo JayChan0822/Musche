@@ -1,18 +1,10 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createImportModalShellState = defineShellState('createImportModalShellState', ({
-    refs,
-    actions,
-}) => {
-    const {
-        showImportModal,
-    } = refs;
-    return {
-        models: {
-            showImportModal,
-        },
-        values: {
-            triggerFileSelect: actions.triggerFileSelect,
-        },
-    };
+export const createImportModalShellState = defineShellState('createImportModalShellState', {
+    models: [
+        'refs.showImportModal',
+    ],
+    values: [
+        'helpers.dataIoHandlers.triggerFileSelect',
+    ],
 });

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,25 @@ test('app bootstrap creates CSV Import modal ctx through a focused state factory
     /const\s+\{[\s\S]*\bcreateRootCsvImportModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the CSV Import modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appCsvImportModal\s*=\s*createRootCsvImportModalShellState\(\{(?=[\s\S]*showCsvImportModal)(?=[\s\S]*activeImportTab)(?=[\s\S]*csvSearchQuery)(?=[\s\S]*csvImportConfig)(?=[\s\S]*csvImportData)(?=[\s\S]*groupedCsvData)(?=[\s\S]*collapsedProjects)(?=[\s\S]*refreshCsvStatus)(?=[\s\S]*toggleAllRows)(?=[\s\S]*toggleProjectCollapse)(?=[\s\S]*isGroupSelected)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*confirmCsvImport)[\s\S]*\}\);/,
-    'app.js should create the CSV Import modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appCsvImportModal',
+    factoryName: 'createRootCsvImportModalShellState',
+    dependencies: [
+      'showCsvImportModal',
+      'activeImportTab',
+      'csvSearchQuery',
+      'csvImportConfig',
+      'csvImportData',
+      'groupedCsvData',
+      'collapsedProjects',
+      'refreshCsvStatus',
+      'toggleAllRows',
+      'toggleProjectCollapse',
+      'isGroupSelected',
+      'toggleGroupSelection',
+      'confirmCsvImport',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appCsvImportModal\s*=\s*reactive\(\{[\s\S]*showCsvImportModal[\s\S]*activeImportTab[\s\S]*csvSearchQuery[\s\S]*csvImportConfig[\s\S]*csvImportData[\s\S]*groupedCsvData[\s\S]*collapsedProjects[\s\S]*refreshCsvStatus[\s\S]*toggleAllRows[\s\S]*toggleProjectCollapse[\s\S]*isGroupSelected[\s\S]*toggleGroupSelection[\s\S]*confirmCsvImport[\s\S]*\}\);/,

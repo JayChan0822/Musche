@@ -48,7 +48,7 @@ test('app bootstrap only consumes Vue runtime helpers it calls directly', () => 
   );
   assert.match(
     appRootContextWiringModule,
-    /const\s+\{ appRootShell,\s*appRootOverlaysShell \}\s*=\s*createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);/,
+    /const\s+\{ appRootShell,\s*appRootOverlaysShell \}\s*=\s*factories\.createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);/,
     'app.js should create top-level root shell wrappers through the bound root shell state factory',
   );
 });

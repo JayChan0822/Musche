@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,15 @@ test('app bootstrap creates standalone overlays group ctx through a focused stat
     /const\s+\{[\s\S]*\bcreateRootStandaloneOverlaysShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the standalone overlays group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appStandaloneOverlaysShell\s*=\s*createRootStandaloneOverlaysShellState\(\{[\s\S]*appSettingsModal[\s\S]*appTrackListModal[\s\S]*appMobileTaskInput[\s\S]*\}\);/,
-    'app.js should create the standalone overlays group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appStandaloneOverlaysShell',
+    factoryName: 'createRootStandaloneOverlaysShellState',
+    dependencies: [
+      'appSettingsModal',
+      'appTrackListModal',
+      'appMobileTaskInput',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appStandaloneOverlaysShell\s*=\s*reactive\(\{[\s\S]*appSettingsModal[\s\S]*appTrackListModal[\s\S]*appMobileTaskInput[\s\S]*\}\);/,

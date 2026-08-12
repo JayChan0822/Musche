@@ -1,13 +1,8 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createTaskActionModalsShellState = defineShellState('createTaskActionModalsShellState', ({
-    appEditModal,
-    appSplitModal,
-}) => {
-    return {
-        values: {
-            appEditModal,
-            appSplitModal,
-        },
-    };
+export const createTaskActionModalsShellState = defineShellState('createTaskActionModalsShellState', {
+    values: [
+        'shells.appEditModal',
+        'shells.appSplitModal',
+    ],
 });

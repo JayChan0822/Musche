@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import {
     appLazyFeatureWiringsModule,
+    assertRootShellCtx,
+    shellStateModuleFiles,
     appRootContextWiringModule,
     assertAppDependenciesRegistry,
     assertAppBootstrapServicesRegistry,
@@ -1169,7 +1171,7 @@ assert.match(
 );
 assert.match(
     appRootContextWiringModule,
-    /const\s+\{\s*appRootShell,\s*appRootOverlaysShell\s*\}\s*=\s*createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader,[\s\S]*appSidebar,[\s\S]*appMainContent,[\s\S]*appMobileControls,[\s\S]*appStandaloneOverlaysShell,[\s\S]*appTaskActionModalsShell,[\s\S]*appAccountModalsShell,[\s\S]*appUtilityModalsShell,[\s\S]*appUniversalModalsShell,[\s\S]*appPickerModalsShell,[\s\S]*appExportCreditModalsShell,[\s\S]*appMidiCsvImportModalsShell,[\s\S]*appMetadataInfoModalsShell,[\s\S]*\}\);/,
+    /const\s+\{\s*appRootShell,\s*appRootOverlaysShell\s*\}\s*=\s*factories\.createRootShellState\(\{(?![\s\S]*\breactive\b)[\s\S]*appHeader,[\s\S]*appSidebar,[\s\S]*appMainContent,[\s\S]*appMobileControls,[\s\S]*appStandaloneOverlaysShell,[\s\S]*appTaskActionModalsShell,[\s\S]*appAccountModalsShell,[\s\S]*appUtilityModalsShell,[\s\S]*appUniversalModalsShell,[\s\S]*appPickerModalsShell,[\s\S]*appExportCreditModalsShell,[\s\S]*appMidiCsvImportModalsShell,[\s\S]*appMetadataInfoModalsShell,[\s\S]*\}\);/,
     'app.js must create the two root shell contexts through the bound root shell state factory'
 );
 assert.doesNotMatch(
@@ -1182,12 +1184,25 @@ assert.doesNotMatch(
     /\blocals\b/,
     'app-root-context-wiring must read template aliases from assembly.refs/assembly.helpers instead of a locals parameter'
 );
+// 根 ctx 装配层不得再抄一份字段名单：字段只声明在 state/*-shell-state.js 的依赖清单里，
+// wiring 只提供按路径惰性取值的 resolve（懒加载 feature 事后换掉的引用才能进到 ctx）。
+assert.doesNotMatch(
+    appRootContextWiringModule,
+    /const\s*\{[^{}]*\}\s*=\s*assembly\.(?:refs|helpers|state|utils);/,
+    'app-root-context-wiring must not destructure assembly aliases up front; shell states declare their own dependency paths'
+);
+assert.match(
+    appRootContextWiringModule,
+    /const resolve\s*=\s*createDependencyResolver\(\{[\s\S]*refs:\s*assembly\.refs,[\s\S]*state:\s*assembly\.state,[\s\S]*helpers:\s*assembly\.helpers,[\s\S]*utils:\s*assembly\.utils,[\s\S]*shells,[\s\S]*\}\);/,
+    'app-root-context-wiring must resolve shell dependencies against the live assembly buckets'
+);
+assert.match(
+    appRootContextWiringModule,
+    /function createDependencyResolver\(sources\)\s*\{[\s\S]*return function resolve\(path\)\s*\{[\s\S]*current\s*=\s*current\[segments\[index\]\];[\s\S]*\}/,
+    'the root ctx dependency resolver must walk the path on every access instead of caching resolved values'
+);
 {
-    const wiringHelpersDestructure = appRootContextWiringModule.match(/const\s*\{([^{}]*)\}\s*=\s*assembly\.helpers;/);
-    assert.ok(
-        wiringHelpersDestructure,
-        'app-root-context-wiring must destructure template aliases from assembly.helpers'
-    );
+    // shell state 声明的每个 'helpers.x' 依赖，app.js 都必须真的发布到 assembly.helpers
     const publishedHelperKeys = new Set();
     for (const block of appScript.matchAll(/Object\.assign\(assembly\.helpers,\s*\{([\s\S]*?)\}\s*\);/g)) {
         for (const entry of block[1].split(',')) {
@@ -1195,12 +1210,24 @@ assert.doesNotMatch(
             if (key) publishedHelperKeys.add(key[1]);
         }
     }
-    for (const [alias] of wiringHelpersDestructure[1].matchAll(/[A-Za-z_$][\w$]*/g)) {
-        assert.ok(
-            publishedHelperKeys.has(alias),
-            `app-root-context-wiring destructures ${alias} from assembly.helpers, so app.js must publish it via Object.assign(assembly.helpers, ...)`
-        );
+    for (const key of ['onBeforeLeave', 'mobileTouchHandlers', 'settingsHandlers']) {
+        assert.ok(publishedHelperKeys.has(key), `app.js must publish ${key} through Object.assign(assembly.helpers, ...)`);
     }
+    let declaredHelperDependencies = 0;
+    for (const [ctxName, file] of Object.entries(shellStateModuleFiles)) {
+        const shellStateModule = readFixture(`app/scripts/state/${file}`);
+        for (const [, alias] of shellStateModule.matchAll(/'helpers\.([A-Za-z_$][\w$]*)/g)) {
+            declaredHelperDependencies += 1;
+            assert.ok(
+                publishedHelperKeys.has(alias),
+                `${ctxName} declares the helpers.${alias} dependency, so app.js must publish it via Object.assign(assembly.helpers, ...)`
+            );
+        }
+    }
+    assert.ok(
+        declaredHelperDependencies > 100,
+        'shell states must keep declaring their assembly.helpers dependencies by path'
+    );
 }
 assert.doesNotMatch(
     appScript,
@@ -1275,11 +1302,17 @@ assert.match(
     /function createRootHeaderShellState\(options\)\s*\{[\s\S]*return createHeaderShellState\(\{[\s\S]*reactive,[\s\S]*\.\.\.options,[\s\S]*\}\);[\s\S]*\}/,
     'app state factories should bind Vue reactive for the header shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appHeader\s*=\s*createRootHeaderShellState\(\{[\s\S]*showMobileMenu[\s\S]*themeMode[\s\S]*getThemeLabel[\s\S]*openSettings[\s\S]*toggleTheme[\s\S]*\}\);/,
-    'app.js must expose header theme controls through the focused appHeader ctx factory without unused settings state'
-);
+assertRootShellCtx({
+    ctxName: 'appHeader',
+    factoryName: 'createRootHeaderShellState',
+    dependencies: [
+        'showMobileMenu',
+        'themeMode',
+        'getThemeLabel',
+        'openSettings',
+        'toggleTheme',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appHeader\s*=\s*(?:reactive|createRootHeaderShellState)\(\{[\s\S]*showSettings[\s\S]*\}\);/,
@@ -1460,25 +1493,35 @@ function createShellSourceMock() {
         },
     });
 }
+// 按 'bucket.key.sub' 路径从 mock sources 惰性取值，模拟 app-root-context-wiring 的 resolve。
+function createPathResolver(sources) {
+    return (path) => {
+        const [bucket, ...rest] = path.split('.');
+        let node = sources[bucket];
+        for (const seg of rest) {
+            node = node?.[seg];
+        }
+        return node;
+    };
+}
 function instantiateShellState(factory, bucketNames) {
     const sources = {};
     for (const name of bucketNames) sources[name] = createShellSourceMock();
-    return { ctx: factory({ reactive: (value) => value, ...sources }), sources };
+    return { ctx: factory({ reactive: (value) => value, resolve: createPathResolver(sources) }), sources };
 }
 
 {
     const { createSettingsModalShellState } = await import('../app/scripts/state/settings-modal-shell-state.js');
+    const refs = createShellSourceMock();
     const state = createShellSourceMock();
+    const helpers = createShellSourceMock();
     const ctx = createSettingsModalShellState({
         reactive: (value) => value,
-        refs: createShellSourceMock(),
-        state,
-        computedState: createShellSourceMock(),
-        actions: createShellSourceMock(),
+        resolve: createPathResolver({ refs, state, helpers }),
     });
     assert.equal(
         ctx.settingsExpandedGroups,
-        state.settingsExpandedGroups,
+        refs.settingsExpandedGroups,
         'settings modal shell state must pass the reactive settingsExpandedGroups Set without unwrapping it as a ref'
     );
 }
@@ -1513,11 +1556,16 @@ assert.match(
     /import \{ AppMobileControls \} from '\.\/app-mobile-controls\.js';/,
     'app-root-shell-components must import the app-mobile-controls component locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMobileControls\s*=\s*createRootMobileControlsShellState\(\{[\s\S]*globalSearchQuery[\s\S]*isSearchFocused[\s\S]*mobileTab[\s\S]*showMobileTaskInput[\s\S]*\}\);/,
-    'app.js must expose mobile controls state through a small appMobileControls ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appMobileControls',
+    factoryName: 'createRootMobileControlsShellState',
+    dependencies: [
+        'globalSearchQuery',
+        'isSearchFocused',
+        'mobileTab',
+        'showMobileTaskInput',
+    ],
+});
 assertNoRootSetupReturnFields({
     fields: [
         'isMobile',
@@ -1572,11 +1620,28 @@ assert.match(
     /import \{ createMobileTaskInputShellState \} from '\.\.\/state\/mobile-task-input-shell-state\.js';[\s\S]*function createRootMobileTaskInputShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the mobile task input shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMobileTaskInput\s*=\s*createRootMobileTaskInputShellState\(\{(?=[\s\S]*showMobileTaskInput)(?=[\s\S]*newItem)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*dropdownExpandedGroups)(?=[\s\S]*filteredOptions)(?=[\s\S]*isMobile)(?=[\s\S]*getGroupColor)(?=[\s\S]*getNameById)(?=[\s\S]*getGroupedOptions)(?=[\s\S]*toggleDropdown)(?=[\s\S]*toggleDropdownGroup)(?=[\s\S]*selectOption)(?=[\s\S]*openQuickAdd)(?=[\s\S]*openDurationPicker)(?=[\s\S]*addItemToPool)[\s\S]*\}\);/,
-    'app.js must expose mobile task input state and actions through a focused appMobileTaskInput ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appMobileTaskInput',
+    factoryName: 'createRootMobileTaskInputShellState',
+    dependencies: [
+        'showMobileTaskInput',
+        'newItem',
+        'activeDropdown',
+        'dropdownSearch',
+        'dropdownExpandedGroups',
+        'filteredOptions',
+        'isMobile',
+        'getGroupColor',
+        'getNameById',
+        'getGroupedOptions',
+        'toggleDropdown',
+        'toggleDropdownGroup',
+        'selectOption',
+        'openQuickAdd',
+        'openDurationPicker',
+        'addItemToPool',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appMobileTaskInput\s*=\s*reactive\(\{[\s\S]*showMobileTaskInput[\s\S]*newItem[\s\S]*addItemToPool[\s\S]*\}\);/,
@@ -1648,11 +1713,14 @@ assert.match(
     /import \{ createExportCreditModalsShellState \} from '\.\.\/state\/export-credit-modals-shell-state\.js';[\s\S]*function createRootExportCreditModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the Export/Credit modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appExportCreditModalsShell\s*=\s*createRootExportCreditModalsShellState\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
-    'app.js must expose the Export/Credit modal group through one focused shell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appExportCreditModalsShell',
+    factoryName: 'createRootExportCreditModalsShellState',
+    dependencies: [
+        'appExportModal',
+        'appCreditModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appExportCreditModalsShell\s*=\s*reactive\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
@@ -1719,11 +1787,23 @@ assert.match(
     /import \{ createExportModalShellState \} from '\.\.\/state\/export-modal-shell-state\.js';[\s\S]*function createRootExportModalShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the Export modal ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appExportModal\s*=\s*createRootExportModalShellState\(\{[\s\S]*refs:[\s\S]*showExportModal[\s\S]*state:[\s\S]*exportFilter[\s\S]*computedState:[\s\S]*exportSessionOptions[\s\S]*filteredExportProjects[\s\S]*filteredExportMusicians[\s\S]*filteredExportInstruments[\s\S]*exportDateRange[\s\S]*exportPreviewCount[\s\S]*actions:[\s\S]*toggleFilterItem:[\s\S]*toggleFilterAll:[\s\S]*confirmExport:[\s\S]*\}\);/,
-    'app.js must expose Export modal state and actions through the focused Export modal ctx factory'
-);
+assertRootShellCtx({
+    ctxName: 'appExportModal',
+    factoryName: 'createRootExportModalShellState',
+    dependencies: [
+        'showExportModal',
+        'exportFilter',
+        'exportSessionOptions',
+        'filteredExportProjects',
+        'filteredExportMusicians',
+        'filteredExportInstruments',
+        'exportDateRange',
+        'exportPreviewCount',
+        'toggleFilterItem',
+        'toggleFilterAll',
+        'confirmExport',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appExportModal\s*=\s*reactive\(\{[\s\S]*showExportModal[\s\S]*exportFilter[\s\S]*exportSessionOptions[\s\S]*filteredExportProjects[\s\S]*filteredExportMusicians[\s\S]*filteredExportInstruments[\s\S]*exportDateRange[\s\S]*toggleFilterItem[\s\S]*toggleFilterAll[\s\S]*confirmExport[\s\S]*\}\);/,
@@ -1787,11 +1867,18 @@ assert.match(
     /appExportCreditModalComponents\s*=\s*\{[\s\S]*\bAppCreditModal\b[\s\S]*\}/,
     'app-export-credit-modal-components must register AppCreditModal locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appCreditModal\s*=\s*createRootCreditModalShellState\(\{(?=[\s\S]*showCreditModal)(?=[\s\S]*generatedCreditText)(?=[\s\S]*midiBpm)(?=[\s\S]*midiTimeSig)(?=[\s\S]*managingProject)(?=[\s\S]*copyCreditText)[\s\S]*\}\);/,
-    'app.js must expose Credit modal state and actions through a focused appCreditModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appCreditModal',
+    factoryName: 'createRootCreditModalShellState',
+    dependencies: [
+        'showCreditModal',
+        'generatedCreditText',
+        'midiBpm',
+        'midiTimeSig',
+        'managingProject',
+        'copyCreditText',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appCreditModal\s*=\s*reactive\(\{[\s\S]*showCreditModal[\s\S]*generatedCreditText[\s\S]*midiBpm[\s\S]*midiTimeSig[\s\S]*managingProject[\s\S]*copyCreditText[\s\S]*\}\);/,
@@ -1814,18 +1901,19 @@ assert.match(
         showCreditModal: { value: false },
         generatedCreditText: { value: 'initial credits' },
         managingProject: { value: { name: 'Project A' } },
-    };
-    const midiRefs = {
         midiBpm: { value: 120 },
         midiTimeSig: { value: [4, 4] },
     };
     const ctx = createCreditModalShellState({
         reactive: (value) => value,
-        refs,
-        midiRefs,
-        actions: {
-            copyCreditText: () => actions.push('copy'),
-        },
+        resolve: createPathResolver({
+            refs,
+            helpers: {
+                metadataModalHandlers: {
+                    copyCreditText: () => actions.push('copy'),
+                },
+            },
+        }),
     });
     assert.equal(ctx.showCreditModal, false, 'Credit modal ctx should expose modal visibility through a getter');
     assert.equal(ctx.generatedCreditText, 'initial credits', 'Credit modal ctx should expose generated text through a getter');
@@ -1839,7 +1927,7 @@ assert.match(
     ctx.copyCreditText();
     assert.deepEqual(actions, ['copy'], 'Credit modal ctx should pass through the copy action');
     assert.throws(
-        () => createCreditModalShellState({ refs, midiRefs, actions: {} }),
+        () => createCreditModalShellState({ refs }),
         /requires Vue reactive factory/,
         'Credit modal ctx factory should fail clearly when Vue reactive is missing'
     );
@@ -1906,11 +1994,15 @@ for (const importShellChildComponent of [
         `app.js root components should not register ${importShellChildComponent}; AppMidiCsvImportModalsShell owns it locally`
     );
 }
-assert.match(
-    appRootContextWiringModule,
-    /const appMidiCsvImportModalsShell\s*=\s*createRootMidiCsvImportModalsShellState\(\{[\s\S]*appMidiManagerModal[\s\S]*appMidiImportModal[\s\S]*appCsvImportModal[\s\S]*\}\);/,
-    'app.js must expose the MIDI/CSV import modal group through one focused shell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appMidiCsvImportModalsShell',
+    factoryName: 'createRootMidiCsvImportModalsShellState',
+    dependencies: [
+        'appMidiManagerModal',
+        'appMidiImportModal',
+        'appCsvImportModal',
+    ],
+});
 assert.match(
     appRootOverlaysShellComponent,
     /<app-midi-csv-import-modals-shell\b[^>]*><\/app-midi-csv-import-modals-shell>/,
@@ -1958,11 +2050,28 @@ assert.match(
     /appMidiCsvImportModalComponents\s*=\s*\{[\s\S]*\bAppMidiManagerModal\b[\s\S]*\}/,
     'app-midi-csv-import-modal-components must register AppMidiManagerModal locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMidiManagerModal\s*=\s*createRootMidiManagerModalShellState\(\{(?=[\s\S]*showMidiManager)(?=[\s\S]*managingProject)(?=[\s\S]*projectMidiGroups)(?=[\s\S]*midiManagerExpandedGroups)(?=[\s\S]*activeMidiGroupRow)(?=[\s\S]*midiGroupPos)(?=[\s\S]*midiGroupSearchQuery)(?=[\s\S]*filteredMidiGroups)(?=[\s\S]*settings)(?=[\s\S]*triggerMidiImportForProject)(?=[\s\S]*clearProjectMidi)(?=[\s\S]*toggleMidiManagerGroup)(?=[\s\S]*openMidiGroupDropdown)(?=[\s\S]*updateMidiDuration)(?=[\s\S]*removeMidiMapping)(?=[\s\S]*updateInstrumentGroup)[\s\S]*\}\);/,
-    'app.js must expose MIDI Manager modal state and actions through a focused appMidiManagerModal ctx'
-);
+assertRootShellCtx({
+    ctxName: 'appMidiManagerModal',
+    factoryName: 'createRootMidiManagerModalShellState',
+    dependencies: [
+        'showMidiManager',
+        'managingProject',
+        'projectMidiGroups',
+        'midiManagerExpandedGroups',
+        'activeMidiGroupRow',
+        'midiGroupPos',
+        'midiGroupSearchQuery',
+        'filteredMidiGroups',
+        'settings',
+        'triggerMidiImportForProject',
+        'clearProjectMidi',
+        'toggleMidiManagerGroup',
+        'openMidiGroupDropdown',
+        'updateMidiDuration',
+        'removeMidiMapping',
+        'updateInstrumentGroup',
+    ],
+});
 {
     const { createMidiManagerModalShellState } = await import('../app/scripts/state/midi-manager-modal-shell-state.js');
     const { ctx } = instantiateShellState(createMidiManagerModalShellState, ['refs', 'state', 'computedState', 'actions']);
@@ -2056,11 +2165,36 @@ assert.match(
     /appMidiCsvImportModalComponents\s*=\s*\{[\s\S]*\bAppMidiImportModal\b[\s\S]*\}/,
     'app-midi-csv-import-modal-components must register AppMidiImportModal locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMidiImportModal\s*=\s*createRootMidiImportModalShellState\(\{(?=[\s\S]*showMidiImportModal)(?=[\s\S]*midiBpm)(?=[\s\S]*managingProject)(?=[\s\S]*midiViewMode)(?=[\s\S]*midiImportData)(?=[\s\S]*midiGroupData)(?=[\s\S]*midiGroupExpanded)(?=[\s\S]*activeImportMenu)(?=[\s\S]*importMenuPos)(?=[\s\S]*importSearchQuery)(?=[\s\S]*availableInstrumentGroups)(?=[\s\S]*filteredImportOptions)(?=[\s\S]*currentMidiDisplayList)(?=[\s\S]*formatSecs)(?=[\s\S]*getNameById)(?=[\s\S]*getSmartName)(?=[\s\S]*openImportMenu)(?=[\s\S]*closeImportMenu)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*toggleMidiGroupExpand)(?=[\s\S]*confirmMidiImport)(?=[\s\S]*selectImportNewInst)(?=[\s\S]*selectImportInst)(?=[\s\S]*selectImportGroup)[\s\S]*\}\);/,
-    'app.js must expose MIDI Import modal state and actions through a focused appMidiImportModal ctx'
-);
+assertRootShellCtx({
+    ctxName: 'appMidiImportModal',
+    factoryName: 'createRootMidiImportModalShellState',
+    dependencies: [
+        'showMidiImportModal',
+        'midiBpm',
+        'managingProject',
+        'midiViewMode',
+        'midiImportData',
+        'midiGroupData',
+        'midiGroupExpanded',
+        'activeImportMenu',
+        'importMenuPos',
+        'importSearchQuery',
+        'availableInstrumentGroups',
+        'filteredImportOptions',
+        'currentMidiDisplayList',
+        'formatSecs',
+        'getNameById',
+        'getSmartName',
+        'openImportMenu',
+        'closeImportMenu',
+        'toggleGroupSelection',
+        'toggleMidiGroupExpand',
+        'confirmMidiImport',
+        'selectImportNewInst',
+        'selectImportInst',
+        'selectImportGroup',
+    ],
+});
 {
     const { createMidiImportModalShellState } = await import('../app/scripts/state/midi-import-modal-shell-state.js');
     const { ctx } = instantiateShellState(createMidiImportModalShellState, ['refs', 'state', 'computedState', 'actions', 'utils']);
@@ -2137,11 +2271,25 @@ assert.match(
     /appMidiCsvImportModalComponents\s*=\s*\{[\s\S]*\bAppCsvImportModal\b[\s\S]*\}/,
     'app-midi-csv-import-modal-components must register AppCsvImportModal locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appCsvImportModal\s*=\s*createRootCsvImportModalShellState\(\{(?=[\s\S]*showCsvImportModal)(?=[\s\S]*activeImportTab)(?=[\s\S]*csvSearchQuery)(?=[\s\S]*csvImportConfig)(?=[\s\S]*csvImportData)(?=[\s\S]*groupedCsvData)(?=[\s\S]*collapsedProjects)(?=[\s\S]*refreshCsvStatus)(?=[\s\S]*toggleAllRows)(?=[\s\S]*toggleProjectCollapse)(?=[\s\S]*isGroupSelected)(?=[\s\S]*toggleGroupSelection)(?=[\s\S]*confirmCsvImport)[\s\S]*\}\);/,
-    'app.js must expose CSV Import modal state and actions through a focused appCsvImportModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appCsvImportModal',
+    factoryName: 'createRootCsvImportModalShellState',
+    dependencies: [
+        'showCsvImportModal',
+        'activeImportTab',
+        'csvSearchQuery',
+        'csvImportConfig',
+        'csvImportData',
+        'groupedCsvData',
+        'collapsedProjects',
+        'refreshCsvStatus',
+        'toggleAllRows',
+        'toggleProjectCollapse',
+        'isGroupSelected',
+        'toggleGroupSelection',
+        'confirmCsvImport',
+    ],
+});
 assert.match(
     appMidiCsvImportModalsShellComponent,
     /<app-csv-import-modal\b[^>]*><\/app-csv-import-modal>/,
@@ -2234,11 +2382,15 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppExportCreditModalsShell\b[\s\S]*\bAppMidiCsvImportModalsShell\b[\s\S]*\bAppMetadataInfoModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppMetadataInfoModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appProjectInfoModal\s*=\s*createRootProjectInfoModalShellState\(\{(?=[\s\S]*showProjectInfoModal)(?=[\s\S]*projectInfoForm)(?=[\s\S]*saveProjectInfo)[\s\S]*\}\);/,
-    'app.js must expose Project Info modal state and actions through a focused appProjectInfoModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appProjectInfoModal',
+    factoryName: 'createRootProjectInfoModalShellState',
+    dependencies: [
+        'showProjectInfoModal',
+        'projectInfoForm',
+        'saveProjectInfo',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appProjectInfoModal\s*=\s*reactive\(\{[\s\S]*showProjectInfoModal[\s\S]*projectInfoForm[\s\S]*saveProjectInfo[\s\S]*\}\);/,
@@ -2249,11 +2401,21 @@ assert.match(
     /import \{ createProjectInfoModalShellState \} from '\.\.\/state\/project-info-modal-shell-state\.js';[\s\S]*function createRootProjectInfoModalShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app-state-factories must bind Vue reactive for the Project Info modal shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appRecInfoModal\s*=\s*createRootRecInfoModalShellState\(\{(?=[\s\S]*showRecInfoModal)(?=[\s\S]*sidebarTab)(?=[\s\S]*recInfoForm)(?=[\s\S]*activeRecDropdown)(?=[\s\S]*recDropdownSearch)(?=[\s\S]*filteredRecOptions)(?=[\s\S]*selectRecOption)(?=[\s\S]*createRecOption)(?=[\s\S]*saveRecInfo)[\s\S]*\}\);/,
-    'app.js must expose Rec Info modal state and actions through a focused appRecInfoModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appRecInfoModal',
+    factoryName: 'createRootRecInfoModalShellState',
+    dependencies: [
+        'showRecInfoModal',
+        'sidebarTab',
+        'recInfoForm',
+        'activeRecDropdown',
+        'recDropdownSearch',
+        'filteredRecOptions',
+        'selectRecOption',
+        'createRecOption',
+        'saveRecInfo',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appRecInfoModal\s*=\s*reactive\(\{[\s\S]*showRecInfoModal[\s\S]*sidebarTab[\s\S]*recInfoForm[\s\S]*activeRecDropdown[\s\S]*recDropdownSearch[\s\S]*filteredRecOptions[\s\S]*selectRecOption[\s\S]*createRecOption[\s\S]*saveRecInfo[\s\S]*\}\);/,
@@ -2264,11 +2426,14 @@ assert.match(
     /import \{ createRecInfoModalShellState \} from '\.\.\/state\/rec-info-modal-shell-state\.js';[\s\S]*function createRootRecInfoModalShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app-state-factories must bind Vue reactive for the Rec Info modal shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMetadataInfoModalsShell\s*=\s*createRootMetadataInfoModalsShellState\(\{[\s\S]*appProjectInfoModal[\s\S]*appRecInfoModal[\s\S]*\}\);/,
-    'app.js must expose Project/Recording Info modals through one focused appMetadataInfoModalsShell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appMetadataInfoModalsShell',
+    factoryName: 'createRootMetadataInfoModalsShellState',
+    dependencies: [
+        'appProjectInfoModal',
+        'appRecInfoModal',
+    ],
+});
 assert.match(
     appRootOverlaysShellComponent,
     /<app-metadata-info-modals-shell\b[^>]*><\/app-metadata-info-modals-shell>/,
@@ -2366,21 +2531,41 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppTaskActionModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppTaskActionModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appEditModal\s*=\s*createRootEditModalShellState\(\{(?=[\s\S]*showEditor)(?=[\s\S]*editingItem)(?=[\s\S]*editingSource)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*dropdownExpandedGroups)(?=[\s\S]*filteredOptions)(?=[\s\S]*isMobile)(?=[\s\S]*showOrchestrationField)(?=[\s\S]*parsedRoster)(?=[\s\S]*activeOrchPresets)(?=[\s\S]*isPercussionMode)(?=[\s\S]*percState)(?=[\s\S]*timeSlots)(?=[\s\S]*deleteEditingItem)(?=[\s\S]*saveEdit)[\s\S]*\}\);/,
-    'app.js must expose edit modal state and actions through a focused appEditModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appEditModal',
+    factoryName: 'createRootEditModalShellState',
+    dependencies: [
+        'showEditor',
+        'editingItem',
+        'editingSource',
+        'activeDropdown',
+        'dropdownSearch',
+        'dropdownExpandedGroups',
+        'filteredOptions',
+        'isMobile',
+        'showOrchestrationField',
+        'parsedRoster',
+        'activeOrchPresets',
+        'isPercussionMode',
+        'percState',
+        'timeSlots',
+        'deleteEditingItem',
+        'saveEdit',
+    ],
+});
 assert.match(
     appStateFactoriesModule,
     /import \{ createTaskActionModalsShellState \} from '\.\.\/state\/task-action-modals-shell-state\.js';[\s\S]*function createRootTaskActionModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the task action modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appTaskActionModalsShell\s*=\s*createRootTaskActionModalsShellState\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
-    'app.js must expose Edit/Split task action modals through one focused shell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appTaskActionModalsShell',
+    factoryName: 'createRootTaskActionModalsShellState',
+    dependencies: [
+        'appEditModal',
+        'appSplitModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appTaskActionModalsShell\s*=\s*reactive\(\{[\s\S]*appEditModal[\s\S]*appSplitModal[\s\S]*\}\);/,
@@ -2492,11 +2677,19 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppAccountModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppAccountModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appAuthModal\s*=\s*createRootAuthModalShellState\(\{(?=[\s\S]*showAuthModal)(?=[\s\S]*authForm)(?=[\s\S]*authLoading)(?=[\s\S]*authPasswordRef)(?=[\s\S]*handleLogin)(?=[\s\S]*handleRegister)(?=[\s\S]*handleResetPwd)[\s\S]*\}\);/,
-    'app.js must expose auth modal state and actions through a focused appAuthModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appAuthModal',
+    factoryName: 'createRootAuthModalShellState',
+    dependencies: [
+        'showAuthModal',
+        'authForm',
+        'authLoading',
+        'authPasswordRef',
+        'handleLogin',
+        'handleRegister',
+        'handleResetPwd',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appAuthModal\s*=\s*reactive\(\{[\s\S]*showAuthModal[\s\S]*authForm[\s\S]*authLoading[\s\S]*authPasswordRef[\s\S]*handleLogin[\s\S]*handleRegister[\s\S]*handleResetPwd[\s\S]*\}\);/,
@@ -2512,11 +2705,14 @@ assert.match(
     /import \{ createAccountModalsShellState \} from '\.\.\/state\/account-modals-shell-state\.js';[\s\S]*function createRootAccountModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the account modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appAccountModalsShell\s*=\s*createRootAccountModalsShellState\(\{[\s\S]*appAuthModal[\s\S]*appCropModal[\s\S]*\}\);/,
-    'app.js must expose Auth/Crop modals through one focused appAccountModalsShell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appAccountModalsShell',
+    factoryName: 'createRootAccountModalsShellState',
+    dependencies: [
+        'appAuthModal',
+        'appCropModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appAccountModalsShell\s*=\s*reactive\(\{[\s\S]*appAuthModal[\s\S]*appCropModal[\s\S]*\}\);/,
@@ -2599,11 +2795,18 @@ assert.match(
     /export const AppCropModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-crop-modal\.js'\), 'AppCropModal'\);/,
     'app-root-async-modals must register the low-frequency Crop modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appCropModal\s*=\s*createRootCropModalShellState\(\{(?=[\s\S]*showCropModal)(?=[\s\S]*cropImgSrc)(?=[\s\S]*cropImgRef)(?=[\s\S]*authLoading)(?=[\s\S]*cancelCrop)(?=[\s\S]*confirmCrop)[\s\S]*\}\);/,
-    'app.js must expose avatar crop modal state and actions through a focused appCropModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appCropModal',
+    factoryName: 'createRootCropModalShellState',
+    dependencies: [
+        'showCropModal',
+        'cropImgSrc',
+        'cropImgRef',
+        'authLoading',
+        'cancelCrop',
+        'confirmCrop',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appCropModal\s*=\s*reactive\(\{[\s\S]*showCropModal[\s\S]*cropImgSrc[\s\S]*cropImgRef[\s\S]*authLoading[\s\S]*cancelCrop[\s\S]*confirmCrop[\s\S]*\}\);/,
@@ -2661,11 +2864,22 @@ assert.match(
     /export const AppTrackListModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-track-list-modal\.js'\), 'AppTrackListModal'\);/,
     'app-root-async-modals must register the low-frequency Track List modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appTrackListModal\s*=\s*createRootTrackListModalShellState\(\{(?=[\s\S]*showTrackList)(?=[\s\S]*trackListData)(?=[\s\S]*trackListSearchQuery)(?=[\s\S]*trackListContainerRef)(?=[\s\S]*draggingSectionIndex)(?=[\s\S]*sidebarTab)(?=[\s\S]*openRecInfoModal)(?=[\s\S]*deleteTrackFromList)(?=[\s\S]*openSplitSlider)(?=[\s\S]*deleteCurrentSchedule)[\s\S]*\}\);/,
-    'app.js must expose Track List modal state and actions through a focused appTrackListModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appTrackListModal',
+    factoryName: 'createRootTrackListModalShellState',
+    dependencies: [
+        'showTrackList',
+        'trackListData',
+        'trackListSearchQuery',
+        'trackListContainerRef',
+        'draggingSectionIndex',
+        'sidebarTab',
+        'openRecInfoModal',
+        'deleteTrackFromList',
+        'openSplitSlider',
+        'deleteCurrentSchedule',
+    ],
+});
 for (const leakedRootReturnField of [
     'showTrackList',
     'trackListData',
@@ -2728,11 +2942,15 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppStandaloneOverlaysShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppStandaloneOverlaysShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appStandaloneOverlaysShell\s*=\s*createRootStandaloneOverlaysShellState\(\{[\s\S]*appSettingsModal[\s\S]*appTrackListModal[\s\S]*appMobileTaskInput[\s\S]*\}\);/,
-    'app.js must expose Settings/Track List/Mobile Task Input through one focused appStandaloneOverlaysShell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appStandaloneOverlaysShell',
+    factoryName: 'createRootStandaloneOverlaysShellState',
+    dependencies: [
+        'appSettingsModal',
+        'appTrackListModal',
+        'appMobileTaskInput',
+    ],
+});
 assert.match(
     appRootOverlaysShellComponent,
     /<app-standalone-overlays-shell\b[^>]*:ctx="ctx\.appStandaloneOverlaysShell"[^>]*><\/app-standalone-overlays-shell>/,
@@ -2813,11 +3031,18 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppUtilityModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppUtilityModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appQuickAddModal\s*=\s*createRootQuickAddModalShellState\(\{(?=[\s\S]*showQuickAddModal)(?=[\s\S]*quickAddType)(?=[\s\S]*quickAddForm)(?=[\s\S]*showGroupSuggestions)(?=[\s\S]*currentQuickAddGroups)(?=[\s\S]*confirmQuickAdd)[\s\S]*\}\);/,
-    'app.js must expose Quick Add modal state and actions through a focused appQuickAddModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appQuickAddModal',
+    factoryName: 'createRootQuickAddModalShellState',
+    dependencies: [
+        'showQuickAddModal',
+        'quickAddType',
+        'quickAddForm',
+        'showGroupSuggestions',
+        'currentQuickAddGroups',
+        'confirmQuickAdd',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appQuickAddModal\s*=\s*reactive\(\{[\s\S]*showQuickAddModal[\s\S]*quickAddType[\s\S]*quickAddForm[\s\S]*showGroupSuggestions[\s\S]*currentQuickAddGroups[\s\S]*confirmQuickAdd[\s\S]*\}\);/,
@@ -2838,11 +3063,14 @@ assert.match(
     /import \{ createUtilityModalsShellState \} from '\.\.\/state\/utility-modals-shell-state\.js';[\s\S]*function createRootUtilityModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the utility modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appUtilityModalsShell\s*=\s*createRootUtilityModalsShellState\(\{[\s\S]*appQuickAddModal[\s\S]*appImportModal[\s\S]*\}\);/,
-    'app.js must expose Quick Add/JSON restore modals through one focused appUtilityModalsShell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appUtilityModalsShell',
+    factoryName: 'createRootUtilityModalsShellState',
+    dependencies: [
+        'appQuickAddModal',
+        'appImportModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appUtilityModalsShell\s*=\s*reactive\(\{[\s\S]*appQuickAddModal[\s\S]*appImportModal[\s\S]*\}\);/,
@@ -2921,11 +3149,14 @@ assert.match(
     /export const AppImportModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-import-modal\.js'\), 'AppImportModal'\);/,
     'app-root-async-modals must register the low-frequency JSON restore modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appImportModal\s*=\s*createRootImportModalShellState\(\{(?=[\s\S]*showImportModal)(?=[\s\S]*triggerFileSelect)[\s\S]*\}\);/,
-    'app.js must expose JSON restore modal state and actions through a focused appImportModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appImportModal',
+    factoryName: 'createRootImportModalShellState',
+    dependencies: [
+        'showImportModal',
+        'triggerFileSelect',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appImportModal\s*=\s*reactive\(\{[\s\S]*showImportModal[\s\S]*triggerFileSelect[\s\S]*\}\);/,
@@ -2973,11 +3204,21 @@ assert.match(
     /export const AppRecInfoModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-rec-info-modal\.js'\), 'AppRecInfoModal'\);/,
     'app-root-async-modals must register the low-frequency Recording/Editing Info modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appRecInfoModal\s*=\s*createRootRecInfoModalShellState\(\{(?=[\s\S]*showRecInfoModal)(?=[\s\S]*sidebarTab)(?=[\s\S]*recInfoForm)(?=[\s\S]*activeRecDropdown)(?=[\s\S]*recDropdownSearch)(?=[\s\S]*filteredRecOptions)(?=[\s\S]*selectRecOption)(?=[\s\S]*createRecOption)(?=[\s\S]*saveRecInfo)[\s\S]*\}\);/,
-    'app.js must expose Recording/Editing Info state and actions through a focused appRecInfoModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appRecInfoModal',
+    factoryName: 'createRootRecInfoModalShellState',
+    dependencies: [
+        'showRecInfoModal',
+        'sidebarTab',
+        'recInfoForm',
+        'activeRecDropdown',
+        'recDropdownSearch',
+        'filteredRecOptions',
+        'selectRecOption',
+        'createRecOption',
+        'saveRecInfo',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appRecInfoModal\s*=\s*reactive\(\{[\s\S]*showRecInfoModal[\s\S]*sidebarTab[\s\S]*recInfoForm[\s\S]*activeRecDropdown[\s\S]*recDropdownSearch[\s\S]*filteredRecOptions[\s\S]*selectRecOption[\s\S]*createRecOption[\s\S]*saveRecInfo[\s\S]*\}\);/,
@@ -3062,21 +3303,30 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppPickerModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppPickerModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appColorPickerModal\s*=\s*createRootColorPickerModalShellState\(\{(?=[\s\S]*showColorPickerModal)(?=[\s\S]*presetColors)(?=[\s\S]*tempColor)(?=[\s\S]*resetColorPicker)(?=[\s\S]*saveColorPicker)[\s\S]*\}\);/,
-    'app.js must expose Color Picker state and actions through a focused appColorPickerModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appColorPickerModal',
+    factoryName: 'createRootColorPickerModalShellState',
+    dependencies: [
+        'showColorPickerModal',
+        'presetColors',
+        'tempColor',
+        'resetColorPicker',
+        'saveColorPicker',
+    ],
+});
 assert.match(
     appStateFactoriesModule,
     /import \{ createPickerModalsShellState \} from '\.\.\/state\/picker-modals-shell-state\.js';[\s\S]*function createRootPickerModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the picker modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appPickerModalsShell\s*=\s*createRootPickerModalsShellState\(\{[\s\S]*appColorPickerModal[\s\S]*appDurationPicker[\s\S]*\}\);/,
-    'app.js must expose color/duration picker components through one focused shell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appPickerModalsShell',
+    factoryName: 'createRootPickerModalsShellState',
+    dependencies: [
+        'appColorPickerModal',
+        'appDurationPicker',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appPickerModalsShell\s*=\s*reactive\(\{[\s\S]*appColorPickerModal[\s\S]*appDurationPicker[\s\S]*\}\);/,
@@ -3168,11 +3418,22 @@ assert.match(
     /export const AppDurationPicker\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-duration-picker\.js'\), 'AppDurationPicker'\);/,
     'app-root-async-modals must register the low-frequency Duration Picker through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appDurationPicker\s*=\s*createRootDurationPickerModalShellState\(\{(?=[\s\S]*showDurationPicker)(?=[\s\S]*pickerPos)(?=[\s\S]*pickerMinRef)(?=[\s\S]*pickerSecRef)(?=[\s\S]*tempDuration)(?=[\s\S]*closePicker)(?=[\s\S]*onScroll)(?=[\s\S]*onDragStart)(?=[\s\S]*resetDuration)(?=[\s\S]*confirmDurationPicker)[\s\S]*\}\);/,
-    'app.js must expose Duration Picker state and actions through a focused appDurationPicker ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appDurationPicker',
+    factoryName: 'createRootDurationPickerModalShellState',
+    dependencies: [
+        'showDurationPicker',
+        'pickerPos',
+        'pickerMinRef',
+        'pickerSecRef',
+        'tempDuration',
+        'closePicker',
+        'onScroll',
+        'onDragStart',
+        'resetDuration',
+        'confirmDurationPicker',
+    ],
+});
 for (const leakedRootReturnField of [
     'showDurationPicker',
     'tempDuration',
@@ -3220,11 +3481,16 @@ assert.match(
     /export const AppSplitModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-split-modal\.js'\), 'AppSplitModal'\);/,
     'app-root-async-modals must register the low-frequency Split modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appSplitModal\s*=\s*createRootSplitModalShellState\(\{(?=[\s\S]*showSplitModal)(?=[\s\S]*splitState)(?=[\s\S]*onSplitSliderInput)(?=[\s\S]*confirmSplitSlider)[\s\S]*\}\);/,
-    'app.js must expose Split modal state and actions through a focused appSplitModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appSplitModal',
+    factoryName: 'createRootSplitModalShellState',
+    dependencies: [
+        'showSplitModal',
+        'splitState',
+        'onSplitSliderInput',
+        'confirmSplitSlider',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appSplitModal\s*=\s*reactive\(\{[\s\S]*showSplitModal[\s\S]*splitState[\s\S]*onSplitSliderInput[\s\S]*confirmSplitSlider[\s\S]*\}\);/,
@@ -3255,12 +3521,14 @@ assert.match(
     };
     const ctx = createSplitModalShellState({
         reactive: (value) => value,
-        refs,
-        state,
-        actions: {
-            onSplitSliderInput: () => actions.push('input'),
-            confirmSplitSlider: () => actions.push('confirm'),
-        },
+        resolve: createPathResolver({
+            refs,
+            helpers: {
+                splitState: state.splitState,
+                onSplitSliderInput: () => actions.push('input'),
+                confirmSplitSlider: () => actions.push('confirm'),
+            },
+        }),
     });
     assert.equal(ctx.showSplitModal, true, 'Split modal ctx should expose modal visibility through a getter');
     assert.equal(ctx.splitState.part1Str, '10:00', 'Split modal ctx should expose split state through a getter');
@@ -3272,7 +3540,7 @@ assert.match(
     ctx.confirmSplitSlider();
     assert.deepEqual(actions, ['input', 'confirm'], 'Split modal ctx should pass through slider and confirm actions');
     assert.throws(
-        () => createSplitModalShellState({ refs, state, actions: {} }),
+        () => createSplitModalShellState({ refs }),
         /requires Vue reactive factory/,
         'Split modal ctx factory should fail clearly when Vue reactive is missing'
     );
@@ -3349,11 +3617,17 @@ assert.match(
     /appRootOverlayShellComponents\s*=\s*\{[\s\S]*\bAppUniversalModalsShell\b[\s\S]*\}/,
     'app-root-overlay-shell-components must register AppUniversalModalsShell locally'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appInputModal\s*=\s*createRootInputModalShellState\(\{(?=[\s\S]*showInputModal)(?=[\s\S]*inputModalConfig)(?=[\s\S]*universalInputRef)(?=[\s\S]*closeInputModal)(?=[\s\S]*confirmInputModal)[\s\S]*\}\);/,
-    'app.js must expose universal input modal state and actions through a focused appInputModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appInputModal',
+    factoryName: 'createRootInputModalShellState',
+    dependencies: [
+        'showInputModal',
+        'inputModalConfig',
+        'universalInputRef',
+        'closeInputModal',
+        'confirmInputModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appInputModal\s*=\s*reactive\(\{[\s\S]*showInputModal[\s\S]*inputModalConfig[\s\S]*universalInputRef[\s\S]*closeInputModal[\s\S]*confirmInputModal[\s\S]*\}\);/,
@@ -3383,11 +3657,13 @@ assert.match(
     };
     const ctx = createInputModalShellState({
         reactive: (value) => value,
-        refs,
-        actions: {
-            closeInputModal: () => actions.push('close'),
-            confirmInputModal: () => actions.push('confirm'),
-        },
+        resolve: createPathResolver({
+            refs,
+            helpers: {
+                closeInputModal: () => actions.push('close'),
+                confirmInputModal: () => actions.push('confirm'),
+            },
+        }),
     });
     assert.equal(ctx.showInputModal, true, 'input modal ctx should expose modal visibility through a getter');
     assert.equal(ctx.inputModalConfig.title, 'Input Title', 'input modal ctx should expose the shared input config object');
@@ -3402,7 +3678,7 @@ assert.match(
     ctx.confirmInputModal();
     assert.deepEqual(actions, ['close', 'confirm'], 'input modal ctx should pass through close and confirm actions');
     assert.throws(
-        () => createInputModalShellState({ refs, actions: {} }),
+        () => createInputModalShellState({ refs }),
         /requires Vue reactive factory/,
         'input modal ctx factory should fail clearly when Vue reactive is missing'
     );
@@ -3412,11 +3688,14 @@ assert.match(
     /import \{ createUniversalModalsShellState \} from '\.\.\/state\/universal-modals-shell-state\.js';[\s\S]*function createRootUniversalModalsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app state factories should bind Vue reactive for the universal modal group shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appUniversalModalsShell\s*=\s*createRootUniversalModalsShellState\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
-    'app.js must expose input/confirm modals through one focused shell ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appUniversalModalsShell',
+    factoryName: 'createRootUniversalModalsShellState',
+    dependencies: [
+        'appInputModal',
+        'appConfirmModal',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appUniversalModalsShell\s*=\s*reactive\(\{[\s\S]*appInputModal[\s\S]*appConfirmModal[\s\S]*\}\);/,
@@ -3504,11 +3783,16 @@ assert.match(
     /export const AppConfirmModal\s*=\s*createAsyncRootComponent\(\(\) => import\('\.\/app-confirm-modal\.js'\), 'AppConfirmModal'\);/,
     'app-root-async-modals must register the low-frequency confirm modal through createAsyncRootComponent dynamic import'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appConfirmModal\s*=\s*createRootConfirmModalShellState\(\{(?=[\s\S]*showConfirmModal)(?=[\s\S]*confirmModalConfig)(?=[\s\S]*closeConfirmModal)(?=[\s\S]*handleConfirmAction)[\s\S]*\}\);/,
-    'app.js must expose confirm and alert modal state and actions through a focused appConfirmModal ctx factory call'
-);
+assertRootShellCtx({
+    ctxName: 'appConfirmModal',
+    factoryName: 'createRootConfirmModalShellState',
+    dependencies: [
+        'showConfirmModal',
+        'confirmModalConfig',
+        'closeConfirmModal',
+        'handleConfirmAction',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appConfirmModal\s*=\s*reactive\(\{[\s\S]*showConfirmModal[\s\S]*confirmModalConfig[\s\S]*closeConfirmModal[\s\S]*handleConfirmAction[\s\S]*\}\);/,
@@ -3537,11 +3821,13 @@ assert.match(
     };
     const ctx = createConfirmModalShellState({
         reactive: (value) => value,
-        refs,
-        actions: {
-            closeConfirmModal: () => actions.push('close'),
-            handleConfirmAction: () => actions.push('confirm'),
-        },
+        resolve: createPathResolver({
+            refs,
+            helpers: {
+                closeConfirmModal: () => actions.push('close'),
+                handleConfirmAction: () => actions.push('confirm'),
+            },
+        }),
     });
     assert.equal(ctx.showConfirmModal, true, 'confirm modal ctx should expose modal visibility through a getter');
     assert.equal(ctx.confirmModalConfig.title, 'Confirm Title', 'confirm modal ctx should expose the shared confirm config object');
@@ -3553,7 +3839,7 @@ assert.match(
     ctx.handleConfirmAction();
     assert.deepEqual(actions, ['close', 'confirm'], 'confirm modal ctx should pass through close and confirm actions');
     assert.throws(
-        () => createConfirmModalShellState({ refs, actions: {} }),
+        () => createConfirmModalShellState({ refs }),
         /requires Vue reactive factory/,
         'confirm modal ctx factory should fail clearly when Vue reactive is missing'
     );
@@ -5597,9 +5883,9 @@ assert.match(
 );
 
 assert.match(
-    appRootContextWiringModule,
-    /exportCSV:\s*dataIoHandlers\.exportCSV/,
-    'root context wiring must expose exportCSV through the Data I/O lazy-loader proxy handlers'
+    readFixture('app/scripts/state/header-shell-state.js'),
+    /'helpers\.dataIoHandlers\.exportCSV'/,
+    'header shell state must declare exportCSV through the Data I/O handlers path'
 );
 
 assert.doesNotMatch(
@@ -6065,8 +6351,8 @@ assert.doesNotMatch(
 
 assert.match(
     sidebarShellStateModule,
-    /dragElClone:\s*\(\)\s*=>\s*dragState\.dragElClone|dragSourceType:\s*\(\)\s*=>\s*dragState\.dragSourceType/,
-    'sidebar shell state should keep exposing mobile drag clone/source state through the root return surface after removing the pass-through shell'
+    /'refs\.dragState\.dragElClone'|'refs\.dragState\.dragSourceType'/,
+    'sidebar shell state must declare mobile drag clone/source state through refs.dragState paths'
 );
 
 assert.match(
@@ -6208,11 +6494,19 @@ assert.match(
     /import \{ createMobileControlsShellState \} from '\.\.\/state\/mobile-controls-shell-state\.js';[\s\S]*function createRootMobileControlsShellState\(options\)\s*\{[\s\S]*reactive,[\s\S]*\.\.\.options,/,
     'app-state-factories must bind Vue reactive for the mobile controls shell ctx factory'
 );
-assert.match(
-    appRootContextWiringModule,
-    /const appMobileControls\s*=\s*createRootMobileControlsShellState\(\{[\s\S]*refs:\s*\{[\s\S]*globalSearchQuery[\s\S]*isSearchFocused[\s\S]*mobileTab[\s\S]*showMobileTaskInput[\s\S]*\},[\s\S]*actions:\s*\{[\s\S]*onSearchFocus[\s\S]*handleSearchBlur[\s\S]*handleSearchEnter[\s\S]*\}/,
-    'app.js must create the mobile controls ctx through the focused shell ctx factory'
-);
+assertRootShellCtx({
+    ctxName: 'appMobileControls',
+    factoryName: 'createRootMobileControlsShellState',
+    dependencies: [
+        'globalSearchQuery',
+        'isSearchFocused',
+        'mobileTab',
+        'showMobileTaskInput',
+        'onSearchFocus',
+        'handleSearchBlur',
+        'handleSearchEnter',
+    ],
+});
 assert.doesNotMatch(
     appScript,
     /const appMobileControls\s*=\s*reactive\(\{[\s\S]*get globalSearchQuery\(\)[\s\S]*handleSearchEnter[\s\S]*\}\);/,
@@ -6229,12 +6523,14 @@ assert.doesNotMatch(
     };
     const ctx = createMobileControlsShellState({
         reactive: (value) => value,
-        refs,
-        actions: {
-            onSearchFocus: () => actions.push('focus'),
-            handleSearchBlur: () => actions.push('blur'),
-            handleSearchEnter: () => actions.push('enter'),
-        },
+        resolve: createPathResolver({
+            refs,
+            helpers: {
+                onSearchFocus: () => actions.push('focus'),
+                handleSearchBlur: () => actions.push('blur'),
+                handleSearchEnter: () => actions.push('enter'),
+            },
+        }),
     });
     assert.equal(ctx.isMobile, true, 'mobile controls ctx should expose the current mobile flag');
     assert.equal(ctx.globalSearchQuery, 'initial', 'mobile controls ctx should expose search query through a getter');
@@ -6251,7 +6547,7 @@ assert.doesNotMatch(
     ctx.handleSearchEnter();
     assert.deepEqual(actions, ['focus', 'blur', 'enter'], 'mobile controls ctx should pass through search actions');
     assert.throws(
-        () => createMobileControlsShellState({ refs, actions: {} }),
+        () => createMobileControlsShellState({ refs }),
         /requires Vue reactive factory/,
         'mobile controls ctx factory should fail clearly when Vue reactive is missing'
     );

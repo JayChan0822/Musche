@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -23,11 +24,18 @@ test('app bootstrap creates Export modal ctx through a focused state factory', (
     /const\s+\{[\s\S]*\bcreateRootExportModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Export modal ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appExportModal\s*=\s*createRootExportModalShellState\(\{[\s\S]*showExportModal[\s\S]*exportFilter[\s\S]*exportSessionOptions[\s\S]*exportPreviewCount[\s\S]*toggleFilterItem:[\s\S]*confirmExport:[\s\S]*\}\);/,
-    'app.js should create the Export modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appExportModal',
+    factoryName: 'createRootExportModalShellState',
+    dependencies: [
+      'showExportModal',
+      'exportFilter',
+      'exportSessionOptions',
+      'exportPreviewCount',
+      'toggleFilterItem',
+      'confirmExport',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appExportModal\s*=\s*reactive\(\{[\s\S]*showExportModal[\s\S]*exportFilter[\s\S]*confirmExport[\s\S]*\}\);/,
@@ -41,20 +49,26 @@ test('Export modal ctx exposes live refs, computed state, and actions', () => {
   const calls = [];
   const ctx = createExportModalShellState({
     reactive: (value) => value,
-    refs: { showExportModal },
-    state: { exportFilter },
-    computedState: {
-      exportSessionOptions: { value: ['S_DEFAULT'] },
-      filteredExportProjects: { value: ['P1'] },
-      filteredExportMusicians: { value: ['M1'] },
-      filteredExportInstruments: { value: ['I1'] },
-      exportDateRange: { value: { min: '2026-06-01', max: '2026-06-30' } },
-      exportPreviewCount: { value: 4 },
-    },
-    actions: {
-      toggleFilterItem: (...args) => calls.push(['item', ...args]),
-      toggleFilterAll: (...args) => calls.push(['all', ...args]),
-      confirmExport: (...args) => calls.push(['confirm', ...args]),
+    resolve: (path) => {
+      const [bucket, ...rest] = path.split('.');
+      let node = {
+        refs: { showExportModal, exportFilter },
+        helpers: {
+          exportSessionOptions: { value: ['S_DEFAULT'] },
+          filteredExportProjects: { value: ['P1'] },
+          filteredExportMusicians: { value: ['M1'] },
+          filteredExportInstruments: { value: ['I1'] },
+          exportDateRange: { value: { min: '2026-06-01', max: '2026-06-30' } },
+          exportPreviewCount: { value: 4 },
+          dataIoHandlers: {
+            toggleFilterItem: (...args) => calls.push(['item', ...args]),
+            toggleFilterAll: (...args) => calls.push(['all', ...args]),
+            confirmExport: (...args) => calls.push(['confirm', ...args]),
+          },
+        },
+      }[bucket];
+      for (const seg of rest) node = node?.[seg];
+      return node;
     },
   });
 

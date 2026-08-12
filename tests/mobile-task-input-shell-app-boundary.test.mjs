@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,20 @@ test('app bootstrap creates mobile task input ctx through a focused state factor
     /const\s+\{[\s\S]*\bcreateRootMobileTaskInputShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the mobile task input shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appMobileTaskInput\s*=\s*createRootMobileTaskInputShellState\(\{(?=[\s\S]*showMobileTaskInput)(?=[\s\S]*newItem)(?=[\s\S]*activeDropdown)(?=[\s\S]*dropdownSearch)(?=[\s\S]*filteredOptions)(?=[\s\S]*openQuickAdd)(?=[\s\S]*openDurationPicker)(?=[\s\S]*addItemToPool)[\s\S]*\}\);/,
-    'app.js should create the mobile task input ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appMobileTaskInput',
+    factoryName: 'createRootMobileTaskInputShellState',
+    dependencies: [
+      'showMobileTaskInput',
+      'newItem',
+      'activeDropdown',
+      'dropdownSearch',
+      'filteredOptions',
+      'openQuickAdd',
+      'openDurationPicker',
+      'addItemToPool',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appMobileTaskInput\s*=\s*reactive\(\{[\s\S]*get showMobileTaskInput\(\)[\s\S]*addItemToPool[\s\S]*\}\);/,

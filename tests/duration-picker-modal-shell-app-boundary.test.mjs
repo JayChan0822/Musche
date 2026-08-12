@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,22 @@ test('app bootstrap creates Duration Picker modal ctx through a focused state fa
     /const\s+\{[\s\S]*\bcreateRootDurationPickerModalShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Duration Picker modal shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appDurationPicker\s*=\s*createRootDurationPickerModalShellState\(\{(?=[\s\S]*showDurationPicker)(?=[\s\S]*pickerPos)(?=[\s\S]*pickerMinRef)(?=[\s\S]*pickerSecRef)(?=[\s\S]*tempDuration)(?=[\s\S]*closePicker)(?=[\s\S]*onScroll)(?=[\s\S]*onDragStart)(?=[\s\S]*resetDuration)(?=[\s\S]*confirmDurationPicker)[\s\S]*\}\);/,
-    'app.js should create the Duration Picker modal ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appDurationPicker',
+    factoryName: 'createRootDurationPickerModalShellState',
+    dependencies: [
+      'showDurationPicker',
+      'pickerPos',
+      'pickerMinRef',
+      'pickerSecRef',
+      'tempDuration',
+      'closePicker',
+      'onScroll',
+      'onDragStart',
+      'resetDuration',
+      'confirmDurationPicker',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appDurationPicker\s*=\s*reactive\(\{[\s\S]*showDurationPicker[\s\S]*pickerPos[\s\S]*pickerMinRef[\s\S]*pickerSecRef[\s\S]*tempDuration[\s\S]*closePicker[\s\S]*onScroll[\s\S]*onDragStart[\s\S]*resetDuration[\s\S]*confirmDurationPicker[\s\S]*\}\);/,

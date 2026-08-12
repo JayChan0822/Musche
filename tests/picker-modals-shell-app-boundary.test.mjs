@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -23,11 +24,14 @@ test('app bootstrap creates picker modal group ctx through a focused state facto
     /const\s+\{[\s\S]*\bcreateRootPickerModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the picker modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appPickerModalsShell\s*=\s*createRootPickerModalsShellState\(\{[\s\S]*appColorPickerModal[\s\S]*appDurationPicker[\s\S]*\}\);/,
-    'app.js should create the picker modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appPickerModalsShell',
+    factoryName: 'createRootPickerModalsShellState',
+    dependencies: [
+      'appColorPickerModal',
+      'appDurationPicker',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appPickerModalsShell\s*=\s*reactive\(\{[\s\S]*appColorPickerModal[\s\S]*appDurationPicker[\s\S]*\}\);/,
@@ -40,8 +44,9 @@ test('picker modal group ctx preserves child modal contexts', () => {
   const appDurationPicker = { name: 'duration' };
   const ctx = createPickerModalsShellState({
     reactive: (value) => value,
-    appColorPickerModal,
-    appDurationPicker,
+    resolve: (path) => ({
+      shells: { appColorPickerModal, appDurationPicker },
+    }[path.split('.')[0]][path.split('.').slice(1).join('.')]),
   });
 
   assert.equal(ctx.appColorPickerModal, appColorPickerModal);

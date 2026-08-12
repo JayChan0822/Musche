@@ -1,30 +1,18 @@
 import { defineShellState } from './shell-state-factory.js';
 
-export const createMobileControlsShellState = defineShellState('createMobileControlsShellState', ({
-    refs,
-    actions,
-}) => {
-    const {
-        isMobile,
-        globalSearchQuery,
-        isSearchFocused,
-        mobileTab,
-        showMobileTaskInput,
-    } = refs;
-    return {
-        reads: {
-            isMobile,
-        },
-        models: {
-            globalSearchQuery,
-            isSearchFocused,
-            mobileTab,
-            showMobileTaskInput,
-        },
-        values: {
-            onSearchFocus: actions.onSearchFocus,
-            handleSearchBlur: actions.handleSearchBlur,
-            handleSearchEnter: actions.handleSearchEnter,
-        },
-    };
+export const createMobileControlsShellState = defineShellState('createMobileControlsShellState', {
+    reads: [
+        'refs.isMobile',
+    ],
+    models: [
+        'refs.globalSearchQuery',
+        'refs.isSearchFocused',
+        'refs.mobileTab',
+        'refs.showMobileTaskInput',
+    ],
+    values: [
+        'helpers.onSearchFocus',
+        'helpers.handleSearchBlur',
+        'helpers.handleSearchEnter',
+    ],
 });

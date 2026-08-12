@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertRootShellCtx,
   appRootContextWiringModule,
   appScript,
   appStateFactoriesModule,
@@ -22,11 +23,14 @@ test('app bootstrap creates Export/Credit modal group ctx through a focused stat
     /const\s+\{[\s\S]*\bcreateRootExportCreditModalsShellState\b[\s\S]*\}\s*=\s*createAppDependencies\(\);/,
     'app.js should get the Export/Credit modal group shell ctx factory from createAppDependencies()',
   );
-  assert.match(
-    appRootContextWiringModule,
-    /const appExportCreditModalsShell\s*=\s*createRootExportCreditModalsShellState\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
-    'app.js should create the Export/Credit modal group ctx through the focused shell ctx factory',
-  );
+  assertRootShellCtx({
+    ctxName: 'appExportCreditModalsShell',
+    factoryName: 'createRootExportCreditModalsShellState',
+    dependencies: [
+      'appExportModal',
+      'appCreditModal',
+    ],
+  });
   assert.doesNotMatch(
     appScript,
     /const appExportCreditModalsShell\s*=\s*reactive\(\{[\s\S]*appExportModal[\s\S]*appCreditModal[\s\S]*\}\);/,
