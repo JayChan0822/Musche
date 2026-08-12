@@ -53,30 +53,9 @@ export function createAppUtilityFunctions() {
     };
 
     return {
-        parseTime,
-        timeToMinutes,
-        addMinutesToTimeValue,
-        addDaysToDate,
-        formatDate,
-        formatSecs,
-        generateUniqueId,
         timeUtils,
         formatUtils,
         idUtils,
         splitStateUtils,
-        createHiddenSplitState,
-        deactivateItemInView,
-        ensureItemSplitViews,
-        getConnectedSplitItemIds,
-        getItemSplitState,
-        hasVisibleSplitStateInAnyView,
-        isItemVisibleInView,
-        normalizeSplitViewType,
-        peekItemSplitState,
-        peekItemVisibilityInView,
-        rebalanceSplitFamilyDuration,
-        setItemSplitState,
-        syncFamilyTotalDuration,
-        syncLegacySplitFields,
     };
 }
