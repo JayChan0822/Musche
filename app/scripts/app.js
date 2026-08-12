@@ -147,7 +147,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             Object.assign(assembly.helpers, { onBeforeLeave, onAfterLeave });
             splitViewFeature = wireSplitViewFeature(assembly);
             assembly.features.splitView = splitViewFeature;
-            let {
+            const {
+                importDataFeatureRef,
                 groupedCsvData,
                 isAllSelected,
                 availableInstrumentGroups,
@@ -160,7 +161,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             Object.assign(assembly.helpers, { groupedCsvData, midiGroupData, currentMidiDisplayList, filteredImportOptions, midiGroupExpanded });
             let importDataFeature;
 
-            let {
+            const {
+                midiManagerFeatureRef,
                 midiManagerExpandedGroups,
                 projectMidiGroups,
                 projectMidiList,
@@ -661,14 +663,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const importDataFeatureProxy = wireImportDataFeature(assembly, {
                 onLoaded: (feature) => {
                     importDataFeature = feature;
-                    groupedCsvData = feature.groupedCsvData;
-                    isAllSelected = feature.isAllSelected;
-                    availableInstrumentGroups = feature.availableInstrumentGroups;
-                    assembly.refs.availableInstrumentGroups = availableInstrumentGroups;
-                    midiGroupExpanded = feature.midiGroupExpanded;
-                    midiGroupData = feature.midiGroupData;
-                    currentMidiDisplayList = feature.currentMidiDisplayList;
-                    filteredImportOptions = feature.filteredImportOptions;
+                    importDataFeatureRef.value = feature;
                 },
             });
             const calculateRowStatusText = importDataFeatureProxy.method('calculateRowStatusText');
@@ -716,12 +711,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const midiManagerFeatureProxy = wireMidiManagerFeature(assembly, {
                 onLoaded: (feature) => {
                     midiManagerFeature = feature;
-                    midiManagerExpandedGroups = feature.midiManagerExpandedGroups;
-                    assembly.refs.midiManagerExpandedGroups = midiManagerExpandedGroups;
-                    projectMidiList = feature.projectMidiList;
-                    projectMidiGroups = feature.projectMidiGroups;
-                    assembly.refs.projectMidiGroups = projectMidiGroups;
-                    filteredMidiGroups = feature.filteredMidiGroups;
+                    midiManagerFeatureRef.value = feature;
                 },
             });
             const getMidiManagerFeature = midiManagerFeatureProxy.getFeature;

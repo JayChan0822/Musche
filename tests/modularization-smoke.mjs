@@ -1039,7 +1039,7 @@ assert.doesNotMatch(
     /import\('\.\/features\/midi-manager-shell\.js'\)/,
     'app.js must not lazy-load the pass-through MIDI Manager shell feature'
 );
-assertMidiManagerStateBoundary({ createMidiManagerState, vueReactive, vueComputed });
+assertMidiManagerStateBoundary({ createMidiManagerState, vueReactive, vueComputed, vueShallowRef });
 
 assert.ok(existsSync(asyncRootComponentPath), 'async-root-component helper must exist for low-frequency root modal lazy loading');
 assert.match(
@@ -4144,7 +4144,7 @@ assert.doesNotMatch(
 
 assertSettingsStateBoundary({ createDefaultSettings, createSettingsState, vueReactive });
 assertDataIoStateBoundary({ createDataIoState, vueRef, vueReactive, vueShallowRef });
-assertImportDataStateBoundary({ createImportDataState, vueComputed, vueReactive });
+assertImportDataStateBoundary({ createImportDataState, vueComputed, vueReactive, vueShallowRef });
 assertMetadataModalStateBoundary({ createMetadataModalState, vueRef, vueReactive, vueShallowRef });
 
 assertRootAppStateBoundary({ createAppState, vueRef, vueReactive });

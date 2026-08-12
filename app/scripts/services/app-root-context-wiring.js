@@ -1,7 +1,10 @@
 // 最终模板上下文装配：把组合根发布到 assembly.refs / assembly.helpers 的别名
 // 装配成 appRootShell / appRootOverlaysShell 两个根 ctx。
-// 在 setup 末尾同步调用，此时全部 feature 已注册、helpers 均已发布完毕，
-// 顶部解构没有注册顺序问题（registrar 的「禁止顶部解构」规约针对装配中途的跨 feature 引用）。
+// 在 setup 末尾同步调用，此时全部**同步** feature 已注册、helpers 均已发布完毕。
+// 注意：顶部解构会把这里取到的对象身份永久钉进 shell state（reads/raw bucket 都只认这一个对象），
+// 因此懒加载 feature 的派生量**不能**靠事后重新赋值别名来回填——组合根晚到的值进不来。
+// 这类别名必须由 state 工厂发布成身份稳定的转发引用（见 state/import-data-state.js、
+// state/midi-manager-state.js、state/data-io-state.js 的 featureRef 模式）。
 export function createAppRootContexts({ assembly, factories }) {
     const {
         createRootAccountModalsShellState, createRootAuthModalShellState, createRootColorPickerModalShellState, createRootConfirmModalShellState, createRootCreditModalShellState, createRootCropModalShellState,

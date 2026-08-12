@@ -1263,47 +1263,86 @@ export function assertRootImportDataStateFactoryRegistry() {
   );
 }
 
-export function assertImportDataStateBoundary({ createImportDataState, vueComputed, vueReactive }) {
+export function assertImportDataStateBoundary({ createImportDataState, vueComputed, vueReactive, vueShallowRef }) {
   assert.match(
     importDataStateModule,
-    /export function createImportDataState\(\{\s*computed,\s*reactive\s*\}\)\s*\{[\s\S]*let groupedCsvData\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let isAllSelected\s*=\s*computed\(\(\)\s*=>\s*false\);[\s\S]*let availableInstrumentGroups\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let midiGroupData\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let currentMidiDisplayList\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let filteredImportOptions\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let midiGroupExpanded\s*=\s*reactive\(new Set\(\)\);[\s\S]*return\s*\{[\s\S]*groupedCsvData,[\s\S]*isAllSelected,[\s\S]*availableInstrumentGroups,[\s\S]*midiGroupData,[\s\S]*currentMidiDisplayList,[\s\S]*filteredImportOptions,[\s\S]*midiGroupExpanded,[\s\S]*\};[\s\S]*\}/,
-    'import-data-state module must own the fallback import-data computed state',
+    /export function createImportDataState\(\{\s*computed,\s*reactive,\s*shallowRef\s*\}\)\s*\{[\s\S]*const importDataFeatureRef\s*=\s*shallowRef\(null\);[\s\S]*const forward\s*=\s*\(key, fallback\)\s*=>\s*computed\(\(\)\s*=>\s*importDataFeatureRef\.value\?\.\[key\]\?\.value\s*\?\?\s*fallback\);[\s\S]*return\s*\{[\s\S]*importDataFeatureRef,[\s\S]*groupedCsvData,[\s\S]*isAllSelected,[\s\S]*availableInstrumentGroups,[\s\S]*midiGroupData,[\s\S]*currentMidiDisplayList,[\s\S]*filteredImportOptions,[\s\S]*midiGroupExpanded,[\s\S]*\};[\s\S]*\}/,
+    'import-data-state module must own stable forwarding placeholders for the lazy import-data feature',
   );
 
-  const importDataStateA = createImportDataState({ computed: vueComputed, reactive: vueReactive });
-  const importDataStateB = createImportDataState({ computed: vueComputed, reactive: vueReactive });
+  const vuePrimitives = { computed: vueComputed, reactive: vueReactive, shallowRef: vueShallowRef };
+  const importDataStateA = createImportDataState(vuePrimitives);
+  const importDataStateB = createImportDataState(vuePrimitives);
   assert.deepEqual(importDataStateA.groupedCsvData.value, [], 'import-data state must default grouped CSV data to an empty computed list');
   assert.equal(importDataStateA.isAllSelected.value, false, 'import-data state must default all-selected status to false');
   assert.deepEqual(importDataStateA.availableInstrumentGroups.value, [], 'import-data state must default available instrument groups to an empty computed list');
   assert.deepEqual(importDataStateA.midiGroupData.value, [], 'import-data state must default MIDI group data to an empty computed list');
   assert.deepEqual(importDataStateA.currentMidiDisplayList.value, [], 'import-data state must default MIDI display list to an empty computed list');
   assert.deepEqual(importDataStateA.filteredImportOptions.value, [], 'import-data state must default filtered import options to an empty computed list');
-  assert.ok(importDataStateA.midiGroupExpanded instanceof Set, 'import-data state must expose a fallback expanded MIDI group set');
+  assert.equal(importDataStateA.midiGroupExpanded.has('group-1'), false, 'import-data state must default the expanded MIDI group lookup to false');
+
+  // 懒加载回填后，占位对象身份不变，但必须转发到 feature 的真实派生量
+  const groupedCsvDataPlaceholder = importDataStateA.groupedCsvData;
+  const midiGroupExpandedPlaceholder = importDataStateA.midiGroupExpanded;
+  importDataStateA.importDataFeatureRef.value = {
+    groupedCsvData: vueComputed(() => [{ projectName: 'Project A', rows: [] }]),
+    isAllSelected: vueComputed(() => true),
+    availableInstrumentGroups: vueComputed(() => ['Strings']),
+    midiGroupData: vueComputed(() => [{ id: 'group-1' }]),
+    currentMidiDisplayList: vueComputed(() => [{ id: 'track-1' }]),
+    filteredImportOptions: vueComputed(() => [{ id: 'inst-1' }]),
+    midiGroupExpanded: vueReactive(new Set(['group-1'])),
+  };
+  assert.equal(importDataStateA.groupedCsvData, groupedCsvDataPlaceholder, 'import-data placeholders must keep a stable identity across lazy loading');
+  assert.equal(importDataStateA.midiGroupExpanded, midiGroupExpandedPlaceholder, 'the expanded MIDI group shell must keep a stable identity across lazy loading');
+  assert.deepEqual(importDataStateA.groupedCsvData.value, [{ projectName: 'Project A', rows: [] }], 'import-data state must forward grouped CSV data once the feature loads');
+  assert.equal(importDataStateA.isAllSelected.value, true, 'import-data state must forward the all-selected status once the feature loads');
+  assert.deepEqual(importDataStateA.availableInstrumentGroups.value, ['Strings'], 'import-data state must forward available instrument groups once the feature loads');
+  assert.deepEqual(importDataStateA.midiGroupData.value, [{ id: 'group-1' }], 'import-data state must forward MIDI group data once the feature loads');
+  assert.deepEqual(importDataStateA.currentMidiDisplayList.value, [{ id: 'track-1' }], 'import-data state must forward the MIDI display list once the feature loads');
+  assert.deepEqual(importDataStateA.filteredImportOptions.value, [{ id: 'inst-1' }], 'import-data state must forward filtered import options once the feature loads');
+  assert.equal(importDataStateA.midiGroupExpanded.has('group-1'), true, 'import-data state must forward the expanded MIDI group lookup once the feature loads');
+  assert.deepEqual(importDataStateB.groupedCsvData.value, [], 'createImportDataState must return an independent forwarding graph per app instance');
   assert.notEqual(
     importDataStateA.midiGroupExpanded,
     importDataStateB.midiGroupExpanded,
-    'createImportDataState must return a fresh MIDI group expansion set per app instance',
+    'createImportDataState must return a fresh MIDI group expansion shell per app instance',
   );
   assert.throws(
-    () => createImportDataState({ reactive: vueReactive }),
-    /createImportDataState requires Vue computed and reactive factories/,
+    () => createImportDataState({ reactive: vueReactive, shallowRef: vueShallowRef }),
+    /createImportDataState requires Vue computed, reactive, and shallowRef factories/,
     'import-data state should fail clearly when Vue computed is missing',
   );
   assert.throws(
-    () => createImportDataState({ computed: vueComputed }),
-    /createImportDataState requires Vue computed and reactive factories/,
+    () => createImportDataState({ computed: vueComputed, shallowRef: vueShallowRef }),
+    /createImportDataState requires Vue computed, reactive, and shallowRef factories/,
     'import-data state should fail clearly when Vue reactive is missing',
+  );
+  assert.throws(
+    () => createImportDataState({ computed: vueComputed, reactive: vueReactive }),
+    /createImportDataState requires Vue computed, reactive, and shallowRef factories/,
+    'import-data state should fail clearly when Vue shallowRef is missing',
   );
   assertRootImportDataStateFactoryRegistry();
   assert.match(
     appScript,
-    /let\s+\{\s*groupedCsvData,\s*isAllSelected,\s*availableInstrumentGroups,\s*midiGroupData,\s*currentMidiDisplayList,\s*filteredImportOptions,\s*midiGroupExpanded,\s*\}\s*=\s*createRootImportDataState\(\)/,
-    'app.js must create import-data fallback state through the bound import-data state factory',
+    /const\s+\{\s*importDataFeatureRef,\s*groupedCsvData,\s*isAllSelected,\s*availableInstrumentGroups,\s*midiGroupData,\s*currentMidiDisplayList,\s*filteredImportOptions,\s*midiGroupExpanded,\s*\}\s*=\s*createRootImportDataState\(\)/,
+    'app.js must create import-data forwarding state through the bound import-data state factory',
   );
   assert.doesNotMatch(
     appScript,
     /let groupedCsvData\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let isAllSelected\s*=\s*computed\(\(\)\s*=>\s*false\);[\s\S]*let availableInstrumentGroups\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*let midiGroupExpanded\s*=\s*reactive\(new Set\(\)\);/,
     'app.js should not own import-data fallback computed defaults after import-data-state extraction',
+  );
+  assert.match(
+    appScript,
+    /wireImportDataFeature\(assembly,\s*\{\s*onLoaded:\s*\(feature\)\s*=>\s*\{[^}]*importDataFeatureRef\.value\s*=\s*feature;/,
+    'app.js must hand the loaded import-data feature to the forwarding ref',
+  );
+  assert.doesNotMatch(
+    appScript,
+    /\n\s*groupedCsvData\s*=\s*feature\.groupedCsvData;/,
+    'app.js must not rebind import-data aliases after load: the root ctx is already bound to the placeholders',
   );
 }
 
@@ -1489,54 +1528,82 @@ export function assertRootMidiManagerStateFactoryRegistry() {
   );
 }
 
-export function assertMidiManagerStateBoundary({ createMidiManagerState, vueReactive, vueComputed }) {
+export function assertMidiManagerStateBoundary({ createMidiManagerState, vueReactive, vueComputed, vueShallowRef }) {
   assert.match(
     midiManagerStateModule,
-    /export function createMidiManagerState\(\{\s*reactive,\s*computed\s*\}\)\s*\{[\s\S]*const emptyMidiManagerSet\s*=\s*reactive\(new Set\(\)\);[\s\S]*const emptyMidiManagerList\s*=\s*computed\(\(\)\s*=>\s*\[\]\);[\s\S]*return\s*\{[\s\S]*midiManagerExpandedGroups:\s*emptyMidiManagerSet,[\s\S]*projectMidiList:\s*emptyMidiManagerList,[\s\S]*projectMidiGroups:\s*emptyMidiManagerList,[\s\S]*filteredMidiGroups:\s*emptyMidiManagerList,[\s\S]*\};[\s\S]*\}/,
-    'midi-manager-state module must own MIDI Manager lazy placeholder collections',
+    /export function createMidiManagerState\(\{\s*reactive,\s*computed,\s*shallowRef\s*\}\)\s*\{[\s\S]*const midiManagerFeatureRef\s*=\s*shallowRef\(null\);[\s\S]*const forward\s*=\s*\(key\)\s*=>\s*computed\(\(\)\s*=>\s*midiManagerFeatureRef\.value\?\.\[key\]\?\.value\s*\?\?\s*\[\]\);[\s\S]*return\s*\{[\s\S]*midiManagerFeatureRef,[\s\S]*midiManagerExpandedGroups,[\s\S]*projectMidiList:\s*forward\('projectMidiList'\),[\s\S]*projectMidiGroups:\s*forward\('projectMidiGroups'\),[\s\S]*filteredMidiGroups:\s*forward\('filteredMidiGroups'\),[\s\S]*\};[\s\S]*\}/,
+    'midi-manager-state module must own stable forwarding placeholders for the lazy MIDI Manager feature',
   );
   assertRootMidiManagerStateFactoryRegistry();
   assert.match(
     appScript,
-    /let\s+\{[\s\S]*midiManagerExpandedGroups,[\s\S]*projectMidiGroups,[\s\S]*projectMidiList,[\s\S]*filteredMidiGroups,[\s\S]*\}\s*=\s*createRootMidiManagerState\(\)/,
-    'app.js must create MIDI Manager placeholder state through the bound MIDI Manager state factory',
+    /const\s+\{[\s\S]*midiManagerFeatureRef,[\s\S]*midiManagerExpandedGroups,[\s\S]*projectMidiGroups,[\s\S]*projectMidiList,[\s\S]*filteredMidiGroups,[\s\S]*\}\s*=\s*createRootMidiManagerState\(\)/,
+    'app.js must create MIDI Manager forwarding state through the bound MIDI Manager state factory',
   );
   assert.doesNotMatch(
     appScript,
     /const\s+emptyMidiManagerSet\s*=\s*reactive\(new Set\(\)\);[\s\S]*const\s+emptyMidiManagerList\s*=\s*computed\(\(\)\s*=>\s*\[\]\);/,
     'app.js should not own MIDI Manager lazy placeholder collections after midi-manager-state extraction',
   );
+  assert.match(
+    appScript,
+    /wireMidiManagerFeature\(assembly,\s*\{\s*onLoaded:\s*\(feature\)\s*=>\s*\{[^}]*midiManagerFeatureRef\.value\s*=\s*feature;/,
+    'app.js must hand the loaded MIDI Manager feature to the forwarding ref',
+  );
+  assert.doesNotMatch(
+    appScript,
+    /\n\s*projectMidiGroups\s*=\s*feature\.projectMidiGroups;/,
+    'app.js must not rebind MIDI Manager aliases after load: the root ctx is already bound to the placeholders',
+  );
 
-  const midiManagerStateA = createMidiManagerState({ reactive: vueReactive, computed: vueComputed });
-  const midiManagerStateB = createMidiManagerState({ reactive: vueReactive, computed: vueComputed });
-  assert.ok(midiManagerStateA.midiManagerExpandedGroups instanceof Set, 'MIDI Manager state must expose the fallback expanded groups set');
+  const vuePrimitives = { reactive: vueReactive, computed: vueComputed, shallowRef: vueShallowRef };
+  const midiManagerStateA = createMidiManagerState(vuePrimitives);
+  const midiManagerStateB = createMidiManagerState(vuePrimitives);
+  assert.equal(midiManagerStateA.midiManagerExpandedGroups.has('Strings'), false, 'MIDI Manager state must default the expanded groups lookup to false');
   assert.deepEqual(midiManagerStateA.projectMidiList.value, [], 'MIDI Manager state must default project MIDI list to an empty computed list');
   assert.deepEqual(midiManagerStateA.projectMidiGroups.value, [], 'MIDI Manager state must default project MIDI groups to an empty computed list');
   assert.deepEqual(midiManagerStateA.filteredMidiGroups.value, [], 'MIDI Manager state must default filtered MIDI groups to an empty computed list');
-  assert.equal(
+
+  // 懒加载回填后，占位对象身份不变，但必须转发到 feature 的真实派生量
+  const projectMidiGroupsPlaceholder = midiManagerStateA.projectMidiGroups;
+  const expandedGroupsPlaceholder = midiManagerStateA.midiManagerExpandedGroups;
+  midiManagerStateA.midiManagerFeatureRef.value = {
+    midiManagerExpandedGroups: vueReactive(new Set(['Strings'])),
+    projectMidiList: vueComputed(() => [{ id: 'midi-1' }]),
+    projectMidiGroups: vueComputed(() => [{ name: 'Strings' }]),
+    filteredMidiGroups: vueComputed(() => ['Strings']),
+  };
+  assert.equal(midiManagerStateA.projectMidiGroups, projectMidiGroupsPlaceholder, 'MIDI Manager placeholders must keep a stable identity across lazy loading');
+  assert.equal(midiManagerStateA.midiManagerExpandedGroups, expandedGroupsPlaceholder, 'the expanded groups shell must keep a stable identity across lazy loading');
+  assert.deepEqual(midiManagerStateA.projectMidiList.value, [{ id: 'midi-1' }], 'MIDI Manager state must forward the project MIDI list once the feature loads');
+  assert.deepEqual(midiManagerStateA.projectMidiGroups.value, [{ name: 'Strings' }], 'MIDI Manager state must forward project MIDI groups once the feature loads');
+  assert.deepEqual(midiManagerStateA.filteredMidiGroups.value, ['Strings'], 'MIDI Manager state must forward filtered MIDI groups once the feature loads');
+  assert.equal(midiManagerStateA.midiManagerExpandedGroups.has('Strings'), true, 'MIDI Manager state must forward the expanded groups lookup once the feature loads');
+  assert.notEqual(
     midiManagerStateA.projectMidiList,
     midiManagerStateA.projectMidiGroups,
-    'MIDI Manager state should share the same empty computed list across fallback MIDI list surfaces',
+    'MIDI Manager state must forward each MIDI list surface independently',
   );
-  assert.equal(
-    midiManagerStateA.projectMidiGroups,
-    midiManagerStateA.filteredMidiGroups,
-    'MIDI Manager state should share the same empty computed list across fallback MIDI group surfaces',
-  );
+  assert.deepEqual(midiManagerStateB.projectMidiGroups.value, [], 'createMidiManagerState must return an independent forwarding graph per app instance');
   assert.notEqual(
     midiManagerStateA.midiManagerExpandedGroups,
     midiManagerStateB.midiManagerExpandedGroups,
-    'MIDI Manager state must return a fresh expanded groups set per app instance',
+    'MIDI Manager state must return a fresh expanded groups shell per app instance',
   );
   assert.throws(
-    () => createMidiManagerState({ computed: vueComputed }),
-    /createMidiManagerState requires Vue reactive and computed factories/,
+    () => createMidiManagerState({ computed: vueComputed, shallowRef: vueShallowRef }),
+    /createMidiManagerState requires Vue reactive, computed, and shallowRef factories/,
     'MIDI Manager state should fail clearly when Vue reactive is missing',
   );
   assert.throws(
-    () => createMidiManagerState({ reactive: vueReactive }),
-    /createMidiManagerState requires Vue reactive and computed factories/,
+    () => createMidiManagerState({ reactive: vueReactive, shallowRef: vueShallowRef }),
+    /createMidiManagerState requires Vue reactive, computed, and shallowRef factories/,
     'MIDI Manager state should fail clearly when Vue computed is missing',
+  );
+  assert.throws(
+    () => createMidiManagerState({ reactive: vueReactive, computed: vueComputed }),
+    /createMidiManagerState requires Vue reactive, computed, and shallowRef factories/,
+    'MIDI Manager state should fail clearly when Vue shallowRef is missing',
   );
 }
 

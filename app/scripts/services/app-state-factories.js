@@ -62,6 +62,7 @@ export function createAppStateFactories({ ref, reactive, shallowRef, computed } 
         return createImportDataState({
             computed,
             reactive,
+            shallowRef,
         });
     }
 
@@ -75,6 +76,7 @@ export function createAppStateFactories({ ref, reactive, shallowRef, computed } 
         return createMidiManagerState({
             reactive,
             computed,
+            shallowRef,
         });
     }
 
