@@ -13,7 +13,6 @@ test('app bootstrap registers global keyboard through the keyboard registrar wit
     label: 'global keyboard feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createGlobalKeyboardFeatureRegistrar',
     registerName: 'wireGlobalKeyboardFeature',
     modulePath: 'global-keyboard-feature-registrar.js',
     label: 'global keyboard',

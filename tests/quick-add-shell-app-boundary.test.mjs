@@ -13,7 +13,6 @@ test('app bootstrap registers Quick Add through the Quick Add registrar without 
     label: 'Quick Add feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createQuickAddFeatureRegistrar',
     registerName: 'wireQuickAddFeature',
     modulePath: 'quick-add-feature-registrar.js',
     label: 'Quick Add',

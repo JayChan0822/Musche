@@ -13,7 +13,6 @@ test('app bootstrap registers name lookup through the name lookup registrar with
     label: 'name lookup feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createNameLookupFeatureRegistrar',
     registerName: 'wireNameLookupFeature',
     modulePath: 'name-lookup-feature-registrar.js',
     label: 'name lookup',

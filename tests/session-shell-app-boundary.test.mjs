@@ -13,7 +13,6 @@ test('app bootstrap registers session through the session registrar without the 
     label: 'session feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSessionFeatureRegistrar',
     registerName: 'wireSessionFeature',
     modulePath: 'session-feature-registrar.js',
     label: 'session',

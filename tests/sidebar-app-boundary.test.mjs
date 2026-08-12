@@ -16,7 +16,6 @@ test('app bootstrap registers the sidebar composition feature through the sideba
     label: 'sidebar composition feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSidebarFeatureRegistrar',
     registerName: 'wireSidebarFeature',
     modulePath: 'sidebar-feature-registrar.js',
     label: 'sidebar',

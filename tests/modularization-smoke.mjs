@@ -3957,7 +3957,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createScheduleFeatureRegistrar',
     registerName: 'wireScheduleFeature',
     modulePath: 'schedule-feature-registrar.js',
     label: 'Schedule',
@@ -3993,7 +3992,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSettingsSyncFeatureRegistrar',
     registerName: 'wireSettingsSyncFeature',
     modulePath: 'settings-sync-feature-registrar.js',
     label: 'Settings Sync',
@@ -4794,7 +4792,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createNameLookupFeatureRegistrar',
     registerName: 'wireNameLookupFeature',
     modulePath: 'name-lookup-feature-registrar.js',
     label: 'name-lookup',
@@ -4838,7 +4835,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createRatioFeatureRegistrar',
     registerName: 'wireRatioFeature',
     modulePath: 'ratio-feature-registrar.js',
     label: 'ratio',
@@ -5084,7 +5080,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createScheduleInteractionsFeatureRegistrar',
     registerName: 'wireScheduleInteractionsFeature',
     modulePath: 'schedule-interactions-feature-registrar.js',
     label: 'Schedule Interactions',
@@ -5455,7 +5450,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createOrchestrationFeatureRegistrar',
     registerName: 'wireOrchestrationFeature',
     modulePath: 'orchestration-feature-registrar.js',
     label: 'Orchestration',
@@ -5505,7 +5499,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createUniversalModalFeatureRegistrar',
     registerName: 'wireUniversalModalFeature',
     modulePath: 'universal-modal-feature-registrar.js',
     label: 'Universal Modal',
@@ -5555,7 +5548,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createQuickAddFeatureRegistrar',
     registerName: 'wireQuickAddFeature',
     modulePath: 'quick-add-feature-registrar.js',
     label: 'Quick Add',
@@ -5617,7 +5609,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createPickerControlsFeatureRegistrar',
     registerName: 'wirePickerControlsFeature',
     modulePath: 'picker-controls-feature-registrar.js',
     label: 'Picker Controls',
@@ -5691,7 +5682,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createHistoryFeatureRegistrar',
     registerName: 'wireHistoryFeature',
     modulePath: 'history-feature-registrar.js',
     label: 'history',
@@ -6164,7 +6154,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSessionFeatureRegistrar',
     registerName: 'wireSessionFeature',
     modulePath: 'session-feature-registrar.js',
     label: 'session',
@@ -6214,7 +6203,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createAuthFeatureRegistrar',
     registerName: 'wireAuthFeature',
     modulePath: 'auth-feature-registrar.js',
     label: 'Auth',
@@ -6468,7 +6456,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createMobileUiFeatureRegistrar',
     registerName: 'wireMobileUiFeature',
     modulePath: 'mobile-ui-feature-registrar.js',
     label: 'Mobile UI',
@@ -6960,7 +6947,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSidebarStatsFeatureRegistrar',
     registerName: 'wireSidebarStatsFeature',
     modulePath: 'sidebar-stats-feature-registrar.js',
     label: 'Sidebar Stats',
@@ -7070,7 +7056,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSidebarFeatureRegistrar',
     registerName: 'wireSidebarFeature',
     modulePath: 'sidebar-feature-registrar.js',
     label: 'sidebar',
@@ -7246,7 +7231,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createPoolInteractionsFeatureRegistrar',
     registerName: 'wirePoolInteractionsFeature',
     modulePath: 'pool-interactions-feature-registrar.js',
     label: 'Pool Interactions',
@@ -7314,7 +7298,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createGlobalKeyboardFeatureRegistrar',
     registerName: 'wireGlobalKeyboardFeature',
     modulePath: 'global-keyboard-feature-registrar.js',
     label: 'global-keyboard',
@@ -7484,7 +7467,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createViewNavigationFeatureRegistrar',
     registerName: 'wireViewNavigationFeature',
     modulePath: 'view-navigation-feature-registrar.js',
     label: 'view-navigation',
@@ -7552,7 +7534,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createDropdownsFeatureRegistrar',
     registerName: 'wireDropdownsFeature',
     modulePath: 'dropdowns-feature-registrar.js',
     label: 'dropdowns',
@@ -7764,7 +7745,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSplitTaskFeatureRegistrar',
     registerName: 'wireSplitTaskFeature',
     modulePath: 'split-task-feature-registrar.js',
     label: 'Split Task',
@@ -7838,7 +7818,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSplitViewFeatureRegistrar',
     registerName: 'wireSplitViewFeature',
     modulePath: 'split-view-feature-registrar.js',
     label: 'split-view',
@@ -7899,7 +7878,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createAppRuntimeFeatureRegistrar',
     registerName: 'wireAppRuntimeFeature',
     modulePath: 'app-runtime-feature-registrar.js',
     label: 'app-runtime',

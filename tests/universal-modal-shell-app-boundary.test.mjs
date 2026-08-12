@@ -13,7 +13,6 @@ test('app bootstrap registers universal modal through the universal modal regist
     label: 'universal-modal feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createUniversalModalFeatureRegistrar',
     registerName: 'wireUniversalModalFeature',
     modulePath: 'universal-modal-feature-registrar.js',
     label: 'universal modal',

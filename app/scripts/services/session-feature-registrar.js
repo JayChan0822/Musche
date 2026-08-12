@@ -1,29 +1,27 @@
 import { registerSessionFeature } from '../features/session.js';
 
-export function createSessionFeatureRegistrar() {
-    return function wireSessionFeature(assembly) {
-        const { currentSessionId, activeDropdown } = assembly.refs;
-        const { settings } = assembly.state;
-        const { idUtils } = assembly.utils;
+export function wireSessionFeature(assembly) {
+    const { currentSessionId, activeDropdown } = assembly.refs;
+    const { settings } = assembly.state;
+    const { idUtils } = assembly.utils;
 
-        return registerSessionFeature({
-            refs: {
-                currentSessionId,
-                activeDropdown,
-            },
-            state: {
-                settings,
-            },
-            utils: {
-                generateUniqueId: idUtils.generateUniqueId,
-            },
-            actions: {
-                openInputModal: (...args) => assembly.helpers.openInputModal(...args),
-                openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
-                openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
-                pushHistory: (...args) => assembly.helpers.pushHistory(...args),
+    return registerSessionFeature({
+        refs: {
+            currentSessionId,
+            activeDropdown,
+        },
+        state: {
+            settings,
+        },
+        utils: {
+            generateUniqueId: idUtils.generateUniqueId,
+        },
+        actions: {
+            openInputModal: (...args) => assembly.helpers.openInputModal(...args),
+            openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
+            openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
+            pushHistory: (...args) => assembly.helpers.pushHistory(...args),
 
-            },
-        });
-    };
+        },
+    });
 }

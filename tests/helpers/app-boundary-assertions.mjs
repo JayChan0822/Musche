@@ -835,6 +835,7 @@ export function assertAppDependenciesRegistry() {
 }
 
 export function assertAppFeatureRegistrarRegistry({ factoryName, registerName, modulePath, label }) {
+  const importName = factoryName || registerName;
   assert.ok(
     appFeatureRegistrarsModule,
     'app-feature-registrars service registry should exist',
@@ -851,7 +852,7 @@ export function assertAppFeatureRegistrarRegistry({ factoryName, registerName, m
   );
   assert.doesNotMatch(
     appScript,
-    new RegExp(`import\\s+\\{\\s*${factoryName}\\s*\\}\\s+from\\s+['"]\\.\\/services\\/${escapedModulePath(modulePath)}['"]`),
+    new RegExp(`import\\s+\\{\\s*${importName}\\s*\\}\\s+from\\s+['"]\\.\\/services\\/${escapedModulePath(modulePath)}['"]`),
     `app.js should not directly import the ${label} registrar service after registry extraction`,
   );
   assert.match(
@@ -861,14 +862,22 @@ export function assertAppFeatureRegistrarRegistry({ factoryName, registerName, m
   );
   assert.match(
     appFeatureRegistrarsModule,
-    new RegExp(`import\\s+\\{\\s*${factoryName}\\s*\\}\\s+from\\s+['"]\\.\\/${escapedModulePath(modulePath)}['"]`),
+    new RegExp(`import\\s+\\{\\s*${importName}\\s*\\}\\s+from\\s+['"]\\.\\/${escapedModulePath(modulePath)}['"]`),
     `app feature registrar registry should import the ${label} registrar service`,
   );
-  assert.match(
-    appFeatureRegistrarsModule,
-    new RegExp(`${registerName}\\s*:\\s*${factoryName}\\(`),
-    `app feature registrar registry should create the ${label} registration function`,
-  );
+  if (factoryName) {
+    assert.match(
+      appFeatureRegistrarsModule,
+      new RegExp(`${registerName}\\s*:\\s*${factoryName}\\(`),
+      `app feature registrar registry should create the ${label} registration function`,
+    );
+  } else {
+    assert.match(
+      appFeatureRegistrarsModule,
+      new RegExp(`\\b${registerName}\\s*,`),
+      `app feature registrar registry should re-export the ${label} registration function directly`,
+    );
+  }
 }
 
 export function assertAppFeatureLoadersRegistry({ factoryName, loaderName, modulePath, label, appConsumerName = loaderName }) {

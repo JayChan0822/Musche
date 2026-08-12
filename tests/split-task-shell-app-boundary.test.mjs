@@ -13,7 +13,6 @@ test('app bootstrap registers split task through the split task registrar withou
     label: 'split-task feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSplitTaskFeatureRegistrar',
     registerName: 'wireSplitTaskFeature',
     modulePath: 'split-task-feature-registrar.js',
     label: 'Split Task',

@@ -13,7 +13,6 @@ test('app bootstrap registers schedule interactions through the schedule interac
     label: 'schedule-interactions feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createScheduleInteractionsFeatureRegistrar',
     registerName: 'wireScheduleInteractionsFeature',
     modulePath: 'schedule-interactions-feature-registrar.js',
     label: 'schedule interactions',

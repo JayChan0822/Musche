@@ -15,7 +15,6 @@ test('app bootstrap uses the settings sync registrar and lazy-loads full setting
     label: 'light settings sync feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSettingsSyncFeatureRegistrar',
     registerName: 'wireSettingsSyncFeature',
     modulePath: 'settings-sync-feature-registrar.js',
     label: 'settings sync',

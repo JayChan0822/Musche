@@ -13,7 +13,6 @@ test('app bootstrap registers pool interactions through the pool interactions re
     label: 'pool interactions feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createPoolInteractionsFeatureRegistrar',
     registerName: 'wirePoolInteractionsFeature',
     modulePath: 'pool-interactions-feature-registrar.js',
     label: 'Pool Interactions',

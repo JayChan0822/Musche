@@ -13,7 +13,6 @@ test('app bootstrap registers history through the history registrar without the 
     label: 'history feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createHistoryFeatureRegistrar',
     registerName: 'wireHistoryFeature',
     modulePath: 'history-feature-registrar.js',
     label: 'history',

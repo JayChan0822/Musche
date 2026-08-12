@@ -13,7 +13,6 @@ test('app bootstrap registers view navigation through the view navigation regist
     label: 'view-navigation feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createViewNavigationFeatureRegistrar',
     registerName: 'wireViewNavigationFeature',
     modulePath: 'view-navigation-feature-registrar.js',
     label: 'view navigation',
