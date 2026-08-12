@@ -44,3 +44,65 @@ export function getOrchString(names) {
     .map(([lower, count]) => `${count} ${displayNames[lower]}`)
     .join(', ');
 }
+
+// —— CSV 纯文本解析（零依赖，独立可测）——
+
+export function parseCSVLine(text) {
+  const result = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(cell.trim().replace(/^"|"$/g, ''));
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  result.push(cell.trim().replace(/^"|"$/g, ''));
+  return result;
+}
+
+export function parseCSVRobust(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentCell = '';
+  let insideQuote = false;
+
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"') {
+      if (insideQuote && nextChar === '"') {
+        currentCell += '"';
+        index++;
+      } else {
+        insideQuote = !insideQuote;
+      }
+    } else if (char === ',' && !insideQuote) {
+      currentRow.push(currentCell.trim());
+      currentCell = '';
+    } else if ((char === '\r' || char === '\n') && !insideQuote) {
+      if (char === '\r' && nextChar === '\n') index++;
+      currentRow.push(currentCell.trim());
+      rows.push(currentRow);
+      currentRow = [];
+      currentCell = '';
+    } else {
+      currentCell += char;
+    }
+  }
+
+  if (currentCell || currentRow.length > 0) {
+    currentRow.push(currentCell.trim());
+    rows.push(currentRow);
+  }
+
+  return rows;
+}

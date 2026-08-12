@@ -6837,6 +6837,17 @@ assert.match(
 );
 
 assert.match(
+    importCsvFeature,
+    /import\s*\{\s*parseCSVLine,\s*parseCSVRobust\s*\}\s*from\s*'\.\.\/utils\/csv\.js';/,
+    'import-csv feature must reuse CSV text parsing from utils/csv.js'
+);
+assert.doesNotMatch(
+    importCsvFeature,
+    /function parseCSVRobust\(text\)\s*\{/,
+    'import-csv feature must not reimplement CSV parsing after utils/csv.js extraction'
+);
+
+assert.match(
     importDataFeature,
     /export function registerImportDataFeature/,
     'import-data feature must expose a registration function for CSV/MIDI import orchestration'

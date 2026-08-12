@@ -1,4 +1,5 @@
 import { computed, watch } from 'vue';
+import { parseCSVLine, parseCSVRobust } from '../utils/csv.js';
 
 export function registerImportCsvFeature(context) {
   const { refs, state, utils, actions } = context;
@@ -209,66 +210,6 @@ export function registerImportCsvFeature(context) {
         row.selected = isChecked;
       });
     });
-  }
-
-  function parseCSVLine(text) {
-    const result = [];
-    let cell = '';
-    let inQuotes = false;
-
-    for (let index = 0; index < text.length; index++) {
-      const char = text[index];
-      if (char === '"') {
-        inQuotes = !inQuotes;
-      } else if (char === ',' && !inQuotes) {
-        result.push(cell.trim().replace(/^"|"$/g, ''));
-        cell = '';
-      } else {
-        cell += char;
-      }
-    }
-
-    result.push(cell.trim().replace(/^"|"$/g, ''));
-    return result;
-  }
-
-  function parseCSVRobust(text) {
-    const rows = [];
-    let currentRow = [];
-    let currentCell = '';
-    let insideQuote = false;
-
-    for (let index = 0; index < text.length; index++) {
-      const char = text[index];
-      const nextChar = text[index + 1];
-
-      if (char === '"') {
-        if (insideQuote && nextChar === '"') {
-          currentCell += '"';
-          index++;
-        } else {
-          insideQuote = !insideQuote;
-        }
-      } else if (char === ',' && !insideQuote) {
-        currentRow.push(currentCell.trim());
-        currentCell = '';
-      } else if ((char === '\r' || char === '\n') && !insideQuote) {
-        if (char === '\r' && nextChar === '\n') index++;
-        currentRow.push(currentCell.trim());
-        rows.push(currentRow);
-        currentRow = [];
-        currentCell = '';
-      } else {
-        currentCell += char;
-      }
-    }
-
-    if (currentCell || currentRow.length > 0) {
-      currentRow.push(currentCell.trim());
-      rows.push(currentRow);
-    }
-
-    return rows;
   }
 
   function handleCSVImport(event) {
