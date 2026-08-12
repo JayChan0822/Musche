@@ -8,12 +8,12 @@ export default defineConfig({
     retries: process.env.CI ? 1 : 0,
     reporter: process.env.CI ? 'github' : 'list',
     use: {
-        baseURL: 'http://localhost:4517',
+        baseURL: 'http://127.0.0.1:4517',
         viewport: { width: 1400, height: 900 },
     },
     webServer: {
         command: 'npm run build && npm run preview -- --port 4517 --strictPort',
-        url: 'http://localhost:4517',
+        url: 'http://127.0.0.1:4517',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
     },
