@@ -446,9 +446,9 @@ export function registerCalendarViewFeature(context) {
       }, 2500);
     }
 
-    // 定位滚动与 slide 动画错开：slide（0.4s）先完整呈现方向感，动画结束后
-    // 一次 auto 定位到任务位置——不叠加 smooth/不同时滚动，避免打架。
-    // 同天 jump-fade 无位移，渲染落定后立即定位。
+    // 定位滚动与 slide 动画错开：横向 slide（0.3s）先完整呈现方向感，动画结束后
+    // 再纵向 smooth 滚动到任务位置。横向已结束，纵向平滑不会与横向打架。
+    // 同天 jump-fade 无位移，渲染落定后立即平滑定位。
     const settleAndScroll = () => {
       const container = weekContainer.value;
       if (!container) return;
@@ -468,7 +468,7 @@ export function registerCalendarViewFeature(context) {
       container.scrollTo({
         top: scrollTop,
         left: scrollLeft,
-        behavior: 'auto',
+        behavior: 'smooth',
       });
     };
 
@@ -519,7 +519,7 @@ export function registerCalendarViewFeature(context) {
         weekContainer.value.scrollTo({
           top: scrollTop,
           left: scrollLeft,
-          behavior: 'auto',
+          behavior: 'smooth',
         });
       };
 

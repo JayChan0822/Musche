@@ -8354,7 +8354,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.flashingTaskId.value, null, 'smart task scrolling should clear task highlight after its timeout');
     assert.deepEqual(scheduledDelays, [2500, 450], 'smart task scrolling should arm the highlight-clear timer and land the scroll after the slide animation (no separate correction timer)');
     assert.equal(scrollCalls[0].top, 130, 'smart task scrolling should preserve week-container vertical scroll target');
-    assert.equal(scrollCalls[0].behavior, 'auto', 'smart task scrolling should land with a single auto scroll instead of smooth plus a correction jump');
+    assert.equal(scrollCalls[0].behavior, 'smooth', 'smart task scrolling should land with a smooth scroll after the slide animation (no correction jump)');
     assert.ok(
         Math.abs(scrollCalls[0].left - 21.428571428571416) < 0.000001,
         'smart task scrolling should preserve week-container horizontal scroll target',
