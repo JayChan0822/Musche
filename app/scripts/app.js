@@ -132,6 +132,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 onBeforeLeave,
                 onAfterLeave,
                 dragState,
+                selectedDay,
+                dayViewOpen,
             } = createRootAppState();
             // 装配上下文：feature 接线适配器从这里取 refs/state/helpers（见 services/app-assembly.js）
             const assembly = createAppAssembly({
@@ -143,6 +145,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 sidebarTab, isMobile, mobileTab, newItem, sortField, sortAsc,
                 authPasswordRef, initialTouchCoords, draggingTaskElement,
                 isSyncing, isContextSwitching, isZooming, weekGridWrapper, dragState,
+                selectedDay, dayViewOpen,
             });
             Object.assign(assembly.helpers, { onBeforeLeave, onAfterLeave });
             splitViewFeature = wireSplitViewFeature(assembly);
@@ -809,6 +812,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 jumpToToday,
                 isToday,
                 activeMonthKey,
+                openDayView,
+                closeDayView,
+                changeSelectedDay,
+                selectedDayWeek,
+                selectedDayTasks,
+                selectedDayLabel,
+                dayViewTouchStart,
+                dayViewTouchMove,
+                dayViewTouchEnd,
                 viewTransitionName,
                 onMainMouseDown,
                 onMainMouseUp,
@@ -828,6 +840,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 isToday, activeMonthKey, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
                 onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,
                 timeSlots, setMonthRef, switchView,
+                openDayView, closeDayView, changeSelectedDay, selectedDayWeek, selectedDayTasks, selectedDayLabel,
+                dayViewTouchStart, dayViewTouchMove, dayViewTouchEnd,
             });
 
             const handlePageUnload = authFeature.handlePageUnload;

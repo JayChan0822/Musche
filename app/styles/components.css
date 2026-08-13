@@ -879,6 +879,20 @@ html.dark .custom-dropdown-menu .sticky {
     opacity: 0;
 }
 
+/* 手机端日视图：底部滑入（spring 回弹），关闭时滑出。Apple 日历式。 */
+.day-view-enter-active {
+    transition: transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.day-view-leave-active {
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.day-view-enter-from,
+.day-view-leave-to {
+    transform: translateY(100%);
+}
+
 .settings-group-container {
     background: rgba(0, 0, 0, 0.02);
     border-radius: 12px;
