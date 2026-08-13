@@ -330,6 +330,5 @@ export function createTrackListLayout(deps) {
     autoSortTrackList,
     getSessionRatio,
     calculateProportionalDuration,
-    compareTrackItems,
   };
 }
