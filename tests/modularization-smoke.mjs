@@ -4857,8 +4857,8 @@ assert.match(
 
 assert.match(
     appScript,
-    /const\s+\{[\s\S]*\bensureItemRecords\b[\s\S]*\bgetDefaultRatio\b[\s\S]*\bcalculateEstTime\b[\s\S]*\bgetTaskRatio\b[\s\S]*\bcalculateSingleRatio\b[\s\S]*\bisDefaultRatio\b[\s\S]*\bautoUpdateEfficiency\b[\s\S]*\bcleanOldRatios\b[\s\S]*\}\s*=\s*ratioFeature;/,
-    'app.js may consume the ratio feature helper surface directly because ratio-shell is a pass-through boundary'
+    /const\s+\{[\s\S]*\bgetTaskRatio\b[\s\S]*\bcalculateSingleRatio\b[\s\S]*\bautoUpdateEfficiency\b[\s\S]*\}\s*=\s*ratioFeature;/,
+    'app.js may consume the ratio feature helper surface directly because ratio-shell is a pass-through boundary（只解构真正用到的，死别名不留）'
 );
 
 assert.doesNotMatch(
@@ -5529,7 +5529,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s*\{[\s\S]*currentQuickAddGroups[\s\S]*openQuickAdd[\s\S]*onMusicianSelect[\s\S]*confirmQuickAdd[\s\S]*addItemToPool[\s\S]*\}\s*=\s*quickAddFeature;/,
+    /const\s*\{[\s\S]*currentQuickAddGroups[\s\S]*openQuickAdd[\s\S]*confirmQuickAdd[\s\S]*addItemToPool[\s\S]*\}\s*=\s*quickAddFeature;/,
     'app.js may consume the Quick Add feature surface directly because quick-add-shell is a pass-through boundary'
 );
 
@@ -6922,7 +6922,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+\{\s*calculateGroupStats,[\s\S]{0,500}handleStatCardClick,\s*\}\s*=\s*sidebarStatsFeature;/,
+    /const\s+\{\s*musicianStats,[\s\S]{0,500}handleStatCardClick,\s*\}\s*=\s*sidebarStatsFeature;/,
     'app.js must expose sidebar stats values directly from the sidebar-stats feature'
 );
 
@@ -7079,7 +7079,7 @@ assert.doesNotMatch(
 
 assert.match(
     appScript,
-    /const\s+midiManagerFeatureProxy\s*=\s*wireMidiManagerFeature\(assembly[\s\S]*const\s+getMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.getFeature;[\s\S]*const\s+withMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.method;/,
+    /const\s+midiManagerFeatureProxy\s*=\s*wireMidiManagerFeature\(assembly[\s\S]*const\s+withMidiManagerFeature\s*=\s*midiManagerFeatureProxy\.method;/,
     'app.js must proxy MIDI manager methods through the shared lazy feature proxy'
 );
 
@@ -7885,6 +7885,7 @@ const requiredFiles = [
     'app/scripts/utils/midi.js',
     'app/scripts/utils/csv.js',
     'app/scripts/utils/split-state.js',
+    'app/scripts/utils/sidebar-tabs.js',
     'app/scripts/services/storage-service.js',
     'app/scripts/services/supabase-service.js',
     'app/scripts/services/app-dependencies.js',
@@ -9509,36 +9510,32 @@ for (const relativePath of requiredFiles) {
 }
 
 {
-    const refs = {
-        sidebarTab: vueRef('browse'),
-    };
+    // 已下线的 browse 分类：feature 不再读 sidebarTab，也不再接分组任务池
     const feature = registerVisiblePoolItemsFeature({
-        refs,
         actions: {
-            getGroupedItemPool: () => [
-                { key: 'open-browse', items: [{ id: 'BROWSE_A' }, { id: 'BROWSE_B' }] },
-                { key: 'closed-browse', items: [{ id: 'BROWSE_C' }] },
-            ],
             getCurrentSidebarList: () => [
                 { id: 'open-stat', items: [{ id: 'STAT_A' }] },
                 { id: 'closed-stat', items: [{ id: 'STAT_B' }] },
             ],
-            isGroupExpanded: (key) => key === 'open-browse',
             isStatExpanded: (id) => id === 'open-stat',
         },
     });
 
     assert.deepEqual(
         feature.getVisiblePoolItems().map((item) => item.id),
-        ['BROWSE_A', 'BROWSE_B'],
-        'visible pool items should flatten only expanded browse groups when the sidebar is browsing the pool'
+        ['STAT_A'],
+        'visible pool items should flatten only expanded sidebar stat groups'
     );
 
-    refs.sidebarTab.value = 'musician';
-    assert.deepEqual(
-        feature.getVisiblePoolItems().map((item) => item.id),
-        ['STAT_A'],
-        'visible pool items should flatten only expanded sidebar stat groups outside browse mode'
+    assert.doesNotMatch(
+        visiblePoolItemsFeature,
+        /'browse'/,
+        'visible pool items must not resurrect the retired browse sidebar tab'
+    );
+    assert.doesNotMatch(
+        globalKeyboardFeature,
+        /'browse'/,
+        'global keyboard must not resurrect the retired browse sidebar tab'
     );
 }
 

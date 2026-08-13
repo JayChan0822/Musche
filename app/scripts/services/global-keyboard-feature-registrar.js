@@ -40,8 +40,6 @@ const KEYBOARD_REF_KEYS = [
     'currentSessionId',
     'currentView',
     'sidebarTab',
-    'sortKey',
-    'activeColorKey',
     'scheduledTasks',
     'itemPool',
     'lastPoolFocusId',
@@ -50,12 +48,11 @@ const KEYBOARD_REF_KEYS = [
 
 export function wireGlobalKeyboardFeature(assembly) {
     const { helpers } = assembly;
-    const { activeImportMenu, expandedGroups } = assembly.refs;
+    const { activeImportMenu } = assembly.refs;
     return registerGlobalKeyboardFeature({
         refs: pick(assembly.refs, KEYBOARD_REF_KEYS),
         state: {
             activeImportMenu,
-            expandedGroups,
             expandedStatsIds: {
                 has: (id) => assembly.refs.expandedStatsIds.has(id),
                 add: (id) => assembly.refs.expandedStatsIds.add(id),
@@ -90,7 +87,6 @@ export function wireGlobalKeyboardFeature(assembly) {
             getFilteredSidebarList: () => assembly.refs.filteredSidebarList.value,
             getProjectMidiGroups: () => assembly.refs.projectMidiGroups.value,
             getMidiManagerExpandedGroups: () => assembly.refs.midiManagerExpandedGroups,
-            getGroupedItemPool: () => assembly.refs.groupedItemPool.value,
             getMusicianStats: () => assembly.refs.musicianStats.value,
         },
     });

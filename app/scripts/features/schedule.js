@@ -1,5 +1,14 @@
 import { computed } from 'vue';
 
+import { SIDEBAR_TABS } from '../utils/sidebar-tabs.js';
+
+// 分类 → 任务上对应的 id 字段
+const TASK_ID_KEY_BY_TAB = {
+  musician: 'musicianId',
+  project: 'projectId',
+  instrument: 'instrumentId',
+};
+
 export function registerScheduleFeature(context) {
   const { refs, state, utils, actions } = context;
   const {
@@ -326,10 +335,13 @@ export function registerScheduleFeature(context) {
     const taskSession = task.sessionId || 'S_DEFAULT';
     if (taskSession !== currentSessionId.value) return true;
 
-    if (sidebarTab.value === 'musician') return !task.musicianId;
-    if (sidebarTab.value === 'project') return !task.projectId;
-    if (sidebarTab.value === 'instrument') return !task.instrumentId;
-    return false;
+    // 任务在任何一个「还在用的分类」里都没有 id（例如乐器分类下线后只剩 instrumentId 的老任务）：
+    // 每个分类下都判成幽灵的话，它就永远灰着、点了也跳不到能显示它的地方，所以按正常任务处理。
+    const belongsToLiveTab = SIDEBAR_TABS.some((tab) => task[TASK_ID_KEY_BY_TAB[tab]]);
+    if (!belongsToLiveTab) return false;
+
+    const idKey = TASK_ID_KEY_BY_TAB[sidebarTab.value];
+    return idKey ? !task[idKey] : false;
   }
 
   function getTaskStyle(task) {

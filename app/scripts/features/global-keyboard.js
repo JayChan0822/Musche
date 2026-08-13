@@ -1,3 +1,5 @@
+import { nextSidebarTab } from '../utils/sidebar-tabs.js';
+
 export function registerGlobalKeyboardFeature(context) {
   const { refs, state = {}, actions = {} } = context;
   const falseRef = () => ({ value: false });
@@ -39,8 +41,6 @@ export function registerGlobalKeyboardFeature(context) {
     currentSessionId = nullRef(),
     currentView = nullRef(),
     sidebarTab = nullRef(),
-    sortKey = nullRef(),
-    activeColorKey = nullRef(),
     scheduledTasks = listRef(),
     itemPool = listRef(),
     lastPoolFocusId = nullRef(),
@@ -48,7 +48,6 @@ export function registerGlobalKeyboardFeature(context) {
   } = refs;
 
   const activeImportMenu = state.activeImportMenu || { rowId: null };
-  const expandedGroups = state.expandedGroups || new Set();
   const expandedStatsIds = state.expandedStatsIds || new Set();
 
   const {
@@ -84,7 +83,6 @@ export function registerGlobalKeyboardFeature(context) {
     getFilteredSidebarList = () => [],
     getProjectMidiGroups = () => [],
     getMidiManagerExpandedGroups = () => new Set(),
-    getGroupedItemPool = () => [],
     getMusicianStats = () => [],
   } = actions;
 
@@ -271,23 +269,17 @@ export function registerGlobalKeyboardFeature(context) {
       currentView.value = currentView.value === 'week' ? 'month' : 'week';
       switchView(getSwitchViewTarget());
     } else {
-      if (sidebarTab.value === 'musician') sidebarTab.value = 'project';
-      else sidebarTab.value = 'musician';
+      // 分类顺序取自 utils/sidebar-tabs.js，与手机端滑动、侧栏按钮同一份真源
+      sidebarTab.value = nextSidebarTab(sidebarTab.value);
     }
     return true;
   };
 
   const getVisibleSidebarItemsForKeyboard = () => {
     const visibleItems = [];
-    if (sidebarTab.value === 'browse') {
-      getGroupedItemPool().forEach((group) => {
-        if (expandedGroups.has(group.key)) visibleItems.push(...group.items);
-      });
-    } else {
-      getMusicianStats().forEach((stat) => {
-        if (expandedStatsIds.has(stat.id)) visibleItems.push(...stat.items);
-      });
-    }
+    getMusicianStats().forEach((stat) => {
+      if (expandedStatsIds.has(stat.id)) visibleItems.push(...stat.items);
+    });
     return visibleItems;
   };
 
@@ -295,18 +287,6 @@ export function registerGlobalKeyboardFeature(context) {
     const isArrow = event.key === 'ArrowUp' || event.key === 'ArrowDown' ||
       event.key === 'ArrowLeft' || event.key === 'ArrowRight';
     if (selectedSource.value === 'schedule' || !isArrow) return false;
-
-    if (sidebarTab.value === 'browse' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
-      event.preventDefault();
-      const keys = ['projectId', 'musicianId', 'instrumentId'];
-      const currentIndex = keys.indexOf(sortKey.value);
-      const newIndex = event.key === 'ArrowRight'
-        ? (currentIndex + 1) % keys.length
-        : (currentIndex - 1 + keys.length) % keys.length;
-      sortKey.value = keys[newIndex];
-      activeColorKey.value = keys[newIndex];
-      return true;
-    }
 
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
       event.preventDefault();

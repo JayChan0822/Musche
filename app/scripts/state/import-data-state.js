@@ -11,7 +11,6 @@ export function createImportDataState({ computed, reactive, shallowRef }) {
     const forward = (key, fallback) => computed(() => importDataFeatureRef.value?.[key]?.value ?? fallback);
 
     const groupedCsvData = forward('groupedCsvData', []);
-    const isAllSelected = forward('isAllSelected', false);
     const availableInstrumentGroups = forward('availableInstrumentGroups', []);
     const midiGroupData = forward('midiGroupData', []);
     const currentMidiDisplayList = forward('currentMidiDisplayList', []);
@@ -31,7 +30,6 @@ export function createImportDataState({ computed, reactive, shallowRef }) {
     return {
         importDataFeatureRef,
         groupedCsvData,
-        isAllSelected,
         availableInstrumentGroups,
         midiGroupData,
         currentMidiDisplayList,

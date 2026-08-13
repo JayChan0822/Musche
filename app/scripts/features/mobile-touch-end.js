@@ -1,3 +1,5 @@
+import { formatClock } from '../utils/time.js';
+
 export function registerMobileTouchEndFeature(context) {
   const { refs, state, data, utils = {}, actions = {} } = context;
   const { scheduledTasks, pxPerMin, sidebarTab, currentSessionId, lastTapState } = refs;
@@ -70,9 +72,7 @@ export function registerMobileTouchEndFeature(context) {
     const minMins = settings.startHour * 60;
     const maxMins = settings.endHour * 60 - 30;
     const finalMins = Math.max(minMins, Math.min(maxMins, snappedMins));
-    const h = Math.floor(finalMins / 60);
-    const m = finalMins % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    return formatClock(Math.floor(finalMins / 60), finalMins % 60);
   };
 
   const getWeekDropCheck = () => {
@@ -232,7 +232,7 @@ export function registerMobileTouchEndFeature(context) {
       checkType = 'instrument';
     }
 
-    const defaultStart = settings.startHour + ':00';
+    const defaultStart = formatClock(settings.startHour);
     const estDur = state.dragSourceType === 'pool'
       ? item.estDuration
       : (item.estDuration || '00:30');

@@ -54,7 +54,10 @@ export function registerDataPortabilityFeature(context) {
         const [sh, sm] = task.startTime.split(':').map(Number);
         const startStr = `${String(sh).padStart(2, '0')}${String(sm).padStart(2, '0')}00`;
         const durSec = parseTime(task.estDuration);
-        const endD = new Date(new Date(`${task.date}T${task.startTime}`).getTime() + durSec * 1000);
+        // 用数字构造起点，别拼 `${date}T${startTime}`——历史数据里没补零的 "9:00" 会让 Date 变 Invalid
+        const [year, month, day] = task.date.split('-').map(Number);
+        const startD = new Date(year, (month || 1) - 1, day || 1, sh || 0, sm || 0);
+        const endD = new Date(startD.getTime() + durSec * 1000);
         const endStr = `${endD.getFullYear()}${String(endD.getMonth() + 1).padStart(2, '0')}${String(endD.getDate()).padStart(2, '0')}T${String(endD.getHours()).padStart(2, '0')}${String(endD.getMinutes()).padStart(2, '0')}00`;
 
         const musicianName = getNameById(task.musicianId, 'musician');

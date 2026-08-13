@@ -21,7 +21,6 @@ export function createMidiManagerState({ reactive, computed, shallowRef }) {
     return {
         midiManagerFeatureRef,
         midiManagerExpandedGroups,
-        projectMidiList: forward('projectMidiList'),
         projectMidiGroups: forward('projectMidiGroups'),
         filteredMidiGroups: forward('filteredMidiGroups'),
     };

@@ -1,3 +1,5 @@
+import { formatClock } from '../utils/time.js';
+
 export function registerScheduleDragDropFeature(context) {
   const { refs, state, utils, actions = {} } = context;
   const { scheduledTasks, pxPerMin, sidebarTab, currentSessionId, isMobile } = refs;
@@ -152,9 +154,7 @@ export function registerScheduleDragDropFeature(context) {
     const maxStart = settings.endHour * 60 - 30;
     snappedMins = Math.max(minStart, Math.min(maxStart, snappedMins));
 
-    const hours = Math.floor(snappedMins / 60);
-    const minutes = snappedMins % 60;
-    const newStartTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    const newStartTime = formatClock(Math.floor(snappedMins / 60), snappedMins % 60);
 
     let checkType = 'musician';
     let newDuration = '';
@@ -232,7 +232,7 @@ export function registerScheduleDragDropFeature(context) {
 
     const { item, source } = draggedData;
 
-    let targetStartTime = `${settings.startHour}:00`;
+    let targetStartTime = formatClock(settings.startHour);
     let targetDuration = '';
     let excludeId = null;
     let checkType = 'musician';

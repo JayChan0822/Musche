@@ -39,7 +39,6 @@ function createStubBag() {
 function createImportDataFeatureDouble() {
     return {
         groupedCsvData: computed(() => [{ projectName: 'Project A', rows: [] }]),
-        isAllSelected: computed(() => true),
         availableInstrumentGroups: computed(() => ['Strings']),
         midiGroupData: computed(() => [{ id: 'group-1', name: 'Strings' }]),
         currentMidiDisplayList: computed(() => [{ id: 'track-1' }]),
@@ -51,7 +50,6 @@ function createImportDataFeatureDouble() {
 function createMidiManagerFeatureDouble() {
     return {
         midiManagerExpandedGroups: reactive(new Set(['Strings'])),
-        projectMidiList: computed(() => [{ id: 'midi-1', group: 'Strings' }]),
         projectMidiGroups: computed(() => [{ name: 'Strings', items: [] }]),
         filteredMidiGroups: computed(() => ['Strings']),
     };
@@ -175,11 +173,6 @@ test('midi-manager 懒加载完成后，真实派生状态必须穿透到根 ctx
         'MIDI 管理器的展开状态必须转发到懒加载后的集合',
     );
     assert.deepEqual(
-        midiManagerState.projectMidiList.value,
-        [{ id: 'midi-1', group: 'Strings' }],
-        'projectMidiList 也必须是转发引用',
-    );
-    assert.deepEqual(
         assembly.refs.projectMidiGroups.value,
         [{ name: 'Strings', items: [] }],
         'assembly.refs 上发布的分组必须同样是转发引用（供全局快捷键延迟取值）',
@@ -197,7 +190,6 @@ test('转发占位在 feature 未加载时保持稳定的空态与可变集合�
     const midiManagerState = factories.createRootMidiManagerState();
 
     assert.deepEqual(importDataState.groupedCsvData.value, []);
-    assert.equal(importDataState.isAllSelected.value, false);
     assert.deepEqual(importDataState.availableInstrumentGroups.value, []);
     assert.deepEqual(midiManagerState.filteredMidiGroups.value, []);
 

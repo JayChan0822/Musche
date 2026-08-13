@@ -376,7 +376,8 @@ export function registerCalendarViewFeature(context) {
     }
 
     for (const date in map) {
-      map[date].sort((a, b) => a.startTime.localeCompare(b.startTime));
+      // 按分钟数排，历史遗留的没补零时间（"9:00"）也不会被字符串比较排到 "10:00" 后面
+      map[date].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
     }
 
     return map;

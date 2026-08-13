@@ -150,7 +150,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const {
                 importDataFeatureRef,
                 groupedCsvData,
-                isAllSelected,
                 availableInstrumentGroups,
                 midiGroupData,
                 currentMidiDisplayList,
@@ -165,7 +164,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 midiManagerFeatureRef,
                 midiManagerExpandedGroups,
                 projectMidiGroups,
-                projectMidiList,
                 filteredMidiGroups,
             } = createRootMidiManagerState();
             Object.assign(assembly.refs, { midiManagerExpandedGroups, projectMidiGroups });
@@ -263,11 +261,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const {
                 dropdownSearch,
                 dropdownExpandedGroups,
-                activeGroupFilter,
-                availableGroups,
                 toggleDropdownGroup,
                 toggleDropdown,
-                closeDropdowns,
                 filteredOptions,
                 getGroupedOptions,
                 selectOption,
@@ -283,14 +278,9 @@ import { createAppDependencies } from './services/app-dependencies.js';
             ratioFeature = wireRatioFeature(assembly);
             assembly.features.ratio = ratioFeature;
             const {
-                ensureItemRecords,
-                getDefaultRatio,
-                calculateEstTime,
                 getTaskRatio,
                 calculateSingleRatio,
-                isDefaultRatio,
                 autoUpdateEfficiency,
-                cleanOldRatios,
             } = ratioFeature;
             Object.assign(assembly.helpers, { autoUpdateEfficiency, calculateSingleRatio, getTaskRatio });
 
@@ -316,19 +306,12 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.features.pickerControls = pickerControlsFeature;
             const {
                 showColorPickerModal,
-                colorPickerTarget,
                 tempColor,
                 presetColors,
-                getTextColor,
-                generateRandomHexColor,
-                adjustColor,
-                getDefaultColorByType,
                 openColorPicker,
                 resetColorPicker,
                 saveColorPicker,
                 onDragStart,
-                onDragMove,
-                onDragEnd,
                 openDurationPicker,
                 closePicker,
                 onScroll,
@@ -427,12 +410,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.features.orchestration = orchestrationFeature;
             const {
                 activeOrchPresets,
-                orchTemplates,
                 parsedRoster,
                 getRosterName,
                 updateRosterName,
                 showOrchestrationField,
-                percKeywords,
                 percState,
                 isPercussionMode,
                 scanPercussionTags,
@@ -456,7 +437,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const {
                 currentQuickAddGroups,
                 openQuickAdd,
-                onMusicianSelect,
                 confirmQuickAdd,
                 addItemToPool,
             } = quickAddFeature;
@@ -597,7 +577,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const {
                 checkCanSplit: splitTaskCheckCanSplit,
                 checkCanDeleteSplit,
-                getFamilyTotalDuration,
                 syncFamilyLegacyFields,
                 syncFamilySharedIdentity,
                 syncFamilyOrchestration,
@@ -720,7 +699,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                     midiManagerFeatureRef.value = feature;
                 },
             });
-            const getMidiManagerFeature = midiManagerFeatureProxy.getFeature;
             const withMidiManagerFeature = midiManagerFeatureProxy.method;
             const toggleMidiManagerGroup = withMidiManagerFeature('toggleMidiManagerGroup');
             const openMidiGroupDropdown = withMidiManagerFeature('openMidiGroupDropdown');
@@ -750,8 +728,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const {
                 filteredScheduledTasks,
                 filteredSidebarList,
-                getFullSearchText,
-                smartMatch,
                 handleSearchEnter,
                 handleSearchBlur,
                 onSearchFocus,
@@ -764,7 +740,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const sidebarStatsFeature = wireSidebarStatsFeature(assembly);
             assembly.features.sidebarStats = sidebarStatsFeature;
             const {
-                calculateGroupStats,
                 musicianStats,
                 projectStats,
                 instrumentStats,
@@ -772,9 +747,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 expandedStatsIds,
                 toggleSort,
                 getSortIcon,
-                toggleCollapse,
-                toggleStatCollapse,
-                updateMusicianRatio,
                 jumpToStatSchedule,
                 handleStatCardClick,
             } = sidebarStatsFeature;
@@ -786,23 +758,17 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const viewNavigationFeature = wireViewNavigationFeature(assembly);
             assembly.features.viewNavigation = viewNavigationFeature;
             const {
-                renderedRange,
-                isLoadingMore,
                 setMonthRef,
-                initMonthObserver,
                 timeSlots,
                 dateTransitionName,
                 weekTransitionName,
                 changeDate,
                 currentWeekDays,
-                generateMonthGrid,
                 currentMonthDays,
                 flatScrolledDays,
                 handleInfiniteScroll,
-                scrollToMonthDate,
                 currentDateLabel,
                 tasksByDateMap,
-                getTasksForDate,
                 switchToWeek,
                 handleHeaderDoubleTap,
                 handleMonthCellDoubleTap,
@@ -818,7 +784,6 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 isMouseViewDrag,
                 widthIcon,
                 cycleDayWidth,
-                jumpToGhostContext,
                 openDayView,
                 closeDayView,
                 selectDay,

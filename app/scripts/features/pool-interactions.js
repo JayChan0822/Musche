@@ -5,13 +5,8 @@ export function registerPoolInteractionsFeature(context) {
   const { refs, actions } = context;
 
   const visiblePoolItemsFeature = registerVisiblePoolItemsFeature({
-    refs: {
-      sidebarTab: refs.sidebarTab,
-    },
     actions: {
-      getGroupedItemPool: actions.getGroupedItemPool,
       getCurrentSidebarList: actions.getCurrentSidebarList,
-      isGroupExpanded: actions.isGroupExpanded,
       isStatExpanded: actions.isStatExpanded,
     },
   });

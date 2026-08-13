@@ -1,5 +1,7 @@
 import { computed, reactive, ref } from 'vue';
 
+import { timeToMinutes } from '../utils/time.js';
+
 export function registerExportCsvFeature(context) {
   const { refs, state, utils, actions } = context;
   const { itemPool, scheduledTasks, currentSessionId } = refs;
@@ -111,7 +113,7 @@ export function registerExportCsvFeature(context) {
 
     const map = new Map();
     Object.values(groups).forEach((group) => {
-      group.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+      group.sort((a, b) => a.date.localeCompare(b.date) || timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
       group.forEach((t, idx) => map.set(t.scheduleId, idx));
     });
     return map;

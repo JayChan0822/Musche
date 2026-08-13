@@ -1,5 +1,6 @@
 import { computed, watch } from 'vue';
 import { parseCSVLine, parseCSVRobust } from '../utils/csv.js';
+import { timeToMinutes } from '../utils/time.js';
 
 export function registerImportCsvFeature(context) {
   const { refs, state, utils, actions } = context;
@@ -434,7 +435,7 @@ export function registerImportCsvFeature(context) {
           if (type === 'instrument') return task.instrumentId === id;
           return false;
         })
-        .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+        .sort((a, b) => a.date.localeCompare(b.date) || timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
       const itemList = itemPool.value.filter((item) => {
         if ((item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
@@ -814,7 +815,7 @@ export function registerImportCsvFeature(context) {
 
       if (scheduleList.length === 0) return;
 
-      scheduleList.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+      scheduleList.sort((a, b) => a.date.localeCompare(b.date) || timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
       const scheduleIdToIndex = {};
       scheduleList.forEach((task, index) => {
         scheduleIdToIndex[task.scheduleId] = index;
