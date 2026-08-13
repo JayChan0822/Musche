@@ -224,11 +224,8 @@ export function registerSplitTaskFeature(context) {
       editInfo: cloneObject(item.editInfo),
       orchestration: item.orchestration || '',
       roster: cloneObject(item.roster),
-      musicDuration: remainingStr,
-      estDuration: newEst,
-      sectionIndex,
-      splitTag: `Part ${baseNum + 1}`,
-      splitFromId: item.id,
+      // musicDuration/estDuration/sectionIndex/splitTag/splitFromId 由
+      // 下方 syncLegacySplitFields 从视图态回填（顶层赋值会被覆盖，勿在此写）
     };
 
     ensureItemRecords(newTask);
