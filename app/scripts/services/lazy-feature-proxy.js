@@ -32,9 +32,14 @@ export function createLazyFeatureProxy({ loadFeature }) {
         methodNames.map((methodName) => [methodName, method(methodName)])
     );
 
+    // 是否已加载完成。未加载时调用方若只想 no-op（如取消类操作），
+    // 可借此避免触发 getFeature() 的动态 import 拉取 chunk。
+    const isLoaded = () => !!feature;
+
     return {
         getFeature,
         method,
         methods,
+        isLoaded,
     };
 }

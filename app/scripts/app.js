@@ -558,8 +558,13 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const startTrackDrag = withTrackListFeature('startTrackDrag');
             const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
             const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
-            // 懒加载代理：feature 未加载时返回 fallback（null），已加载则透传调用
-            const cancelPendingTrackSave = withTrackListFeature('cancelPendingTrackSave', null);
+            // 懒加载代理：feature 未加载时 isLoaded() 为 false，cancel 直接 no-op——
+            // 避免 Ctrl+Z 这类高频路径把 track-list chunk 拉下来（加载失败还会冒
+            // unhandled rejection）。已加载则透传调用。
+            const cancelPendingTrackSave = () => {
+                if (!trackListFeatureProxy.isLoaded()) return undefined;
+                return trackListFeatureProxy.method('cancelPendingTrackSave', null)();
+            };
             Object.assign(assembly.helpers, {
                 autoResizeScheduleByRecords, saveScheduleActualTime, saveTrackActual,
                 autoDistributeSections, startDividerDrag, calcTrackDiff, setTrackBreak, deleteTrackFromList,
