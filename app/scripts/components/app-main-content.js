@@ -314,23 +314,28 @@ export const AppMainContent = {
                     </Transition>
                 </div>
 
-                <!-- 手机端日视图：点日期后从底部滑入，上方保留一行周日期（Apple 日历式） -->
+                <!-- 手机端日视图：底部面板从下往上滑入（Apple 日历式），
+                     上方露出月视图，顶部一行周日期 -->
                 <transition name="day-view">
                     <div v-if="isMobile && dayViewOpen"
-                         class="fixed inset-0 z-[600] flex flex-col bg-white dark:bg-[#1e1e1e]"
+                         class="fixed bottom-0 left-0 right-0 z-[600] flex flex-col bg-white/95 dark:bg-[#1e1e1e]/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] border-t border-glass-border dark:border-glass-borderDark"
+                         style="height: 62dvh"
                          @touchstart="dayViewTouchStart($event)"
                          @touchmove="dayViewTouchMove($event)"
                          @touchend="dayViewTouchEnd($event)">
-                        <!-- 关闭把手 -->
-                        <div class="flex items-center justify-between px-4 pt-3 pb-1 shrink-0">
-                            <span class="text-sm font-bold text-gray-400">{{ selectedDayLabel }}</span>
-                            <button @click="closeDayView"
-                                    class="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 text-gray-500">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
+                        <!-- 顶部抓握把手 + 日期 + 关闭 -->
+                        <div class="flex flex-col items-center shrink-0 pt-2 pb-1">
+                            <div class="w-9 h-1 rounded-full bg-black/20 dark:bg-white/20 mb-2"></div>
+                            <div class="flex items-center justify-between w-full px-4">
+                                <span class="text-sm font-bold text-gray-500 dark:text-gray-400">{{ selectedDayLabel }}</span>
+                                <button @click="closeDayView"
+                                        class="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 text-gray-500">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- 周日期条：一行 7 天，选中高亮 -->
+                        <!-- 周日期条：一行 7 天，选中高亮，左右 chevron 翻 ±7 天 -->
                         <div class="flex items-center px-2 py-1 border-b border-glass-border dark:border-glass-borderDark shrink-0">
                             <button @click="changeSelectedDay(-7)"
                                     class="w-9 h-9 flex items-center justify-center text-gray-400 active:opacity-50 shrink-0">
