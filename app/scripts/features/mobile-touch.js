@@ -32,6 +32,8 @@ export function registerMobileTouchFeature(context) {
       isMobile: refs.isMobile,
       currentView: refs.currentView,
       weekContainer: refs.weekContainer,
+      dayViewOpen: refs.dayViewOpen,
+      dayViewContainer: refs.dayViewContainer,
     },
     state,
     actions: {

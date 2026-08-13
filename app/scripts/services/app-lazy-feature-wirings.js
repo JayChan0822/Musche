@@ -411,6 +411,8 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         isResizingMobile,
                         mobileResizeState,
                         dragState,
+                        dayViewOpen,
+                        dayViewContainer,
                     } = assembly.refs;
                     const { timeUtils, formatUtils } = assembly.utils;
                     const { helpers } = assembly;
@@ -427,6 +429,8 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             lastTapState,
                             isResizingMobile,
                             mobileResizeState,
+                            dayViewOpen,
+                            dayViewContainer,
                         },
                         state: dragState,
                         data: {

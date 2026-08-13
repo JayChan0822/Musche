@@ -819,6 +819,19 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 widthIcon,
                 cycleDayWidth,
                 jumpToGhostContext,
+                openDayView,
+                closeDayView,
+                selectDay,
+                changeSelectedDay,
+                selectedDayWeek,
+                selectedDayTasks,
+                selectedDayLabel,
+                selectedDayMonthLabel,
+                dayTransitionName,
+                nowIndicatorStyle,
+                dayViewTouchStart,
+                dayViewTouchMove,
+                dayViewTouchEnd,
             } = viewNavigationFeature;
             switchView = viewNavigationFeature.switchView;
             assembly.refs.currentWeekDays = currentWeekDays;
@@ -828,6 +841,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 isToday, activeMonthKey, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
                 onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,
                 timeSlots, setMonthRef, switchView,
+                openDayView, closeDayView, selectDay, changeSelectedDay,
+                selectedDayWeek, selectedDayTasks, selectedDayLabel, selectedDayMonthLabel,
+                dayTransitionName, nowIndicatorStyle,
+                dayViewTouchStart, dayViewTouchMove, dayViewTouchEnd,
             });
 
             const handlePageUnload = authFeature.handlePageUnload;

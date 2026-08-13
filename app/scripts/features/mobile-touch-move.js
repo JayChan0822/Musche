@@ -1,6 +1,6 @@
 export function registerMobileTouchMoveFeature(context) {
   const { refs, state, actions = {} } = context;
-  const { isMobile, currentView, weekContainer } = refs;
+  const { isMobile, currentView, weekContainer, dayViewOpen, dayViewContainer } = refs;
   const {
     clearTimeout: clearTimeoutFn = (timer) => clearTimeout(timer),
     setTimeout: setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
@@ -96,7 +96,11 @@ export function registerMobileTouchMoveFeature(context) {
 
     const scrollContainer = weekContainer.value;
 
-    if (currentView.value === 'week' && scrollContainer) {
+    // 日视图（手机端，叠在月视图之上）：只在自己的时间轴里自动滚动，
+    // 不做左右边缘翻页——否则会把底下的月视图翻走。
+    if (dayViewOpen?.value) {
+      if (dayViewContainer?.value) updateWeekAutoScroll(touch, dayViewContainer.value);
+    } else if (currentView.value === 'week' && scrollContainer) {
       updateWeekAutoScroll(touch, scrollContainer);
       updateEdgePaging(touch, changeDate);
     } else if (currentView.value === 'month' && isMobile.value) {

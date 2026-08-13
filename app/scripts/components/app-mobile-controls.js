@@ -8,7 +8,8 @@ export const AppMobileControls = {
   },
   template: `
             <template v-if="ctx.isMobile">
-                <div class="fixed z-[850] transition-all duration-300 ease-spring"
+                <div v-if="!ctx.dayViewOpen"
+                     class="fixed z-[850] transition-all duration-300 ease-spring"
                      :style="ctx.isSearchFocused
                          ? { top: '45%', left: '16px', right: '16px', height: '50px' }
                          : { top: 'calc(100dvh - 152px)', left: '20px', right: '20px', height: '50px' }">

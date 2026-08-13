@@ -12,6 +12,10 @@ export function createMuscheStore(storageService) {
   const currentView = ref('month');
   const monthViewMode = ref('scrolled');
   const viewDate = ref(new Date());
+  // 手机端日视图：选中的那一天 + 是否已滑入 + 时间轴滚动容器
+  const selectedDay = ref('');
+  const dayViewOpen = ref(false);
+  const dayViewContainer = ref(null);
   const selectedTaskId = ref(null);
   const selectedSource = ref(null);
   const selectedPoolIds = ref(new Set());
@@ -156,6 +160,9 @@ export function createMuscheStore(storageService) {
     currentView,
     monthViewMode,
     viewDate,
+    selectedDay,
+    dayViewOpen,
+    dayViewContainer,
     selectedTaskId,
     selectedSource,
     selectedPoolIds,

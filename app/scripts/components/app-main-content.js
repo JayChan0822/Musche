@@ -1,5 +1,8 @@
+import { AppMobileDayView } from './app-mobile-day-view.js';
+
 export const AppMainContent = {
   name: 'AppMainContent',
+  components: { AppMobileDayView },
   props: {
     ctx: {
       type: Object,
@@ -201,8 +204,9 @@ export const AppMainContent = {
                                              class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
                                              :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                              :data-date="day.fullDate"
-                                             @dblclick="switchToWeek(day.fullDate)"
-                                             @touchend="handleMonthCellDoubleTap($event, day.fullDate)"
+                                             @click="isMobile && openDayView(day.fullDate)"
+                                             @dblclick="!isMobile && switchToWeek(day.fullDate)"
+                                             @touchend="!isMobile && handleMonthCellDoubleTap($event, day.fullDate)"
                                              @dragover.prevent @drop="dropToMonth($event, day.fullDate)">
 
                                             <div class="text-right mb-1 shrink-0">
@@ -262,8 +266,9 @@ export const AppMainContent = {
                                          :data-month-key="day.monthKey"
                                          :data-month-start="day.isFirstDay ? day.fullDate : null"
                                          :ref="day.isFirstDay ? setMonthRef : null"
-                                         @dblclick="day.isCurrentMonth && switchToWeek(day.fullDate)"
-                                         @touchend="day.isCurrentMonth && handleMonthCellDoubleTap($event, day.fullDate)"
+                                         @click="isMobile && day.isCurrentMonth && openDayView(day.fullDate)"
+                                         @dblclick="!isMobile && day.isCurrentMonth && switchToWeek(day.fullDate)"
+                                         @touchend="!isMobile && day.isCurrentMonth && handleMonthCellDoubleTap($event, day.fullDate)"
                                          @dragover.prevent
                                          @drop="day.isCurrentMonth && dropToMonth($event, day.fullDate)">
 
@@ -311,6 +316,9 @@ export const AppMainContent = {
                         </div>
                     </Transition>
                 </div>
+
+                <!-- 手机端日视图：点月视图里的某天后从下往上滑入 -->
+                <app-mobile-day-view :ctx="$props.ctx"></app-mobile-day-view>
             </main>
   `,
 };

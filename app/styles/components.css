@@ -879,6 +879,79 @@ html.dark .custom-dropdown-menu .sticky {
     opacity: 0;
 }
 
+/* 手机端日视图：从下往上滑入覆盖月视图，关闭时滑回底部（Apple 日历式）。
+   入场用轻微回弹的 spring，出场走标准缓出，配合下拉关闭手势。 */
+.day-view-enter-active {
+    transition: transform 0.36s cubic-bezier(0.32, 1.28, 0.6, 1), opacity 0.2s ease;
+}
+
+.day-view-leave-active {
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s ease;
+}
+
+.day-view-enter-from,
+.day-view-leave-to {
+    transform: translateY(100%);
+    opacity: 0.6;
+}
+
+/* 日视图翻天：时间刻度列固定，只滑任务格（与周视图 week-slide 同构） */
+.day-slide-next-enter-active,
+.day-slide-prev-enter-active {
+    transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease;
+}
+
+.day-slide-next-leave-active,
+.day-slide-prev-leave-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.day-slide-next-enter-from {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.day-slide-next-leave-to {
+    transform: translateX(-20%);
+    opacity: 0;
+}
+
+.day-slide-prev-enter-from {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.day-slide-prev-leave-to {
+    transform: translateX(20%);
+    opacity: 0;
+}
+
+/* 日视图当前时刻红线 */
+.day-now-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 2px solid #ff3b30;
+    z-index: 30;
+    pointer-events: none;
+}
+
+.day-now-line .day-now-dot {
+    position: absolute;
+    left: -4px;
+    top: -5px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff3b30;
+}
+
 .settings-group-container {
     background: rgba(0, 0, 0, 0.02);
     border-radius: 12px;

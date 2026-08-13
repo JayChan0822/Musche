@@ -24,10 +24,20 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.currentMonthDays',
         'helpers.flatScrolledDays',
         'helpers.activeMonthKey',
+        // 手机端日视图
+        'refs.dayViewOpen',
+        'helpers.selectedDayWeek',
+        'helpers.selectedDayTasks',
+        'helpers.selectedDayLabel',
+        'helpers.selectedDayMonthLabel',
+        'helpers.dayTransitionName',
+        'helpers.nowIndicatorStyle',
     ],
     models: [
         'refs.weekContainer',
         'refs.weekGridWrapper',
+        'refs.selectedDay',
+        'refs.dayViewContainer',
     ],
     values: [
         'state.settings',
@@ -70,5 +80,12 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.handleMonthCellDoubleTap',
         'helpers.dropToMonth',
         'helpers.setMonthRef',
+        'helpers.openDayView',
+        'helpers.closeDayView',
+        'helpers.selectDay',
+        'helpers.changeSelectedDay',
+        'helpers.dayViewTouchStart',
+        'helpers.dayViewTouchMove',
+        'helpers.dayViewTouchEnd',
     ],
 });

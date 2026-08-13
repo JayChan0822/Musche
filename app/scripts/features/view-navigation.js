@@ -1,5 +1,6 @@
 import { registerCalendarViewFeature } from './calendar-view.js';
 import { registerMainViewNavigationFeature } from './main-view-navigation.js';
+import { registerMobileDayViewFeature } from './mobile-day-view.js';
 
 export function registerViewNavigationFeature(context) {
   const { refs, state, utils, services, actions } = context;
@@ -65,6 +66,27 @@ export function registerViewNavigationFeature(context) {
     mainViewNavigationFeature.viewTransitionName.value = name;
   };
 
+  const mobileDayViewFeature = registerMobileDayViewFeature({
+    refs: {
+      selectedDay: refs.selectedDay,
+      dayViewOpen: refs.dayViewOpen,
+      dayViewContainer: refs.dayViewContainer,
+      viewDate: refs.viewDate,
+      isMobile: refs.isMobile,
+      mobileTab: refs.mobileTab,
+      pxPerMin: refs.pxPerMin,
+    },
+    state: {
+      settings: state.settings,
+    },
+    utils: {
+      formatDate: utils.formatDate,
+    },
+    actions: {
+      getTasksForDate: calendarViewFeature.getTasksForDate,
+    },
+  });
+
   return {
     renderedRange: calendarViewFeature.renderedRange,
     isLoadingMore: calendarViewFeature.isLoadingMore,
@@ -101,5 +123,18 @@ export function registerViewNavigationFeature(context) {
     widthIcon: mainViewNavigationFeature.widthIcon,
     cycleDayWidth: mainViewNavigationFeature.cycleDayWidth,
     jumpToGhostContext: mainViewNavigationFeature.jumpToGhostContext,
+    openDayView: mobileDayViewFeature.openDayView,
+    closeDayView: mobileDayViewFeature.closeDayView,
+    selectDay: mobileDayViewFeature.selectDay,
+    changeSelectedDay: mobileDayViewFeature.changeSelectedDay,
+    selectedDayWeek: mobileDayViewFeature.selectedDayWeek,
+    selectedDayTasks: mobileDayViewFeature.selectedDayTasks,
+    selectedDayLabel: mobileDayViewFeature.selectedDayLabel,
+    selectedDayMonthLabel: mobileDayViewFeature.selectedDayMonthLabel,
+    dayTransitionName: mobileDayViewFeature.dayTransitionName,
+    nowIndicatorStyle: mobileDayViewFeature.nowIndicatorStyle,
+    dayViewTouchStart: mobileDayViewFeature.dayViewTouchStart,
+    dayViewTouchMove: mobileDayViewFeature.dayViewTouchMove,
+    dayViewTouchEnd: mobileDayViewFeature.dayViewTouchEnd,
   };
 }
