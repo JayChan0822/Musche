@@ -225,7 +225,8 @@ export function registerSplitTaskFeature(context) {
       orchestration: item.orchestration || '',
       roster: cloneObject(item.roster),
       // musicDuration/estDuration/sectionIndex/splitTag/splitFromId 由
-      // 下方 syncLegacySplitFields 从视图态回填（顶层赋值会被覆盖，勿在此写）
+      // 下方 syncLegacySplitFields 从视图态回填（顶层赋值会被覆盖，勿在此写）；
+      // 注意 sectionIndex 之后还可能被 addRemainderToTrackList 二次改写。
     };
 
     ensureItemRecords(newTask);
