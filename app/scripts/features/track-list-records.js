@@ -21,6 +21,13 @@ export function createTrackListRecords(deps) {
 
   let trackSaveTimer = null;
 
+  const cancelPendingTrackSave = () => {
+    if (trackSaveTimer) {
+      clearTimeout(trackSaveTimer);
+      trackSaveTimer = null;
+    }
+  };
+
   const calcTrackDiff = (item) => {
     const viewType = getViewType();
     const record = item.records[viewType];
@@ -224,5 +231,6 @@ export function createTrackListRecords(deps) {
     setTrackNow,
     saveTrackRecord,
     clearTrackTime,
+    cancelPendingTrackSave,
   };
 }

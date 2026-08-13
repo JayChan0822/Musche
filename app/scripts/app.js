@@ -558,11 +558,14 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const startTrackDrag = withTrackListFeature('startTrackDrag');
             const getSessionRatio = withTrackListFeature('getSessionRatio', '-');
             const calculateProportionalDuration = withTrackListFeature('calculateProportionalDuration');
+            // 懒加载代理：feature 未加载时返回 fallback（null），已加载则透传调用
+            const cancelPendingTrackSave = withTrackListFeature('cancelPendingTrackSave', null);
             Object.assign(assembly.helpers, {
                 autoResizeScheduleByRecords, saveScheduleActualTime, saveTrackActual,
                 autoDistributeSections, startDividerDrag, calcTrackDiff, setTrackBreak, deleteTrackFromList,
                 setTrackNow, clearTrackTime, isPercussionGroup, isStringGroup,
                 sortTrackList, startTrackDrag,
+                cancelPendingTrackSave,
             });
 
             const getTaskStyle = t => scheduleFeature.getTaskStyle(t);

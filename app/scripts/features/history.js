@@ -52,7 +52,7 @@ export function registerHistoryFeature(context) {
     currentSessionId,
   } = refs;
   const { settings } = state;
-  const { isItemVisibleForView, syncItemsForView, reopenTrackListForTask } = actions;
+  const { isItemVisibleForView, syncItemsForView, reopenTrackListForTask, cancelPendingTrackSave = () => {} } = actions;
 
   const refreshTrackList = () => {
     if (!showTrackList.value || !trackListData.value.taskRef) return;
@@ -89,11 +89,18 @@ export function registerHistoryFeature(context) {
       history.value = history.value.slice(0, historyIndex.value + 1);
     }
 
-    history.value.push(JSON.stringify({
+    const snapshot = JSON.stringify({
       pool: itemPool.value,
       tasks: scheduledTasks.value,
       settings,
-    }));
+    });
+
+    // 空快照保护：与当前索引处快照字节相同则跳过。
+    // 避免 debounce 写回无变化时推出重复快照——那会让第一次 Ctrl+Z
+    // 界面无反应（撤到同一状态），50 条上限下撤销深度直接减半。
+    if (history.value[historyIndex.value] === snapshot) return;
+
+    history.value.push(snapshot);
 
     historyIndex.value++;
     if (history.value.length > 50) {
@@ -103,6 +110,7 @@ export function registerHistoryFeature(context) {
   };
 
   const undo = () => {
+    cancelPendingTrackSave();
     if (historyIndex.value > 0) {
       historyIndex.value--;
       const snapshot = JSON.parse(history.value[historyIndex.value]);
@@ -118,6 +126,7 @@ export function registerHistoryFeature(context) {
   };
 
   const redo = () => {
+    cancelPendingTrackSave();
     if (historyIndex.value < history.value.length - 1) {
       historyIndex.value++;
       const snapshot = JSON.parse(history.value[historyIndex.value]);
