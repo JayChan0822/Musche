@@ -1,5 +1,7 @@
 import { computed, ref } from 'vue';
 
+import { pickSidebarTab } from '../utils/sidebar-tabs.js';
+
 export function registerMainViewNavigationFeature(context) {
   const { refs, services = {}, actions = {} } = context;
   const {
@@ -156,12 +158,13 @@ export function registerMainViewNavigationFeature(context) {
     storageService?.setItem('musche_day_width', dayColWidth.value);
   };
 
-  const getGhostTargetTab = (task) => {
-    if (task.musicianId) return 'musician';
-    if (task.projectId) return 'project';
-    if (task.instrumentId) return 'instrument';
-    return 'musician';
-  };
+  // ghost 任务跳转的目标分类：按 人员 → 项目 → 乐器 的优先级取第一个「仍然存在」的分类，
+  // 乐器分类已下线，只有乐器 id 的任务回落到录音（默认分类），不会跳进没有入口的侧栏。
+  const getGhostTargetTab = (task) => pickSidebarTab([
+    task.musicianId && 'musician',
+    task.projectId && 'project',
+    task.instrumentId && 'instrument',
+  ].filter(Boolean));
 
   const jumpToGhostContext = (task) => {
     isContextSwitching.value = true;

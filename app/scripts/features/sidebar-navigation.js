@@ -1,5 +1,7 @@
 import { ref } from 'vue';
 
+import { SIDEBAR_TABS } from '../utils/sidebar-tabs.js';
+
 export function registerSidebarNavigationFeature(context) {
   const { refs, actions = {} } = context;
   const { isMobile, isSidebarOpen, sidebarTab } = refs;
@@ -14,7 +16,9 @@ export function registerSidebarNavigationFeature(context) {
   const sidebarTouchStartY = ref(0);
   const sidebarTransitionName = ref('slide-next');
   const sidebarScrollRef = ref(null);
-  const sidebarTabsOrder = ['musician', 'project', 'instrument'];
+  // 手机端左右滑翻分类：顺序与可用分类都取自 utils/sidebar-tabs.js，
+  // 桌面端下线了的分类（如乐器）不会再被滑出来。
+  const sidebarTabsOrder = SIDEBAR_TABS;
 
   const toggleSidebar = () => {
     isSidebarOpen.value = !isSidebarOpen.value;
