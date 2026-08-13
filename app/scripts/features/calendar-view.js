@@ -303,15 +303,16 @@ export function registerCalendarViewFeature(context) {
     }
   };
 
-  const scrollToMonthDate = (targetDate) => {
+  const scrollToMonthDate = (targetDate, { smooth = false } = {}) => {
     const targetDateStr = formatDate(targetDate);
+    const behavior = smooth ? 'smooth' : 'auto';
 
     setTimeout(() => {
       const el = document.querySelector(`[data-date="${targetDateStr}"]`);
 
       if (el) {
         // block:'start'：目标月/日贴滚动容器顶部（原 'center' 会把 1 号摆到视口正中）
-        el.scrollIntoView({ behavior: 'auto', block: 'start' });
+        el.scrollIntoView({ behavior, block: 'start' });
       } else {
         const year = targetDate.getFullYear();
         const month = String(targetDate.getMonth() + 1).padStart(2, '0');
@@ -319,7 +320,7 @@ export function registerCalendarViewFeature(context) {
         const monthEl = document.querySelector(`[data-month-start="${monthStartId}"]`);
 
         if (monthEl) {
-          monthEl.scrollIntoView({ behavior: 'auto', block: 'start' });
+          monthEl.scrollIntoView({ behavior, block: 'start' });
         }
       }
     }, 50);
@@ -338,9 +339,11 @@ export function registerCalendarViewFeature(context) {
     // 切月后月份标题立即跟随，不依赖 IntersectionObserver 异步触发
     // （scrollIntoView 是 instant，observer 的顶部 10% 区域可能不覆盖新位置）
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-      visibleTopDate.value = viewDate.value;
-      activeMonthKey.value = monthKeyOf(viewDate.value);
-      scrollToMonthDate(viewDate.value);
+      // scrolled 模式切月：纵向平滑滚动到目标月（左右箭头语义 = 上下翻页）。
+      // 标题/灰化由滚动过程中的占比计算（updateActiveMonth）自然驱动，
+      // 不在此预设 activeMonthKey——否则标题会先跳目标月、滚动途中又被
+      // 占比计算弹回旧月，造成闪烁。
+      scrollToMonthDate(viewDate.value, { smooth: true });
     }
   });
 
