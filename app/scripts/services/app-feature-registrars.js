@@ -13,7 +13,7 @@ import { wireOrchestrationFeature } from './orchestration-feature-registrar.js';
 import { wireSplitTaskFeature } from './split-task-feature-registrar.js';
 import { wirePickerControlsFeature } from './picker-controls-feature-registrar.js';
 import { wirePoolInteractionsFeature } from './pool-interactions-feature-registrar.js';
-import { createSearchFeatureRegistrar } from './search-feature-registrar.js';
+import { wireSearchFeature } from './search-feature-registrar.js';
 import { wireSidebarStatsFeature } from './sidebar-stats-feature-registrar.js';
 import { wireSidebarFeature } from './sidebar-feature-registrar.js';
 import { wireMobileUiFeature } from './mobile-ui-feature-registrar.js';
@@ -22,7 +22,7 @@ import { wireScheduleInteractionsFeature } from './schedule-interactions-feature
 import { wireAuthFeature } from './auth-feature-registrar.js';
 import { wireSettingsSyncFeature } from './settings-sync-feature-registrar.js';
 
-export function createAppFeatureRegistrars({ pinyinMatchSupport } = {}) {
+export function createAppFeatureRegistrars() {
     return {
         wireAppRuntimeFeature,
         wireGlobalKeyboardFeature,
@@ -39,7 +39,7 @@ export function createAppFeatureRegistrars({ pinyinMatchSupport } = {}) {
         wireSplitTaskFeature,
         wirePickerControlsFeature,
         wirePoolInteractionsFeature,
-        wireSearchFeature: createSearchFeatureRegistrar({ pinyinMatchSupport }),
+        wireSearchFeature,
         wireSidebarStatsFeature,
         wireSidebarFeature,
         wireMobileUiFeature,

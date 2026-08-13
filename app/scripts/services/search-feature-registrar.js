@@ -1,8 +1,26 @@
 import { registerSearchFeature } from '../features/search.js';
 
-export function createSearchFeatureRegistrar() {
-    return function wireSearchFeature(assembly) {
-        const {
+export function wireSearchFeature(assembly) {
+    const {
+        itemPool,
+        scheduledTasks,
+        globalSearchQuery,
+        currentSearchIndex,
+        searchHighlightTimer,
+        lastHighlightedTrackId,
+        lastTrackSearchQuery,
+        trackSearchIndex,
+        trackListSearchQuery,
+        trackListData,
+        showTrackList,
+        isSearchFocused,
+        isMobile,
+        sidebarTab,
+    } = assembly.refs;
+    const { settings } = assembly.state;
+
+    return registerSearchFeature({
+        refs: {
             itemPool,
             scheduledTasks,
             globalSearchQuery,
@@ -16,42 +34,22 @@ export function createSearchFeatureRegistrar() {
             showTrackList,
             isSearchFocused,
             isMobile,
+        },
+        state: {
             sidebarTab,
-        } = assembly.refs;
-        const { settings } = assembly.state;
+            settings,
+            musicianStats: { get value() { return assembly.refs.musicianStats.value; } },
+            projectStats: { get value() { return assembly.refs.projectStats.value; } },
+            instrumentStats: { get value() { return assembly.refs.instrumentStats.value; } },
+        },
+        utils: {
+            getNameById: (...args) => assembly.features.nameLookup.getNameById(...args),
+        },
+        actions: {
+            openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
+            smartScrollToTask: (...args) => assembly.features.viewNavigation.smartScrollToTask(...args),
 
-        return registerSearchFeature({
-            refs: {
-                itemPool,
-                scheduledTasks,
-                globalSearchQuery,
-                currentSearchIndex,
-                searchHighlightTimer,
-                lastHighlightedTrackId,
-                lastTrackSearchQuery,
-                trackSearchIndex,
-                trackListSearchQuery,
-                trackListData,
-                showTrackList,
-                isSearchFocused,
-                isMobile,
-            },
-            state: {
-                sidebarTab,
-                settings,
-                musicianStats: { get value() { return assembly.refs.musicianStats.value; } },
-                projectStats: { get value() { return assembly.refs.projectStats.value; } },
-                instrumentStats: { get value() { return assembly.refs.instrumentStats.value; } },
-            },
-            utils: {
-                getNameById: (...args) => assembly.features.nameLookup.getNameById(...args),
-            },
-            actions: {
-                openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
-                smartScrollToTask: (...args) => assembly.features.viewNavigation.smartScrollToTask(...args),
-
-                getSidebarList: () => assembly.refs.currentSidebarList.value,
-            },
-        });
-    };
+            getSidebarList: () => assembly.refs.currentSidebarList.value,
+        },
+    });
 }

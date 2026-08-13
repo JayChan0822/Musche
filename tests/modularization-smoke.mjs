@@ -159,8 +159,6 @@ import {
     mobileTouchFeatureLoaderModule,
     mobileTouchFeatureLoaderPath,
     packageJson,
-    pinyinMatchLoaderModule,
-    pinyinMatchLoaderPath,
     scheduleDeletionFeatureLoaderModule,
     scheduleDeletionFeatureLoaderPath,
     settingsFeatureLoaderModule,
@@ -338,7 +336,6 @@ const { createExportModalShellState } = existsSync(new URL(exportModalShellState
     ? await import(exportModalShellStatePath)
     : {};
 const { createDefaultSettings } = await import('../app/scripts/state/defaults.js');
-const { createPinyinMatchLoader } = await import('../app/scripts/services/pinyin-match-loader.js');
 const { createStorageService } = await import('../app/scripts/services/storage-service.js');
 const { createAvatarCropFeatureLoader } = await import('../app/scripts/services/avatar-crop-feature-loader.js');
 const { createDataIoFeatureLoader } = await import('../app/scripts/services/data-io-feature-loader.js');
@@ -4539,7 +4536,6 @@ assert.match(
 
 
 assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSearchFeatureRegistrar',
     registerName: 'wireSearchFeature',
     modulePath: 'search-feature-registrar.js',
     label: 'Search',
@@ -4655,86 +4651,40 @@ assert.doesNotMatch(
     'app.js should not unpack avatar-crop-only Cropper support from the root dependency registry'
 );
 
-assert.match(
+assert.doesNotMatch(
     appSupportLoadersModule,
-    /import\s+\{\s*createPinyinMatchLoader\s*\}\s+from\s+['"]\.\/pinyin-match-loader\.js['"]/,
-    'app support loader registry should import the pinyin match loader service'
-);
-
-assert.match(
-    appSupportLoadersModule,
-    /pinyinMatchSupport:\s*createPinyinMatchLoader\(\{\s*ref\s*\}\)/,
-    'app support loader registry should keep pinyin match ref and loader grouped as search pinyin support'
+    /createPinyinMatchLoader|pinyinMatchSupport/,
+    'app support loader registry must not retain the removed pinyin match loader'
 );
 
 assert.match(
     appDependenciesModule,
-    /const\s+supportLoaders\s*=\s*createAppSupportLoaders\(\{\s*ref:\s*vueRuntime\.ref\s*\}\);/,
+    /const\s+supportLoaders\s*=\s*createAppSupportLoaders\(\);/,
     'app dependencies should create support loaders once before injecting registrar-private dependencies'
 );
 
-assert.match(
+assert.doesNotMatch(
     appDependenciesModule,
-    /createAppFeatureRegistrars\(\{[\s\S]*pinyinMatchSupport:\s*supportLoaders\.pinyinMatchSupport[\s\S]*\}\)/,
-    'app dependencies should inject search pinyin support into the feature registrar registry'
+    /pinyinMatchSupport/,
+    'app dependencies must not inject the removed pinyin support into the registrar registry'
 );
 
-assert.match(
+assert.doesNotMatch(
     appFeatureRegistrarsModule,
-    /createSearchFeatureRegistrar\(\{\s*pinyinMatchSupport\s*\}\)/,
-    'app feature registrar registry should pass pinyin support to the search registrar'
+    /createSearchFeatureRegistrar|pinyinMatchSupport/,
+    'app feature registrar registry must not retain the removed pinyin search registrar factory'
 );
 
 assert.doesNotMatch(
     appScript,
     /\b(pinyinMatch|loadPinyinMatch)\b[\s\S]*=\s*createAppDependencies\(\);/,
-    'app.js should not unpack search-only pinyin support from the root dependency registry'
+    'app.js should not unpack the removed pinyin support from the root dependency registry'
 );
-
-assert.match(
-    pinyinMatchLoaderModule,
-    /export function createPinyinMatchLoader\(\{ ref \}\)\s*\{/,
-    'pinyin match loader service must expose a factory that owns the match ref'
-);
-
-assert.match(
-    pinyinMatchLoaderModule,
-    /const\s+pinyinMatch\s*=\s*ref\(null\);[\s\S]*let\s+pinyinMatchPromise;/,
-    'pinyin match loader service must own the pinyin match ref and promise cache'
-);
-
-assert.match(
-    pinyinMatchLoaderModule,
-    /import\(['"]pinyin-pro['"]\)\.then\(\(\{ match \}\)\s*=>\s*\{/,
-    'pinyin match loader service must own the dynamic pinyin-pro import'
-);
-
-assert.match(
-    pinyinMatchLoaderModule,
-    /return\s+\{\s*pinyinMatch,\s*loadPinyinMatch,\s*\};/,
-    'pinyin match loader service must expose the match ref and loader'
-);
-{
-    const pinyinMatchLoader = createPinyinMatchLoader({ ref: vueRef });
-    assert.equal(pinyinMatchLoader.pinyinMatch.value, null, 'pinyin match loader must default the match ref to null before loading');
-    assert.equal(typeof pinyinMatchLoader.loadPinyinMatch, 'function', 'pinyin match loader must expose a callable loader');
-    assert.throws(
-        () => createPinyinMatchLoader({}),
-        /createPinyinMatchLoader requires Vue ref factory/,
-        'pinyin match loader should fail clearly when Vue ref is missing'
-    );
-}
 
 assert.doesNotMatch(
     appScript,
-    /import\(['"]pinyin-pro['"]\)|let\s+pinyinMatchPromise;/,
-    'app.js must not retain the direct pinyin-pro dynamic import or promise cache after pinyin loader extraction'
-);
-
-assert.match(
-    searchFeature,
-    /ensurePinyinMatch/,
-    'search feature must trigger the lazy pinyin-pro loader when a search query needs smart matching'
+    /import\(['"]pinyin-pro['"]\)|pinyinMatchPromise|ensurePinyinMatch/,
+    'app.js and its chain must not retain the removed pinyin-pro dynamic import, promise cache, or lazy loader trigger'
 );
 
 assert.match(
@@ -8233,18 +8183,11 @@ for (const relativePath of requiredFiles) {
         project: { P1: 'Dragon Score Film' },
         instrument: { I1: 'Violin', I2: 'Bassoon' },
     };
-    const pinyinMatcher = vueRef(null);
-    let pinyinLoadCount = 0;
     const feature = registerSearchFeature({
         refs,
         state,
         utils: {
             getNameById: (id, type) => names[type]?.[id] || '',
-            pinyinMatch: pinyinMatcher,
-            ensurePinyinMatch: async () => {
-                pinyinLoadCount += 1;
-                pinyinMatcher.value = (text, keyword) => text === 'Yi Li Player' && keyword === 'yili';
-            },
         },
         actions: {
             openAlertModal: () => {},
@@ -8256,12 +8199,10 @@ for (const relativePath of requiredFiles) {
 
     refs.globalSearchQuery.value = 'yili';
     await vueNextTick();
-    assert.equal(pinyinLoadCount, 1, 'search feature should lazily request pinyin matching after the first non-empty query');
-    assert.deepEqual(feature.filteredScheduledTasks.value.map((task) => task.scheduleId), [1, 2, 3], 'search feature should smart-match no-space/pinyin schedule and aggregate child text');
+    assert.deepEqual(feature.filteredScheduledTasks.value.map((task) => task.scheduleId), [1, 2, 3], 'search feature should smart-match no-space schedule and aggregate child text');
 
     refs.globalSearchQuery.value = 'Bassoon';
     await vueNextTick();
-    assert.equal(pinyinLoadCount, 1, 'search feature should reuse the loaded pinyin matcher instead of loading it again');
     assert.deepEqual(feature.filteredScheduledTasks.value.map((task) => task.scheduleId), [2], 'search feature should match aggregate child items by schedule section');
 
     refs.globalSearchQuery.value = 'finished';

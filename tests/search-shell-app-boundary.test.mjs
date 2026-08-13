@@ -16,7 +16,6 @@ test('app bootstrap registers search through the search registrar without the pa
     label: 'search feature',
   });
   assertAppFeatureRegistrarRegistry({
-    factoryName: 'createSearchFeatureRegistrar',
     registerName: 'wireSearchFeature',
     modulePath: 'search-feature-registrar.js',
     label: 'search',
@@ -31,30 +30,20 @@ test('app bootstrap registers search through the search registrar without the pa
   });
 });
 
-test('app bootstrap keeps search pinyin support inside the search registrar boundary', () => {
-  assert.match(
+test('app bootstrap must not retain the removed pinyin search support chain', () => {
+  assert.doesNotMatch(
     appSupportLoadersModule,
-    /pinyinMatchSupport:\s*createPinyinMatchLoader\(\{\s*ref\s*\}\)/,
-    'app support loader registry should keep the pinyin matcher ref and loader grouped as search support',
+    /pinyin|createPinyinMatchLoader/,
+    'app support loader registry should no longer create a pinyin matcher ref/loader',
   );
-  assert.match(
+  assert.doesNotMatch(
     appDependenciesModule,
-    /createAppFeatureRegistrars\(\{[\s\S]*pinyinMatchSupport:\s*supportLoaders\.pinyinMatchSupport[\s\S]*\}\)/,
-    'app dependencies should inject pinyin support into the feature registrar registry',
+    /pinyin|pinyinMatchSupport/,
+    'app dependencies should no longer inject pinyin support into the registrar registry',
   );
   assert.doesNotMatch(
-    appScript,
-    /\b(pinyinMatch|loadPinyinMatch)\b[\s\S]*=\s*createAppDependencies\(\);/,
-    'app.js should not unpack search-only pinyin support from the root dependency registry',
-  );
-  assert.doesNotMatch(
-    appScript,
-    /utils:\s*\{[\s\S]*\bpinyinMatch\b[\s\S]*\bensurePinyinMatch:\s*loadPinyinMatch[\s\S]*\}/,
-    'app.js should not manually pass search-only pinyin support into search registration',
-  );
-  assert.match(
     appFeatureRegistrarsModule,
-    /createSearchFeatureRegistrar\(\{\s*pinyinMatchSupport\s*\}\)/,
-    'search registrar registry should inject pinyin support into the search registrar',
+    /createSearchFeatureRegistrar|pinyinMatchSupport/,
+    'search registrar should be a plain wire function with no pinyin factory argument',
   );
 });

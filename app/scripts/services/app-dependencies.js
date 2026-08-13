@@ -13,7 +13,7 @@ import { createLazyFeatureProxy } from './lazy-feature-proxy.js';
 
 export function createAppDependencies() {
     const vueRuntime = createAppVueRuntime();
-    const supportLoaders = createAppSupportLoaders({ ref: vueRuntime.ref });
+    const supportLoaders = createAppSupportLoaders();
     const featureLoaders = createAppFeatureLoaders({
         cropperSupport: supportLoaders.loadCropper,
         midiSmfSupport: supportLoaders.loadMidiSmf,
@@ -27,9 +27,7 @@ export function createAppDependencies() {
         ...supportLoaders,
         ...featureLoaders,
         ...createAppLazyFeatureWirings({ loaders: featureLoaders }),
-        ...createAppFeatureRegistrars({
-            pinyinMatchSupport: supportLoaders.pinyinMatchSupport,
-        }),
+        ...createAppFeatureRegistrars(),
         ...createAppStateFactories({
             ref: vueRuntime.ref,
             reactive: vueRuntime.reactive,

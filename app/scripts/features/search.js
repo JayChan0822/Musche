@@ -20,8 +20,6 @@ export function registerSearchFeature(context) {
   const { sidebarTab, musicianStats, projectStats, instrumentStats, settings = {} } = state;
   const {
     getNameById,
-    pinyinMatch,
-    ensurePinyinMatch = () => Promise.resolve(),
   } = utils;
   const {
     openAlertModal,
@@ -30,21 +28,6 @@ export function registerSearchFeature(context) {
   } = actions;
 
   const filteredSidebarList = computed(() => getSidebarList());
-
-  const resolvePinyinMatch = () => {
-    if (!pinyinMatch) return null;
-    if (typeof pinyinMatch === 'function') return pinyinMatch;
-    return pinyinMatch.value || null;
-  };
-
-  let pinyinLoadRequested = false;
-  const requestPinyinMatch = () => {
-    if (pinyinLoadRequested || resolvePinyinMatch()) return;
-    pinyinLoadRequested = true;
-    Promise.resolve(ensurePinyinMatch()).catch(() => {
-      pinyinLoadRequested = false;
-    });
-  };
 
   const getNameWithGroup = (id, type) => {
     if (!id) return '';
@@ -63,10 +46,6 @@ export function registerSearchFeature(context) {
     const lowerText = text.toLowerCase();
     if (lowerText.includes(keyword)) return true;
     if (lowerText.replace(/\s/g, '').includes(keyword)) return true;
-    const currentPinyinMatch = resolvePinyinMatch();
-    if (currentPinyinMatch) {
-      return !!currentPinyinMatch(text, keyword, { continuous: true });
-    }
     return false;
   };
 
@@ -209,7 +188,6 @@ export function registerSearchFeature(context) {
 
   watch(globalSearchQuery, () => {
     currentSearchIndex.value = 0;
-    if (globalSearchQuery.value.trim()) requestPinyinMatch();
   });
 
   const handleTrackListSearchAction = (isEnter = false) => {
