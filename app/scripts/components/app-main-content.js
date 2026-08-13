@@ -72,8 +72,8 @@ export const AppMainContent = {
                              :ref="(el) => { weekContainer = el; }"
                              :style="{ '--slot-height': slotHeight + 'px' }"
                              @click="clearSelection">
-                            <!-- 星期头行：sticky top-0，切周 slide 动画时不随内容位移 -->
-                            <div class="sticky top-0 z-[700] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
+                            <!-- 星期头行：sticky top-0，切周 slide 动画时不随内容位移；z 高于时间列，重叠处盖住时间列 -->
+                            <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
                                 <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
                                 <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr"
                                      class="h-14 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
@@ -102,15 +102,17 @@ export const AppMainContent = {
                                     </div>
                                 </div>
 
-                                <Transition :name="dateTransitionName"
-                                            @before-leave="onBeforeLeave"
-                                            @after-leave="onAfterLeave">
-                                    <div :key="currentWeekDays[0].dateStr" class="flex flex-1 min-w-0">
-                                        <div v-for="day in currentWeekDays" :key="day.dateStr"
-                                             class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-all duration-300 ease-in-out"
-                                             :style="{ minWidth: dayColWidth + 'px' }"
-                                             :data-date-str="day.dateStr">
-                                            <div class="relative" style="min-height: 1000px;">
+                                <!-- 任务格容器：relative 让 leave 元素 absolute 锚定在时间列右侧 -->
+                                <div class="relative flex-1 min-w-0">
+                                    <Transition :name="weekTransitionName"
+                                                @before-leave="onBeforeLeave"
+                                                @after-leave="onAfterLeave">
+                                        <div :key="currentWeekDays[0].dateStr" class="flex">
+                                            <div v-for="day in currentWeekDays" :key="day.dateStr"
+                                                 class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-all duration-300 ease-in-out"
+                                                 :style="{ minWidth: dayColWidth + 'px' }"
+                                                 :data-date-str="day.dateStr">
+                                                <div class="relative" style="min-height: 1000px;">
                                                 <div v-for="t in timeSlots" :key="t"
                                                      class="grid-slot droppable-slot"
                                                      :data-time="t"
@@ -172,6 +174,7 @@ export const AppMainContent = {
                                         </div>
                                     </div>
                                 </Transition>
+                                </div>
                             </div>
                         </div>
 

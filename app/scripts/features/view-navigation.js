@@ -72,6 +72,7 @@ export function registerViewNavigationFeature(context) {
     initMonthObserver: calendarViewFeature.initMonthObserver,
     timeSlots: calendarViewFeature.timeSlots,
     dateTransitionName: calendarViewFeature.dateTransitionName,
+    weekTransitionName: calendarViewFeature.weekTransitionName,
     changeDate: calendarViewFeature.changeDate,
     currentWeekDays: calendarViewFeature.currentWeekDays,
     generateMonthGrid: calendarViewFeature.generateMonthGrid,

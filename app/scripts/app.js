@@ -792,6 +792,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 initMonthObserver,
                 timeSlots,
                 dateTransitionName,
+                weekTransitionName,
                 changeDate,
                 currentWeekDays,
                 generateMonthGrid,
@@ -822,7 +823,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             switchView = viewNavigationFeature.switchView;
             assembly.refs.currentWeekDays = currentWeekDays;
             Object.assign(assembly.helpers, {
-                currentDateLabel, dateTransitionName, currentMonthDays, flatScrolledDays, handleInfiniteScroll,
+                currentDateLabel, dateTransitionName, weekTransitionName, currentMonthDays, flatScrolledDays, handleInfiniteScroll,
                 tasksByDateMap, switchToWeek, handleHeaderDoubleTap, handleMonthCellDoubleTap, jumpToToday,
                 isToday, activeMonthKey, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
                 onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,

@@ -833,6 +833,52 @@ html.dark .custom-dropdown-menu .sticky {
     opacity: 0;
 }
 
+/* 周视图任务格过渡：时间列/星期头标尺已固定在外层，这里只滑任务格。
+   enter 在文档流占位（不撑宽、不跳），leave 绝对定位锚定在任务格容器
+   （时间列右侧）覆盖滑出——不会像共享 slide 类那样 absolute 到滚动容器
+   左上角导致"格子线往左上角跳一下"。 */
+.week-slide-next-enter-active,
+.week-slide-prev-enter-active,
+.week-fade-enter-active {
+    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+}
+
+.week-slide-next-leave-active,
+.week-slide-prev-leave-active,
+.week-fade-leave-active {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 5;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.week-slide-next-enter-from {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.week-slide-next-leave-to {
+    transform: translateX(-20%);
+    opacity: 0;
+}
+
+.week-slide-prev-enter-from {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+.week-slide-prev-leave-to {
+    transform: translateX(20%);
+    opacity: 0;
+}
+
+.week-fade-enter-from,
+.week-fade-leave-to {
+    opacity: 0;
+}
+
 .settings-group-container {
     background: rgba(0, 0, 0, 0.02);
     border-radius: 12px;

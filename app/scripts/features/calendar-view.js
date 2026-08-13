@@ -32,6 +32,8 @@ export function registerCalendarViewFeature(context) {
   });
   const isLoadingMore = ref(false);
   const dateTransitionName = ref('slide-next');
+  // 周视图任务格过渡（标尺已固定在外层，只滑任务格，锚定在时间列右侧）
+  const weekTransitionName = ref('week-slide-next');
   const monthKeyOf = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   // scrolled 模式的主导月份：可视区域内格子占比最高的月（决定标题 + 灰化）
   const activeMonthKey = ref(monthKeyOf(viewDate.value));
@@ -93,7 +95,11 @@ export function registerCalendarViewFeature(context) {
   });
 
   const changeDate = (dir) => {
-    dateTransitionName.value = dir > 0 ? 'slide-next' : 'slide-prev';
+    if (currentView.value === 'week') {
+      weekTransitionName.value = dir > 0 ? 'week-slide-next' : 'week-slide-prev';
+    } else {
+      dateTransitionName.value = dir > 0 ? 'slide-next' : 'slide-prev';
+    }
 
     const nextDate = new Date(viewDate.value);
     if (currentView.value === 'week') {
@@ -420,10 +426,10 @@ export function registerCalendarViewFeature(context) {
     const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
 
     // 日期前后关系用 slide 方向动画表达（向后→新内容从右滑入，向前→从左滑入）；
-    // 同一天跳转无方向，用无位移的 jump-fade。
+    // 同一天跳转无方向，用无位移的 jump-fade。周视图用独立的 week-* 过渡（标尺固定）。
     const isForward = targetDateObj.getTime() > viewDate.value.getTime();
     const isBackward = targetDateObj.getTime() < viewDate.value.getTime();
-    dateTransitionName.value = isForward ? 'slide-next' : (isBackward ? 'slide-prev' : 'jump-fade');
+    weekTransitionName.value = isForward ? 'week-slide-next' : (isBackward ? 'week-slide-prev' : 'week-fade');
 
     // month→week 视图切换用无位移淡入：层级变化不抢位移，方向由内层 slide 表达
     if (currentView.value !== 'week') {
@@ -466,7 +472,7 @@ export function registerCalendarViewFeature(context) {
       });
     };
 
-    if (dateTransitionName.value === 'jump-fade') {
+    if (weekTransitionName.value === 'week-fade') {
       nextTick(() => {
         if (typeof requestAnimationFrame === 'function') {
           requestAnimationFrame(settleAndScroll);
@@ -486,7 +492,11 @@ export function registerCalendarViewFeature(context) {
     // 与 smartScrollToTask 一致：日期前后用 slide 方向动画，同日用 jump-fade
     const isForward = now.getTime() > viewDate.value.getTime();
     const isBackward = now.getTime() < viewDate.value.getTime();
-    dateTransitionName.value = isForward ? 'slide-next' : (isBackward ? 'slide-prev' : 'jump-fade');
+    if (currentView.value === 'week') {
+      weekTransitionName.value = isForward ? 'week-slide-next' : (isBackward ? 'week-slide-prev' : 'week-fade');
+    } else {
+      dateTransitionName.value = isForward ? 'slide-next' : (isBackward ? 'slide-prev' : 'jump-fade');
+    }
 
     viewDate.value = now;
 
@@ -513,7 +523,7 @@ export function registerCalendarViewFeature(context) {
         });
       };
 
-      if (dateTransitionName.value === 'jump-fade') {
+      if (weekTransitionName.value === 'week-fade') {
         nextTick(() => {
           if (typeof requestAnimationFrame === 'function') {
             requestAnimationFrame(settleAndScroll);
@@ -535,6 +545,7 @@ export function registerCalendarViewFeature(context) {
     initMonthObserver,
     timeSlots,
     dateTransitionName,
+    weekTransitionName,
     changeDate,
     currentWeekDays,
     generateMonthGrid,

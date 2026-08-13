@@ -14,6 +14,7 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'refs.isZooming',
         'refs.slotHeight',
         'helpers.dateTransitionName',
+        'helpers.weekTransitionName',
         'refs.currentWeekDays',
         'helpers.timeSlots',
         'helpers.tasksByDateMap',
