@@ -187,7 +187,8 @@ test('confirmSplitSlider creates a remainder task and splits the source item', (
   const item = { id: 'A', musicDuration: '02:00', ratio: 20, musicianId: 'M1', sessionId: 'S_DEFAULT' };
   setItemSplitState(item, 'musician', { musicDuration: '02:00' });
   syncLegacySplitFields(item, 'musician');
-  const feature = createFeature({ itemPool: [item], actions: { autoUpdateEfficiency: () => {} } });
+  const pool = [item];
+  const feature = createFeature({ itemPool: pool, actions: { autoUpdateEfficiency: () => {} } });
 
   feature.openSplitSlider(item);
   // 默认滑块在中点：02:00 → part1 01:00 / part2 01:00
@@ -196,32 +197,82 @@ test('confirmSplitSlider creates a remainder task and splits the source item', (
 
   feature.confirmSplitSlider();
 
-  const pool = [item];
-  // itemPool 是在 register 时捕获的 ref，这里直接读 feature 内部的 refs 不可得；
-  // 通过父 item 的 split 状态 + 长度语义验证：源 item 变为 Part 1，余量任务入池。
   const srcState = getSplitViewState(item, 'musician');
   assert.equal(srcState.splitTag, 'Part 1');
   assert.equal(srcState.musicDuration, '00:01:00');
   assert.equal(srcState.active, true);
+
+  assert.equal(pool.length, 2, 'a remainder task should be pushed into the pool');
+  const remainder = pool[1];
+  assert.equal(remainder.musicDuration, '00:01:00', 'remainder keeps the second half duration');
+  assert.equal(getSplitViewState(remainder, 'musician').splitTag, 'Part 2', 'remainder is tagged as the next part');
+  assert.equal(remainder.musicianId, 'M1', 'remainder inherits the family identity');
+});
+
+test('confirmSplitSlider rejects split points at either end of the slider', () => {
+  const item = { id: 'A', musicDuration: '02:00', ratio: 20, musicianId: 'M1', sessionId: 'S_DEFAULT' };
+  setItemSplitState(item, 'musician', { musicDuration: '02:00' });
+  syncLegacySplitFields(item, 'musician');
+  const alerts = [];
+  const pool = [item];
+  const feature = createFeature({
+    itemPool: pool,
+    actions: { openAlertModal: (title) => alerts.push(title) },
+  });
+
+  feature.openSplitSlider(item);
+  feature.splitState.splitPoint = 0;
+  feature.confirmSplitSlider();
+  assert.deepEqual(alerts, ['无效拆分'], 'start of the slider is an invalid split point');
+  assert.equal(pool.length, 1, 'no remainder task should be created');
+  assert.equal(getSplitViewState(item, 'musician').splitTag, '', 'source item stays untouched');
+
+  alerts.length = 0;
+  feature.splitState.splitPoint = feature.splitState.totalSec;
+  feature.confirmSplitSlider();
+  assert.deepEqual(alerts, ['无效拆分'], 'end of the slider is an invalid split point');
+  assert.equal(pool.length, 1, 'no remainder task should be created');
+  assert.equal(getSplitViewState(item, 'musician').splitTag, '', 'source item stays untouched');
 });
 
 test('splitTrack validates the remaining duration against the total', () => {
   const item = { id: 'A', musicDuration: '02:00', ratio: 20 };
   setItemSplitState(item, 'musician', { musicDuration: '02:00' });
   let captureInput = null;
-  let invalidCalls = 0;
+  const alertTitles = [];
   const feature = createFeature({
     itemPool: [item],
     actions: {
       openInputModal: (_title, _init, _placeholder, onConfirm) => { captureInput = onConfirm; },
-      openAlertModal: (title) => { if (title === '格式错误' || title === '数值错误') invalidCalls += 1; },
+      openAlertModal: (title) => alertTitles.push(title),
     },
   });
 
   feature.splitTrack(item);
   captureInput('03:00'); // 大于总长 → 数值错误
-  assert.equal(invalidCalls, 1, 'remaining duration larger than total should be rejected');
+  assert.deepEqual(alertTitles, ['数值错误'], 'remaining duration larger than total should be rejected');
 
-  captureInput('bad');
-  assert.equal(invalidCalls, 2, 'malformed duration should be rejected');
+  captureInput('bad'); // 格式非法 → 格式错误
+  assert.deepEqual(alertTitles, ['数值错误', '格式错误'], 'malformed duration should be rejected with its own error type');
+
+  captureInput('00:00'); // 恰好 0 → 数值错误
+  assert.deepEqual(alertTitles, ['数值错误', '格式错误', '数值错误'], 'zero remaining duration should be rejected as a numeric error');
+});
+
+test('splitTrack rejects items without a usable total duration', () => {
+  const alerts = [];
+  const feature = createFeature({
+    itemPool: [],
+    actions: { openAlertModal: (title) => alerts.push(title) },
+  });
+
+  const noDuration = { id: 'A', musicDuration: '' };
+  setItemSplitState(noDuration, 'musician', { musicDuration: '' });
+  feature.splitTrack(noDuration);
+  assert.deepEqual(alerts, ['无法拆分'], 'empty total duration should be unsplittable');
+
+  const zeroDuration = { id: 'B', musicDuration: '00:00' };
+  setItemSplitState(zeroDuration, 'musician', { musicDuration: '00:00' });
+  feature.splitTrack(zeroDuration);
+  assert.deepEqual(alerts, ['无法拆分', '无法拆分'], 'zero total duration should be unsplittable');
 });
