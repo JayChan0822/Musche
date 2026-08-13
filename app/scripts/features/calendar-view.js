@@ -377,34 +377,40 @@ export function registerCalendarViewFeature(context) {
       }, 2500);
     }
 
-    setTimeoutFn(() => {
-      const container = weekContainer.value;
-      if (!container) return;
+    // 渲染落定后一次 auto 定位：nextTick 等 Vue patch 出 week 视图 DOM，
+    // rAF 等布局稳定。视图切换/日期切换的 slide 动画（0.35-0.4s）负责
+    // 过渡，滚动不再叠加 smooth——避免 smooth 被打断后的 auto 猛跳
+    // （"多位移一下"）和固定 1000ms 延迟（"卡一下"）。
+    nextTick(() => {
+      const settleAndScroll = () => {
+        const container = weekContainer.value;
+        if (!container) return;
 
-      const startMins = timeToMinutes(targetTask.startTime);
-      const offsetMins = startMins - settings.startHour * 60;
-      const targetTopPixel = offsetMins * pxPerMin.value;
-      const scrollTop = Math.max(0, targetTopPixel - 50);
+        const startMins = timeToMinutes(targetTask.startTime);
+        const offsetMins = startMins - settings.startHour * 60;
+        const targetTopPixel = offsetMins * pxPerMin.value;
+        const scrollTop = Math.max(0, targetTopPixel - 50);
 
-      const dayIndex = targetDateObj.getDay();
-      const timeColW = isMobile?.value ? 40 : 70;
-      const totalW = container.scrollWidth - timeColW;
-      const singleDayW = totalW / 7;
-      const targetCenterX = timeColW + dayIndex * singleDayW + singleDayW / 2;
-      const scrollLeft = Math.max(0, targetCenterX - container.clientWidth / 2);
+        const dayIndex = targetDateObj.getDay();
+        const timeColW = isMobile?.value ? 40 : 70;
+        const totalW = container.scrollWidth - timeColW;
+        const singleDayW = totalW / 7;
+        const targetCenterX = timeColW + dayIndex * singleDayW + singleDayW / 2;
+        const scrollLeft = Math.max(0, targetCenterX - container.clientWidth / 2);
 
-      container.scrollTo({
-        top: scrollTop,
-        left: scrollLeft,
-        behavior: 'smooth',
-      });
+        container.scrollTo({
+          top: scrollTop,
+          left: scrollLeft,
+          behavior: 'auto',
+        });
+      };
 
-      setTimeoutFn(() => {
-        if (Math.abs(container.scrollTop - scrollTop) > 10) {
-          container.scrollTo({ top: scrollTop, left: scrollLeft, behavior: 'auto' });
-        }
-      }, 600);
-    }, 1000);
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(settleAndScroll);
+      } else {
+        settleAndScroll();
+      }
+    });
   };
 
   const jumpToToday = () => {

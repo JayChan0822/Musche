@@ -8347,10 +8347,14 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.viewDate.value.getMonth(), 5, 'smart task scrolling should open the task month');
     assert.equal(refs.viewDate.value.getDate(), 1, 'smart task scrolling should open the task day');
     assert.equal(feature.dateTransitionName.value, 'slide-next', 'smart task scrolling should preserve forward date transition direction');
+
+    // 定位在 nextTick（Vue patch 落定）后执行，测试等 microtask 落定
+    await vueNextTick();
+
     assert.equal(refs.flashingTaskId.value, null, 'smart task scrolling should clear task highlight after its timeout');
-    assert.deepEqual(scheduledDelays, [2500, 1000, 600], 'smart task scrolling should preserve highlight, delayed scroll, and scroll correction timers');
+    assert.deepEqual(scheduledDelays, [2500], 'smart task scrolling should only arm the highlight-clear timer (no fixed scroll delay or correction timer)');
     assert.equal(scrollCalls[0].top, 130, 'smart task scrolling should preserve week-container vertical scroll target');
-    assert.equal(scrollCalls[0].behavior, 'smooth', 'smart task scrolling should preserve smooth week-container scrolling');
+    assert.equal(scrollCalls[0].behavior, 'auto', 'smart task scrolling should land with a single auto scroll instead of smooth plus a correction jump');
     assert.ok(
         Math.abs(scrollCalls[0].left - 21.428571428571416) < 0.000001,
         'smart task scrolling should preserve week-container horizontal scroll target',
