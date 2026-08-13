@@ -201,8 +201,7 @@ export const AppMainContent = {
                                              class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
                                              :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                              :data-date="day.fullDate"
-                                             @click="isMobile && day.isCurrentMonth && openDayView(day.fullDate)"
-                                             @dblclick="!isMobile && switchToWeek(day.fullDate)"
+                                             @dblclick="switchToWeek(day.fullDate)"
                                              @touchend="handleMonthCellDoubleTap($event, day.fullDate)"
                                              @dragover.prevent @drop="dropToMonth($event, day.fullDate)">
 
@@ -263,8 +262,7 @@ export const AppMainContent = {
                                          :data-month-key="day.monthKey"
                                          :data-month-start="day.isFirstDay ? day.fullDate : null"
                                          :ref="day.isFirstDay ? setMonthRef : null"
-                                         @click="isMobile && day.isCurrentMonth && openDayView(day.fullDate)"
-                                         @dblclick="!isMobile && day.isCurrentMonth && switchToWeek(day.fullDate)"
+                                         @dblclick="day.isCurrentMonth && switchToWeek(day.fullDate)"
                                          @touchend="day.isCurrentMonth && handleMonthCellDoubleTap($event, day.fullDate)"
                                          @dragover.prevent
                                          @drop="day.isCurrentMonth && dropToMonth($event, day.fullDate)">
@@ -313,69 +311,6 @@ export const AppMainContent = {
                         </div>
                     </Transition>
                 </div>
-
-                <!-- 手机端日视图：底部面板从下往上滑入（Apple 日历式），
-                     上方露出月视图，顶部一行周日期 -->
-                <transition name="day-view">
-                    <div v-if="isMobile && dayViewOpen"
-                         class="fixed bottom-0 left-0 right-0 z-[600] flex flex-col bg-white/95 dark:bg-[#1e1e1e]/95 backdrop-blur-xl rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] border-t border-glass-border dark:border-glass-borderDark"
-                         style="height: 62dvh"
-                         @touchstart="dayViewTouchStart($event)"
-                         @touchmove="dayViewTouchMove($event)"
-                         @touchend="dayViewTouchEnd($event)">
-                        <!-- 顶部抓握把手 + 日期 + 关闭 -->
-                        <div class="flex flex-col items-center shrink-0 pt-2 pb-1">
-                            <div class="w-9 h-1 rounded-full bg-black/20 dark:bg-white/20 mb-2"></div>
-                            <div class="flex items-center justify-between w-full px-4">
-                                <span class="text-sm font-bold text-gray-500 dark:text-gray-400">{{ selectedDayLabel }}</span>
-                                <button @click="closeDayView"
-                                        class="w-8 h-8 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/10 text-gray-500">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 周日期条：一行 7 天，选中高亮，左右 chevron 翻 ±7 天 -->
-                        <div class="flex items-center px-2 py-1 border-b border-glass-border dark:border-glass-borderDark shrink-0">
-                            <button @click="changeSelectedDay(-7)"
-                                    class="w-9 h-9 flex items-center justify-center text-gray-400 active:opacity-50 shrink-0">
-                                <i class="fa-solid fa-chevron-left text-sm"></i>
-                            </button>
-                            <div class="flex-1 grid grid-cols-7 gap-0.5 px-1">
-                                <button v-for="d in selectedDayWeek" :key="d.fullDate"
-                                        @click="selectedDay = d.fullDate"
-                                        class="flex flex-col items-center justify-center py-1 rounded-xl transition-colors"
-                                        :class="selectedDay === d.fullDate ? 'bg-[#ff3b30] text-white' : 'text-gray-600 dark:text-gray-300'">
-                                    <span class="text-[10px] font-bold leading-none mb-0.5"
-                                          :class="selectedDay === d.fullDate ? 'opacity-90' : 'opacity-50'">{{ d.weekday }}</span>
-                                    <span class="text-sm font-bold leading-none">{{ d.dayNum }}</span>
-                                </button>
-                            </div>
-                            <button @click="changeSelectedDay(7)"
-                                    class="w-9 h-9 flex items-center justify-center text-gray-400 active:opacity-50 shrink-0">
-                                <i class="fa-solid fa-chevron-right text-sm"></i>
-                            </button>
-                        </div>
-
-                        <!-- 当天日程列表 -->
-                        <div class="flex-1 overflow-y-auto px-4 pb-24">
-                            <div v-if="!selectedDayTasks.length"
-                                 class="flex flex-col items-center justify-center h-full text-gray-400">
-                                <i class="fa-regular fa-calendar text-3xl mb-3 opacity-40"></i>
-                                <span class="text-sm">当天没有日程</span>
-                            </div>
-                            <div v-for="task in selectedDayTasks" :key="task.scheduleId"
-                                 class="flex items-center gap-3 py-3 border-b border-glass-border dark:border-glass-borderDark"
-                                 @click="selectTask(task.scheduleId, 'schedule')">
-                                <span class="font-mono text-sm text-gray-500 w-14 shrink-0">{{ task.startTime }}</span>
-                                <span class="w-1.5 self-stretch rounded-full shrink-0"
-                                      :style="{ backgroundColor: task.projectId ? '#eab308' : (task.instrumentId ? '#3b82f6' : '#a855f7') }"></span>
-                                <span class="font-bold flex-1 truncate">{{ getBlockTitle(task) }}</span>
-                                <i v-if="hasRecordingInfo(task)" class="fa-solid fa-circle-info text-xs opacity-50 shrink-0"></i>
-                            </div>
-                        </div>
-                    </div>
-                </transition>
             </main>
   `,
 };

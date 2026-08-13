@@ -10,9 +10,6 @@ export function createAppState({ ref, reactive, getWindowWidth = () => globalThi
     sidebarTab: ref('musician'),
     isMobile: ref(getWindowWidth() < 800),
     mobileTab: ref('schedule'),
-    // 手机端日视图：选中日期 + 是否打开（Apple 日历式底部滑入）
-    selectedDay: ref(''),
-    dayViewOpen: ref(false),
     newItem: reactive({
       projectId: '',
       instrumentId: '',

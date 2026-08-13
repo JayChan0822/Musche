@@ -24,11 +24,6 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.currentMonthDays',
         'helpers.flatScrolledDays',
         'helpers.activeMonthKey',
-        'refs.selectedDay',
-        'refs.dayViewOpen',
-        'helpers.selectedDayWeek',
-        'helpers.selectedDayTasks',
-        'helpers.selectedDayLabel',
     ],
     models: [
         'refs.weekContainer',
@@ -75,11 +70,5 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.handleMonthCellDoubleTap',
         'helpers.dropToMonth',
         'helpers.setMonthRef',
-        'helpers.openDayView',
-        'helpers.closeDayView',
-        'helpers.changeSelectedDay',
-        'helpers.dayViewTouchStart',
-        'helpers.dayViewTouchMove',
-        'helpers.dayViewTouchEnd',
     ],
 });

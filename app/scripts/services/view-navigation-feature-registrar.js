@@ -20,8 +20,6 @@ export function wireViewNavigationFeature(assembly) {
         sidebarTab,
         isContextSwitching,
         dragState,
-        selectedDay,
-        dayViewOpen,
     } = assembly.refs;
     const { settings } = assembly.state;
     const { storageService } = assembly.services;
@@ -45,8 +43,6 @@ export function wireViewNavigationFeature(assembly) {
             currentSessionId,
             sidebarTab,
             isContextSwitching,
-            selectedDay,
-            dayViewOpen,
         },
         state: {
             settings,

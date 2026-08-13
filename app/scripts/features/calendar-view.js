@@ -15,8 +15,6 @@ export function registerCalendarViewFeature(context) {
     isMobile,
     flashingTaskId,
     mobileTab,
-    selectedDay,
-    dayViewOpen,
   } = refs;
   const { settings } = state;
   const { formatDate, timeToMinutes } = utils;
@@ -391,69 +389,6 @@ export function registerCalendarViewFeature(context) {
     currentView.value = 'week';
   };
 
-  // —— 手机端日视图（Apple 日历式：点日期 → 底部滑入当天日程，上方一行周日期） ——
-  const openDayView = (dateStr) => {
-    selectedDay.value = dateStr;
-    dayViewOpen.value = true;
-  };
-
-  const closeDayView = () => {
-    dayViewOpen.value = false;
-  };
-
-  // 下拉关闭手势：在日视图顶部下滑超过阈值即关闭
-  let dayViewTouchStartY = null;
-  const dayViewTouchStart = (event) => {
-    dayViewTouchStartY = event.touches[0].clientY;
-  };
-  const dayViewTouchMove = () => {};
-  const dayViewTouchEnd = (event) => {
-    if (dayViewTouchStartY == null) return;
-    const deltaY = event.changedTouches[0].clientY - dayViewTouchStartY;
-    dayViewTouchStartY = null;
-    if (deltaY > 80) {
-      closeDayView();
-    }
-  };
-
-  const changeSelectedDay = (dir) => {
-    if (!selectedDay.value) return;
-    const [year, month, day] = selectedDay.value.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    date.setDate(date.getDate() + dir);
-    selectedDay.value = formatDate(date);
-  };
-
-  // 选中日期所在周（周日～周六），用于日视图顶部周日期条
-  const selectedDayWeek = computed(() => {
-    if (!selectedDay.value) return [];
-    const [year, month, day] = selectedDay.value.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    const start = new Date(date);
-    start.setDate(date.getDate() - date.getDay());
-    const days = [];
-    for (let index = 0; index < 7; index++) {
-      const current = new Date(start);
-      current.setDate(start.getDate() + index);
-      days.push({
-        fullDate: formatDate(current),
-        dayNum: current.getDate(),
-        weekday: ['日', '一', '二', '三', '四', '五', '六'][current.getDay()],
-      });
-    }
-    return days;
-  });
-
-  const selectedDayTasks = computed(() => tasksByDateMap.value[selectedDay.value] || []);
-
-  const selectedDayLabel = computed(() => {
-    if (!selectedDay.value) return '';
-    const [year, month, day] = selectedDay.value.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    const weekday = ['日', '一', '二', '三', '四', '五', '六'][date.getDay()];
-    return `${month}月${day}日 周${weekday}`;
-  });
-
   const handleHeaderDoubleTap = (event) => {
     const now = getNow();
 
@@ -474,12 +409,7 @@ export function registerCalendarViewFeature(context) {
 
     if (now - lastMonthTap.time < 300 && lastMonthTap.date === dateStr) {
       event.preventDefault();
-      // 手机端双击日期也打开日视图（桌面端保留切周视图）
-      if (isMobile?.value) {
-        openDayView(dateStr);
-      } else {
-        switchToWeek(dateStr);
-      }
+      switchToWeek(dateStr);
     }
 
     lastMonthTap.time = now;
@@ -633,14 +563,5 @@ export function registerCalendarViewFeature(context) {
     jumpToToday,
     isToday,
     activeMonthKey,
-    openDayView,
-    closeDayView,
-    changeSelectedDay,
-    selectedDayWeek,
-    selectedDayTasks,
-    selectedDayLabel,
-    dayViewTouchStart,
-    dayViewTouchMove,
-    dayViewTouchEnd,
   };
 }
