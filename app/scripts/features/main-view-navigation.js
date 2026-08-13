@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import { pickSidebarTab } from '../utils/sidebar-tabs.js';
 
@@ -36,6 +36,8 @@ export function registerMainViewNavigationFeature(context) {
   let isWheelLocked = false;
 
   const switchView = (targetView) => {
+    // 手机端没有周视图（顶部按钮已去掉，看单天用日视图），任何路径都别切过去
+    if (isMobile.value && targetView === 'week') return;
     if (targetView === currentView.value) return;
 
     if (targetView === 'month') {
@@ -51,6 +53,13 @@ export function registerMainViewNavigationFeature(context) {
     }
 
   };
+
+  // 桌面端缩到手机宽度时如果正停在周视图，拉回月视图——否则会卡在一个没有返回入口的视图里
+  watch(isMobile, (mobile) => {
+    if (mobile && currentView.value === 'week') {
+      currentView.value = 'month';
+    }
+  });
 
   const onMainMouseDown = (event) => {
     if (isMobile.value || isDragActive()) return;

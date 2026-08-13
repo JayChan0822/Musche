@@ -389,6 +389,13 @@ export function registerCalendarViewFeature(context) {
 
   const switchToWeek = (date) => {
     viewDate.value = new Date(date);
+
+    // 手机端没有周视图，落到当天的日视图
+    if (isMobile?.value && typeof openMobileDayView === 'function') {
+      openMobileDayView(typeof date === 'string' ? date : formatDate(new Date(date)));
+      return;
+    }
+
     currentView.value = 'week';
   };
 

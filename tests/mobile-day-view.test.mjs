@@ -248,3 +248,21 @@ test('桌面端跳转任务：仍然切到周视图', () => {
   assert.deepEqual(openedDays, [], '桌面端不开日视图');
   assert.equal(refs.currentView.value, 'week');
 });
+
+test('手机端 switchToWeek 落到日视图（周视图已阉割）', () => {
+  const { feature, refs, openedDays } = createCalendarView({ isMobile: true });
+
+  feature.switchToWeek('2026-09-10');
+
+  assert.deepEqual(openedDays, ['2026-09-10']);
+  assert.equal(refs.currentView.value, 'month');
+});
+
+test('桌面端 switchToWeek 仍切周视图', () => {
+  const { feature, refs, openedDays } = createCalendarView({ isMobile: false });
+
+  feature.switchToWeek('2026-09-10');
+
+  assert.deepEqual(openedDays, []);
+  assert.equal(refs.currentView.value, 'week');
+});

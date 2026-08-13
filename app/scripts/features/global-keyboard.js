@@ -266,6 +266,8 @@ export function registerGlobalKeyboardFeature(context) {
         currentSessionId.value = sessions[nextIndex].id;
       }
     } else if (event.shiftKey) {
+      // 手机端没有周视图，Shift+Tab 不切视图
+      if (isMobile.value) return true;
       currentView.value = currentView.value === 'week' ? 'month' : 'week';
       switchView(getSwitchViewTarget());
     } else {
