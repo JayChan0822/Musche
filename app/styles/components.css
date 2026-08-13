@@ -760,7 +760,6 @@ html.dark .custom-dropdown-menu .sticky {
 .slide-prev-leave-active,
 .jump-fade-enter-active,
 .jump-fade-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
     position: absolute !important;
     top: 0;
     left: 0;
@@ -771,6 +770,19 @@ html.dark .custom-dropdown-menu .sticky {
     transform-style: preserve-3d;
     overflow: hidden;
     z-index: 1;
+}
+
+/* 入场完整滑入 0.4s；退场淡出更快（0.18s）——旧页迅速退场，方向感由新页滑入主导 */
+.slide-next-enter-active,
+.slide-prev-enter-active,
+.jump-fade-enter-active,
+.jump-fade-leave-active {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+}
+
+.slide-next-leave-active,
+.slide-prev-leave-active {
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease;
 }
 
 .slide-next-enter-from {

@@ -362,10 +362,13 @@ export function registerCalendarViewFeature(context) {
 
     const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
 
-    // 跳转是"定位"语义：用无位移的 jump-fade（淡入淡出）代替 slide 翻页动画，
-    // 否则 slide 位移与下方的定位滚动叠加 → "抽搐/动画打架"。
-    // month→week 的视图切换同样用 jump-fade，方向无关。
-    dateTransitionName.value = 'jump-fade';
+    // 日期前后关系用 slide 方向动画表达（向后→新内容从右滑入，向前→从左滑入）；
+    // 同一天跳转无方向，用无位移的 jump-fade。
+    const isForward = targetDateObj.getTime() > viewDate.value.getTime();
+    const isBackward = targetDateObj.getTime() < viewDate.value.getTime();
+    dateTransitionName.value = isForward ? 'slide-next' : (isBackward ? 'slide-prev' : 'jump-fade');
+
+    // month→week 视图切换用无位移淡入：层级变化不抢位移，方向由内层 slide 表达
     if (currentView.value !== 'week') {
       setViewTransitionName('jump-fade');
     }
@@ -380,80 +383,91 @@ export function registerCalendarViewFeature(context) {
       }, 2500);
     }
 
-    // 渲染落定后一次 auto 定位：nextTick 等 Vue patch 出 week 视图 DOM，
-    // rAF 等布局稳定。视图切换/日期切换的 slide 动画（0.35-0.4s）负责
-    // 过渡，滚动不再叠加 smooth——避免 smooth 被打断后的 auto 猛跳
-    // （"多位移一下"）和固定 1000ms 延迟（"卡一下"）。
-    nextTick(() => {
-      const settleAndScroll = () => {
-        const container = weekContainer.value;
-        if (!container) return;
+    // 定位滚动与 slide 动画错开：slide（0.4s）先完整呈现方向感，动画结束后
+    // 一次 auto 定位到任务位置——不叠加 smooth/不同时滚动，避免打架。
+    // 同天 jump-fade 无位移，渲染落定后立即定位。
+    const settleAndScroll = () => {
+      const container = weekContainer.value;
+      if (!container) return;
 
-        const startMins = timeToMinutes(targetTask.startTime);
-        const offsetMins = startMins - settings.startHour * 60;
-        const targetTopPixel = offsetMins * pxPerMin.value;
-        const scrollTop = Math.max(0, targetTopPixel - 50);
+      const startMins = timeToMinutes(targetTask.startTime);
+      const offsetMins = startMins - settings.startHour * 60;
+      const targetTopPixel = offsetMins * pxPerMin.value;
+      const scrollTop = Math.max(0, targetTopPixel - 50);
 
-        const dayIndex = targetDateObj.getDay();
-        const timeColW = isMobile?.value ? 40 : 70;
-        const totalW = container.scrollWidth - timeColW;
-        const singleDayW = totalW / 7;
-        const targetCenterX = timeColW + dayIndex * singleDayW + singleDayW / 2;
-        const scrollLeft = Math.max(0, targetCenterX - container.clientWidth / 2);
+      const dayIndex = targetDateObj.getDay();
+      const timeColW = isMobile?.value ? 40 : 70;
+      const totalW = container.scrollWidth - timeColW;
+      const singleDayW = totalW / 7;
+      const targetCenterX = timeColW + dayIndex * singleDayW + singleDayW / 2;
+      const scrollLeft = Math.max(0, targetCenterX - container.clientWidth / 2);
 
-        container.scrollTo({
-          top: scrollTop,
-          left: scrollLeft,
-          behavior: 'auto',
-        });
-      };
+      container.scrollTo({
+        top: scrollTop,
+        left: scrollLeft,
+        behavior: 'auto',
+      });
+    };
 
-      if (typeof requestAnimationFrame === 'function') {
-        requestAnimationFrame(settleAndScroll);
-      } else {
-        settleAndScroll();
-      }
-    });
-  };
-
-  const jumpToToday = () => {
-    const now = new Date();
-
-    // 定位语义：无位移淡入，避免与下方滚动打架（与 smartScrollToTask 一致）
-    dateTransitionName.value = 'jump-fade';
-
-    viewDate.value = now;
-
-    if (currentView.value === 'week') {
+    if (dateTransitionName.value === 'jump-fade') {
       nextTick(() => {
-        const settleAndScroll = () => {
-          if (!weekContainer.value) return;
-          const currentMins = now.getHours() * 60 + now.getMinutes();
-          const startMins = settings.startHour * 60;
-          const targetTop = (currentMins - startMins) * pxPerMin.value;
-          const screenHeight = weekContainer.value.clientHeight;
-          const scrollTop = Math.max(0, targetTop - screenHeight / 2);
-
-          const dayIndex = now.getDay();
-          const timeColWidth = window.innerWidth < 800 ? 40 : 70;
-          const dayColWidth = 100;
-          const targetCenterX = timeColWidth + dayIndex * dayColWidth + dayColWidth / 2;
-          const containerWidth = weekContainer.value.clientWidth;
-          const scrollLeft = Math.max(0, targetCenterX - containerWidth / 2);
-
-          weekContainer.value.scrollTo({
-            top: scrollTop,
-            left: scrollLeft,
-            behavior: 'auto',
-          });
-        };
-
         if (typeof requestAnimationFrame === 'function') {
           requestAnimationFrame(settleAndScroll);
         } else {
           settleAndScroll();
         }
       });
+    } else {
+      // slide 动画 0.4s，结束后定位（+50ms 余量）
+      setTimeoutFn(settleAndScroll, 450);
+    }
+  };
+
+  const jumpToToday = () => {
+    const now = new Date();
+
+    // 与 smartScrollToTask 一致：日期前后用 slide 方向动画，同日用 jump-fade
+    const isForward = now.getTime() > viewDate.value.getTime();
+    const isBackward = now.getTime() < viewDate.value.getTime();
+    dateTransitionName.value = isForward ? 'slide-next' : (isBackward ? 'slide-prev' : 'jump-fade');
+
+    viewDate.value = now;
+
+    if (currentView.value === 'week') {
+      const settleAndScroll = () => {
+        if (!weekContainer.value) return;
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        const startMins = settings.startHour * 60;
+        const targetTop = (currentMins - startMins) * pxPerMin.value;
+        const screenHeight = weekContainer.value.clientHeight;
+        const scrollTop = Math.max(0, targetTop - screenHeight / 2);
+
+        const dayIndex = now.getDay();
+        const timeColWidth = window.innerWidth < 800 ? 40 : 70;
+        const dayColWidth = 100;
+        const targetCenterX = timeColWidth + dayIndex * dayColWidth + dayColWidth / 2;
+        const containerWidth = weekContainer.value.clientWidth;
+        const scrollLeft = Math.max(0, targetCenterX - containerWidth / 2);
+
+        weekContainer.value.scrollTo({
+          top: scrollTop,
+          left: scrollLeft,
+          behavior: 'auto',
+        });
+      };
+
+      if (dateTransitionName.value === 'jump-fade') {
+        nextTick(() => {
+          if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(settleAndScroll);
+          } else {
+            settleAndScroll();
+          }
+        });
+      } else {
+        // slide 动画 0.4s，结束后定位（+50ms 余量）
+        setTimeoutFn(settleAndScroll, 450);
+      }
     }
   };
 
