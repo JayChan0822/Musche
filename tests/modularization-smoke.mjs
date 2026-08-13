@@ -1210,7 +1210,7 @@ assert.match(
             if (key) publishedHelperKeys.add(key[1]);
         }
     }
-    for (const key of ['onBeforeLeave', 'mobileTouchHandlers', 'settingsHandlers']) {
+    for (const key of ['onBeforeLeave', 'mobileTouchHandlers', 'settingsHandlers', 'cancelPendingTrackSave']) {
         assert.ok(publishedHelperKeys.has(key), `app.js must publish ${key} through Object.assign(assembly.helpers, ...)`);
     }
     let declaredHelperDependencies = 0;

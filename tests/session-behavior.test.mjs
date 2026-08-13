@@ -7,6 +7,7 @@ const ref = (value) => ({ value });
 
 function createSession(overrides = {}) {
   const calls = { cancel: 0, history: 0 };
+  const cancelSnapshot = { value: null };
   const refs = {
     currentSessionId: ref('S1'),
     activeDropdown: ref(null),
@@ -21,7 +22,10 @@ function createSession(overrides = {}) {
     openConfirmModal: () => {},
     openAlertModal: () => {},
     pushHistory: () => { calls.history += 1; },
-    cancelPendingTrackSave: () => { calls.cancel += 1; },
+    cancelPendingTrackSave: () => {
+      calls.cancel += 1;
+      cancelSnapshot.value = refs.currentSessionId.value;
+    },
     ...(overrides.actions || {}),
   };
   const feature = registerSessionFeature({
@@ -30,15 +34,16 @@ function createSession(overrides = {}) {
     utils: { generateUniqueId: (p) => `${p}_NEW` },
     actions,
   });
-  return { feature, refs, settings, calls };
+  return { feature, refs, settings, calls, cancelSnapshot };
 }
 
 test('switchSession cancels pending track-save before switching the session id', () => {
-  const { feature, refs, calls } = createSession();
+  const { feature, refs, calls, cancelSnapshot } = createSession();
 
   feature.switchSession('S2');
 
   assert.equal(calls.cancel, 1, 'switchSession must cancel the pending write-back');
+  assert.equal(cancelSnapshot.value, 'S1', 'cancel must run while the old session id is still active');
   assert.equal(refs.currentSessionId.value, 'S2');
   assert.equal(refs.activeDropdown.value, null);
 });

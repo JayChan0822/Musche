@@ -256,13 +256,17 @@ export function registerGlobalKeyboardFeature(context) {
 
     event.preventDefault();
     if (event.altKey) {
-      cancelPendingTrackSave();
       const sessions = getSettings().sessions;
       const currentIndex = sessions.findIndex((session) => session.id === currentSessionId.value);
       const nextIndex = event.shiftKey
         ? (currentIndex - 1 + sessions.length) % sessions.length
         : (currentIndex + 1) % sessions.length;
-      if (sessions.length > 0) currentSessionId.value = sessions[nextIndex].id;
+      // 只有 session 确实切换时才取消 pending 写回——单/零 session 时
+      // 赋的是同一个 id（Vue 同值不触发），此时取消会白丢派生 ratio 重算。
+      if (sessions.length > 0 && sessions[nextIndex].id !== currentSessionId.value) {
+        cancelPendingTrackSave();
+        currentSessionId.value = sessions[nextIndex].id;
+      }
     } else if (event.shiftKey) {
       currentView.value = currentView.value === 'week' ? 'month' : 'week';
       switchView(getSwitchViewTarget());

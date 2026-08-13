@@ -198,6 +198,7 @@ export function registerAuthFeature(context) {
   }
 
   function restoreGuestData(isSidebarOpen) {
+    cancelPendingTrackSave();
     const localData = storageService.loadData('v9_data') || {};
     if (localData.settings) {
       applyCloudContent({ settings: localData.settings }, 0);
