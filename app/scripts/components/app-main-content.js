@@ -83,7 +83,7 @@ export const AppMainContent = {
 
                                         <div class="flex min-w-full min-h-full">
 
-                                            <div class="sticky left-0 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
+                                            <div class="sticky left-0 top-14 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
                                                  style="width: var(--time-col-width)">
 
                                                 <div class="h-14 w-full border-b border-transparent"></div>
@@ -182,7 +182,7 @@ export const AppMainContent = {
 
                         <div v-else-if="currentView === 'month'"
                              key="view-month"
-                             class="w-full h-full overflow-y-auto overflow-x-hidden relative"
+                             class="w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
                              @click="clearSelection">
 
                             <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
