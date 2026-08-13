@@ -12513,13 +12513,14 @@ for (const relativePath of requiredFiles) {
         musicDuration: '01:00',
         records: { project: {} },
         ratios: { musician: null, project: null, instrument: null },
-        ratio: 12,
+        ratio: 5,
         estDuration: 'project-old',
     }];
     refs.scheduledTasks.value = [];
     feature.autoUpdateEfficiency('P1', 'project');
     assert.equal(state.settings.projects[0].defaultRatio, 12, 'auto efficiency should preserve an existing default ratio when there is no recording data');
     assert.equal(refs.itemPool.value[0].ratio, 12, 'auto efficiency should apply the preserved default to auto-following items with no recording data');
+    assert.equal(refs.itemPool.value[0].estDuration, '720s', 'auto efficiency should recalculate estDuration from the preserved default (fallback write path)');
 
     refs.itemPool.value = [
         {
