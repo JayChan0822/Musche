@@ -22,8 +22,17 @@
 ## 验证
 
 - `npm run verify:modularization`：76 modules passed
-- `npm test`：219 pass / 0 fail（216 + history-behavior 4 + track-list-records 3 - openSplitSlider 已计 216 内，实际新增 3 条历史行为测试，最终 219）
+- `npm test`：219 pass / 0 fail（本轮新增 3 条 track-list-records 行为测试，216→219）
 - `npm run build`：OK
+
+## 四轮补充（223 基线，2026-08-13）
+
+四审（报告 /tmp/musche-round4-review-log.txt）确认 6 项中的 4 项 ✅、2 项 ⚠️，遗留 1 P2 + 3 P3 已清零：
+
+1. **P2｜漏网同类路径**：Alt+Tab 切 session（global-keyboard.js:263，与 switchSession 等价入口）、删除 session 落到 sessions[0]（session.js:59 同函数体第三分支）、ghost 任务跨 session 跳转（main-view-navigation.js:174）、auth 登出 resetWorkingData / 冲突上传 / 加载失败兜底——全部补 cancelPendingTrackSave。
+2. **P3｜接线测试**：`lazy-feature-proxy.test.mjs` 加 isLoaded 2 用例（未加载不触发 import、加载失败恢复）；`session-behavior.test.mjs` 4 用例（switchSession/新建/删除触发 cancel、唯一 session 拒绝时不 cancel）；`data-portability-behavior.test.mjs` 1 用例（导入恢复 cancel）。
+3. **P3｜docs**：本段即修正记录；`npm test` 现为 **223 pass**。
+4. **P3｜死代码**：app.js:559-560 的 getSessionRatio / calculateProportionalDuration 无消费方（被 smoke:5198 正则钉住）——既有问题，未动。
 
 ## 遗留（低优先，未做）
 
