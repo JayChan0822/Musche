@@ -12509,6 +12509,7 @@ for (const relativePath of requiredFiles) {
     refs.itemPool.value = [{
         id: 'NO_DATA',
         projectId: 'P1',
+        sessionId: 'S1',
         musicDuration: '01:00',
         records: { project: {} },
         ratios: { musician: null, project: null, instrument: null },
