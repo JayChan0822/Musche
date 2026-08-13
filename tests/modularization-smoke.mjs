@@ -5216,6 +5216,12 @@ assert.match(
     'track-list feature must receive single-track efficiency calculation through actions so it can stay lazy-loadable'
 );
 
+assert.match(
+    trackListFeature,
+    /const\s+layout\s*=\s*createTrackListLayout\([\s\S]{0,600}const\s+records\s*=\s*createTrackListRecords\([\s\S]{0,600}const\s+drag\s*=\s*createTrackListDragHandlers\(/,
+    'track-list composition must inject layout → records → drag in order: records consumes layout.autoResizeScheduleByRecords and drag consumes records.syncTrackItemScheduleSection, so reversing the order would silently yield undefined'
+);
+
 assert.doesNotMatch(
     appScript,
     /let\s+trackDragState|let\s+trackDragTimer|const\s+startTrackDrag\s*=\s*\(e,\s*item\)\s*=>|const\s+getSessionRatio\s*=\s*\(\)\s*=>\s*\{|const\s+calculateProportionalDuration\s*=\s*\(item\)\s*=>\s*\{|const\s+calculateSingleRatio\s*=\s*\(item\)\s*=>\s*\{/,
