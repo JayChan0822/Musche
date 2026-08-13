@@ -5,18 +5,23 @@ import { ref } from 'vue';
 import { registerUndoToastFeature } from '../app/scripts/features/undo-toast.js';
 import { registerHistoryFeature } from '../app/scripts/features/history.js';
 
-function createToast({ isMobile = true } = {}) {
+function createToast({ isMobile = true, historyIndex = 1, isBootstrappingData = false } = {}) {
   const undoCalls = [];
   const timers = [];
+  const refs = {
+    isMobile: ref(isMobile),
+    historyIndex: ref(historyIndex),
+    isBootstrappingData: ref(isBootstrappingData),
+  };
   const feature = registerUndoToastFeature({
-    refs: { isMobile: ref(isMobile) },
+    refs,
     actions: {
       undo: () => undoCalls.push('undo'),
       setTimeoutFn: (callback) => { timers.push(callback); return timers.length; },
       clearTimeoutFn: (id) => { timers[id - 1] = null; },
     },
   });
-  return { feature, undoCalls, runTimers: () => timers.forEach((cb) => cb && cb()) };
+  return { feature, refs, undoCalls, runTimers: () => timers.forEach((cb) => cb && cb()) };
 }
 
 test('产生可撤销改动后浮出撤销条，超时自动收起', () => {
@@ -92,4 +97,18 @@ test('history：真的入栈才通知，空改动不弹', () => {
   scheduledTasks.value = [{ scheduleId: 'S-1' }];
   feature.pushHistory();
   assert.equal(notifications.length, 2, '真有改动时再次通知');
+});
+
+test('启动灌数据与首个快照不弹', () => {
+  const booting = createToast({ isBootstrappingData: true });
+  booting.feature.notifyHistoryPushed();
+  assert.equal(booting.feature.undoToastVisible.value, false, '启动/切 session 灌数据不是用户操作');
+
+  const firstSnapshot = createToast({ historyIndex: 0 });
+  firstSnapshot.feature.notifyHistoryPushed();
+  assert.equal(firstSnapshot.feature.undoToastVisible.value, false, '首个快照没有上一步可回滚');
+
+  firstSnapshot.refs.historyIndex.value = 1;
+  firstSnapshot.feature.notifyHistoryPushed();
+  assert.equal(firstSnapshot.feature.undoToastVisible.value, true, '之后的真实改动照常弹');
 });
