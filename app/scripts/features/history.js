@@ -85,10 +85,6 @@ export function registerHistoryFeature(context) {
   };
 
   const pushHistory = () => {
-    if (historyIndex.value < history.value.length - 1) {
-      history.value = history.value.slice(0, historyIndex.value + 1);
-    }
-
     const snapshot = JSON.stringify({
       pool: itemPool.value,
       tasks: scheduledTasks.value,
@@ -96,9 +92,13 @@ export function registerHistoryFeature(context) {
     });
 
     // 空快照保护：与当前索引处快照字节相同则跳过。
-    // 避免 debounce 写回无变化时推出重复快照——那会让第一次 Ctrl+Z
-    // 界面无反应（撤到同一状态），50 条上限下撤销深度直接减半。
+    // 必须放在分支截断之前——否则 no-op push 照样会先砍掉 redo 分支，
+    // 再因去重早退，redo 分支就白白丢了（debounce 无变化写回场景）。
     if (history.value[historyIndex.value] === snapshot) return;
+
+    if (historyIndex.value < history.value.length - 1) {
+      history.value = history.value.slice(0, historyIndex.value + 1);
+    }
 
     history.value.push(snapshot);
 
