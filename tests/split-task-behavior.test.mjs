@@ -279,9 +279,13 @@ test('splitTrack rejects items without a usable total duration', () => {
 
 test('openSplitSlider rejects items without a usable total duration without opening the modal', () => {
   const alerts = [];
+  let syncCalls = 0;
   const feature = createFeature({
     itemPool: [],
-    actions: { openAlertModal: (title) => alerts.push(title) },
+    actions: {
+      openAlertModal: (title) => alerts.push(title),
+      syncItemForView: () => { syncCalls += 1; },
+    },
   });
 
   const noDuration = { id: 'A', musicDuration: '' };
@@ -289,7 +293,7 @@ test('openSplitSlider rejects items without a usable total duration without open
   feature.openSplitSlider(noDuration);
   assert.deepEqual(alerts, ['无法拆分'], 'empty total duration should be unsplittable via the slider entry too');
   assert.equal(feature.splitState.task, null, 'split modal should stay closed');
-  assert.equal(feature.splitState.totalSec, 0, 'no split math should run');
+  assert.equal(syncCalls, 0, 'guard must return before syncItemForView runs');
 
   alerts.length = 0;
   const zeroDuration = { id: 'B', musicDuration: '00:00' };
@@ -297,4 +301,5 @@ test('openSplitSlider rejects items without a usable total duration without open
   feature.openSplitSlider(zeroDuration);
   assert.deepEqual(alerts, ['无法拆分'], 'zero total duration should be unsplittable via the slider entry too');
   assert.equal(feature.splitState.task, null, 'split modal should stay closed');
+  assert.equal(syncCalls, 0, 'guard must return before syncItemForView runs');
 });
