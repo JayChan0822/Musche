@@ -13,7 +13,6 @@ export function registerTrackListFeature(context) {
     showTrackList,
     isMobile,
     isDark,
-    sidebarTab,
   } = refs;
   const { settings } = state;
   const { parseTime, formatSecs, getNameById } = utils;

@@ -465,7 +465,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         showTrackList,
                         isMobile,
                         isDark,
-                        sidebarTab,
                     } = assembly.refs;
                     const { timeUtils, formatUtils } = assembly.utils;
                     const { helpers } = assembly;
@@ -479,7 +478,6 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             showTrackList,
                             isMobile,
                             isDark,
-                            sidebarTab,
                         },
                         state: {
                             settings: assembly.state.settings,
