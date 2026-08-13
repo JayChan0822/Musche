@@ -10,6 +10,7 @@ export function registerSessionFeature(context) {
     openConfirmModal,
     openAlertModal,
     pushHistory,
+    cancelPendingTrackSave = () => {},
 
   } = actions;
 
@@ -19,6 +20,7 @@ export function registerSessionFeature(context) {
   });
 
   const switchSession = (id) => {
+    cancelPendingTrackSave();
     currentSessionId.value = id;
     activeDropdown.value = null;
   };
@@ -29,6 +31,7 @@ export function registerSessionFeature(context) {
         if (name) {
           const newId = generateUniqueId('S');
           settings.sessions.push({ id: newId, name });
+          cancelPendingTrackSave();
           currentSessionId.value = newId;
           pushHistory();
         }

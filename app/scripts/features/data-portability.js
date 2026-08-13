@@ -27,6 +27,7 @@ export function registerDataPortabilityFeature(context) {
     openInputModal,
     openAlertModal,
     pushHistory,
+    cancelPendingTrackSave = () => {},
     downloadTextFile = defaultDownloadTextFile,
     getElementById = (id) => document.getElementById(id),
     readFileAsText = defaultReadFileAsText,
@@ -120,6 +121,7 @@ export function registerDataPortabilityFeature(context) {
           throw new Error('无效的备份文件');
         }
 
+        cancelPendingTrackSave();
         pushHistory();
         itemPool.value = data.pool || [];
         scheduledTasks.value = data.tasks || [];

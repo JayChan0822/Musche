@@ -208,6 +208,8 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             openInputModal: (...args) => assembly.helpers.openInputModal(...args),
                             openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
                             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
+                            // 导入恢复会整体替换 itemPool：pending 写回 debounce 需取消
+                            cancelPendingTrackSave: () => assembly.helpers.cancelPendingTrackSave?.(),
                         },
                         ioState: {
                             showImportModal,

@@ -56,6 +56,9 @@ export function wireAuthFeature(assembly) {
             pushHistory: (...args) => assembly.helpers.pushHistory(...args),
             openAlertModal: (...args) => assembly.helpers.openAlertModal(...args),
             openConfirmModal: (...args) => assembly.helpers.openConfirmModal(...args),
+            // 登录/登出/恢复会整体替换 itemPool 与 currentSessionId：
+            // pending 的录音写回 debounce 若不取消，会打在新数据上。
+            cancelPendingTrackSave: () => assembly.helpers.cancelPendingTrackSave?.(),
 
             setSaveStatus: (value) => {
                 saveStatus.value = value;

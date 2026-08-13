@@ -41,6 +41,7 @@ export function registerAuthFeature(context) {
     pushHistory,
     openAlertModal,
     openConfirmModal,
+    cancelPendingTrackSave = () => {},
 
     reloadPage = () => window.location.reload(),
     getLocationOrigin = () => window.location.origin,
@@ -95,6 +96,7 @@ export function registerAuthFeature(context) {
   function applyCloudContent(content, version = 0) {
     if (!content || typeof content !== 'object') return false;
 
+    cancelPendingTrackSave();
     localDataVersion.value = version || 0;
     if (Array.isArray(content.pool)) {
       itemPool.value = content.pool.map((item) => ensureItemRecords(item));
@@ -209,6 +211,7 @@ export function registerAuthFeature(context) {
   }
 
   function initDefaultData(isSidebarOpen) {
+    cancelPendingTrackSave();
     const demoMusicianId = 'M_DEMO_A';
     const demoProjectId = 'P_DEMO_A';
     const demoInstrumentId = 'I_DEMO_A';

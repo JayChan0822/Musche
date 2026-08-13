@@ -25,6 +25,7 @@ export function registerDataIoFeature(context) {
       openInputModal: actions.openInputModal,
       openAlertModal: actions.openAlertModal,
       pushHistory: actions.pushHistory,
+      cancelPendingTrackSave: actions.cancelPendingTrackSave,
     },
     ioState: {
       showImportModal: ioState.showImportModal,
