@@ -19,6 +19,7 @@ export function registerMainViewNavigationFeature(context) {
     changeDate = () => {},
     scrollToMonthDate = () => {},
     isDragActive = () => false,
+    cancelPendingTrackSave = () => {},
     getWindow = () => window,
     getElementById = (id) => document.getElementById(id),
     setTimeoutFn = setTimeout,
@@ -171,6 +172,7 @@ export function registerMainViewNavigationFeature(context) {
     let changed = false;
     const taskSession = task.sessionId || 'S_DEFAULT';
     if (currentSessionId.value !== taskSession) {
+      cancelPendingTrackSave();
       currentSessionId.value = taskSession;
       changed = true;
     }

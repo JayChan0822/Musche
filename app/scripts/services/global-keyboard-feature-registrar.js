@@ -78,6 +78,8 @@ export function wireGlobalKeyboardFeature(assembly) {
             cleanupEmptySchedules: (...args) => assembly.features.schedule.cleanupEmptySchedules(...args),
             clearSelection: (...args) => assembly.features.poolInteractions.clearSelection(...args),
             pushHistory: (...args) => helpers.pushHistory(...args),
+            // Alt+Tab 切 session 直接改 currentSessionId：pending 录音写回需取消
+            cancelPendingTrackSave: () => helpers.cancelPendingTrackSave?.(),
             isResourceCompleted: (...args) => helpers.isResourceCompleted(...args),
             clearPoolRecord: (...args) => helpers.clearPoolRecord(...args),
             clearAggregateRecords: (...args) => helpers.clearAggregateRecords(...args),

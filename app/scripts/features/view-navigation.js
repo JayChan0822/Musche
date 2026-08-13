@@ -50,6 +50,8 @@ export function registerViewNavigationFeature(context) {
       changeDate: calendarViewFeature.changeDate,
       scrollToMonthDate: calendarViewFeature.scrollToMonthDate,
       isDragActive: actions.isDragActive,
+      // ghost 任务跨 session 跳转直接改 currentSessionId：pending 写回需取消
+      cancelPendingTrackSave: () => actions.cancelPendingTrackSave?.(),
     },
   });
 

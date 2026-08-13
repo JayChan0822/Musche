@@ -56,6 +56,7 @@ export function registerSessionFeature(context) {
         () => {
           const idx = settings.sessions.findIndex((session) => session.id === currentSessionId.value);
           settings.sessions.splice(idx, 1);
+          cancelPendingTrackSave();
           currentSessionId.value = settings.sessions[0].id;
           pushHistory();
 

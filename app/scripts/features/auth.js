@@ -185,6 +185,7 @@ export function registerAuthFeature(context) {
   }
 
   function resetWorkingData() {
+    cancelPendingTrackSave();
     const defaults = createDefaultSettings();
     Object.keys(settings).forEach((key) => {
       delete settings[key];
@@ -295,6 +296,7 @@ export function registerAuthFeature(context) {
 
         if (!uploadError) {
           localDataVersion.value = 1;
+          cancelPendingTrackSave();
           itemPool.value = dataToUpload.pool;
           scheduledTasks.value = dataToUpload.tasks;
           persistCloudCache();
@@ -608,6 +610,7 @@ export function registerAuthFeature(context) {
         await loadCloudData({ withStartupDeadline: true });
       } catch (error) {
         if (!cacheMatchesSession) {
+          cancelPendingTrackSave();
           itemPool.value = [];
           scheduledTasks.value = [];
         }

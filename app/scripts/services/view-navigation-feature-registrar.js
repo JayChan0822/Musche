@@ -56,6 +56,8 @@ export function wireViewNavigationFeature(assembly) {
         },
         actions: {
             isDragActive: () => !!dragState.dragElClone,
+            // ghost 任务跨 session 跳转：pending 录音写回需取消
+            cancelPendingTrackSave: () => assembly.helpers.cancelPendingTrackSave?.(),
 
         },
     });

@@ -68,6 +68,7 @@ export function registerGlobalKeyboardFeature(context) {
     cleanupEmptySchedules = () => {},
     clearSelection = () => {},
     pushHistory = () => {},
+    cancelPendingTrackSave = () => {},
     isResourceCompleted = () => false,
     clearPoolRecord = () => {},
     clearAggregateRecords = () => {},
@@ -255,6 +256,7 @@ export function registerGlobalKeyboardFeature(context) {
 
     event.preventDefault();
     if (event.altKey) {
+      cancelPendingTrackSave();
       const sessions = getSettings().sessions;
       const currentIndex = sessions.findIndex((session) => session.id === currentSessionId.value);
       const nextIndex = event.shiftKey
