@@ -1,6 +1,6 @@
 # 2026-08-13 cc 审查遗留项清零记录
 
-> 背景：P0-P5 重构完成后，两轮 cc(opus) 只读审查（含变异测试）共发现问题 4+5 项，全部在此次收尾中处理。验证基线：`npm test` 216 pass 全绿（76 modules smoke）+ `npm run build` OK。
+> 背景：P0-P5 重构完成后，两轮 cc(opus) 只读审查（含变异测试）共发现问题 4+5 项，全部在此次收尾中处理。验证基线：`npm test` 219 pass 全绿（76 modules smoke）+ `npm run build` OK。
 
 ## 二轮审查结论（2026-08-13 晚，报告 /tmp/musche-fix-review-log.txt）
 
@@ -11,7 +11,7 @@
 | 39199c3 删死字面量 | ✅ 行为等价 | 无需处理 |
 | 93e045f debounce pushHistory | ⚠️ 修对主症状但引入 P2 撤销栈竞态 + 零测试 | 本轮修竞态 + 补测试（见下） |
 
-## 本轮修复（4 项）
+## 本轮修复（5 项）
 
 1. **P2｜undo/redo 竞态**：debounce 回调的 pushHistory 会截断 redo 分支（1.5s 内 Ctrl+Z 后 redo 永久失效，history.js:88 分支截断触发）。修法：track-list-records 暴露 `cancelPendingTrackSave`（清 trackSaveTimer）→ app.js 经懒加载代理挂 `assembly.helpers.cancelPendingTrackSave` → history registrar 延迟取值注入 → undo/redo 开头调用。track-list 是懒加载 feature，跨 feature 引用全部经 assembly 延迟取值（符合 CLAUDE.md 约束）。
 2. **P3｜pushHistory 空快照保护**：与当前索引处快照字节相同则跳过。避免 debounce 写回无变化时推重复快照（第一次 Ctrl+Z 无反应、50 条上限下撤销深度减半）。
@@ -22,7 +22,7 @@
 ## 验证
 
 - `npm run verify:modularization`：76 modules passed
-- `npm test`：216 pass / 0 fail（215 + openSplitSlider 1 + track-list-records 3 - 原 216 已含 openSplitSlider，实为 215→219…以最终实测为准）
+- `npm test`：219 pass / 0 fail（216 + history-behavior 4 + track-list-records 3 - openSplitSlider 已计 216 内，实际新增 3 条历史行为测试，最终 219）
 - `npm run build`：OK
 
 ## 遗留（低优先，未做）
