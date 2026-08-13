@@ -833,7 +833,7 @@ export function registerImportCsvFeature(context) {
     affectedInstrumentIds.forEach((id) => updateIndexes(id, 'instrument'));
 
     if (typeof autoUpdateEfficiency === 'function') {
-      affectedMusicianIds.forEach((id) => autoUpdateEfficiency(id, 'musician', false));
+      affectedMusicianIds.forEach((id) => autoUpdateEfficiency(id, 'musician'));
     }
 
     if (validRecordings.length > 0 && typeof autoResizeSchedules === 'function') {

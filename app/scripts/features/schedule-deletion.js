@@ -50,8 +50,8 @@ export function registerScheduleDeletionFeature(context) {
         }
       });
 
-      if (poolItem.musicianId) autoUpdateEfficiency(poolItem.musicianId, 'musician', false);
-      if (poolItem.projectId) autoUpdateEfficiency(poolItem.projectId, 'project', false);
+      if (poolItem.musicianId) autoUpdateEfficiency(poolItem.musicianId, 'musician');
+      if (poolItem.projectId) autoUpdateEfficiency(poolItem.projectId, 'project');
     }
   };
 
@@ -102,7 +102,7 @@ export function registerScheduleDeletionFeature(context) {
     });
 
     if (hasCleared) {
-      autoUpdateEfficiency(filterId, viewType, false);
+      autoUpdateEfficiency(filterId, viewType);
     }
   };
 
@@ -145,7 +145,7 @@ export function registerScheduleDeletionFeature(context) {
         });
 
         if (hasCleared && targetId) {
-          autoUpdateEfficiency(targetId, viewType, false);
+          autoUpdateEfficiency(targetId, viewType);
         }
       }
     }

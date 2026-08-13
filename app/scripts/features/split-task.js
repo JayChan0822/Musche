@@ -292,7 +292,7 @@ export function registerSplitTaskFeature(context) {
 
   const finishSplit = (item) => {
     pushHistory();
-    if (item.musicianId) autoUpdateEfficiency(item.musicianId, 'musician', false);
+    if (item.musicianId) autoUpdateEfficiency(item.musicianId, 'musician');
   };
 
   const confirmSplitSlider = () => {

@@ -120,7 +120,7 @@ export function createTrackListLayout(deps) {
     pushHistory();
   };
 
-  const autoResizeScheduleByRecords = (isSilent = false, shouldPushHistory = true) => {
+  const autoResizeScheduleByRecords = (isSilent = false) => {
     const sections = trackListData.value.schedules;
     const items = trackListData.value.items;
     const viewType = getViewType();
@@ -227,7 +227,7 @@ export function createTrackListLayout(deps) {
       compareTrackItems(a, b, viewType, true),
     );
 
-    autoResizeScheduleByRecords(true, false);
+    autoResizeScheduleByRecords(true);
     pushHistory();
   };
 

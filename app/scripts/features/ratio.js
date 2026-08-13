@@ -123,7 +123,7 @@ export function registerRatioFeature(context) {
     return value === 20;
   };
 
-  const autoUpdateEfficiency = (targetId, viewType, shouldPushHistory = true) => {
+  const autoUpdateEfficiency = (targetId, viewType) => {
     if (!targetId || !viewType) return;
 
     let idKey = 'musicianId';
@@ -224,7 +224,7 @@ export function registerRatioFeature(context) {
 
         if (musicianStats.value.length > 0) {
           const firstId = musicianStats.value[0].id;
-          autoUpdateEfficiency(firstId, 'musician', false);
+          autoUpdateEfficiency(firstId, 'musician');
         }
 
 

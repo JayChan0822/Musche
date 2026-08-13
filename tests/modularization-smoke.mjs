@@ -4872,7 +4872,7 @@ assert.match(
 
 assert.match(
     ratioFeature,
-    /const\s+autoUpdateEfficiency\s*=\s*\(targetId,\s*viewType,\s*shouldPushHistory\s*=\s*true\)\s*=>/,
+    /const\s+autoUpdateEfficiency\s*=\s*\(targetId,\s*viewType\)\s*=>/,
     'ratio feature must own automatic efficiency/default-ratio recalculation'
 );
 
@@ -4919,7 +4919,7 @@ assert.doesNotMatch(
 
 assert.doesNotMatch(
     appScript,
-    /const\s+getDefaultRatio\s*=\s*\(id,\s*type\s*=\s*'musician'\)\s*=>\s*\{|const\s+calculateEstTime\s*=\s*\(d,\s*r\)\s*=>|const\s+getTaskRatio\s*=\s*\(item,\s*contextType\s*=\s*null\)\s*=>\s*\{|const\s+isDefaultRatio\s*=\s*\(item\)\s*=>\s*\{|const\s+autoUpdateEfficiency\s*=\s*\(targetId,\s*viewType,\s*shouldPushHistory\s*=\s*true\)\s*=>\s*\{|const\s+ensureItemRecords\s*=\s*\(item\)\s*=>\s*\{|const\s+cleanOldRatios\s*=\s*\(\)\s*=>\s*\{|const\s+ensureItemRecords\s*=\s*ratioFeature\.ensureItemRecords|const\s+getDefaultRatio\s*=\s*ratioFeature\.getDefaultRatio|const\s+calculateEstTime\s*=\s*ratioFeature\.calculateEstTime|const\s+getTaskRatio\s*=\s*ratioFeature\.getTaskRatio|const\s+isDefaultRatio\s*=\s*ratioFeature\.isDefaultRatio|const\s+autoUpdateEfficiency\s*=\s*ratioFeature\.autoUpdateEfficiency|const\s+cleanOldRatios\s*=\s*ratioFeature\.cleanOldRatios/,
+    /const\s+getDefaultRatio\s*=\s*\(id,\s*type\s*=\s*'musician'\)\s*=>\s*\{|const\s+calculateEstTime\s*=\s*\(d,\s*r\)\s*=>|const\s+getTaskRatio\s*=\s*\(item,\s*contextType\s*=\s*null\)\s*=>\s*\{|const\s+isDefaultRatio\s*=\s*\(item\)\s*=>\s*\{|const\s+autoUpdateEfficiency\s*=\s*\(targetId,\s*viewType\)\s*=>\s*\{|const\s+ensureItemRecords\s*=\s*\(item\)\s*=>\s*\{|const\s+cleanOldRatios\s*=\s*\(\)\s*=>\s*\{|const\s+ensureItemRecords\s*=\s*ratioFeature\.ensureItemRecords|const\s+getDefaultRatio\s*=\s*ratioFeature\.getDefaultRatio|const\s+calculateEstTime\s*=\s*ratioFeature\.calculateEstTime|const\s+getTaskRatio\s*=\s*ratioFeature\.getTaskRatio|const\s+isDefaultRatio\s*=\s*ratioFeature\.isDefaultRatio|const\s+autoUpdateEfficiency\s*=\s*ratioFeature\.autoUpdateEfficiency|const\s+cleanOldRatios\s*=\s*ratioFeature\.cleanOldRatios/,
     'app.js should not retain default/task ratio lookup, estimated duration, display check, auto efficiency, record initialization, cleanup bodies, or direct feature surface wiring after ratio extraction'
 );
 
@@ -10469,7 +10469,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.scheduledTasks.value[0].projectId, 'P2', 'saving a pool item should sync changed project identity to scheduled copies');
     assert.equal(refs.showEditor.value, false, 'saving a pool edit should close the editor');
     assert.equal(historyCount, 1, 'saving a pool edit should push history once');
-    assert.deepEqual(efficiencyCalls, [['M1', 'musician', false], ['P2', 'project', false]], 'saving a pool edit should refresh musician and project efficiency');
+    assert.deepEqual(efficiencyCalls, [['M1', 'musician'], ['P2', 'project']], 'saving a pool edit should refresh musician and project efficiency');
 }
 
 {
@@ -11510,8 +11510,8 @@ for (const relativePath of requiredFiles) {
         instrument: { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 },
     }, 'single-template schedule deletion should clear pool records in every view');
     assert.deepEqual(efficiencyCalls.slice(0, 2), [
-        ['M1', 'musician', false],
-        ['P1', 'project', false],
+        ['M1', 'musician'],
+        ['P1', 'project'],
     ], 'single-template schedule deletion should refresh musician and project efficiency');
     assert.equal(refs.showTrackList.value, false, 'schedule deletion should close TrackList');
     assert.equal(historyCount, 1, 'schedule deletion should push history once');
@@ -11550,7 +11550,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [4], 'aggregate schedule deletion should remove only the selected schedule block');
     assert.deepEqual(aggregateItems[0].records.musician, { actualDuration: '00:05', recStart: '09:00', recEnd: '09:05', breakMinutes: 1 }, 'aggregate deletion should not clear other sections');
     assert.deepEqual(aggregateItems[1].records.musician, { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 }, 'aggregate deletion should clear records only in the current section');
-    assert.deepEqual(efficiencyCalls.at(-1), ['M2', 'musician', false], 'aggregate deletion should refresh efficiency for the cleared section owner');
+    assert.deepEqual(efficiencyCalls.at(-1), ['M2', 'musician'], 'aggregate deletion should refresh efficiency for the cleared section owner');
 
     const aggregateCleanupItems = [
         {
@@ -11599,7 +11599,7 @@ for (const relativePath of requiredFiles) {
     );
     assert.equal(aggregateCleanupItems[2].sectionIndex, 1, 'aggregate cleanup should shift later matching sections down');
     assert.equal(aggregateCleanupItems[3].sectionIndex, 1, 'aggregate cleanup should not shift other resources');
-    assert.deepEqual(efficiencyCalls.at(-1), ['M10', 'musician', false], 'aggregate cleanup should refresh matching resource efficiency when records were cleared');
+    assert.deepEqual(efficiencyCalls.at(-1), ['M10', 'musician'], 'aggregate cleanup should refresh matching resource efficiency when records were cleared');
 }
 
 {

@@ -463,7 +463,7 @@ export function registerSettingsFeature(context) {
           if (index !== -1) list.splice(index, 1);
 
           if (type === 'musician') {
-            autoUpdateEfficiency(targetItem.id, 'musician', false);
+            autoUpdateEfficiency(targetItem.id, 'musician');
           }
 
           pushHistory();

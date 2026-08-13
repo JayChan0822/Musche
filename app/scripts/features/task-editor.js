@@ -203,10 +203,10 @@ export function registerTaskEditorFeature(context) {
 
   const updateEditedItemEfficiency = () => {
     if (editingItem.value.musicianId) {
-      autoUpdateEfficiency(editingItem.value.musicianId, 'musician', false);
+      autoUpdateEfficiency(editingItem.value.musicianId, 'musician');
     }
     if (editingItem.value.projectId) {
-      autoUpdateEfficiency(editingItem.value.projectId, 'project', false);
+      autoUpdateEfficiency(editingItem.value.projectId, 'project');
     }
   };
 

@@ -148,7 +148,7 @@ export const AppSidebar = {
                                         <span v-else-if="stat.statusKey === 'insufficient'" class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 dark:text-red-400 text-sm sm:text-xs font-bold whitespace-nowrap">缺时</span>
 
                                         <button v-if="stat.avgRealRatio > 0"
-                                                @click.stop="autoUpdateEfficiency(stat.id, sidebarTab, true)"
+                                                @click.stop="autoUpdateEfficiency(stat.id, sidebarTab)"
                                                 class="px-2 py-1 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-sm sm:text-xs font-mono font-bold transition whitespace-nowrap border border-transparent dark:border-purple-500/20 hover:bg-purple-200 active:scale-95 cursor-pointer">
                                             x{{ stat.avgRealRatio }}
                                         </button>

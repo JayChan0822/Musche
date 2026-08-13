@@ -202,10 +202,10 @@ export function createTrackListRecords(deps) {
     record.recEnd = '';
     record.actualDuration = '';
 
-    autoResizeScheduleByRecords(true, false);
+    autoResizeScheduleByRecords(true);
 
     const targetId = getTargetId(item, viewType);
-    autoUpdateEfficiency(targetId, viewType, false);
+    autoUpdateEfficiency(targetId, viewType);
 
     pushHistory();
   };
