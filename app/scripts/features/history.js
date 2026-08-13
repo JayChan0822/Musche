@@ -52,7 +52,14 @@ export function registerHistoryFeature(context) {
     currentSessionId,
   } = refs;
   const { settings } = state;
-  const { isItemVisibleForView, syncItemsForView, reopenTrackListForTask, cancelPendingTrackSave = () => {} } = actions;
+  const {
+    isItemVisibleForView,
+    syncItemsForView,
+    reopenTrackListForTask,
+    cancelPendingTrackSave = () => {},
+    // 快照真的入栈后通知（空改动早退不会走到这里）——手机端据此浮出撤销条
+    onHistoryPushed = () => {},
+  } = actions;
 
   const refreshTrackList = () => {
     if (!showTrackList.value || !trackListData.value.taskRef) return;
@@ -107,6 +114,8 @@ export function registerHistoryFeature(context) {
       history.value.shift();
       historyIndex.value--;
     }
+
+    onHistoryPushed();
   };
 
   const undo = () => {

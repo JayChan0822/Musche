@@ -32,6 +32,7 @@ export function wireHistoryFeature(assembly) {
             // undo/redo 时取消未触发的录音写回 debounce，避免 1.5s 后
             // 的 pushHistory 截断 redo 分支（见 93e045f 的竞态评估）。
             cancelPendingTrackSave: () => assembly.helpers.cancelPendingTrackSave?.(),
+            onHistoryPushed: () => assembly.features.undoToast?.notifyHistoryPushed(),
         },
     });
 }

@@ -7930,6 +7930,8 @@ const requiredFiles = [
     'app/scripts/features/sidebar-preferences.js',
     'app/scripts/features/main-view-navigation.js',
     'app/scripts/features/mobile-day-view.js',
+    'app/scripts/features/undo-toast.js',
+    'app/scripts/services/undo-toast-feature-registrar.js',
     'app/scripts/features/dropdowns.js',
     'app/scripts/features/name-lookup.js',
     'app/scripts/features/visible-pool-items.js',

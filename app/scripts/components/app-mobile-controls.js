@@ -45,6 +45,22 @@ export const AppMobileControls = {
                      @click="ctx.isSearchFocused = false">
                 </div>
 
+                <!-- 撤销条：产生可撤销改动后浮在 dock 上方，几秒后自动消失 -->
+                <Transition name="undo-toast">
+                    <div v-if="ctx.undoToastVisible && !ctx.isSearchFocused"
+                         class="undo-toast fixed z-[880] flex items-center gap-3 h-11 pl-4 pr-1.5 rounded-full bg-[#1c1c1e]/95 dark:bg-white/95 text-white dark:text-black shadow-lg backdrop-blur-xl">
+                        <span class="text-sm font-bold whitespace-nowrap">已更改</span>
+                        <button @click="ctx.undoFromToast"
+                                class="h-8 px-3 rounded-full bg-white/15 dark:bg-black/10 text-[#0a84ff] dark:text-[#007aff] text-sm font-bold active:opacity-60 transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-rotate-left text-xs"></i> 撤销
+                        </button>
+                        <button @click="ctx.hideUndoToast"
+                                class="w-8 h-8 flex items-center justify-center rounded-full text-white/50 dark:text-black/40 active:opacity-60 transition">
+                            <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                    </div>
+                </Transition>
+
                 <div class="mobile-tab-bar">
                     <button @click="ctx.mobileTab='pool'; ctx.showMobileTaskInput=false"
                             class="mobile-tab-item"

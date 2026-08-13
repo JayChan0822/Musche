@@ -28,6 +28,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
         wireGlobalKeyboardFeature,
         wireSessionFeature,
         wireHistoryFeature,
+        wireUndoToastFeature,
         wireRatioFeature,
         wireNameLookupFeature,
         wireSplitViewFeature,
@@ -292,6 +293,15 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 redo,
             } = historyFeature;
             Object.assign(assembly.helpers, { pushHistory, undo, redo });
+
+            const undoToastFeature = wireUndoToastFeature(assembly);
+            assembly.features.undoToast = undoToastFeature;
+            const {
+                undoToastVisible,
+                undoFromToast,
+                hideUndoToast,
+            } = undoToastFeature;
+            Object.assign(assembly.helpers, { undoToastVisible, undoFromToast, hideUndoToast });
 
             sessionFeature = wireSessionFeature(assembly);
             assembly.features.session = sessionFeature;

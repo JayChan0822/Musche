@@ -81,6 +81,28 @@ html.dark .mobile-tab-bar {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
+/* 撤销条：停在 dock 正上方（dock 高 56 + 距底 12 + 12 间距） */
+.undo-toast {
+    /* 居中与位移都在这里定义：Vue 过渡类要覆盖 transform，别混用 Tailwind 的位移工具类 */
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+.undo-toast-enter-active {
+    transition: transform 0.28s cubic-bezier(0.32, 1.28, 0.6, 1), opacity 0.2s ease;
+}
+
+.undo-toast-leave-active {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.undo-toast-enter-from,
+.undo-toast-leave-to {
+    transform: translate(-50%, 16px);
+    opacity: 0;
+}
+
 .mobile-tab-item {
     display: flex;
     flex-direction: column;

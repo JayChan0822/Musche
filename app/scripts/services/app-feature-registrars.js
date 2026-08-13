@@ -2,6 +2,7 @@ import { wireAppRuntimeFeature } from './app-runtime-feature-registrar.js';
 import { wireGlobalKeyboardFeature } from './global-keyboard-feature-registrar.js';
 import { wireSessionFeature } from './session-feature-registrar.js';
 import { wireHistoryFeature } from './history-feature-registrar.js';
+import { wireUndoToastFeature } from './undo-toast-feature-registrar.js';
 import { wireRatioFeature } from './ratio-feature-registrar.js';
 import { wireNameLookupFeature } from './name-lookup-feature-registrar.js';
 import { wireSplitViewFeature } from './split-view-feature-registrar.js';
@@ -28,6 +29,7 @@ export function createAppFeatureRegistrars() {
         wireGlobalKeyboardFeature,
         wireSessionFeature,
         wireHistoryFeature,
+        wireUndoToastFeature,
         wireRatioFeature,
         wireNameLookupFeature,
         wireSplitViewFeature,

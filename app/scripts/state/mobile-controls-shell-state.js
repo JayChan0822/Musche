@@ -5,6 +5,7 @@ export const createMobileControlsShellState = defineShellState('createMobileCont
         'refs.isMobile',
         // 日视图滑上来时，浮动搜索条要让位
         'refs.dayViewOpen',
+        'helpers.undoToastVisible',
     ],
     models: [
         'refs.globalSearchQuery',
@@ -16,5 +17,7 @@ export const createMobileControlsShellState = defineShellState('createMobileCont
         'helpers.onSearchFocus',
         'helpers.handleSearchBlur',
         'helpers.handleSearchEnter',
+        'helpers.undoFromToast',
+        'helpers.hideUndoToast',
     ],
 });
