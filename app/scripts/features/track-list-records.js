@@ -191,6 +191,9 @@ export function createTrackListRecords(deps) {
       const targetId = getTargetId(item, viewType);
 
       autoUpdateEfficiency(targetId, viewType);
+      // debounce 写回发生在 pushHistory 快照之外（calcTrackDiff 不推历史），
+      // 不推一条会让 1.5s 后的 ratio/estDuration 落进撤销盲区，Ctrl+Z 救不回。
+      pushHistory();
     }, 1500);
   };
 
