@@ -177,6 +177,7 @@ export function registerRatioFeature(context) {
 
     const updateTask = (task) => {
       if (task[idKey] !== targetId || !task.musicDuration) return;
+      if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return;
 
       ensureItemRecords(task);
       const currentDimRatio = task.ratios[viewType];

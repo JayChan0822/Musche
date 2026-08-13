@@ -12546,6 +12546,7 @@ for (const relativePath of requiredFiles) {
         musicianId: 'M1',
         projectId: 'P1',
         instrumentId: 'I1',
+        sessionId: 'S1',
         musicDuration: '00:30',
         records: { musician: { actualDuration: '00:45' } },
         ratios: { musician: 20, project: null, instrument: null },
@@ -12559,7 +12560,8 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.itemPool.value[0].ratio, 1.5, 'auto efficiency should update auto-following pool item display ratio');
     assert.equal(refs.itemPool.value[0].estDuration, '45s', 'auto efficiency should recalculate pool item estimated duration');
     assert.equal(refs.itemPool.value[1].ratio, 9, 'auto efficiency should not override manually-ratioed pool items');
-    assert.equal(refs.itemPool.value[2].ratio, 1.5, 'auto efficiency should preserve the original broad display-ratio refresh for matching pool items');
+    assert.equal(refs.itemPool.value[2].ratio, 18, 'auto efficiency should never write to other-session pool items (regression: cross-session ratio corruption)');
+    assert.equal(refs.itemPool.value[2].estDuration, 'other-old', 'auto efficiency should leave other-session estDuration untouched');
     assert.equal(refs.scheduledTasks.value[0].ratios.musician, null, 'auto efficiency should unlock scheduled items that were pinned to the legacy default');
     assert.equal(refs.scheduledTasks.value[0].ratio, 1.5, 'auto efficiency should update scheduled item display ratio');
 
