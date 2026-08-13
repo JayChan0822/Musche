@@ -276,3 +276,25 @@ test('splitTrack rejects items without a usable total duration', () => {
   feature.splitTrack(zeroDuration);
   assert.deepEqual(alerts, ['无法拆分', '无法拆分'], 'zero total duration should be unsplittable');
 });
+
+test('openSplitSlider rejects items without a usable total duration without opening the modal', () => {
+  const alerts = [];
+  const feature = createFeature({
+    itemPool: [],
+    actions: { openAlertModal: (title) => alerts.push(title) },
+  });
+
+  const noDuration = { id: 'A', musicDuration: '' };
+  setItemSplitState(noDuration, 'musician', { musicDuration: '' });
+  feature.openSplitSlider(noDuration);
+  assert.deepEqual(alerts, ['无法拆分'], 'empty total duration should be unsplittable via the slider entry too');
+  assert.equal(feature.splitState.task, null, 'split modal should stay closed');
+  assert.equal(feature.splitState.totalSec, 0, 'no split math should run');
+
+  alerts.length = 0;
+  const zeroDuration = { id: 'B', musicDuration: '00:00' };
+  setItemSplitState(zeroDuration, 'musician', { musicDuration: '00:00' });
+  feature.openSplitSlider(zeroDuration);
+  assert.deepEqual(alerts, ['无法拆分'], 'zero total duration should be unsplittable via the slider entry too');
+  assert.equal(feature.splitState.task, null, 'split modal should stay closed');
+});
