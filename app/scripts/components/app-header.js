@@ -43,6 +43,42 @@ export const AppHeader = {
                             <span>设置选项</span>
                         </button>
 
+                        <!-- 手机端专属：header 里放不下的同步/撤销/重做/引导 -->
+                        <div class="sm:hidden h-px bg-black/5 dark:bg-white/5 my-1 mx-2"></div>
+
+                        <button @click="ctx.handleManualSync(); ctx.showMobileMenu=false"
+                                :disabled="ctx.isSyncing"
+                                class="sm:hidden flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold w-full disabled:opacity-50">
+                            <div class="w-6 flex justify-center text-lg text-[#007aff]">
+                                <i class="fa-solid fa-cloud-arrow-down" :class="{'fa-bounce': ctx.isSyncing}"></i>
+                            </div>
+                            <div class="flex flex-col items-start leading-none gap-0.5">
+                                <span>立即同步</span>
+                                <span class="text-[9px] opacity-40 font-normal uppercase tracking-wider">
+                                    {{ !ctx.user ? '未登录' : (ctx.saveStatus==='saved' ? '已同步' : (ctx.saveStatus==='saving' ? '正在保存...' : '有未保存更改')) }}
+                                </span>
+                            </div>
+                        </button>
+
+                        <div class="sm:hidden flex gap-1">
+                            <button @click="ctx.undo" :disabled="ctx.historyIndex <= 0"
+                                    class="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold disabled:opacity-30">
+                                <i class="fa-solid fa-rotate-left"></i> 撤销
+                            </button>
+                            <button @click="ctx.redo" :disabled="ctx.historyIndex >= ctx.history.length - 1"
+                                    class="flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold disabled:opacity-30">
+                                <i class="fa-solid fa-rotate-right"></i> 重做
+                            </button>
+                        </div>
+
+                        <button @click="ctx.startTour(); ctx.showMobileMenu=false"
+                                class="sm:hidden flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold w-full">
+                            <div class="w-6 flex justify-center text-gray-500 dark:text-gray-400 text-lg">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </div>
+                            <span>新手引导</span>
+                        </button>
+
                         <div class="h-px bg-black/5 dark:bg-white/5 my-1 mx-2"></div>
 
                         <button @click="ctx.exportCSV(); ctx.showMobileMenu=false"
@@ -87,7 +123,8 @@ export const AppHeader = {
                         </span>
                 </h1>
 
-                <div class="flex items-center ml-1 gap-1 sm:gap-2">
+                <!-- 同步/撤销/重做：手机端收进汉堡菜单，只在桌面端常驻 -->
+                <div class="hidden sm:flex items-center ml-1 gap-1 sm:gap-2">
                     <button id="tour-sync-btn"
                             @click="ctx.handleManualSync"
                             :disabled="ctx.isSyncing"
@@ -185,8 +222,9 @@ export const AppHeader = {
             <div class="flex items-center gap-2 sm:gap-3 z-50 relative shrink-0">
 
                 <div class="relative z-50 user-menu-container">
-                    <button @click="ctx.handleUserBtnClick"
-                            class="flex items-center justify-center w-11 h-11 rounded-full transition border cursor-pointer select-none overflow-hidden shrink-0"
+                    <button id="tour-user-btn"
+                            @click="ctx.handleUserBtnClick"
+                            class="relative flex items-center justify-center w-11 h-11 rounded-full transition border cursor-pointer select-none overflow-hidden shrink-0"
                             :class="ctx.user ? 'bg-transparent border-transparent' : 'bg-gray-500/10 text-gray-600 border-gray-500/20 border'">
 
                         <div v-if="ctx.user && ctx.userAvatar" class="w-full h-full bg-cover bg-center"
@@ -194,6 +232,15 @@ export const AppHeader = {
                         <i v-else class="fa-solid text-lg"
                            :class="ctx.user ? 'fa-user-check text-green-600' : 'fa-user'"></i>
                     </button>
+
+                    <!-- 手机端同步状态：同步按钮已收进汉堡菜单，状态点挂到头像上 -->
+                    <div class="sm:hidden absolute top-0 right-0 w-2.5 h-2.5 rounded-full transition-all duration-300 border border-white/80 dark:border-black/60 shadow-sm pointer-events-none"
+                         :class="!ctx.user ? 'bg-red-500' : {
+                             'bg-green-500': ctx.saveStatus === 'saved',
+                             'bg-orange-500': ctx.saveStatus === 'unsaved',
+                             'bg-[#007aff] animate-pulse': ctx.saveStatus === 'saving',
+                             'bg-red-600': ctx.saveStatus === 'error'
+                         }"></div>
 
                     <div v-if="ctx.showProfileMenu && ctx.user"
                          class="custom-dropdown-menu mobile-user-menu w-72 absolute top-full right-0 mt-2 p-4 flex flex-col gap-4 cursor-default text-left max-h-none">
@@ -249,7 +296,7 @@ export const AppHeader = {
                 <div class="w-px h-6 bg-black/10 dark:bg-white/10 mx-1 hidden sm:block"></div>
 
                 <button @click="ctx.startTour"
-                        class="w-11 h-11 sm:w-9 sm:h-9 rounded-md hover:bg-black/5 dark:hover:bg-white/10 flex items-center justify-center transition group relative"
+                        class="hidden sm:flex w-11 h-11 sm:w-9 sm:h-9 rounded-md hover:bg-black/5 dark:hover:bg-white/10 items-center justify-center transition group relative"
                         title="新手引导">
                     <i class="fa-solid fa-circle-question text-lg sm:text-base opacity-80 "></i>
                 </button>

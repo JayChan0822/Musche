@@ -190,7 +190,7 @@ export const AppMainContent = {
                             <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
                                 <div :key="viewDate.getFullYear() + '-' + viewDate.getMonth()"
                                      class="w-full min-h-full"
-                                     :class="isMobile ? 'p-2 pb-40' : 'p-4'">
+                                     :class="isMobile ? 'p-2 pb-24' : 'p-4'">
 
                                     <div class="grid grid-cols-7 border-t border-l border-glass-border dark:border-glass-borderDark bg-white/50 dark:bg-[#1e1e1e]/50 rounded-xl overflow-hidden shadow-liquid"
                                          :class="isMobile ? 'w-full min-h-[50vh]' : 'min-w-[800px]'">

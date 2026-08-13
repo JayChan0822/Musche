@@ -123,7 +123,7 @@ export const AppMobileDayView = {
                             </div>
                         </div>
                         <!-- 底部留白：别让最后一条日程被 tab bar 压住 -->
-                        <div class="h-32"></div>
+                        <div class="h-24"></div>
                     </div>
                 </div>
             </Transition>

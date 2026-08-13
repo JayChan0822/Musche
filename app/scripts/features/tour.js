@@ -30,7 +30,7 @@ export function registerTourFeature(context) {
       element: '#sidebar',
       popover: {
         title: '任务池 (Pool)',
-        description: '这里存放所有待排程的资源。<br>点击顶部的 <b>人员/项目/乐器</b> 标签可切换不同维度的分组显示。',
+        description: '这里存放所有待排程的资源。<br>点击顶部的 <b>REC 录音 / EDIT 编辑</b> 标签可切换分类。',
         side: 'right',
         align: 'start',
       },
@@ -141,7 +141,7 @@ export function registerTourFeature(context) {
       element: '.mobile-tab-bar',
       popover: {
         title: '底部导航',
-        description: '<b>核心功能区</b>：<br><b>任务池</b>：查看待排任务<br><b>添加</b>：快速新建<br><b>日程表</b>：查看当前安排',
+        description: '<b>核心功能区</b>：<br><b>任务池</b>：查看待排任务<br><b>添加</b>：快速新建<br><b>日程表</b>：查看当前安排<br><b>搜索</b>：点开才展开输入框',
         side: 'top',
       },
     },
@@ -149,7 +149,7 @@ export function registerTourFeature(context) {
       element: '#sidebar',
       popover: {
         title: '任务池 (Task Pool)',
-        description: '这里存放所有待排程的资源。<br>点击上方标签可切换 <b>人员/项目/乐器</b>。<br><b>长按卡片</b>即可拖拽到日程表中。',
+        description: '这里存放所有待排程的资源。<br>点击上方标签或左右滑动可切换 <b>REC 录音 / EDIT 编辑</b>。<br><b>长按卡片</b>即可拖拽到日程表中。',
         side: 'top',
         align: 'center',
       },
@@ -186,11 +186,13 @@ export function registerTourFeature(context) {
       },
     },
     {
-      element: '#tour-sync-btn',
+      // 手机端同步按钮收进了汉堡菜单，这里改指头像——同步状态点就挂在它上面
+      element: '#tour-user-btn',
       popover: {
         title: '云端同步',
-        description: '登录账号后，数据将自动保存到云端，支持多设备协作。',
+        description: '登录账号后数据自动保存到云端。<br>头像右上角的小圆点表示同步状态，手动同步在左上角菜单里。',
         side: 'bottom',
+        align: 'end',
       },
       onHighlightStarted: () => {
         mobileTab.value = 'schedule';
