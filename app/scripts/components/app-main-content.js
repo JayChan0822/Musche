@@ -199,7 +199,8 @@ export const AppMainContent = {
                                         </div>
 
                                         <div v-for="day in currentMonthDays" :key="day.fullDate"
-                                             class="min-h-[100px] sm:h-36 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative hover:bg-black/5 dark:hover:bg-white/5 transition droppable-slot group flex flex-col"
+                                             class="min-h-[100px] sm:h-36 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
+                                             :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                              :data-date="day.fullDate"
                                              @dblclick="switchToWeek(day.fullDate)"
                                              @touchend="handleMonthCellDoubleTap($event, day.fullDate)"
