@@ -72,106 +72,102 @@ export const AppMainContent = {
                              :ref="(el) => { weekContainer = el; }"
                              :style="{ '--slot-height': slotHeight + 'px' }"
                              @click="clearSelection">
+                            <!-- 星期头行：sticky top-0，切周 slide 动画时不随内容位移 -->
+                            <div class="sticky top-0 z-[700] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
+                                <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
+                                <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr"
+                                     class="h-14 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                                     :style="{ minWidth: dayColWidth + 'px' }"
+                                     @dblclick="switchView('month')"
+                                     @touchend="handleHeaderDoubleTap($event)"
+                                     title="双击返回月视图">
+                                    <span class="text-xs uppercase font-bold opacity-60 mb-0.5">{{ day.weekday }}</span>
+                                    <div class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
+                                         :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">
+                                        {{ day.dateShort.split('/')[1] }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 时间列 + 任务格区 -->
                             <div class="flex min-w-full" :ref="(el) => { weekGridWrapper = el; }">
+                                <!-- 时间列：sticky left-0，切周 slide 动画时不随内容位移 -->
+                                <div class="shrink-0 sticky left-0 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
+                                     style="width: var(--time-col-width)">
+                                    <div v-for="t in timeSlots" :key="t" class="time-label-slot">
+                                        {{ t.endsWith('00') ? t : '' }}
+                                    </div>
+                                    <div class="time-label-slot">
+                                        {{ settings.endHour === 24 ? '00:00' : settings.endHour + ':00' }}
+                                    </div>
+                                </div>
 
                                 <Transition :name="dateTransitionName"
                                             @before-leave="onBeforeLeave"
                                             @after-leave="onAfterLeave">
+                                    <div :key="currentWeekDays[0].dateStr" class="flex flex-1 min-w-0">
+                                        <div v-for="day in currentWeekDays" :key="day.dateStr"
+                                             class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-all duration-300 ease-in-out"
+                                             :style="{ minWidth: dayColWidth + 'px' }"
+                                             :data-date-str="day.dateStr">
+                                            <div class="relative" style="min-height: 1000px;">
+                                                <div v-for="t in timeSlots" :key="t"
+                                                     class="grid-slot droppable-slot"
+                                                     :data-time="t"
+                                                     @dragenter="dragEnterSlot" @dragleave="dragLeaveSlot"
+                                                     @dragover.prevent
+                                                     @drop="dropToSchedule($event, day.dateStr)"></div>
 
-                                    <div :key="currentWeekDays[0].dateStr" class="w-full min-h-full">
+                                                <div v-for="task in (tasksByDateMap[day.dateStr] || [])"
+                                                     :key="task.scheduleId"
+                                                     class="task-block group"
+                                                     :draggable="!isMobile"
+                                                     @dragstart.stop="dragStart($event, task, 'schedule')"
+                                                     @dragend="handleDragEnd"
 
-                                        <div class="flex min-w-full min-h-full">
+                                                     @touchstart.stop="handleTouchStart($event, task, day.dateStr)"
+                                                     @touchmove="handleTouchMove"
+                                                     @touchend.stop="handleTouchEnd"
 
-                                            <div class="sticky left-0 top-14 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
-                                                 style="width: var(--time-col-width)">
+                                                     @dblclick.stop="handleTaskDblClick($event, task)"
 
-                                                <div class="h-14 w-full border-b border-transparent"></div>
+                                                     @dragover.prevent
+                                                     @drop.stop="dropToSchedule($event, day.dateStr)"
 
-                                                <div v-for="t in timeSlots" :key="t" class="time-label-slot">
-                                                    {{ t.endsWith('00') ? t : '' }}
-                                                </div>
-                                                <div class="time-label-slot">
-                                                    {{ settings.endHour === 24 ? '00:00' : settings.endHour + ':00' }}
-                                                </div>
-                                            </div>
+                                                     :class="{
+                                                       'is-selected': selectedTaskId === task.scheduleId,
+                                                       'is-overlapping': getOverlapCount(task) > 0,
+                                                       'is-flashing': flashingTaskId === task.scheduleId,
+                                                       'is-ghost': isTaskGhost(task)
+                                                     }"
+                                                     :style="getTaskStyle(task)"
+                                                     @click.stop="selectTask(task.scheduleId, 'schedule')">
 
-                                            <div v-for="day in currentWeekDays" :key="day.dateStr"
-                                                 class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-all duration-300 ease-in-out"
-                                                 :style="{ minWidth: dayColWidth + 'px' }"
-                                                 :data-date-str="day.dateStr">
-
-                                                <div class="h-14 sticky top-0 z-[600] flex flex-col items-center justify-center bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
-                                                     @dblclick="switchView('month')"
-                                                     @touchend="handleHeaderDoubleTap($event)"
-                                                     title="双击返回月视图">
-
-                                                    <span class="text-xs uppercase font-bold opacity-60 mb-0.5">{{ day.weekday }}</span>
-
-                                                    <div class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
-                                                         :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">
-                                                        {{ day.dateShort.split('/')[1] }}
+                                                    <div class="flex flex-col h-full justify-between pointer-events-none">
+                                                        <div class="font-bold leading-tight truncate pr-1">
+                                                            {{ getBlockTitle(task) }}
+                                                        </div>
+                                                        <div class="mt-auto text-[10px] sm:text-[11px] font-mono opacity-80 leading-none">
+                                                            <div class="flex flex-col items-start">
+                                                                <span class="whitespace-nowrap">{{task.startTime}}</span>
+                                                                <span class="font-bold whitespace-nowrap text-[10px] opacity-70 mt-0.5">
+                                                                    {{task.estDuration}}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="resize-handle"
+                                                         @mousedown.stop="initResize($event, task)"></div>
+                                                    <div v-if="hasRecordingInfo(task)"
+                                                         class="absolute bottom-[1px] right-[2px] z-[15] pointer-events-none">
+                                                        <i class="fa-solid fa-circle-info text-[10px] opacity-90"></i>
+                                                    </div>
+                                                    <div v-if="isMobile" class="mobile-resize-handle"
+                                                         @touchstart.stop.prevent="initMobileResize($event, task)">
+                                                        <div class="mobile-resize-bar"></div>
                                                     </div>
                                                 </div>
 
-                                                <div class="relative" style="min-height: 1000px;">
-                                                    <div v-for="t in timeSlots" :key="t"
-                                                         class="grid-slot droppable-slot"
-                                                         :data-time="t"
-                                                         @dragenter="dragEnterSlot" @dragleave="dragLeaveSlot"
-                                                         @dragover.prevent
-                                                         @drop="dropToSchedule($event, day.dateStr)"></div>
-
-                                                    <div v-for="task in (tasksByDateMap[day.dateStr] || [])"
-                                                         :key="task.scheduleId"
-                                                         class="task-block group"
-                                                         :draggable="!isMobile"
-                                                         @dragstart.stop="dragStart($event, task, 'schedule')"
-                                                         @dragend="handleDragEnd"
-
-                                                         @touchstart.stop="handleTouchStart($event, task, day.dateStr)"
-                                                         @touchmove="handleTouchMove"
-                                                         @touchend.stop="handleTouchEnd"
-
-                                                         @dblclick.stop="handleTaskDblClick($event, task)"
-
-                                                         @dragover.prevent
-                                                         @drop.stop="dropToSchedule($event, day.dateStr)"
-
-                                                         :class="{
-                                                           'is-selected': selectedTaskId === task.scheduleId,
-                                                           'is-overlapping': getOverlapCount(task) > 0,
-                                                           'is-flashing': flashingTaskId === task.scheduleId,
-                                                           'is-ghost': isTaskGhost(task)
-                                                         }"
-                                                         :style="getTaskStyle(task)"
-                                                         @click.stop="selectTask(task.scheduleId, 'schedule')">
-
-                                                        <div class="flex flex-col h-full justify-between pointer-events-none">
-                                                            <div class="font-bold leading-tight truncate pr-1">
-                                                                {{ getBlockTitle(task) }}
-                                                            </div>
-                                                            <div class="mt-auto text-[10px] sm:text-[11px] font-mono opacity-80 leading-none">
-                                                                <div class="flex flex-col items-start">
-                                                                    <span class="whitespace-nowrap">{{task.startTime}}</span>
-                                                                    <span class="font-bold whitespace-nowrap text-[10px] opacity-70 mt-0.5">
-                                                                        {{task.estDuration}}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="resize-handle"
-                                                             @mousedown.stop="initResize($event, task)"></div>
-                                                        <div v-if="hasRecordingInfo(task)"
-                                                             class="absolute bottom-[1px] right-[2px] z-[15] pointer-events-none">
-                                                            <i class="fa-solid fa-circle-info text-[10px] opacity-90"></i>
-                                                        </div>
-                                                        <div v-if="isMobile" class="mobile-resize-handle"
-                                                             @touchstart.stop.prevent="initMobileResize($event, task)">
-                                                            <div class="mobile-resize-bar"></div>
-                                                        </div>
-                                                    </div>
-
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
