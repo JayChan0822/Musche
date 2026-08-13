@@ -32,6 +32,10 @@ export function registerCalendarViewFeature(context) {
   });
   const isLoadingMore = ref(false);
   const dateTransitionName = ref('slide-next');
+  const monthKeyOf = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  // scrolled 模式的主导月份：可视区域内格子占比最高的月（决定标题 + 灰化）
+  const activeMonthKey = ref(monthKeyOf(viewDate.value));
+  let activeMonthRaf = null;
   let lastHeaderTap = 0;
   let lastMonthTap = { time: 0, date: null };
 
@@ -72,6 +76,7 @@ export function registerCalendarViewFeature(context) {
   watch(monthViewMode, (newMode) => {
     if (newMode === 'scrolled') {
       visibleTopDate.value = viewDate.value;
+      activeMonthKey.value = monthKeyOf(viewDate.value);
       nextTick(() => initMonthObserver());
     } else if (monthObserver.value) {
       monthObserver.value.disconnect();
@@ -184,6 +189,7 @@ export function registerCalendarViewFeature(context) {
         dayNum: date.getDate(),
         isCurrentMonth: false,
         isPadding: true,
+        monthKey: monthKeyOf(date),
         dateObj: date,
       });
     }
@@ -205,6 +211,7 @@ export function registerCalendarViewFeature(context) {
           dayNum: day,
           isCurrentMonth: true,
           isFirstDay: day === 1,
+          monthKey: monthKeyOf(dateObj),
           dateObj,
         });
       }
@@ -221,6 +228,7 @@ export function registerCalendarViewFeature(context) {
           dayNum: date.getDate(),
           isCurrentMonth: false,
           isPadding: true,
+          monthKey: monthKeyOf(date),
           dateObj: date,
         });
       }
@@ -229,11 +237,48 @@ export function registerCalendarViewFeature(context) {
     return days;
   });
 
+  // 根据滚动容器可视区域内各月份格子的占比，更新主导月份（标题 + 灰化）
+  const updateActiveMonth = (scrollerEl) => {
+    if (!scrollerEl || activeMonthRaf) return;
+
+    const run = () => {
+      activeMonthRaf = null;
+      const viewTop = scrollerEl.scrollTop;
+      const viewBottom = viewTop + scrollerEl.clientHeight;
+      const counts = new Map();
+      const cells = scrollerEl.querySelectorAll('[data-month-key]');
+      for (const cell of cells) {
+        const top = cell.offsetTop;
+        const bottom = top + cell.offsetHeight;
+        if (bottom <= viewTop || top >= viewBottom) continue;
+        const mk = cell.getAttribute('data-month-key');
+        if (mk) counts.set(mk, (counts.get(mk) || 0) + 1);
+      }
+      let best = null;
+      let bestCount = 0;
+      for (const [mk, count] of counts) {
+        if (count > bestCount) { bestCount = count; best = mk; }
+      }
+      if (best && best !== activeMonthKey.value) {
+        activeMonthKey.value = best;
+      }
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      activeMonthRaf = requestAnimationFrame(run);
+    } else {
+      run();
+    }
+  };
+
   const handleInfiniteScroll = (event) => {
     if (currentView.value !== 'month' || monthViewMode.value !== 'scrolled') return;
-    if (isLoadingMore.value) return;
 
     const el = event.target;
+    updateActiveMonth(el);
+
+    if (isLoadingMore.value) return;
+
     const threshold = 800;
 
     if (el.scrollTop < threshold) {
@@ -294,13 +339,18 @@ export function registerCalendarViewFeature(context) {
     // （scrollIntoView 是 instant，observer 的顶部 10% 区域可能不覆盖新位置）
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
       visibleTopDate.value = viewDate.value;
+      activeMonthKey.value = monthKeyOf(viewDate.value);
       scrollToMonthDate(viewDate.value);
     }
   });
 
   const currentDateLabel = computed(() => {
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-      return `${visibleTopDate.value.getFullYear()}年 ${visibleTopDate.value.getMonth() + 1}月`;
+      const mk = activeMonthKey.value;
+      if (mk) {
+        const [year, month] = mk.split('-').map(Number);
+        return `${year}年 ${month}月`;
+      }
     }
 
     return `${viewDate.value.getFullYear()}年 ${viewDate.value.getMonth() + 1}月`;
@@ -498,5 +548,6 @@ export function registerCalendarViewFeature(context) {
     smartScrollToTask,
     jumpToToday,
     isToday,
+    activeMonthKey,
   };
 }

@@ -14,7 +14,6 @@ export const AppMainContent = {
                   v-show="!isMobile || mobileTab==='schedule'"
                   class="flex-1 flex flex-col relative bg-white/30 dark:bg-[#1e1e1e]/60 backdrop-blur-md"
                   :class="isMobile ? 'w-full absolute inset-0 z-30' : ''"
-                  @scroll="handleInfiniteScroll"
                   @touchstart="onMainTouchStart"
                   @touchend="onMainTouchEnd"
 
@@ -183,6 +182,7 @@ export const AppMainContent = {
                         <div v-else-if="currentView === 'month'"
                              key="view-month"
                              class="w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
+                             @scroll="handleInfiniteScroll"
                              @click="clearSelection">
 
                             <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
@@ -258,8 +258,9 @@ export const AppMainContent = {
 
                                     <div v-for="day in flatScrolledDays" :key="day.fullDate"
                                          class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
-                                         :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
+                                         :class="day.monthKey === activeMonthKey ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                          :data-date="day.fullDate"
+                                         :data-month-key="day.monthKey"
                                          :data-month-start="day.isFirstDay ? day.fullDate : null"
                                          :ref="day.isFirstDay ? setMonthRef : null"
                                          @dblclick="day.isCurrentMonth && switchToWeek(day.fullDate)"
@@ -273,7 +274,7 @@ export const AppMainContent = {
                 </span>
 
                                             <span class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
-                                                  :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.isCurrentMonth ? 'opacity-80' : 'opacity-30')]">
+                                                  :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.monthKey === activeMonthKey ? 'opacity-80' : 'opacity-30')]">
                     {{ day.dayNum }}
                 </span>
                                         </div>

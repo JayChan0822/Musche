@@ -22,6 +22,7 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'refs.monthViewMode',
         'helpers.currentMonthDays',
         'helpers.flatScrolledDays',
+        'helpers.activeMonthKey',
     ],
     models: [
         'refs.weekContainer',

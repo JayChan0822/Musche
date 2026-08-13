@@ -807,6 +807,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 handleMonthCellDoubleTap,
                 jumpToToday,
                 isToday,
+                activeMonthKey,
                 viewTransitionName,
                 onMainMouseDown,
                 onMainMouseUp,
@@ -823,7 +824,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             Object.assign(assembly.helpers, {
                 currentDateLabel, dateTransitionName, currentMonthDays, flatScrolledDays, handleInfiniteScroll,
                 tasksByDateMap, switchToWeek, handleHeaderDoubleTap, handleMonthCellDoubleTap, jumpToToday,
-                isToday, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
+                isToday, activeMonthKey, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
                 onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,
                 timeSlots, setMonthRef, switchView,
             });

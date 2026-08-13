@@ -88,6 +88,7 @@ export function registerViewNavigationFeature(context) {
     jumpToToday: calendarViewFeature.jumpToToday,
     isToday: calendarViewFeature.isToday,
     smartScrollToTask: calendarViewFeature.smartScrollToTask,
+    activeMonthKey: calendarViewFeature.activeMonthKey,
     viewTransitionName: mainViewNavigationFeature.viewTransitionName,
     switchView: mainViewNavigationFeature.switchView,
     onMainMouseDown: mainViewNavigationFeature.onMainMouseDown,
