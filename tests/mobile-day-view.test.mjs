@@ -195,3 +195,56 @@ test('同月内关闭不动月视图的日期', () => {
 
   assert.equal(refs.viewDate.value, viewDate);
 });
+
+// —— 任务跳转（搜索 / 统计卡片）在手机端落到日视图，而不是没有返回入口的周视图 ——
+const { registerCalendarViewFeature } = await import('../app/scripts/features/calendar-view.js');
+
+function createCalendarView({ isMobile }) {
+  const openedDays = [];
+  const refs = {
+    currentView: ref('month'),
+    // paged：避免 viewDate 变更触发 scrolled 模式的 scrollToMonthDate（会摸 document）
+    monthViewMode: ref('paged'),
+    viewDate: ref(new Date(2026, 7, 1)),
+    visibleTopDate: ref(new Date(2026, 7, 1)),
+    monthObserver: ref(null),
+    monthRefs: ref([]),
+    filteredScheduledTasks: ref([]),
+    weekContainer: ref(null),
+    pxPerMin: ref(1),
+    isMobile: ref(isMobile),
+    flashingTaskId: ref(null),
+    mobileTab: ref('schedule'),
+  };
+  const feature = registerCalendarViewFeature({
+    refs,
+    state: { settings: reactive({ startHour: 10, endHour: 22 }) },
+    utils: { formatDate, timeToMinutes: (time) => Number(String(time).split(':')[0]) * 60 },
+    actions: {
+      openMobileDayView: (dateStr) => openedDays.push(dateStr),
+      setTimeoutFn: () => 0,
+      getDate: () => new Date(NOW),
+    },
+  });
+  return { feature, refs, openedDays };
+}
+
+test('手机端跳转任务：打开当天日视图，不切周视图', () => {
+  const { feature, refs, openedDays } = createCalendarView({ isMobile: true });
+
+  feature.smartScrollToTask({ scheduleId: 'S-1', date: '2026-09-10', startTime: '11:00' });
+
+  assert.deepEqual(openedDays, ['2026-09-10']);
+  assert.equal(refs.currentView.value, 'month', '手机端不再切到周视图');
+  assert.equal(formatDate(refs.viewDate.value), '2026-09-10', '底下的月视图跟到目标日期');
+  assert.equal(refs.flashingTaskId.value, 'S-1', '目标任务照常高亮');
+});
+
+test('桌面端跳转任务：仍然切到周视图', () => {
+  const { feature, refs, openedDays } = createCalendarView({ isMobile: false });
+
+  feature.smartScrollToTask({ scheduleId: 'S-1', date: '2026-09-10', startTime: '11:00' });
+
+  assert.deepEqual(openedDays, [], '桌面端不开日视图');
+  assert.equal(refs.currentView.value, 'week');
+});

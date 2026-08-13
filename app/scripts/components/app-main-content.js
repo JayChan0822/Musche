@@ -50,13 +50,16 @@ export const AppMainContent = {
                         </button>
                     </div>
 
+                    <!-- 视图切换 / 排布切换：手机端已有「点日期开日视图」，两个按钮只留给桌面端 -->
                     <button id="tour-view-switch"
+                            v-if="!isMobile"
                             @click="switchView(currentView === 'week' ? 'month' : 'week')"
                             class="ml-2 w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center active:bg-[#007aff] active:text-white transition shrink-0">
                         <i class="fa-solid" :class="currentView==='week'?'fa-calendar-week':'fa-calendar-days'"></i>
                     </button>
 
-                    <button @click="cycleDayWidth"
+                    <button v-if="!isMobile"
+                            @click="cycleDayWidth"
                             class="ml-4 w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center active:bg-[#007aff] active:text-white transition shrink-0">
                         <i class="fa-solid" :class="widthIcon"></i>
                     </button>

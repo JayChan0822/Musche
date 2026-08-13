@@ -130,11 +130,11 @@ export function registerTourFeature(context) {
       },
     },
     {
-      element: '#tour-view-switch',
+      element: '#main-content',
       popover: {
-        title: '视图切换',
-        description: '<b>周视图</b>：精确到分钟的排程操作。<br><b>月视图</b>：宏观查看每日安排和空档。',
-        side: 'bottom',
+        title: '日视图',
+        description: '<b>点某一天</b>：当天的时间轴从下往上滑入。<br>在日视图里<b>左右滑</b>翻天、<b>下拉</b>关闭，任务可直接拖动和拉伸改时长。',
+        align: 'center',
       },
     },
     {

@@ -24,6 +24,8 @@ export function registerCalendarViewFeature(context) {
     getNow = () => Date.now(),
     getDate = () => new Date(),
     setTimeoutFn = setTimeout,
+    // 手机端已经没有周视图入口（顶部按钮只留桌面端），跳转改成打开当天的日视图
+    openMobileDayView = null,
   } = actions;
 
   const renderedRange = reactive({
@@ -425,6 +427,20 @@ export function registerCalendarViewFeature(context) {
     }
 
     const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
+
+    // 手机端：直接滑出当天日视图，不再把用户丢进没有返回按钮的周视图
+    if (isMobile?.value && typeof openMobileDayView === 'function') {
+      viewDate.value = targetDateObj;
+      openMobileDayView(targetTask.date);
+
+      if (flashingTaskId) {
+        flashingTaskId.value = targetTask.scheduleId;
+        setTimeoutFn(() => {
+          if (flashingTaskId.value === targetTask.scheduleId) flashingTaskId.value = null;
+        }, 2500);
+      }
+      return;
+    }
 
     // 日期前后关系用 slide 方向动画表达（向后→新内容从右滑入，向前→从左滑入）；
     // 同一天跳转无方向，用无位移的 jump-fade。周视图用独立的 week-* 过渡（标尺固定）。

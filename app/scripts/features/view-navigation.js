@@ -6,8 +6,10 @@ export function registerViewNavigationFeature(context) {
   const { refs, state, utils, services, actions } = context;
 
   // 延迟绑定：viewTransitionName 由 mainViewNavigationFeature 创建，
-  // calendarViewFeature 先建，故用闭包在组合完成后接上。
+  // 手机端日视图的 openDayView 由 mobileDayViewFeature 创建，
+  // 两者都晚于 calendarViewFeature，故用闭包在组合完成后接上。
   let applyViewTransitionName = null;
+  let applyOpenMobileDayView = null;
 
   const calendarViewFeature = registerCalendarViewFeature({
     refs: {
@@ -35,6 +37,7 @@ export function registerViewNavigationFeature(context) {
       // 跳转定位（任务/今天）时把视图切换动画设为无位移淡入，
       // 避免与定位滚动叠加打架；延迟绑定到 main-view-navigation 的 ref。
       setViewTransitionName: (name) => { applyViewTransitionName?.(name); },
+      openMobileDayView: (dateStr) => { applyOpenMobileDayView?.(dateStr); },
     },
   });
 
@@ -86,6 +89,9 @@ export function registerViewNavigationFeature(context) {
       getTasksForDate: calendarViewFeature.getTasksForDate,
     },
   });
+  applyOpenMobileDayView = (dateStr) => {
+    mobileDayViewFeature.openDayView(dateStr);
+  };
 
   return {
     renderedRange: calendarViewFeature.renderedRange,
