@@ -20,6 +20,7 @@ export function registerCalendarViewFeature(context) {
   const { formatDate, timeToMinutes } = utils;
   const {
     switchView,
+    setViewTransitionName = () => {},
     getNow = () => Date.now(),
     getDate = () => new Date(),
     setTimeoutFn = setTimeout,
@@ -361,10 +362,12 @@ export function registerCalendarViewFeature(context) {
 
     const targetDateObj = new Date(targetTask.date.replace(/-/g, '/'));
 
-    if (targetDateObj.getTime() > viewDate.value.getTime()) {
-      dateTransitionName.value = 'slide-next';
-    } else if (targetDateObj.getTime() < viewDate.value.getTime()) {
-      dateTransitionName.value = 'slide-prev';
+    // 跳转是"定位"语义：用无位移的 jump-fade（淡入淡出）代替 slide 翻页动画，
+    // 否则 slide 位移与下方的定位滚动叠加 → "抽搐/动画打架"。
+    // month→week 的视图切换同样用 jump-fade，方向无关。
+    dateTransitionName.value = 'jump-fade';
+    if (currentView.value !== 'week') {
+      setViewTransitionName('jump-fade');
     }
 
     currentView.value = 'week';
@@ -416,17 +419,15 @@ export function registerCalendarViewFeature(context) {
   const jumpToToday = () => {
     const now = new Date();
 
-    if (now.getTime() > viewDate.value.getTime()) {
-      dateTransitionName.value = 'slide-next';
-    } else if (now.getTime() < viewDate.value.getTime()) {
-      dateTransitionName.value = 'slide-prev';
-    }
+    // 定位语义：无位移淡入，避免与下方滚动打架（与 smartScrollToTask 一致）
+    dateTransitionName.value = 'jump-fade';
 
     viewDate.value = now;
 
     if (currentView.value === 'week') {
-      setTimeout(() => {
-        if (weekContainer.value) {
+      nextTick(() => {
+        const settleAndScroll = () => {
+          if (!weekContainer.value) return;
           const currentMins = now.getHours() * 60 + now.getMinutes();
           const startMins = settings.startHour * 60;
           const targetTop = (currentMins - startMins) * pxPerMin.value;
@@ -443,10 +444,16 @@ export function registerCalendarViewFeature(context) {
           weekContainer.value.scrollTo({
             top: scrollTop,
             left: scrollLeft,
-            behavior: 'smooth',
+            behavior: 'auto',
           });
+        };
+
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(settleAndScroll);
+        } else {
+          settleAndScroll();
         }
-      }, 100);
+      });
     }
   };
 

@@ -8346,7 +8346,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.viewDate.value.getFullYear(), 2026, 'smart task scrolling should open the task year');
     assert.equal(refs.viewDate.value.getMonth(), 5, 'smart task scrolling should open the task month');
     assert.equal(refs.viewDate.value.getDate(), 1, 'smart task scrolling should open the task day');
-    assert.equal(feature.dateTransitionName.value, 'slide-next', 'smart task scrolling should preserve forward date transition direction');
+    assert.equal(feature.dateTransitionName.value, 'jump-fade', 'smart task scrolling should use the no-displacement fade for location jumps (slide directions caused double-animation with the scroll)');
 
     // 定位在 nextTick（Vue patch 落定）后执行，测试等 microtask 落定
     await vueNextTick();

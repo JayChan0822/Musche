@@ -4,6 +4,10 @@ import { registerMainViewNavigationFeature } from './main-view-navigation.js';
 export function registerViewNavigationFeature(context) {
   const { refs, state, utils, services, actions } = context;
 
+  // 延迟绑定：viewTransitionName 由 mainViewNavigationFeature 创建，
+  // calendarViewFeature 先建，故用闭包在组合完成后接上。
+  let applyViewTransitionName = null;
+
   const calendarViewFeature = registerCalendarViewFeature({
     refs: {
       currentView: refs.currentView,
@@ -27,6 +31,9 @@ export function registerViewNavigationFeature(context) {
       timeToMinutes: utils.timeToMinutes,
     },
     actions: {
+      // 跳转定位（任务/今天）时把视图切换动画设为无位移淡入，
+      // 避免与定位滚动叠加打架；延迟绑定到 main-view-navigation 的 ref。
+      setViewTransitionName: (name) => { applyViewTransitionName?.(name); },
     },
   });
 
@@ -54,6 +61,9 @@ export function registerViewNavigationFeature(context) {
       cancelPendingTrackSave: () => actions.cancelPendingTrackSave?.(),
     },
   });
+  applyViewTransitionName = (name) => {
+    mainViewNavigationFeature.viewTransitionName.value = name;
+  };
 
   return {
     renderedRange: calendarViewFeature.renderedRange,

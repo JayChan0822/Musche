@@ -757,7 +757,9 @@ html.dark .custom-dropdown-menu .sticky {
 .slide-next-enter-active,
 .slide-next-leave-active,
 .slide-prev-enter-active,
-.slide-prev-leave-active {
+.slide-prev-leave-active,
+.jump-fade-enter-active,
+.jump-fade-leave-active {
     transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
     position: absolute !important;
     top: 0;
@@ -805,6 +807,18 @@ html.dark .custom-dropdown-menu .sticky {
 
 .slide-prev-leave-active {
     z-index: 10;
+}
+
+/* jump-fade：定位跳转（任务/今天）专用——无位移淡入淡出。
+   跳转是"定位"语义，复用 slide 翻页动画会与滚动定位打架（抽搐）。
+   transform 保持 none（0.4s opacity 沿用共享过渡），滚动 auto 是唯一位移。 */
+.jump-fade-enter-active {
+    z-index: 20;
+}
+
+.jump-fade-enter-from,
+.jump-fade-leave-to {
+    opacity: 0;
 }
 
 .settings-group-container {
