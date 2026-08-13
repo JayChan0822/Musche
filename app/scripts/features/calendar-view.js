@@ -265,7 +265,8 @@ export function registerCalendarViewFeature(context) {
       const el = document.querySelector(`[data-date="${targetDateStr}"]`);
 
       if (el) {
-        el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        // block:'start'：目标月/日贴滚动容器顶部（原 'center' 会把 1 号摆到视口正中）
+        el.scrollIntoView({ behavior: 'auto', block: 'start' });
       } else {
         const year = targetDate.getFullYear();
         const month = String(targetDate.getMonth() + 1).padStart(2, '0');
@@ -273,7 +274,7 @@ export function registerCalendarViewFeature(context) {
         const monthEl = document.querySelector(`[data-month-start="${monthStartId}"]`);
 
         if (monthEl) {
-          monthEl.scrollIntoView({ behavior: 'auto', block: 'center' });
+          monthEl.scrollIntoView({ behavior: 'auto', block: 'start' });
         }
       }
     }, 50);
@@ -289,7 +290,10 @@ export function registerCalendarViewFeature(context) {
     renderedRange.past = 6;
     renderedRange.future = 18;
 
+    // 切月后月份标题立即跟随，不依赖 IntersectionObserver 异步触发
+    // （scrollIntoView 是 instant，observer 的顶部 10% 区域可能不覆盖新位置）
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
+      visibleTopDate.value = viewDate.value;
       scrollToMonthDate(viewDate.value);
     }
   });
