@@ -1,0 +1,48 @@
+name: Musche
+options:
+  bundleIdPrefix: com.musche
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+packages:
+  MuscheCore:
+    path: ../MuscheCore
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    from: 2.5.0
+
+targets:
+  Musche:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+    configFiles:
+      Debug: Config/Secrets.xcconfig
+      Release: Config/Secrets.xcconfig
+    dependencies:
+      - package: MuscheCore
+      - package: Supabase
+    info:
+      path: Sources/Info.plist
+      properties:
+        CFBundleDisplayName: Musche
+        UILaunchScreen: {}
+        SupabaseURL: $(SUPABASE_URL)
+        SupabaseKey: $(SUPABASE_KEY)
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.musche.app
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic

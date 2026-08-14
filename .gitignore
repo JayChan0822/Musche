@@ -11,3 +11,11 @@ dist/
 app/dist/
 node_modules/
 www/
+
+# iOS（Swift 移植）
+ios/Musche/build/
+ios/MuscheCore/.build/
+**/xcuserdata/
+*.xcuserstate
+# Supabase 凭据只能来自本地 xcconfig（同 Web 端规则，见 docs/security/）
+ios/Musche/Config/Secrets.xcconfig

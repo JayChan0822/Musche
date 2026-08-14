@@ -1,0 +1,13 @@
+# Xcode 构建产物
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# 密钥配置（Supabase URL/key 不进 git）
+Config/Secrets.xcconfig

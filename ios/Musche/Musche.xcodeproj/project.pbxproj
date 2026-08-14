@@ -1,0 +1,416 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		011AA5AF9B41697A7F4A7D96 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC085DA6FF0B4009448B9778 /* AppModel.swift */; };
+		0747085614036A84C532083E /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651331D418AEF9DD843DB2E8 /* SupabaseService.swift */; };
+		1B8AE188E8C5D14C440AA425 /* PoolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA568440FC4CE339FF962B9 /* PoolView.swift */; };
+		2303964777981003D14F96E5 /* MuscheCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3195C5514996CAEC691F0C6F /* MuscheCore */; };
+		38F5EFA0F819FC61FACBECF8 /* MonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84147B38E6CD5CBAD5CAC3C /* MonthView.swift */; };
+		41ECF6F28893547410568163 /* DayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 535D607F289321AA9927D4CD /* DayView.swift */; };
+		5D90E1AA88E55231E0CA4CF5 /* SupabaseUserDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107178DA2A85E5C3B76A8C36 /* SupabaseUserDataStore.swift */; };
+		6165188CE0EFB9974A007C59 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3608245D6412CF145B586BDF /* AuthView.swift */; };
+		642906B127C6A73855EA09BF /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 648EA6BE8F9AB23CA05B90C6 /* NotificationScheduler.swift */; };
+		689D653E1F744A969E36C149 /* MuscheApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 971E6515E932E03E9C9A58D2 /* MuscheApp.swift */; };
+		894384ADA8551F9AF5B07BF4 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 7EF4E6879C51D325B2654300 /* Supabase */; };
+		93CB2506E3640147D4B1927E /* TaskDisplay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23FF41161E2D8EE10B5C7A58 /* TaskDisplay.swift */; };
+		B16496AE4012B03825FDCA82 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 795811BDA3E278A20C573B93 /* RootView.swift */; };
+		B52DB21D8E0B5AF6C12828C5 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DEB15FBDFCCBDDC4F10B2F6 /* Theme.swift */; };
+		DB0330F1CE5CFFFE2607D4E3 /* CalendarPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = B66007ECCFA2D52956303BD2 /* CalendarPublisher.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		107178DA2A85E5C3B76A8C36 /* SupabaseUserDataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseUserDataStore.swift; sourceTree = "<group>"; };
+		14E78BC086F7F0851CA011A6 /* MuscheCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MuscheCore; path = ../MuscheCore; sourceTree = SOURCE_ROOT; };
+		23FF41161E2D8EE10B5C7A58 /* TaskDisplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskDisplay.swift; sourceTree = "<group>"; };
+		3608245D6412CF145B586BDF /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		362D9913F260F78D546E55B5 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		4EA568440FC4CE339FF962B9 /* PoolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoolView.swift; sourceTree = "<group>"; };
+		535D607F289321AA9927D4CD /* DayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayView.swift; sourceTree = "<group>"; };
+		648EA6BE8F9AB23CA05B90C6 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		651331D418AEF9DD843DB2E8 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
+		795811BDA3E278A20C573B93 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		8DEB15FBDFCCBDDC4F10B2F6 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		971E6515E932E03E9C9A58D2 /* MuscheApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscheApp.swift; sourceTree = "<group>"; };
+		B66007ECCFA2D52956303BD2 /* CalendarPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPublisher.swift; sourceTree = "<group>"; };
+		BF153C4B3920EA08610F460B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		F49273994273C3BFC26B8950 /* Musche.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Musche.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F84147B38E6CD5CBAD5CAC3C /* MonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthView.swift; sourceTree = "<group>"; };
+		FC085DA6FF0B4009448B9778 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D6ECC7CB18AF5BB158C76A40 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2303964777981003D14F96E5 /* MuscheCore in Frameworks */,
+				894384ADA8551F9AF5B07BF4 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		5DB9311C46E9E44A805E53C3 = {
+			isa = PBXGroup;
+			children = (
+				9D27E6E0F37895757896C112 /* Config */,
+				F58260A7A8E7529E6E40DAC3 /* Packages */,
+				5FBA5EA7E19846F57D70B2C6 /* Sources */,
+				8EB6AA779938274D8D374EA5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5FBA5EA7E19846F57D70B2C6 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				FC085DA6FF0B4009448B9778 /* AppModel.swift */,
+				3608245D6412CF145B586BDF /* AuthView.swift */,
+				B66007ECCFA2D52956303BD2 /* CalendarPublisher.swift */,
+				535D607F289321AA9927D4CD /* DayView.swift */,
+				BF153C4B3920EA08610F460B /* Info.plist */,
+				F84147B38E6CD5CBAD5CAC3C /* MonthView.swift */,
+				971E6515E932E03E9C9A58D2 /* MuscheApp.swift */,
+				648EA6BE8F9AB23CA05B90C6 /* NotificationScheduler.swift */,
+				4EA568440FC4CE339FF962B9 /* PoolView.swift */,
+				795811BDA3E278A20C573B93 /* RootView.swift */,
+				651331D418AEF9DD843DB2E8 /* SupabaseService.swift */,
+				107178DA2A85E5C3B76A8C36 /* SupabaseUserDataStore.swift */,
+				23FF41161E2D8EE10B5C7A58 /* TaskDisplay.swift */,
+				8DEB15FBDFCCBDDC4F10B2F6 /* Theme.swift */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		8EB6AA779938274D8D374EA5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				F49273994273C3BFC26B8950 /* Musche.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9D27E6E0F37895757896C112 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				362D9913F260F78D546E55B5 /* Secrets.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		F58260A7A8E7529E6E40DAC3 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				14E78BC086F7F0851CA011A6 /* MuscheCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		84FFAA9B57DDFA79E84FD755 /* Musche */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 27066438D68B8E070AFDD577 /* Build configuration list for PBXNativeTarget "Musche" */;
+			buildPhases = (
+				835B5DA9D97677C599400EDD /* Sources */,
+				D6ECC7CB18AF5BB158C76A40 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Musche;
+			packageProductDependencies = (
+				3195C5514996CAEC691F0C6F /* MuscheCore */,
+				7EF4E6879C51D325B2654300 /* Supabase */,
+			);
+			productName = Musche;
+			productReference = F49273994273C3BFC26B8950 /* Musche.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E8CF61E4BC7754D0B33AC480 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					84FFAA9B57DDFA79E84FD755 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 1F31374AD7781EE8FD18BFD4 /* Build configuration list for PBXProject "Musche" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 5DB9311C46E9E44A805E53C3;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				382944E27B70842E14475C1D /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				3ABB5D064EB853C8C8737235 /* XCLocalSwiftPackageReference "../MuscheCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8EB6AA779938274D8D374EA5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				84FFAA9B57DDFA79E84FD755 /* Musche */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		835B5DA9D97677C599400EDD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				011AA5AF9B41697A7F4A7D96 /* AppModel.swift in Sources */,
+				6165188CE0EFB9974A007C59 /* AuthView.swift in Sources */,
+				DB0330F1CE5CFFFE2607D4E3 /* CalendarPublisher.swift in Sources */,
+				41ECF6F28893547410568163 /* DayView.swift in Sources */,
+				38F5EFA0F819FC61FACBECF8 /* MonthView.swift in Sources */,
+				689D653E1F744A969E36C149 /* MuscheApp.swift in Sources */,
+				642906B127C6A73855EA09BF /* NotificationScheduler.swift in Sources */,
+				1B8AE188E8C5D14C440AA425 /* PoolView.swift in Sources */,
+				B16496AE4012B03825FDCA82 /* RootView.swift in Sources */,
+				0747085614036A84C532083E /* SupabaseService.swift in Sources */,
+				5D90E1AA88E55231E0CA4CF5 /* SupabaseUserDataStore.swift in Sources */,
+				93CB2506E3640147D4B1927E /* TaskDisplay.swift in Sources */,
+				B52DB21D8E0B5AF6C12828C5 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		2FE5E6FE116C39CBB23773A3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 362D9913F260F78D546E55B5 /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6LFZ69RX9G;
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.musche.app;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AA3693CC024FD86F8D9BBBFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BB7786D6345064714299568A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D0EE3D765F3C8B629F0D91E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 362D9913F260F78D546E55B5 /* Secrets.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6LFZ69RX9G;
+				INFOPLIST_FILE = Sources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.musche.app;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1F31374AD7781EE8FD18BFD4 /* Build configuration list for PBXProject "Musche" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB7786D6345064714299568A /* Debug */,
+				AA3693CC024FD86F8D9BBBFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		27066438D68B8E070AFDD577 /* Build configuration list for PBXNativeTarget "Musche" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2FE5E6FE116C39CBB23773A3 /* Debug */,
+				D0EE3D765F3C8B629F0D91E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		3ABB5D064EB853C8C8737235 /* XCLocalSwiftPackageReference "../MuscheCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MuscheCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		382944E27B70842E14475C1D /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3195C5514996CAEC691F0C6F /* MuscheCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MuscheCore;
+		};
+		7EF4E6879C51D325B2654300 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 382944E27B70842E14475C1D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E8CF61E4BC7754D0B33AC480 /* Project object */;
+}
