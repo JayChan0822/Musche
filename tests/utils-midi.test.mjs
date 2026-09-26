@@ -4,7 +4,7 @@ import test from 'node:test';
 import JZZ from 'jzz';
 import installJzzSmf from 'jzz-midi-smf';
 
-import { calculateBarQuantizedDuration, cleanMidiTrackName, installJzzSmfPlugin, normalizeForMatch } from '../app/scripts/utils/midi.js';
+import { calculateBarQuantizedDuration, cleanMidiTrackName, filterDurationOutlierNotes, installJzzSmfPlugin, normalizeForMatch } from '../app/scripts/utils/midi.js';
 
 test('normalizeForMatch normalizes case, punctuation, digits, and Unicode flats', () => {
   assert.equal(normalizeForMatch('Viola♭ 2'), 'violab');
@@ -37,6 +37,25 @@ test('calculateBarQuantizedDuration counts active bars across bar boundaries', (
     rawSeconds: 2.5,
     bars: 2,
   });
+});
+
+test('filterDurationOutlierNotes excludes isolated implausibly long note events', () => {
+  const notes = [
+    { ticks: 0, durationTicks: 120, midi: 60 },
+    { ticks: 240, durationTicks: 240, midi: 67 },
+    { ticks: 480, durationTicks: 180, midi: 72 },
+    { ticks: 900, durationTicks: 40000, midi: 24 },
+  ];
+  assert.deepEqual(filterDurationOutlierNotes(notes, 480), notes.slice(0, 3));
+});
+
+test('filterDurationOutlierNotes preserves long notes when they are typical for the track', () => {
+  const notes = [
+    { ticks: 0, durationTicks: 12000, midi: 36 },
+    { ticks: 12000, durationTicks: 14000, midi: 40 },
+    { ticks: 26000, durationTicks: 13000, midi: 43 },
+  ];
+  assert.deepEqual(filterDurationOutlierNotes(notes, 480), notes);
 });
 
 test('installJzzSmfPlugin explicitly attaches the SMF parser to the imported JZZ instance', () => {

@@ -51,6 +51,7 @@ export function registerImportMidiFeature(context) {
     buildTimeSigMap,
     extractNotesFromJZZTrack,
     calculateBarQuantizedDuration,
+    filterDurationOutlierNotes = (notes) => notes,
     normalizeForMatch,
     generateUniqueId,
     generateRandomHexColor,
@@ -166,7 +167,7 @@ export function registerImportMidiFeature(context) {
           const allGroupNotes = [];
           selectedItems.forEach((item) => {
             totalNotes += item.noteCount;
-            if (item.notes) allGroupNotes.push(...item.notes);
+            if (item.durationNotes || item.notes) allGroupNotes.push(...(item.durationNotes || item.notes));
           });
 
           if (allGroupNotes.length > 0) {
@@ -321,12 +322,24 @@ export function registerImportMidiFeature(context) {
   }
 
   function processMidiFile(file) {
-    const matchName = (name) => normalizeForMatch(name)
+    const matchName = (name) => normalizeForMatch(String(name || '')
+      .normalize('NFKC')
+      .replace(/[()[\]{}]/g, ' ')
+      .replace(/([\p{Script=Han}])([a-z])/gi, '$1 $2')
+      .replace(/([a-z])([\p{Script=Han}])/gi, '$1 $2'))
       .replace(/[^\p{L}\p{N}#]+/gu, ' ')
+      .replace(/\s+(?:r|l|rh|lh|right|left|i{1,3}|iv|v|vi)\s*$/i, '')
       .trim();
+    const nameAliases = (name) => [...new Set([
+      name,
+      // Bilingual library labels and track labels can have different translations.
+      ...(name.match(/[a-z#]+(?:\s+[a-z#]+)*/g) || []),
+      ...(name.match(/\p{Script=Han}+/gu) || []),
+    ])].filter(Boolean);
     const findInstrument = (name) => {
       const target = matchName(name);
       if (!target) return null;
+      const aliases = nameAliases(target);
       const candidates = settings.instruments.map((instrument) => ({
         instrument,
         name: matchName(instrument.name),
@@ -334,20 +347,25 @@ export function registerImportMidiFeature(context) {
       const exact = candidates.filter((item) => item.name === target);
       if (exact.length) return exact.length === 1 ? exact[0].instrument : null;
 
-      // Match complete names inside decorated track labels, not fragments of words.
-      const contained = candidates.filter((item) =>
-        item.name.length > 2 && ` ${target} `.includes(` ${item.name} `),
-      );
-      if (contained.length) {
-        const longest = Math.max(...contained.map((item) => item.name.length));
-        const best = contained.filter((item) => item.name.length === longest);
-        return best.length === 1 ? best[0].instrument : null;
-      }
-
-      const expanded = candidates.filter((item) =>
-        target.length > 2 && ` ${item.name} `.includes(` ${target} `),
-      );
-      return expanded.length === 1 ? expanded[0].instrument : null;
+      const scored = candidates.map((item) => {
+        let score = 0;
+        for (const left of aliases) {
+          for (const right of nameAliases(item.name)) {
+            if (left === right) score = Math.max(score, 1000 + left.length);
+            else {
+              const shorter = left.length < right.length ? left : right;
+              const longer = left.length < right.length ? right : left;
+              if (shorter.length > 2 && ` ${longer} `.includes(` ${shorter} `)) {
+                score = Math.max(score, shorter.length);
+              }
+            }
+          }
+        }
+        return { ...item, score };
+      });
+      const bestScore = Math.max(0, ...scored.map((item) => item.score));
+      const best = scored.filter((item) => item.score === bestScore);
+      return bestScore > 0 && best.length === 1 ? best[0].instrument : null;
     };
 
     const reader = new FileReader();
@@ -410,6 +428,7 @@ export function registerImportMidiFeature(context) {
         for (const name in mergedMap) {
           const groupData = mergedMap[name];
           const notes = groupData.notes;
+          const durationNotes = filterDurationOutlierNotes(notes, tempoMap.ppq);
           let matchedInstrumentId = '';
           let matchedGroup = findGroupSmart(groupData.name);
 
@@ -421,8 +440,8 @@ export function registerImportMidiFeature(context) {
           }
 
           let analysis = { seconds: 0, rawSeconds: 0, bars: 0 };
-          if (notes.length > 0) {
-            analysis = calculateBarQuantizedDuration(notes, tempoMap, timeSigs);
+          if (durationNotes.length > 0) {
+            analysis = calculateBarQuantizedDuration(durationNotes, tempoMap, timeSigs);
           }
 
           const isTechnicalEmpty = notes.length === 0;
@@ -436,6 +455,7 @@ export function registerImportMidiFeature(context) {
             instrumentId: matchedInstrumentId,
             createNew: !matchedInstrumentId && !isTechnicalEmpty,
             notes,
+            durationNotes,
             rawDuration: analysis.rawSeconds,
             quantizedDuration: analysis.seconds,
             bars: analysis.bars,

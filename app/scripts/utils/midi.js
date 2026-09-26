@@ -49,6 +49,24 @@ export function calculateBarQuantizedDuration(notes, tempoMap, timeSigs) {
   };
 }
 
+export function filterDurationOutlierNotes(notes, ppq) {
+  if (notes.length < 3 || !Number.isFinite(ppq) || ppq <= 0) return notes;
+
+  const durations = notes
+    .map((note) => note.durationTicks)
+    .filter((duration) => Number.isFinite(duration) && duration > 0)
+    .sort((a, b) => a - b);
+  if (durations.length < 3) return notes;
+
+  const middle = Math.floor(durations.length / 2);
+  const median = durations.length % 2
+    ? durations[middle]
+    : (durations[middle - 1] + durations[middle]) / 2;
+  const outlierThreshold = Math.max(ppq * 8, median * 16);
+
+  return notes.filter((note) => note.durationTicks <= outlierThreshold);
+}
+
 export function installJzzSmfPlugin(jzzInstance, installSmf) {
   if (!jzzInstance || !jzzInstance.MIDI) return false;
   if (typeof jzzInstance.MIDI.SMF === 'function') return true;

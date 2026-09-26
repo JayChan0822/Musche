@@ -86,6 +86,7 @@ export function registerImportDataFeature(context) {
             buildTimeSigMap: utils.buildTimeSigMap,
             extractNotesFromJZZTrack: utils.extractNotesFromJZZTrack,
             calculateBarQuantizedDuration: utils.calculateBarQuantizedDuration,
+            filterDurationOutlierNotes: utils.filterDurationOutlierNotes,
             normalizeForMatch: utils.normalizeForMatch,
             generateUniqueId: utils.generateUniqueId,
             generateRandomHexColor: utils.generateRandomHexColor,

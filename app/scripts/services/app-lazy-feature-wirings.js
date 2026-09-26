@@ -161,6 +161,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         buildTimeSigMap: midiUtils.buildTimeSigMap,
                         extractNotesFromJZZTrack: midiUtils.extractNotesFromJZZTrack,
                         calculateBarQuantizedDuration: midiUtils.calculateBarQuantizedDuration,
+                        filterDurationOutlierNotes: midiUtils.filterDurationOutlierNotes,
                         normalizeForMatch: midiUtils.normalizeForMatch,
                         generateRandomHexColor: (...args) => assembly.features.pickerControls.generateRandomHexColor(...args),
                     },
