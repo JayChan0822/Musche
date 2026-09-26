@@ -227,8 +227,8 @@ struct DayPane: View {
             do {
                 let count = try await publisher.publish(
                     tasks: model.tasks,
-                    sessionId: "S_DEFAULT",
-                    sessionName: "默认录音日程",
+                    sessionId: model.currentSessionId,
+                    sessionName: model.currentSessionName,
                     titleFor: { TaskDisplay.title(for: $0, settings: model.settings) }
                 )
                 publishMessage = "已发布 \(count) 条日程到系统日历"
@@ -245,7 +245,7 @@ struct DayPane: View {
             do {
                 let count = try await scheduler.schedule(
                     tasks: model.tasks,
-                    sessionId: "S_DEFAULT",
+                    sessionId: model.currentSessionId,
                     titleFor: { TaskDisplay.title(for: $0, settings: model.settings) }
                 )
                 notifyMessage = "已为 \(count) 条日程设置提醒"
@@ -287,8 +287,15 @@ private struct DayPaneBackground: View {
             Rectangle().fill(.ultraThinMaterial).opacity(0.6)
         }
         .ignoresSafeArea(edges: .bottom)
+        // 背景延伸到底部安全区只是为了铺色；不关掉命中测试的话，
+        // 它会盖住 tab bar 的触摸区域，底部两个 tab 就点不动了。
+        .allowsHitTesting(false)
     }
 }
+
+/// 时间轴的固定坐标系名字：拖动/拉伸都在这个空间里算位移，
+/// 免得手势挂在会移动的块上、位移被自己带偏。
+private let timelineSpace = "musche.dayTimeline"
 
 // MARK: - 时间轴本体
 
@@ -304,6 +311,33 @@ private struct DayTimeline: View {
 
     /// 拖拽中的任务：整个时间轴只允许一个，避免多块同时响应造成抖动。
     @State private var activeDragId: String?
+    /// 选中的任务：选中后才出现左侧抓手和底部拉伸条，再点一次（或点空白处）取消。
+    /// 不做「长按进入拖动」——长按结束事件在 SwiftUI 里并不可靠，
+    /// 一旦漏掉块就永远停在拖动态，时间轴也跟着滚不动了。
+    @State private var selectedId: String?
+    /// 待确认删除的时间块
+    @State private var deleteTarget: Schedule?
+
+    // 把手拖到上下边缘时自动滚动（Apple 日历一样）需要的几个量
+    /// 可编程滚动的位置（iOS 18 的 ScrollPosition，可按像素滚）
+    @State private var scrollPosition = ScrollPosition()
+    /// 当前内容偏移 / 可视高度 / 内容高度，从 scroll geometry 实时读回
+    @State private var scrollY: CGFloat = 0
+    @State private var viewportHeight: CGFloat = 0
+    @State private var contentHeight: CGFloat = 0
+    /// 时间轴在屏幕上的位置，用来判断手指是不是进了上下边缘触发区
+    @State private var viewportFrame: CGRect = .zero
+    /// 手指当前的屏幕 y（拖动中才有值）
+    @State private var dragPointY: CGFloat?
+    /// 本次拖动里自动滚动累计走过的像素——要补给任务块，
+    /// 否则手指不动、内容在滚，块会留在原地不跟手
+    @State private var autoScrollOffset: Double = 0
+    @State private var autoScrollSpeed: Double = 0
+    @State private var autoScrollTimer: Timer?
+
+    /// 上下各留这么宽的触发区；越靠边滚得越快
+    private let autoScrollZone: CGFloat = 90
+    private let autoScrollMaxSpeed: Double = 420   // px/s
 
     private var tasks: [Schedule] { model.tasks(for: dateStr) }
     private var startMinutes: Int { model.settings.startHour * 60 }
@@ -322,6 +356,9 @@ private struct DayTimeline: View {
                                 .id("hour-\(hour)")
                         }
                     }
+                    // 点空白处取消选中
+                    .contentShape(Rectangle())
+                    .onTapGesture { selectedId = nil }
 
                     ForEach(tasks, id: \.scheduleId) { task in
                         TaskBlock(
@@ -331,14 +368,34 @@ private struct DayTimeline: View {
                             startHour: model.settings.startHour,
                             endHour: model.settings.endHour,
                             isAnotherDragging: activeDragId != nil && activeDragId != task.scheduleId,
+                            isSelected: selectedId == task.scheduleId,
+                            autoScrollOffset: autoScrollOffset,
                             onDragStateChange: { dragging in
                                 activeDragId = dragging ? task.scheduleId : nil
+                                if dragging {
+                                    autoScrollOffset = 0
+                                } else {
+                                    dragPointY = nil
+                                    stopAutoScroll()
+                                }
                             },
+                            onDragPointChange: { dragPointY = $0 },
                             onCommit: { updated in commit(updated) },
-                            onTap: { onOpenRecord(task) }
+                            onToggleSelect: {
+                                selectedId = selectedId == task.scheduleId ? nil : task.scheduleId
+                            },
+                            onOpenDetail: { onOpenRecord(task) },
+                            onDelete: { deleteTarget = task }
                         )
+                        // 别的日程的任务只做灰色只读展示（Web 版的「幽灵任务」），
+                        // 免得在 A 日程里误改到 B 日程的安排。
+                        .opacity(model.belongsToCurrentSession(task) ? 1 : 0.35)
+                        .allowsHitTesting(model.belongsToCurrentSession(task))
+                        // 不要在这里给固定高度：拉伸时块自身会变高，父框固定会让它居中溢出，
+                        // 表现就是「上下同时变长」。高度由 TaskBlock 自己决定，顶部对齐由 ZStack 保证。
                         .padding(.leading, gutter)
                         .padding(.trailing, 8)
+                        .offset(y: DayViewMath.taskTopPx(startTime: task.startTime, startHour: model.settings.startHour, pxPerMin: pxPerMin))
                     }
 
                     if let nowTop, let nowLabel {
@@ -349,12 +406,96 @@ private struct DayTimeline: View {
                 }
                 .frame(maxWidth: .infinity, minHeight: timelineHeight, alignment: .topLeading)
                 .padding(.bottom, 40)
+                // 拖动/拉伸都按这个固定坐标系算位移。用默认的 .local 会出事：
+                // 手势挂在会跟着动的块上，块一动位移就被自己带偏，表现就是抽搐。
+                .coordinateSpace(.named(timelineSpace))
             }
             // 拖动任务块时锁住纵向滚动，避免手势打架造成的抽搐
+            // （自动滚动是程序触发的，不受这个开关影响）
             .scrollDisabled(activeDragId != nil)
+            .scrollPosition($scrollPosition)
+            .onScrollGeometryChange(for: ScrollGeometry.self) { $0 } action: { _, geo in
+                scrollY = geo.contentOffset.y
+                viewportHeight = geo.containerSize.height
+                contentHeight = geo.contentSize.height
+            }
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { viewportFrame = $0 }
+            .onChange(of: dragPointY) { _, _ in updateAutoScroll() }
+            .onDisappear { stopAutoScroll() }
+            .confirmationDialog(
+                "删除这个时间块？",
+                isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("删除", role: .destructive) {
+                    if let target = deleteTarget {
+                        model.deleteTask(id: target.scheduleId)
+                        selectedId = nil
+                    }
+                    deleteTarget = nil
+                }
+                Button("取消", role: .cancel) { deleteTarget = nil }
+            } message: {
+                Text("只删日历上的安排，任务池里的曲目会保留。")
+            }
             .onAppear { scrollToFocus(proxy) }
-            .onChange(of: dateStr) { _, _ in scrollToFocus(proxy) }
+            .onChange(of: dateStr) { _, _ in
+                selectedId = nil
+                scrollToFocus(proxy)
+            }
         }
+    }
+
+    // MARK: - 拖到边缘自动滚动
+
+    /// 手指位置变了就重算滚动方向和速度：进了上/下触发区就开定时器，出了就停。
+    private func updateAutoScroll() {
+        guard let y = dragPointY, viewportFrame.height > 0 else {
+            stopAutoScroll()
+            return
+        }
+        let top = viewportFrame.minY + autoScrollZone
+        let bottom = viewportFrame.maxY - autoScrollZone
+
+        if y < top {
+            let depth = min(1, max(0, (top - y) / autoScrollZone))
+            autoScrollSpeed = -depth * autoScrollMaxSpeed
+        } else if y > bottom {
+            let depth = min(1, max(0, (y - bottom) / autoScrollZone))
+            autoScrollSpeed = depth * autoScrollMaxSpeed
+        } else {
+            stopAutoScroll()
+            return
+        }
+        startAutoScroll()
+    }
+
+    private func startAutoScroll() {
+        guard autoScrollTimer == nil else { return }
+        // 必须注册到 .common 模式：手指按住时 runloop 处于 tracking 模式，
+        // scheduledTimer 默认只在 .default 模式跑，一次都不会触发。
+        let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { _ in
+            stepAutoScroll()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        autoScrollTimer = timer
+    }
+
+    private func stopAutoScroll() {
+        autoScrollTimer?.invalidate()
+        autoScrollTimer = nil
+        autoScrollSpeed = 0
+    }
+
+    private func stepAutoScroll() {
+        let maxOffset = max(0, contentHeight - viewportHeight)
+        let target = min(maxOffset, max(0, scrollY + autoScrollSpeed / 60.0))
+        let applied = target - scrollY
+        guard applied != 0 else { return }   // 已经到头就别再空转
+        scrollY = target
+        scrollPosition.scrollTo(y: target)
+        // 滚了多少就补给正在拖的块，让它继续跟着手指走
+        autoScrollOffset += Double(applied)
     }
 
     /// 打开/翻天后落在「有内容的地方」：首个任务所在小时，其次当前时刻，最后 9 点。
@@ -389,7 +530,7 @@ private struct DayTimeline: View {
             excludeId: updated.scheduleId,
             checkType: type,
             tasks: model.tasks,
-            currentSessionId: "S_DEFAULT"
+            currentSessionId: model.currentSessionId
         )
         if conflict {
             UINotificationFeedbackGenerator().notificationOccurred(.warning)
@@ -458,16 +599,34 @@ private struct TaskBlock: View {
     let startHour: Int
     let endHour: Int
     let isAnotherDragging: Bool
+    let isSelected: Bool
+    /// 自动滚动累计走过的像素（父层给），要叠进位移里，块才会跟着一起走
+    let autoScrollOffset: Double
     let onDragStateChange: (Bool) -> Void
+    /// 手指的屏幕 y，父层用它判断要不要自动滚动；松手传 nil
+    let onDragPointChange: (CGFloat?) -> Void
     let onCommit: (Schedule) -> Void
-    let onTap: () -> Void
+    let onToggleSelect: () -> Void
+    let onOpenDetail: () -> Void
+    let onDelete: () -> Void
 
-    /// 拖动中的实时位移，已吸附到 30 分钟（所以块是「一格一格」走的，不会跟着手指抖）。
-    @State private var dragMinutes: Int = 0
-    /// 拉伸中的实时时长增量（分钟，已吸附）。
-    @State private var resizeMinutes: Int = 0
+    /// 手指本身的位移（屏幕坐标系，不含自动滚动那部分）
+    @State private var rawTranslation: Double = 0
     @State private var isDragging = false
     @State private var isResizing = false
+
+    /// 拖动中的实时位移，已吸附到 30 分钟（所以块是「一格一格」走的，不会跟着手指抖）。
+    /// = 手指位移 + 自动滚动位移，两者都要算进去。
+    private var dragMinutes: Int {
+        guard isDragging else { return 0 }
+        return snapMinutes(from: rawTranslation + autoScrollOffset)
+    }
+
+    /// 拉伸中的实时时长增量（分钟，已吸附）。
+    private var resizeMinutes: Int {
+        guard isResizing else { return 0 }
+        return snapResizeMinutes(from: rawTranslation + autoScrollOffset)
+    }
 
     private var baseTop: Double {
         DayViewMath.taskTopPx(startTime: task.startTime, startHour: startHour, pxPerMin: pxPerMin)
@@ -477,8 +636,17 @@ private struct TaskBlock: View {
         DayViewMath.taskHeightPx(estDuration: task.estDuration, pxPerMin: pxPerMin)
     }
 
-    private var liveTop: Double { baseTop + Double(dragMinutes) * pxPerMin }
+    /// 拖动中的实时位移（相对静止位置）。静止位置由父层的 padding 决定，
+    /// 这样命中区域始终与视觉一致。
+    private var liveDragOffset: Double { Double(dragMinutes) * pxPerMin }
     private var liveHeight: Double { max(pxPerMin * 5, baseHeight + Double(resizeMinutes) * pxPerMin) }
+
+    /// 拉伸中显示吸附后的时长
+    private var liveDurationLabel: String {
+        guard resizeMinutes != 0 else { return task.estDuration }
+        let minutes = Int(baseHeight / pxPerMin) + resizeMinutes
+        return Format.formatSecs(max(30, minutes) * 60)
+    }
 
     /// 拖动中显示吸附后的时间，让用户看到「会落在哪」。
     private var liveStartLabel: String {
@@ -488,16 +656,27 @@ private struct TaskBlock: View {
 
     var body: some View {
         HStack(spacing: 0) {
+            // 左侧色条：选中后才是「抓手」，拖它改时间。没选中时它只是块颜色，
+            // 这样滚动时手指扫过任务块不会误把任务拖走。
             Rectangle()
                 .fill(TaskDisplay.color(for: task))
-                .frame(width: 4)
+                .frame(width: isSelected ? 14 : 10)
+                .overlay(alignment: .center) {
+                    if isSelected {
+                        Capsule()
+                            .fill(.white.opacity(isDragging ? 0.95 : 0.7))
+                            .frame(width: 3, height: 18)
+                    }
+                }
+                .contentShape(Rectangle())
+                .highPriorityGesture(moveDragGesture, including: isSelected ? .all : .none)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
                     .foregroundStyle(.white)
-                Text("\(liveStartLabel) · \(task.estDuration)")
+                Text("\(liveStartLabel) · \(liveDurationLabel)")
                     .font(.system(size: 11))
                     .foregroundStyle(Color(white: 0.65))
                     .monospacedDigit()
@@ -506,99 +685,134 @@ private struct TaskBlock: View {
             .padding(.vertical, 5)
             .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 选中后才给详情/删除入口：点卡片本身现在是「选中/取消选中」
+            if isSelected {
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.red)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onOpenDetail) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 17))
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: liveHeight, alignment: .top)
         .background(Color(white: 0.16).opacity(0.97))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(alignment: .bottom) { resizeHandle }
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isDragging ? Theme.accent.opacity(0.9) : .white.opacity(0.08), lineWidth: isDragging ? 1.5 : 1)
+                .stroke(isSelected ? Theme.accent.opacity(0.9) : .white.opacity(0.08),
+                        lineWidth: isSelected ? 1.5 : 1)
         )
         .shadow(color: .black.opacity(isDragging ? 0.5 : 0.3), radius: isDragging ? 12 : 4, y: isDragging ? 6 : 2)
         .scaleEffect(isDragging ? 1.02 : 1, anchor: .center)
         .opacity(isAnotherDragging ? 0.4 : 1)
         .zIndex(isDragging || isResizing ? 20 : 1)
-        .offset(y: liveTop)
-        .animation(.spring(response: 0.22, dampingFraction: 0.85), value: dragMinutes)
-        .animation(.spring(response: 0.22, dampingFraction: 0.85), value: resizeMinutes)
+        .offset(y: liveDragOffset)
+        // 吸附是一格 30 分钟（60pt），弹簧会在每一格上回弹叠加，看起来就是抽搐。
+        // 换成不过冲的 easeOut，一格一格干脆地走。
+        .animation(.easeOut(duration: 0.12), value: dragMinutes)
+        .animation(.easeOut(duration: 0.12), value: resizeMinutes)
         .animation(.easeOut(duration: 0.16), value: isDragging)
+        .animation(.easeOut(duration: 0.16), value: isSelected)
+        // 每吸附过一格给一次轻触反馈
+        .onChange(of: dragMinutes) { _, new in if new != 0 { UISelectionFeedbackGenerator().selectionChanged() } }
+        .onChange(of: resizeMinutes) { _, new in if new != 0 { UISelectionFeedbackGenerator().selectionChanged() } }
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .onTapGesture(perform: onTap)
-        // 长按 0.25s 进入拖动模式（同时 DayTimeline 会关掉纵向滚动），
-        // 位移由下面的 simultaneousGesture 接管。
-        // 不能用 .gesture(LongPress.sequenced(before: Drag))：在 ScrollView 里
-        // 滚动手势会把它整条吞掉，连第一阶段都收不到（实测日志验证）。
-        .onLongPressGesture(minimumDuration: 0.25, maximumDistance: 14) {
-            guard !isDragging else { return }
-            isDragging = true
-            onDragStateChange(true)
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        }
-        // including: 未进入拖动模式时把手势让给 ScrollView（否则在任务块上就滚不动了），
-        // 长按成功后才接管位移。
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { value in
-                    guard isDragging else { return }
-                    let snapped = snapMinutes(from: value.translation.height)
-                    if snapped != dragMinutes {
-                        dragMinutes = snapped
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    }
-                }
-                .onEnded { _ in
-                    guard isDragging else { return }
-                    let moved = dragMinutes
-                    isDragging = false
-                    onDragStateChange(false)
-                    dragMinutes = 0
-                    guard moved != 0 else { return }
-
-                    let finalY = baseTop + Double(moved) * pxPerMin
-                    var updated = task
-                    updated.startTime = DayViewMath.snapDropToTime(
-                        relativeY: finalY, offsetMinutes: 0, pxPerMin: pxPerMin, startHour: startHour, endHour: endHour
-                    )
-                    onCommit(updated)
-                },
-            including: isDragging ? .all : .subviews
-        )
+        // 点一下选中，再点一下取消选中。不用长按手势：它的结束事件不可靠，
+        // 漏一次就会卡在选中/拖动态里，时间轴也跟着滚不动。
+        .onTapGesture { onToggleSelect() }
     }
 
+    /// 左侧色条上的直接拖动（无需长按）——给「长按不好按」留一条确定可用的路。
+    /// 位移一律在屏幕坐标系里量：手势挂在会移动的块上，用 .local 会被自己带偏（抽搐），
+    /// 用内容坐标系又会和自动滚动重复计一次。
+    private var moveDragGesture: some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
+            .onChanged { value in
+                guard !isResizing else { return }
+                beginDragIfNeeded()
+                rawTranslation = value.translation.height
+                onDragPointChange(value.location.y)
+            }
+            .onEnded { _ in finishDrag() }
+    }
+
+    private func beginDragIfNeeded() {
+        guard !isDragging else { return }
+        isDragging = true
+        rawTranslation = 0
+        onDragStateChange(true)
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+    }
+
+    private func finishDrag() {
+        guard isDragging else { return }
+        let moved = dragMinutes
+        isDragging = false
+        onDragStateChange(false)
+        rawTranslation = 0
+        guard moved != 0 else { return }
+
+        let finalY = baseTop + Double(moved) * pxPerMin
+        var updated = task
+        updated.startTime = DayViewMath.snapDropToTime(
+            relativeY: finalY, offsetMinutes: 0, pxPerMin: pxPerMin, startHour: startHour, endHour: endHour
+        )
+        onCommit(updated)
+    }
+
+    /// 底部拉伸把手：只在选中后出现，26pt 高、铺满宽度，直接拖即可（不需要长按）。
     private var resizeHandle: some View {
         Capsule()
-            .fill(.white.opacity(isResizing ? 0.9 : 0.35))
-            .frame(width: 32, height: 4)
-            .padding(.bottom, 3)
+            .fill(.white.opacity(isResizing ? 0.95 : 0.5))
+            .frame(width: 44, height: 5)
+            .opacity(isSelected ? 1 : 0)
+            .padding(.bottom, 4)
             .frame(maxWidth: .infinity)
-            .frame(height: 22)
+            .frame(height: 26)
             .contentShape(Rectangle())
-            .highPriorityGesture(resizeGesture)
+            .highPriorityGesture(resizeGesture, including: isSelected ? .all : .none)
     }
 
-    // MARK: - 手势
-
     private var resizeGesture: some Gesture {
-        DragGesture(minimumDistance: 2)
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
             .onChanged { value in
                 if !isResizing {
+                    // 万一移动手势也起来了（手指先落在卡片上再滑到把手），把它收回，
+                    // 否则两条手势同时改同一块，就是上下乱跳
+                    if isDragging {
+                        isDragging = false
+                        onDragStateChange(false)
+                    }
                     isResizing = true
+                    rawTranslation = 0
                     onDragStateChange(true)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
-                let snapped = snapMinutes(from: value.translation.height)
-                if snapped != resizeMinutes {
-                    resizeMinutes = snapped
-                    UISelectionFeedbackGenerator().selectionChanged()
-                }
+                rawTranslation = value.translation.height
+                onDragPointChange(value.location.y)
             }
-            .onEnded { value in
+            .onEnded { _ in
                 let delta = Double(resizeMinutes) * pxPerMin
+                let changed = resizeMinutes != 0
                 isResizing = false
                 onDragStateChange(false)
-                resizeMinutes = 0
-                guard abs(value.translation.height) > 2 else { return }
+                rawTranslation = 0
+                guard changed else { return }
 
                 let newDuration = DayViewMath.snapResizeDuration(
                     deltaY: delta, startHeight: baseHeight, startTime: task.startTime, pxPerMin: pxPerMin
@@ -612,6 +826,14 @@ private struct TaskBlock: View {
                 }
                 onCommit(updated)
             }
+    }
+
+    /// 拉伸位移 → 分钟（吸附 30 分钟，最短 30 分钟一格）
+    private func snapResizeMinutes(from translation: CGFloat) -> Int {
+        let raw = Double(translation) / pxPerMin
+        let snapped = Int((raw / 30).rounded()) * 30
+        let currentMinutes = Int(baseHeight / pxPerMin)
+        return max(30 - currentMinutes, snapped)
     }
 
     /// 位移 → 分钟，并吸附到 30 分钟；同时钳制在可视时段内，拖到边界就停住。

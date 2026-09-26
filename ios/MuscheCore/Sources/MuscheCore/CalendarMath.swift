@@ -96,8 +96,9 @@ public enum CalendarMath {
     }
 
     /// "YYYY-MM-DD" → Date（本地时区当天零点）。格式不对返回 nil。
+    /// 线上历史数据里还混着 "2025/12/4" 这种斜杠且没补零的写法，一并认。
     public static func parseYMD(_ dateStr: String) -> Date? {
-        let parts = dateStr.split(separator: "-").map(String.init)
+        let parts = dateStr.split(whereSeparator: { $0 == "-" || $0 == "/" }).map(String.init)
         guard parts.count == 3,
               let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2]) else { return nil }
         var comps = DateComponents()
@@ -105,6 +106,14 @@ public enum CalendarMath {
         comps.month = month
         comps.day = day
         return Calendar.current.date(from: comps)
+    }
+
+    /// 把各种历史写法统一成 "YYYY-MM-DD"；认不出来就原样返回。
+    /// 不统一的话，"2025/12/4" 的块永远匹配不上日历格子，等于凭空消失。
+    public static func normalizeYMD(_ dateStr: String) -> String {
+        guard dateStr.contains("/") || dateStr.split(separator: "-").contains(where: { $0.count < 2 }) else { return dateStr }
+        guard let date = parseYMD(dateStr) else { return dateStr }
+        return Format.formatYMD(date)
     }
 
     /// 某天所在周（周日开始）的 7 天，供日视图顶部周日期条使用。

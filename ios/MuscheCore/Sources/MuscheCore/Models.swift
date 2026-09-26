@@ -208,6 +208,11 @@ public struct PoolItem: Codable, Equatable, Identifiable {
     public var breakMinutes: Double? = nil
 }
 
+/// 没写 sessionId 的老数据都算这个日程（与 Web 版的 'S_DEFAULT' 兜底一致）。
+public extension Schedule {
+    static let defaultSessionId = "S_DEFAULT"
+}
+
 /// 已落到日历上的时间块。
 /// 注意：scheduleId 在线上历史数据里既有字符串也有数字（Date.now()），用容错解码统一成 String。
 public struct Schedule: Codable, Equatable {
@@ -401,6 +406,8 @@ public struct Settings: Codable, Equatable {
     public var engineers: [SettingEntry]
     public var operators: [SettingEntry]
     public var assistants: [SettingEntry]
+    /// 上次选中的日程 id（Web 版存在 settings.lastSessionId，跟着 user_data 一起走）
+    public var lastSessionId: String? = nil
 }
 
 // MARK: - 默认设置（对应 state/defaults.js 的 createDefaultSettings）

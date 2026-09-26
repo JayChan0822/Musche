@@ -4,10 +4,12 @@ import test from 'node:test';
 import { reactive, ref } from 'vue';
 
 import { registerImportMidiFeature } from '../app/scripts/features/import-midi.js';
+import * as midiUtils from '../app/scripts/utils/midi.js';
+import { formatSecs } from '../app/scripts/utils/format.js';
 
-function createMidiHarness({ rows }) {
+function createMidiHarness({ rows = [], instruments, smf } = {}) {
   const settings = reactive({
-    instruments: [{ id: 'I_VLN', name: 'Violin', group: 'Strings' }],
+    instruments: instruments || [{ id: 'I_VLN', name: 'Violin', group: 'Strings' }],
   });
   const refs = {
     settings,
@@ -29,14 +31,10 @@ function createMidiHarness({ rows }) {
   const feature = registerImportMidiFeature({
     refs,
     utils: {
-      buildTempoMap: () => ({ events: [{ bpm: 120, mpb: 500000 }] }),
-      buildTimeSigMap: () => [{ timeSignature: [4, 4] }],
-      extractNotesFromJZZTrack: () => [],
-      calculateBarQuantizedDuration: () => ({ seconds: 0, rawSeconds: 0, bars: 0 }),
-      normalizeForMatch: (value) => String(value || '').toLowerCase().replace(/[^a-z0-9#]+/g, ' ').trim(),
+      ...midiUtils,
       generateUniqueId: () => 'I_NEW',
       generateRandomHexColor: () => '#123456',
-      formatSecs: (value) => `${value}s`,
+      formatSecs,
     },
     actions: {
       openAlertModal: (...args) => alerts.push(args),
@@ -45,7 +43,7 @@ function createMidiHarness({ rows }) {
       sortedInstruments: ref(settings.instruments),
       nextTick: (callback) => callback(),
       getElementById: () => null,
-      loadMidiSmf: async () => () => [],
+      loadMidiSmf: async () => () => smf,
     },
   });
 
@@ -74,4 +72,50 @@ test('confirming MIDI import with no selected rows keeps the modal open without 
   assert.deepEqual(harness.haptics, [], 'no-op MIDI confirmation must not trigger success haptics');
   assert.equal(harness.refs.showMidiImportModal.value, true, 'no-op MIDI confirmation should keep the modal open');
   assert.deepEqual(harness.alerts, [['提示', '请至少选择一条可导入的 MIDI 轨道。']]);
+});
+
+async function previewTrack(t, name, instruments) {
+  let reader;
+  t.mock.method(globalThis, 'FileReader', function () {
+    reader = this;
+    this.readAsBinaryString = () => {};
+  });
+  const smf = [[
+    { ff: 0x03, dd: name, tt: 0 },
+    Object.assign([0x90, 60, 100], { tt: 0 }),
+    Object.assign([0x80, 60, 0], { tt: 1920 }),
+  ]];
+  smf.ppqn = 480;
+  const harness = createMidiHarness({ instruments, smf });
+  harness.feature.processMidiFile({});
+  await reader.onload({ target: { result: '' } });
+  assert.deepEqual(harness.alerts, []);
+  return harness;
+}
+
+// Node has no browser FileReader; only the file-read boundary is replaced.
+globalThis.FileReader ??= class {};
+
+for (const name of ['?? (Guzheng)', '？？（guzheng）', '古筝 (Guzheng)', 'Guzheng 2']) {
+  test(`MIDI track ${name} reuses Guzheng and preserves its duration on import`, async (t) => {
+    const harness = await previewTrack(t, name, [{ id: 'I_GZ', name: 'Guzheng', group: 'Plucks' }]);
+    const row = harness.refs.midiImportData.value[0];
+    assert.equal(row.instrumentId, 'I_GZ');
+    assert.equal(row.createNew, false);
+    assert.equal(row.group, 'Plucks');
+    harness.feature.confirmMidiImport();
+    assert.equal(harness.refs.settings.instruments.length, 1);
+    assert.deepEqual(harness.refs.managingProject.value.midiData.I_GZ, [
+      { name, duration: '00:00:02', order: 0 },
+    ]);
+  });
+}
+
+test('MIDI matching does not pick an arbitrary similar instrument', async (t) => {
+  const harness = await previewTrack(t, 'Bass', [
+    { id: 'I_CB', name: 'Contrabass' },
+    { id: 'I_BG', name: 'Bass Guitar' },
+    { id: 'I_DB', name: 'Double Bass' },
+  ]);
+  assert.equal(harness.refs.midiImportData.value[0].instrumentId, '');
 });

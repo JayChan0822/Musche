@@ -321,9 +321,33 @@ export function registerImportMidiFeature(context) {
   }
 
   function processMidiFile(file) {
-    const getMatchName = (name) => {
-      if (!name) return '';
-      return name.replace(/[_\s-]*\d+$/, '').trim();
+    const matchName = (name) => normalizeForMatch(name)
+      .replace(/[^\p{L}\p{N}#]+/gu, ' ')
+      .trim();
+    const findInstrument = (name) => {
+      const target = matchName(name);
+      if (!target) return null;
+      const candidates = settings.instruments.map((instrument) => ({
+        instrument,
+        name: matchName(instrument.name),
+      })).filter((item) => item.name);
+      const exact = candidates.filter((item) => item.name === target);
+      if (exact.length) return exact.length === 1 ? exact[0].instrument : null;
+
+      // Match complete names inside decorated track labels, not fragments of words.
+      const contained = candidates.filter((item) =>
+        item.name.length > 2 && ` ${target} `.includes(` ${item.name} `),
+      );
+      if (contained.length) {
+        const longest = Math.max(...contained.map((item) => item.name.length));
+        const best = contained.filter((item) => item.name.length === longest);
+        return best.length === 1 ? best[0].instrument : null;
+      }
+
+      const expanded = candidates.filter((item) =>
+        target.length > 2 && ` ${item.name} `.includes(` ${target} `),
+      );
+      return expanded.length === 1 ? expanded[0].instrument : null;
     };
 
     const reader = new FileReader();
@@ -386,22 +410,10 @@ export function registerImportMidiFeature(context) {
         for (const name in mergedMap) {
           const groupData = mergedMap[name];
           const notes = groupData.notes;
-          const exactName = normalizeForMatch(groupData.name);
-          const strippedName = normalizeForMatch(getMatchName(groupData.name));
-
           let matchedInstrumentId = '';
           let matchedGroup = findGroupSmart(groupData.name);
 
-          let found = settings.instruments.find((item) => normalizeForMatch(item.name) === exactName);
-          if (!found) {
-            found = settings.instruments.find((item) => normalizeForMatch(item.name) === strippedName);
-          }
-          if (!found) {
-            found = settings.instruments.find((item) => {
-              const instrumentName = normalizeForMatch(item.name);
-              return instrumentName.includes(strippedName) && strippedName.length > 2;
-            });
-          }
+          const found = findInstrument(groupData.name);
 
           if (found) {
             matchedInstrumentId = found.id;

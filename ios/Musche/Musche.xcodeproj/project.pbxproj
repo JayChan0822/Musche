@@ -11,6 +11,7 @@
 		0747085614036A84C532083E /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 651331D418AEF9DD843DB2E8 /* SupabaseService.swift */; };
 		1B8AE188E8C5D14C440AA425 /* PoolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA568440FC4CE339FF962B9 /* PoolView.swift */; };
 		2303964777981003D14F96E5 /* MuscheCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3195C5514996CAEC691F0C6F /* MuscheCore */; };
+		339A3EEFBE4581D3EE3255F5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1E7A38C77D6F5CCF39D4A6 /* SettingsView.swift */; };
 		38F5EFA0F819FC61FACBECF8 /* MonthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F84147B38E6CD5CBAD5CAC3C /* MonthView.swift */; };
 		41ECF6F28893547410568163 /* DayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 535D607F289321AA9927D4CD /* DayView.swift */; };
 		5D90E1AA88E55231E0CA4CF5 /* SupabaseUserDataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107178DA2A85E5C3B76A8C36 /* SupabaseUserDataStore.swift */; };
@@ -37,9 +38,10 @@
 		795811BDA3E278A20C573B93 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		8DEB15FBDFCCBDDC4F10B2F6 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		971E6515E932E03E9C9A58D2 /* MuscheApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscheApp.swift; sourceTree = "<group>"; };
+		9F1E7A38C77D6F5CCF39D4A6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		B66007ECCFA2D52956303BD2 /* CalendarPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPublisher.swift; sourceTree = "<group>"; };
 		BF153C4B3920EA08610F460B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		F49273994273C3BFC26B8950 /* Musche.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Musche.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F49273994273C3BFC26B8950 /* Musche.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Musche.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F84147B38E6CD5CBAD5CAC3C /* MonthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthView.swift; sourceTree = "<group>"; };
 		FC085DA6FF0B4009448B9778 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -80,6 +82,7 @@
 				648EA6BE8F9AB23CA05B90C6 /* NotificationScheduler.swift */,
 				4EA568440FC4CE339FF962B9 /* PoolView.swift */,
 				795811BDA3E278A20C573B93 /* RootView.swift */,
+				9F1E7A38C77D6F5CCF39D4A6 /* SettingsView.swift */,
 				651331D418AEF9DD843DB2E8 /* SupabaseService.swift */,
 				107178DA2A85E5C3B76A8C36 /* SupabaseUserDataStore.swift */,
 				23FF41161E2D8EE10B5C7A58 /* TaskDisplay.swift */,
@@ -186,6 +189,7 @@
 				642906B127C6A73855EA09BF /* NotificationScheduler.swift in Sources */,
 				1B8AE188E8C5D14C440AA425 /* PoolView.swift in Sources */,
 				B16496AE4012B03825FDCA82 /* RootView.swift in Sources */,
+				339A3EEFBE4581D3EE3255F5 /* SettingsView.swift in Sources */,
 				0747085614036A84C532083E /* SupabaseService.swift in Sources */,
 				5D90E1AA88E55231E0CA4CF5 /* SupabaseUserDataStore.swift in Sources */,
 				93CB2506E3640147D4B1927E /* TaskDisplay.swift in Sources */,
@@ -204,7 +208,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6LFZ69RX9G;
 				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -345,7 +348,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 6LFZ69RX9G;
 				INFOPLIST_FILE = Sources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

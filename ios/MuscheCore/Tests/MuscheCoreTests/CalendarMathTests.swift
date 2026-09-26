@@ -81,3 +81,21 @@ extension CalendarMathTests {
         XCTAssertEqual(CalendarMath.shiftDay("坏数据", by: 1), "坏数据")
     }
 }
+
+// MARK: - 历史日期写法容错
+
+extension CalendarMathTests {
+    func testParseYMDAcceptsSlashAndUnpadded() {
+        let dashed = CalendarMath.parseYMD("2025-12-04")
+        let slashed = CalendarMath.parseYMD("2025/12/4")
+        XCTAssertNotNil(slashed)
+        XCTAssertEqual(dashed, slashed)
+    }
+
+    func testNormalizeYMD() {
+        XCTAssertEqual(CalendarMath.normalizeYMD("2025/12/4"), "2025-12-04")
+        XCTAssertEqual(CalendarMath.normalizeYMD("2025-7-9"), "2025-07-09")
+        XCTAssertEqual(CalendarMath.normalizeYMD("2025-12-04"), "2025-12-04")
+        XCTAssertEqual(CalendarMath.normalizeYMD("乱写"), "乱写")
+    }
+}
