@@ -122,7 +122,7 @@ export const AppSidebar = {
 
                             <button class="absolute left-0 top-0 bottom-0 w-3 sm:w-2 flex items-center justify-center transition-all duration-200 group/btn z-10 cursor-pointer hover:brightness-110 active:scale-95"
                                     :style="{backgroundColor: stat.statusKey === 'completed' ? '#3b82f6'
-                                        : stat.statusKey === 'full' ? '#34c759'
+                                        : (stat.statusKey === 'full' || stat.statusKey === 'scheduled') ? '#34c759'
                                         : stat.statusKey === 'insufficient' ? '#ff3b30'
                                         : stat.statusKey === 'in-progress' ? '#f59e0b'
                                         : (sidebarTab === 'project' ? '#eab308' : (sidebarTab === 'instrument' ? '#3b82f6' : '#a855f7'))}"
@@ -148,7 +148,7 @@ export const AppSidebar = {
                                         <span v-if="stat.statusKey === 'completed'" class="px-2 py-1 rounded-md bg-blue-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">完成</span>
                                         <span v-else-if="stat.statusKey === 'in-progress'" class="px-2 py-1 rounded-md bg-orange-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">进行中</span>
                                         <span v-else-if="stat.statusKey === 'full'" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
-                                        <span v-else-if="stat.statusKey === 'scheduled'" title="已安排时间，暂无平均倍数可判断是否充足" class="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
+                                        <span v-else-if="stat.statusKey === 'scheduled'" title="已安排时间，暂无平均倍数可判断是否充足" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
                                         <span v-else-if="stat.statusKey === 'insufficient'" class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 dark:text-red-400 text-sm sm:text-xs font-bold whitespace-nowrap">缺时</span>
 
                                         <button v-if="sidebarTab !== 'musician' && stat.avgRealRatio > 0"
@@ -179,7 +179,7 @@ export const AppSidebar = {
                                                   :class="{
                                                       'text-blue-500 dark:text-blue-400': stat.statusKey === 'completed',
                                                       'text-orange-500 dark:text-orange-400': stat.statusKey === 'in-progress',
-                                                      'text-green-600 dark:text-green-400': stat.statusKey === 'full',
+                                                      'text-green-600 dark:text-green-400': stat.statusKey === 'full' || stat.statusKey === 'scheduled',
                                                       'text-red-500 dark:text-red-400': stat.statusKey === 'insufficient',
                                                       'text-gray-800 dark:text-gray-100': stat.statusKey === 'unscheduled'
                                                   }">
@@ -198,7 +198,7 @@ export const AppSidebar = {
                                                       )
                                                     : '0%',
                                                 backgroundColor: stat.statusKey === 'completed' ? '#3b82f6'
-                                                    : stat.statusKey === 'full' ? '#34c759'
+                                                    : (stat.statusKey === 'full' || stat.statusKey === 'scheduled') ? '#34c759'
                                                     : stat.statusKey === 'insufficient' ? '#ff3b30'
                                                     : stat.statusKey === 'in-progress' ? '#f59e0b'
                                                     : (sidebarTab === 'project' ? '#eab308' : (sidebarTab === 'instrument' ? '#3b82f6' : '#a855f7'))
