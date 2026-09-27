@@ -82,8 +82,8 @@ export function registerSearchFeature(context) {
       ing: ['in-progress'],
       '缺时': ['insufficient'],
       missing: ['insufficient'],
-      '已排': ['full', 'completed'],
-      full: ['full', 'completed'],
+      '已排': ['scheduled', 'full', 'completed'],
+      full: ['scheduled', 'full', 'completed'],
     };
 
     const textKeywords = [];

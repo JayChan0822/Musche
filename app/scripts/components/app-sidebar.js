@@ -148,6 +148,7 @@ export const AppSidebar = {
                                         <span v-if="stat.statusKey === 'completed'" class="px-2 py-1 rounded-md bg-blue-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">完成</span>
                                         <span v-else-if="stat.statusKey === 'in-progress'" class="px-2 py-1 rounded-md bg-orange-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">进行中</span>
                                         <span v-else-if="stat.statusKey === 'full'" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
+                                        <span v-else-if="stat.statusKey === 'scheduled'" title="已安排时间，暂无平均倍数可判断是否充足" class="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
                                         <span v-else-if="stat.statusKey === 'insufficient'" class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 dark:text-red-400 text-sm sm:text-xs font-bold whitespace-nowrap">缺时</span>
 
                                         <button v-if="sidebarTab !== 'musician' && stat.avgRealRatio > 0"

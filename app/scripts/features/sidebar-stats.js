@@ -88,8 +88,8 @@ export function registerSidebarStatsFeature(context) {
       ing: ['in-progress'],
       '缺时': ['insufficient'],
       missing: ['insufficient'],
-      '已排': ['full', 'completed'],
-      full: ['full', 'completed'],
+      '已排': ['scheduled', 'full', 'completed'],
+      full: ['scheduled', 'full', 'completed'],
     };
 
     const textKeywords = [];
@@ -340,16 +340,19 @@ export function registerSidebarStatsFeature(context) {
       }
 
       const trackCount = poolItems.length;
+      const hasMeasuredBaseline = currentRecordType !== 'musician' || ratioComparison.averageRatio !== null;
       let statusKey = 'unscheduled';
 
       if (trackCount > 0 && effectiveCount === 0) {
         statusKey = 'completed';
       } else if (effectiveCount > 0 && recordedCount === effectiveCount) {
         statusKey = 'completed';
-      } else if (scheduledSecs > 0 && scheduledSecs < totalSecs) {
+      } else if (hasMeasuredBaseline && scheduledSecs > 0 && scheduledSecs < totalSecs) {
         statusKey = 'insufficient';
       } else if (recordedCount > 0) {
         statusKey = 'in-progress';
+      } else if (!hasMeasuredBaseline && scheduleCount > 0) {
+        statusKey = 'scheduled';
       } else if (scheduledSecs >= totalSecs && totalSecs > 0) {
         statusKey = 'full';
       }
@@ -387,6 +390,7 @@ export function registerSidebarStatsFeature(context) {
           'in-progress': 1,
           insufficient: 2,
           full: 3,
+          scheduled: 3,
           unscheduled: 4,
         };
         const weightA = statusWeight[a.statusKey] ?? 99;

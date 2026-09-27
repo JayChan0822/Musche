@@ -127,6 +127,28 @@ test('comparison does not invent an average from defaults or a schedule from rec
   assert.equal(comparison.differencePercent, null);
 });
 
+test('scheduled musician without recorded average has a neutral status, not insufficient time', () => {
+  const h = createStats();
+  const stat = () => h.feature.musicianStats.value[0];
+  assert.equal(stat().ratioComparison.averageRatio, null);
+  assert.equal(stat().statusKey, 'scheduled');
+  assert.equal(stat().isFullyScheduled, false, 'unknown capacity must not prevent adding more schedule time');
+  h.refs.globalSearchQuery.value = '缺时';
+  assert.equal(h.feature.musicianStats.value.length, 0);
+  h.refs.globalSearchQuery.value = '已排';
+  assert.equal(h.feature.musicianStats.value.length, 1);
+  h.refs.globalSearchQuery.value = '';
+  h.refs.scheduledTasks.value = [];
+  assert.equal(stat().statusKey, 'unscheduled');
+});
+
+test('insufficient time remains available once a musician has a measured average', () => {
+  const h = createStats();
+  h.refs.itemPool.value[0].records = { musician: { actualDuration: '01:00:00' } };
+  h.refs.itemPool.value.push({ id: 'T2', name: 'Song B', musicianId: 'M1', musicDuration: '00:03:00', sectionIndex: 0 });
+  assert.equal(h.feature.musicianStats.value[0].statusKey, 'insufficient');
+});
+
 test('normal resizing snaps to 15 minutes; Command snaps to 1 minute in either direction', () => {
   const h = createStats();
   const task = h.refs.scheduledTasks.value[0];

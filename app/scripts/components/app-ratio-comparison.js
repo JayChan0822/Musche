@@ -5,7 +5,7 @@ export const AppRatioComparison = {
   props: { comparison: { type: Object, required: true } },
   methods: { formatSecs },
   template: `
-    <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 my-2 text-xs" role="group" aria-label="演奏员平均与安排倍数对照">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 my-3 px-3 py-2.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/5 dark:border-white/10 text-xs" role="group" aria-label="演奏员平均与安排倍数对照">
       <span class="inline-flex items-baseline gap-1 text-gray-600 dark:text-gray-400"
             :title="comparison.averageRatio === null ? '当前日程暂无有效录音记录' : '当前日程历史录音 ' + formatSecs(comparison.actualSeconds) + ' / 对应曲目 ' + formatSecs(comparison.recordedMusicSeconds)">
         <span>平均</span>
