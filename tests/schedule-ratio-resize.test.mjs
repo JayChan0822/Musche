@@ -84,6 +84,49 @@ test('no schedule or no music exposes a fallback instead of an invalid ratio', (
   assert.equal(h.ratio(), null);
 });
 
+test('ratio comparison shows average versus schedule and updates the signed margin live', () => {
+  const h = createStats();
+  h.refs.itemPool.value[0].records = { musician: { actualDuration: '01:00:00' } };
+  const comparison = () => h.feature.musicianStats.value[0].ratioComparison;
+  assert.equal(comparison().averageRatio, 20);
+  assert.equal(comparison().scheduledRatio, 20);
+  assert.equal(comparison().differencePercent, 0);
+  h.refs.scheduledTasks.value[0].estDuration = '01:15:00';
+  assert.equal(comparison().differencePercent, 25);
+  h.refs.scheduledTasks.value[0].estDuration = '00:45:00';
+  assert.equal(comparison().differencePercent, -25);
+  assert.equal(h.settings.musicians[0].defaultRatio, 30);
+});
+
+test('comparison average is weighted by music duration, excludes skipped records and survives search', () => {
+  const h = createStats();
+  h.refs.itemPool.value[0].records = { musician: { actualDuration: '01:00:00' } };
+  h.refs.itemPool.value.push(
+    { id: 'T2', name: 'Song B', musicianId: 'M1', musicDuration: '00:01:00', records: { musician: { actualDuration: '00:40:00' } } },
+    { id: 'SKIP', name: 'Skipped', musicianId: 'M1', musicDuration: '00:01:00', isSkipped: true, records: { musician: { actualDuration: '03:00:00' } } },
+  );
+  const before = h.feature.musicianStats.value[0].ratioComparison;
+  assert.equal(before.averageRatio, 25);
+  assert.equal(before.actualSeconds, 6000);
+  assert.equal(before.recordedMusicSeconds, 240);
+  h.refs.globalSearchQuery.value = 'song a';
+  assert.deepEqual(h.feature.musicianStats.value[0].ratioComparison, before);
+});
+
+test('comparison does not invent an average from defaults or a schedule from recordings', () => {
+  const h = createStats();
+  let comparison = h.feature.musicianStats.value[0].ratioComparison;
+  assert.equal(comparison.averageRatio, null);
+  assert.equal(comparison.scheduledRatio, 20);
+  assert.equal(comparison.differencePercent, null);
+  h.refs.itemPool.value[0].records = { musician: { actualDuration: '01:00:00' } };
+  h.refs.scheduledTasks.value = [];
+  comparison = h.feature.musicianStats.value[0].ratioComparison;
+  assert.equal(comparison.averageRatio, 20);
+  assert.equal(comparison.scheduledRatio, null);
+  assert.equal(comparison.differencePercent, null);
+});
+
 test('normal resizing snaps to 15 minutes; Command snaps to 1 minute in either direction', () => {
   const h = createStats();
   const task = h.refs.scheduledTasks.value[0];

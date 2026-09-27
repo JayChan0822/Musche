@@ -1,4 +1,7 @@
+import { AppRatioComparison } from './app-ratio-comparison.js';
+
 export const AppSidebar = {
+  components: { AppRatioComparison },
   name: 'AppSidebar',
   props: {
     ctx: {
@@ -147,24 +150,20 @@ export const AppSidebar = {
                                         <span v-else-if="stat.statusKey === 'full'" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
                                         <span v-else-if="stat.statusKey === 'insufficient'" class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 dark:text-red-400 text-sm sm:text-xs font-bold whitespace-nowrap">缺时</span>
 
-                                        <div v-if="sidebarTab === 'musician' && stat.scheduleRatio !== null"
-                                             title="任务块总时长 ÷ 对应曲目总时长"
-                                             class="px-2 py-1 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-sm sm:text-xs font-mono font-bold whitespace-nowrap border border-transparent dark:border-purple-500/20">
-                                            x{{ stat.scheduleRatio.toFixed(1) }}
-                                        </div>
-
-                                        <button v-else-if="stat.avgRealRatio > 0"
+                                        <button v-if="sidebarTab !== 'musician' && stat.avgRealRatio > 0"
                                                 @click.stop="autoUpdateEfficiency(stat.id, sidebarTab)"
                                                 class="px-2 py-1 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-sm sm:text-xs font-mono font-bold transition whitespace-nowrap border border-transparent dark:border-purple-500/20 hover:bg-purple-200 active:scale-95 cursor-pointer">
                                             x{{ stat.avgRealRatio }}
                                         </button>
 
-                                        <div v-else-if="stat.items && stat.items.length > 0"
+                                        <div v-else-if="sidebarTab !== 'musician' && stat.items && stat.items.length > 0"
                                              class="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-sm sm:text-xs font-mono font-bold transition whitespace-nowrap border border-transparent cursor-default">
                                             x{{ getTaskRatio(stat.items[0]) }}
                                         </div>
                                     </div>
                                 </div>
+
+                                <AppRatioComparison v-if="sidebarTab === 'musician' && stat.ratioComparison" :comparison="stat.ratioComparison" />
 
                                 <div class="flex justify-between items-baseline">
                                     <div class="text-[14px] opacity-50 font-medium flex items-center gap-2">

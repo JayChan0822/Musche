@@ -157,6 +157,34 @@ export function registerSidebarStatsFeature(context) {
         ? Number((blockSeconds / scheduledMusicSecs).toFixed(1))
         : null;
 
+      let ratioComparison = null;
+      if (currentRecordType === 'musician') {
+        let actualSeconds = 0;
+        let recordedMusicSeconds = 0;
+        groupPoolItems.forEach((item) => {
+          if (item.isSkipped) return;
+          const actual = parseTime(item.records?.musician?.actualDuration);
+          const music = parseTime(item.musicDuration);
+          if (actual > 0 && music > 0) {
+            actualSeconds += actual;
+            recordedMusicSeconds += music;
+          }
+        });
+        const averageRatio = recordedMusicSeconds > 0 ? actualSeconds / recordedMusicSeconds : null;
+        const scheduledRatio = scheduledMusicSecs > 0 && blockSeconds > 0 ? blockSeconds / scheduledMusicSecs : null;
+        ratioComparison = {
+          averageRatio,
+          scheduledRatio,
+          differencePercent: averageRatio !== null && scheduledRatio !== null
+            ? Math.round((scheduledRatio / averageRatio - 1) * 100)
+            : null,
+          actualSeconds,
+          recordedMusicSeconds,
+          blockSeconds,
+          scheduledMusicSeconds: scheduledMusicSecs,
+        };
+      }
+
       let groupTotalActual = 0;
       let groupTotalMusic = 0;
 
@@ -341,6 +369,7 @@ export function registerSidebarStatsFeature(context) {
         statusKey,
         avgRealRatio,
         scheduleRatio,
+        ratioComparison,
         recordedCount,
         isFullyScheduled: statusKey === 'full' || statusKey === 'completed',
       };
