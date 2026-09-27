@@ -37,9 +37,9 @@ export function registerQuickAddFeature(context) {
     return getExistingGroups(type);
   });
 
-  const openQuickAdd = (type) => {
+  const openQuickAdd = (type, initialName = '') => {
     quickAddType.value = type;
-    quickAddForm.name = '';
+    quickAddForm.name = initialName.trim();
     quickAddForm.group = '';
     quickAddForm.defaultRatio = 20;
     showQuickAddModal.value = true;

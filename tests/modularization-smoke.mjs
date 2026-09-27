@@ -12344,7 +12344,7 @@ for (const relativePath of requiredFiles) {
     });
 
     assert.equal(prevented, true, 'mobile resize move should prevent scrolling when cancelable');
-    assert.equal(task.estDuration, '3600s', 'mobile resize move should snap the resized duration to the 30-minute grid');
+    assert.equal(task.estDuration, '2700s', 'mobile resize move should snap the resized duration to the 15-minute grid');
 
 
     feature.handleMobileResizeEnd({});
@@ -12356,7 +12356,7 @@ for (const relativePath of requiredFiles) {
     ], 'mobile resize end should remove the original listeners');
     assert.equal(taskEl.style.opacity, '', 'mobile resize end should restore task element opacity');
     assert.equal(taskEl.style.transition, '', 'mobile resize end should restore task element transition');
-    assert.equal(task.ratio, '2.0', 'mobile resize end should recalculate task ratio when there is no conflict');
+    assert.equal(task.ratio, '1.5', 'mobile resize end should recalculate task ratio when there is no conflict');
     assert.equal(historyCount, 1, 'mobile resize end should push history once after a successful resize');
 
     assert.equal(refs.mobileResizeState.task, null, 'mobile resize end should clear the active task reference');
@@ -13059,10 +13059,10 @@ for (const relativePath of requiredFiles) {
     assert.equal(body.style.cursor, 'ns-resize', 'desktop resize init should set the resize cursor');
 
     feature.handleResizeMove({ clientY: 130 });
-    assert.equal(task.estDuration, '3600s', 'desktop resize move should snap the resized duration to the 30-minute grid');
+    assert.equal(task.estDuration, '2700s', 'desktop resize move should snap the resized duration to the 15-minute grid');
 
     feature.handleResizeEnd();
-    assert.equal(task.ratio, '2.0', 'desktop resize end should recalculate ratio when there is no conflict');
+    assert.equal(task.ratio, '1.5', 'desktop resize end should recalculate ratio when there is no conflict');
     assert.equal(historyCount, 1, 'desktop resize end should push history after a successful resize');
     assert.equal(refs.resizing.value, null, 'desktop resize end should clear resize state');
     assert.equal(body.style.cursor, '', 'desktop resize end should restore the cursor');

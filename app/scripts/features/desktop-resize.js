@@ -27,13 +27,13 @@ export function registerDesktopResizeFeature(context) {
   const handleResizeMove = (event) => {
     if (!resizing.value) return;
 
-    const { task, startY, startH } = resizing.value;
+    const { task, startY, originalDuration } = resizing.value;
     const delta = event.clientY - startY;
-    const rawHeight = Math.max(5, startH + delta);
-    const rawDurationMins = rawHeight / pxPerMin.value;
+    const rawDurationMins = parseTime(originalDuration) / 60 + delta / pxPerMin.value;
     const startMins = timeToMinutes(task.startTime);
     const rawEndMins = startMins + rawDurationMins;
-    const snappedEndMins = Math.round(rawEndMins / 30) * 30;
+    const snapMinutes = event.metaKey ? 1 : 15;
+    const snappedEndMins = Math.round(rawEndMins / snapMinutes) * snapMinutes;
 
     let newDurationMins = snappedEndMins - startMins;
     if (newDurationMins < 5) newDurationMins = 5;

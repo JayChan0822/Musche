@@ -126,6 +126,7 @@ export function registerSidebarStatsFeature(context) {
 
     const stats = sourceList.map((group) => {
       let poolItems = currentSessionItems.filter((item) => item[filterKey] === group.id);
+      const groupPoolItems = poolItems;
 
       if (isSearchMode) {
         poolItems = poolItems.filter((item) => {
@@ -145,6 +146,16 @@ export function registerSidebarStatsFeature(context) {
       );
       scheduleItems.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
       const scheduleCount = scheduleItems.length;
+      // Use all associated music, even when the sidebar list is search-filtered.
+      const scheduledMusicSecs = currentRecordType === 'musician'
+        ? groupPoolItems.filter((item) => !item.isSkipped && scheduleItems.some((block, index) =>
+          block.templateId ? block.templateId === item.id : (item.sectionIndex || 0) === index,
+        )).reduce((sum, item) => sum + parseTime(item.musicDuration), 0)
+        : 0;
+      const blockSeconds = scheduleItems.reduce((sum, block) => sum + parseTime(block.estDuration), 0);
+      const scheduleRatio = scheduledMusicSecs > 0 && blockSeconds > 0
+        ? Number((blockSeconds / scheduledMusicSecs).toFixed(1))
+        : null;
 
       let groupTotalActual = 0;
       let groupTotalMusic = 0;
@@ -329,6 +340,7 @@ export function registerSidebarStatsFeature(context) {
         completedSeconds: totalActualSec,
         statusKey,
         avgRealRatio,
+        scheduleRatio,
         recordedCount,
         isFullyScheduled: statusKey === 'full' || statusKey === 'completed',
       };

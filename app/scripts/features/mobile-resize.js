@@ -49,11 +49,10 @@ export function registerMobileResizeFeature(context) {
 
     const touch = event.touches[0];
     const deltaY = touch.clientY - mobileResizeState.startY;
-    const targetHeight = Math.max(5, mobileResizeState.startHeight + deltaY);
-    const rawDurationMins = targetHeight / pxPerMin.value;
+    const rawDurationMins = parseTime(mobileResizeState.originalDuration) / 60 + deltaY / pxPerMin.value;
     const startMins = timeToMinutes(mobileResizeState.task.startTime);
     const rawEndMins = startMins + rawDurationMins;
-    const snappedEndMins = Math.round(rawEndMins / 30) * 30;
+    const snappedEndMins = Math.round(rawEndMins / 15) * 15;
 
     let newDurationMins = snappedEndMins - startMins;
     if (newDurationMins < 5) newDurationMins = 5;

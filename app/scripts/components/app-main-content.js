@@ -165,6 +165,7 @@ export const AppMainContent = {
                                                         </div>
                                                     </div>
                                                     <div class="resize-handle"
+                                                         title="拖动调整时长：15 分钟吸附；按住 ⌘ Command 可按 1 分钟微调"
                                                          @mousedown.stop="initResize($event, task)"></div>
                                                     <div v-if="hasRecordingInfo(task)"
                                                          class="absolute bottom-[1px] right-[2px] z-[15] pointer-events-none">

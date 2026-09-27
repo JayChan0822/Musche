@@ -80,7 +80,7 @@ export const AppMobileTaskInput = {
                         <div v-if="filteredOptions.length===0" class="p-8 text-center opacity-40 text-sm">无结果
                         </div>
                     </div>
-                    <button @click.stop="openQuickAdd('project')"
+                    <button @click.stop="openQuickAdd('project', dropdownSearch)"
                             class="w-full py-3 text-sm font-bold text-[#007aff] bg-black/5 dark:bg-white/5 hover:bg-[#007aff] hover:text-white transition flex items-center justify-center gap-2 border-t border-black/5 dark:border-white/5 sticky bottom-0 backdrop-blur-md">
                         <i class="fa-solid fa-plus"></i> 新建项目
                     </button>
@@ -151,7 +151,7 @@ export const AppMobileTaskInput = {
                         <div v-if="filteredOptions.length===0" class="p-8 text-center opacity-40 text-sm">无结果
                         </div>
                     </div>
-                    <button @click.stop="openQuickAdd('instrument')"
+                    <button @click.stop="openQuickAdd('instrument', dropdownSearch)"
                             class="w-full py-3 text-sm font-bold text-[#007aff] bg-black/5 dark:bg-white/5 hover:bg-[#007aff] hover:text-white transition flex items-center justify-center gap-2 border-t border-black/5 dark:border-white/5 sticky bottom-0 backdrop-blur-md">
                         <i class="fa-solid fa-plus"></i> 新建乐器
                     </button>
@@ -222,7 +222,7 @@ export const AppMobileTaskInput = {
                         <div v-if="filteredOptions.length===0" class="p-8 text-center opacity-40 text-sm">无结果
                         </div>
                     </div>
-                    <button @click.stop="openQuickAdd('musician')"
+                    <button @click.stop="openQuickAdd('musician', dropdownSearch)"
                             class="w-full py-3 text-sm font-bold text-[#007aff] bg-black/5 dark:bg-white/5 hover:bg-[#007aff] hover:text-white transition flex items-center justify-center gap-2 border-t border-black/5 dark:border-white/5 sticky bottom-0 backdrop-blur-md">
                         <i class="fa-solid fa-plus"></i> 新建演奏员
                     </button>
