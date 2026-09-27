@@ -455,6 +455,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const scheduleInteractionsFeature = wireScheduleInteractionsFeature(assembly);
             assembly.features.scheduleInteractions = scheduleInteractionsFeature;
             const dragStart = (...args) => scheduleInteractionsFeature.dragStart(...args);
+            const initPreciseScheduleMove = (...args) => scheduleInteractionsFeature.initPreciseScheduleMove(...args);
             const handleDragEnd = (...args) => scheduleInteractionsFeature.handleDragEnd(...args);
             const dragEnterPool = (...args) => scheduleInteractionsFeature.dragEnterPool(...args);
             const dragLeavePool = (...args) => scheduleInteractionsFeature.dragLeavePool(...args);
@@ -465,6 +466,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const dropToMonth = (...args) => scheduleInteractionsFeature.dropToMonth(...args);
             Object.assign(assembly.helpers, {
                 dragStart, handleDragEnd, dragEnterPool, dragLeavePool, dropToPool,
+                initPreciseScheduleMove,
                 dragEnterSlot, dragLeaveSlot, dropToSchedule, dropToMonth,
             });
 

@@ -129,6 +129,8 @@ export const AppMainContent = {
                                                 <div v-for="task in (tasksByDateMap[day.dateStr] || [])"
                                                      :key="task.scheduleId"
                                                      class="task-block group"
+                                                     @mousedown="initPreciseScheduleMove($event, task)"
+                                                     title="拖动移动安排；按住 ⌘ Command 拖动可按 1 分钟微调"
                                                      :draggable="!isMobile"
                                                      @dragstart.stop="dragStart($event, task, 'schedule')"
                                                      @dragend="handleDragEnd"
@@ -157,7 +159,7 @@ export const AppMainContent = {
                                                         </div>
                                                         <div class="mt-auto text-[10px] sm:text-[11px] font-mono opacity-80 leading-none">
                                                             <div class="flex flex-col items-start">
-                                                                <span class="whitespace-nowrap">{{task.startTime}}</span>
+                                                                <span data-schedule-start class="whitespace-nowrap">{{task.startTime}}</span>
                                                                 <span class="font-bold whitespace-nowrap text-[10px] opacity-70 mt-0.5">
                                                                     {{task.estDuration}}
                                                                 </span>

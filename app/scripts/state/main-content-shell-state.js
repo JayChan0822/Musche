@@ -63,6 +63,7 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.dragLeaveSlot',
         'helpers.dropToSchedule',
         'helpers.dragStart',
+        'helpers.initPreciseScheduleMove',
         'helpers.handleDragEnd',
         'helpers.mobileTouchHandlers.handleTouchStart',
         'helpers.mobileTouchHandlers.handleTouchMove',

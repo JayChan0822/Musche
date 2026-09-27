@@ -1,8 +1,10 @@
 import { registerScheduleDragDropFeature } from './schedule-drag-drop.js';
 import { registerScheduleTaskActivationFeature } from './schedule-task-activation.js';
+import { registerPreciseScheduleMoveFeature } from './precise-schedule-move.js';
 
 export function registerScheduleInteractionsFeature(context) {
   const { refs, state, utils, actions } = context;
+  const preciseMoveFeature = registerPreciseScheduleMoveFeature({ refs, state, actions });
 
   const scheduleDragDropFeature = registerScheduleDragDropFeature({
     refs: {
@@ -58,6 +60,7 @@ export function registerScheduleInteractionsFeature(context) {
   });
 
   return {
+    initPreciseScheduleMove: preciseMoveFeature.initPreciseScheduleMove,
     dragStart: scheduleDragDropFeature.dragStart,
     handleDragEnd: scheduleDragDropFeature.handleDragEnd,
     dragEnterPool: scheduleDragDropFeature.dragEnterPool,
