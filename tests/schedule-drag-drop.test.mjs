@@ -114,7 +114,7 @@ for (const [metaKey, minute, expected] of [
 ]) {
   test(`moving a whole block to minute ${minute} with Command=${metaKey} gives ${expected}`, () => {
     const h = createDropHarness();
-    startBlockDrag(h, { metaKey: !metaKey });
+    startBlockDrag(h);
     h.feature.dropToSchedule({ ...h.weekDropEvent, clientY: 100 + (minute + 13) * 2, metaKey }, '2026-06-03');
     assert.equal(h.refs.scheduledTasks.value[0].startTime, expected);
     assert.equal(h.refs.scheduledTasks.value[0].date, '2026-06-03');
@@ -135,6 +135,17 @@ test('whole-block move respects conflicts and clears drag state', () => {
   assert.equal(h.alerts.length, 1);
   h.feature.dropToSchedule(event, '2026-06-03');
   assert.equal(h.alerts.length, 1);
+});
+
+test('Command held at drag start retains minute precision when drop loses the modifier', () => {
+  const h = createDropHarness();
+  startBlockDrag(h, { metaKey: true });
+  h.feature.dropToSchedule({ ...h.weekDropEvent, clientY: 100 + (73 + 13) * 2, metaKey: false }, '2026-06-03');
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:13');
+  assert.equal(h.refs.scheduledTasks.value[0].estDuration, '1800s');
+  startBlockDrag(h);
+  h.feature.dropToSchedule({ ...h.weekDropEvent, clientY: 100 + (73 + 13) * 2, metaKey: false }, '2026-06-03');
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:15', 'minute precision must not leak into the next drag');
 });
 
 for (const [metaKey, minute, expected] of [

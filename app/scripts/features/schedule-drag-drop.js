@@ -49,7 +49,7 @@ export function registerScheduleDragDropFeature(context) {
       offsetMinutes = offsetY / pxPerMin.value;
     }
 
-    draggedData = { item, source, isCopy: event.altKey, offsetMinutes };
+    draggedData = { item, source, isCopy: event.altKey, offsetMinutes, precise: !!event.metaKey };
     event.dataTransfer.effectAllowed = 'move';
 
     if (source === 'schedule' && sourceElement) {
@@ -149,7 +149,8 @@ export function registerScheduleDragDropFeature(context) {
 
     const rawMins = adjustY / pxPerMin.value;
     const totalMins = settings.startHour * 60 + rawMins;
-    const snapMinutes = event.metaKey ? 1 : 15;
+    // Preserve precision for this gesture if the native drop loses modifier state.
+    const snapMinutes = draggedData.precise || event.metaKey ? 1 : 15;
     let snappedMins = Math.round(totalMins / snapMinutes) * snapMinutes;
 
     const minStart = settings.startHour * 60;
