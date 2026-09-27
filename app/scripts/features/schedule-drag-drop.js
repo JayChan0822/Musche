@@ -41,46 +41,47 @@ export function registerScheduleDragDropFeature(context) {
 
   const dragStart = (event, item, source) => {
     let offsetMinutes = 0;
+    const sourceElement = event.currentTarget || event.target;
 
-    if (source === 'schedule' && event.target) {
-      const rect = event.target.getBoundingClientRect();
+    if (source === 'schedule' && sourceElement) {
+      const rect = sourceElement.getBoundingClientRect();
       const offsetY = event.clientY - rect.top;
-      const rawMinutes = offsetY / pxPerMin.value;
-      offsetMinutes = Math.floor(rawMinutes / 30) * 30;
+      offsetMinutes = offsetY / pxPerMin.value;
     }
 
     draggedData = { item, source, isCopy: event.altKey, offsetMinutes };
     event.dataTransfer.effectAllowed = 'move';
 
-    if (source === 'schedule' && event.target) {
-      const clone = event.target.cloneNode(true);
+    if (source === 'schedule' && sourceElement) {
+      const clone = sourceElement.cloneNode(true);
       clone.classList.remove('is-selected');
       clone.style.setProperty('opacity', '0.4', 'important');
       clone.style.position = 'absolute';
       clone.style.top = '-9999px';
       clone.style.zIndex = '9999';
-      clone.style.width = `${event.target.offsetWidth}px`;
+      clone.style.width = `${sourceElement.offsetWidth}px`;
       getDocumentBody().appendChild(clone);
 
-      const rect = event.target.getBoundingClientRect();
+      const rect = sourceElement.getBoundingClientRect();
       const offsetX = event.clientX - rect.left;
       const offsetY = event.clientY - rect.top;
       event.dataTransfer.setDragImage(clone, offsetX, offsetY);
 
       setTimeoutFn(() => {
         getDocumentBody().removeChild(clone);
-        event.target.classList.add('pointer-events-none');
-        event.target.style.transition = 'none';
-        event.target.style.opacity = '0';
+        sourceElement.classList.add('pointer-events-none');
+        sourceElement.style.transition = 'none';
+        sourceElement.style.opacity = '0';
       }, 0);
     }
   };
 
   const handleDragEnd = (event) => {
-    if (event.target) {
-      event.target.classList.remove('pointer-events-none');
-      event.target.style.opacity = '';
-      event.target.style.transition = '';
+    const sourceElement = event.currentTarget || event.target;
+    if (sourceElement) {
+      sourceElement.classList.remove('pointer-events-none');
+      sourceElement.style.opacity = '';
+      sourceElement.style.transition = '';
     }
     draggedData = null;
   };
@@ -148,10 +149,11 @@ export function registerScheduleDragDropFeature(context) {
 
     const rawMins = adjustY / pxPerMin.value;
     const totalMins = settings.startHour * 60 + rawMins;
-    let snappedMins = Math.round(totalMins / 30) * 30;
+    const snapMinutes = event.metaKey ? 1 : 15;
+    let snappedMins = Math.round(totalMins / snapMinutes) * snapMinutes;
 
     const minStart = settings.startHour * 60;
-    const maxStart = settings.endHour * 60 - 30;
+    const maxStart = settings.endHour * 60 - snapMinutes;
     snappedMins = Math.max(minStart, Math.min(maxStart, snappedMins));
 
     const newStartTime = formatClock(Math.floor(snappedMins / 60), snappedMins % 60);

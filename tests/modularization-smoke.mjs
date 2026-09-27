@@ -12873,10 +12873,10 @@ for (const relativePath of requiredFiles) {
     }, '2026-05-29');
 
     assert.deepEqual(removedDragOverClasses, ['drag-over'], 'week drops should remove existing drag-over highlights');
-    assert.deepEqual(overlapCalls, [['2026-05-29', '09:30', '1800s', 'SCHED_DRAG', 'project']], 'week drops should preserve overlap checks with snapped time and task type');
+    assert.deepEqual(overlapCalls, [['2026-05-29', '09:15', '1800s', 'SCHED_DRAG', 'project']], 'week drops should preserve overlap checks with snapped time and task type');
     assert.notEqual(refs.scheduledTasks.value[0], task, 'moving an existing schedule block should replace the task object to refresh Vue');
     assert.equal(refs.scheduledTasks.value[0].date, '2026-05-29', 'week drops should update the moved task date');
-    assert.equal(refs.scheduledTasks.value[0].startTime, '09:30', 'week drops should snap moved task start time to the 30-minute grid');
+    assert.equal(refs.scheduledTasks.value[0].startTime, '09:15', 'week drops should snap moved task start time to the 15-minute grid');
 
     assert.equal(historyCount, 1, 'successful week drops should push one history entry');
 

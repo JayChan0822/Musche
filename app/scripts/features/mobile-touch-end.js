@@ -61,16 +61,17 @@ export function registerMobileTouchEndFeature(context) {
     }
   };
 
-  const getWeekDropTime = (touch, timeGridContainer) => {
+  const getWeekDropTime = (touch, timeGridContainer, metaKey) => {
     const settings = getSettings();
     const gridRect = timeGridContainer.getBoundingClientRect();
     const touchYInContainer = touch.clientY - gridRect.top;
     const taskTopPixel = touchYInContainer - state.dragClickOffsetY;
     const minsFromStart = taskTopPixel / pxPerMin.value;
     const totalMins = (settings.startHour * 60) + minsFromStart;
-    const snappedMins = Math.round(totalMins / 30) * 30;
+    const snapMinutes = metaKey ? 1 : 15;
+    const snappedMins = Math.round(totalMins / snapMinutes) * snapMinutes;
     const minMins = settings.startHour * 60;
-    const maxMins = settings.endHour * 60 - 30;
+    const maxMins = settings.endHour * 60 - snapMinutes;
     const finalMins = Math.max(minMins, Math.min(maxMins, snappedMins));
     return formatClock(Math.floor(finalMins / 60), finalMins % 60);
   };
@@ -133,13 +134,13 @@ export function registerMobileTouchEndFeature(context) {
     startTime: newTime,
   });
 
-  const dropInWeek = (dropColumn, touch) => {
+  const dropInWeek = (dropColumn, touch, metaKey) => {
     const dateStr = dropColumn.dataset.dateStr;
     const timeGridContainer = dropColumn.querySelector('.relative[style*="min-height"]');
 
     if (!timeGridContainer || !state.dragSourceTask) return;
 
-    const newTime = getWeekDropTime(touch, timeGridContainer);
+    const newTime = getWeekDropTime(touch, timeGridContainer, metaKey);
     const check = getWeekDropCheck();
     if (!check) return;
 
@@ -273,7 +274,7 @@ export function registerMobileTouchEndFeature(context) {
       const dropMonthCell = targetEl ? targetEl.closest('[data-date]') : null;
 
       if (dropColumn) {
-        dropInWeek(dropColumn, touch);
+        dropInWeek(dropColumn, touch, event.metaKey);
       } else if (dropMonthCell && state.dragSourceTask) {
         dropInMonth(dropMonthCell);
       }
