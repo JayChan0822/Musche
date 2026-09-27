@@ -8,13 +8,18 @@ export const resourceTabs = [
 
 export function createResourceLibrary(ctx) {
   const activeType = ref('instrument');
-  const queries = reactive({ instrument: '', musician: '', project: '' });
+  const previousType = ref('instrument');
+  const queries = reactive({ instrument: '', musician: '', project: '', metadata: '' });
   const expanded = reactive(new Set());
   const creating = ref(false);
   const saving = ref(false);
-  const activeTab = computed(() => resourceTabs.find((tab) => tab.type === activeType.value));
+  const activeTab = computed(() => activeType.value === 'metadata'
+    ? { type: 'metadata', label: '录音资料', icon: 'fa-database', color: '#0d9488' }
+    : resourceTabs.find((tab) => tab.type === activeType.value));
   const search = computed({ get: () => queries[activeType.value], set: (value) => { queries[activeType.value] = value; } });
-  const list = computed(() => ctx.settings[`${activeType.value}s`]);
+  const list = computed(() => activeType.value === 'metadata'
+    ? ['studios', 'engineers', 'operators', 'assistants'].flatMap((key) => ctx.settings[key] || [])
+    : ctx.settings[`${activeType.value}s`]);
   const totalCount = computed(() => list.value.length);
   const groupNames = computed(() => [...new Set(list.value.map((item) => item.group?.trim()).filter(Boolean))].sort());
   const groups = computed(() => {
@@ -44,10 +49,12 @@ export function createResourceLibrary(ctx) {
     });
   };
   const selectType = (type) => {
-    if (!resourceTabs.some((tab) => tab.type === type)) return;
+    if (type !== 'metadata' && !resourceTabs.some((tab) => tab.type === type)) return;
+    if (type === 'metadata' && activeType.value !== 'metadata') previousType.value = activeType.value;
     activeType.value = type;
     creating.value = false;
   };
+  const returnToLibrary = () => selectType(previousType.value);
   const beginCreate = () => {
     if (!form.value.name) form.value.name = search.value.trim();
     creating.value = true;
@@ -74,5 +81,5 @@ export function createResourceLibrary(ctx) {
     ctx.pushHistory();
   };
   return { resourceTabs, activeType, activeTab, search, totalCount, groupNames, groups, form, creating, saving,
-    isExpanded, toggleGroup, allExpanded, toggleAll, selectType, beginCreate, saveNew, updateGroup };
+    isExpanded, toggleGroup, allExpanded, toggleAll, selectType, returnToLibrary, beginCreate, saveNew, updateGroup };
 }

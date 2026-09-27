@@ -11,17 +11,19 @@ const ctx = () => reactive({
   newSettingsItem: { instrument: { name: '', group: '' }, musician: { name: '', group: '' }, project: { name: '', group: '' } },
 });
 
-test('right library renders three tabs, search and management actions', async () => {
+test('right library renders three primary tabs and a secondary Metadata entry', async () => {
   const html = await renderToString(createSSRApp({ render: () => h(AppResourceSidebar, { ctx: ctx(), open: true }) }));
   assert.match(html, /role="complementary"/);
   assert.equal((html.match(/role="tab"/g) || []).length, 3);
+  assert.match(html, /Metadata/);
   assert.match(html, /搜索乐器/);
   assert.match(html, /Guzheng/);
   assert.doesNotMatch(html, /aria-label="所属分组"/);
   assert.match(html, /修改Guzheng分组/);
   assert.match(html, /新增乐器/);
   assert.match(html, /删除Guzheng/);
-  assert.match(html, /修改Guzheng颜色/);
+  assert.match(html, /查看Guzheng详情/);
+  assert.doesNotMatch(html, /修改Guzheng颜色/);
   assert.doesNotMatch(html, /项目信息/);
 });
 
@@ -39,7 +41,28 @@ test('root exposes the same settings context while preferences no longer render 
   assert.equal(appRootShell.appResourceLibrary, library);
   assert.doesNotMatch(AppSettingsModal.template, /allSettingsGrouped|removeSettingsItem|addSettingsItem/);
   assert.match(AppSettingsModal.template, /settings.startHour/);
-  assert.match(AppSettingsModal.template, /Metadata/);
+  assert.doesNotMatch(AppSettingsModal.template, /showMetadataManager|Edit MetaData/);
+});
+
+test('metadata tab displays shared studio and personnel collections with edit actions', async () => {
+  const context = ctx();
+  Object.assign(context.settings, {
+    studios: [{ id: 'S', name: 'Studio A' }], engineers: [{ id: 'E', name: 'Engineer B' }],
+    operators: [], assistants: [],
+  });
+  context.newRecInputs = { studio: '', engineer: '', operator: '', assistant: '' };
+  const component = { ...AppResourceSidebar, setup(props) {
+    const result = AppResourceSidebar.setup(props);
+    result.selectType('metadata');
+    return result;
+  } };
+  const html = await renderToString(createSSRApp(component, { ctx: context, open: true }));
+  for (const text of ['录音棚', '工程师', '操作员', '助理', 'Studio A', 'Engineer B']) assert.ok(html.includes(text));
+  assert.match(html, /返回资料库/);
+  assert.doesNotMatch(html, /role="tablist"/);
+  assert.match(html, /新增录音棚/);
+  assert.match(html, /删除Studio A/);
+  assert.doesNotMatch(html, /Guzheng|清空|新条目分组/);
 });
 
 for (const type of ['musician', 'project']) {

@@ -76,3 +76,14 @@ test('group edits share data with task pickers and save once', () => {
   h.feature.updateGroup(h.ctx.settings.instruments[0], 'New group');
   assert.equal(h.saves(), 1);
 });
+
+test('Metadata is secondary and back restores the selected resource and search', () => {
+  const { feature: f } = harness();
+  f.selectType('musician'); f.search.value = '张三';
+  f.selectType('metadata');
+  assert.equal(f.activeType.value, 'metadata');
+  assert.equal(f.resourceTabs.length, 3);
+  f.returnToLibrary();
+  assert.equal(f.activeType.value, 'musician');
+  assert.equal(f.search.value, '张三');
+});

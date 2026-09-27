@@ -120,23 +120,25 @@ export function registerRecInfoFeature(context) {
     recDropdownSearch.value = '';
   };
 
-  const addRecItem = (type) => {
-    let value = recInfoForm[type];
-    if (!value || !value.trim()) {
+  const addRecItem = (type, suppliedName) => {
+    const list = getMetadataList(settings, type);
+    if (!list) return;
+    let value = suppliedName === undefined ? recInfoForm[type] : suppliedName;
+    if (suppliedName === undefined && (!value || !value.trim())) {
       value = promptForValue(`Enter new ${type} name:`);
     }
 
     if (!value || !value.trim()) return;
 
     const cleanValue = value.trim();
-    const listKey = `${type}s`;
-    const exists = settings[listKey].some((item) => item.name === cleanValue);
+    const exists = list.some((item) => item.name.toLowerCase() === cleanValue.toLowerCase());
 
     if (!exists) {
-      settings[listKey].push({
-        id: Date.now(),
+      list.push({
+        id: generateUniqueId('META'),
         name: cleanValue,
       });
+      pushHistory();
     }
   };
 

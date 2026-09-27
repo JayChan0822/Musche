@@ -3,6 +3,9 @@ import { defineShellState } from './shell-state-factory.js';
 export const createSettingsModalShellState = defineShellState('createSettingsModalShellState', {
     reads: [
         'helpers.allSettingsGrouped',
+        'refs.itemPool',
+        'refs.scheduledTasks',
+        'refs.currentSessionId',
     ],
     models: [
         'refs.showSettings',
