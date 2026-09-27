@@ -1,14 +1,10 @@
 import { computed, reactive } from 'vue';
 
-const categories = [
-  { type: 'studio', label: '录音棚', icon: 'fa-building' },
-  { type: 'engineer', label: '工程师', icon: 'fa-sliders' },
-  { type: 'operator', label: '操作员', icon: 'fa-headphones' },
-  { type: 'assistant', label: '助理', icon: 'fa-user-group' },
-];
+import { metadataTypes as categories, metadataAvatarColor } from '../utils/metadata-types.js';
 
 export const AppMetadataLibrary = {
   name: 'AppMetadataLibrary',
+  emits: ['open-info'],
   props: { ctx: { type: Object, required: true }, search: { type: String, default: '' } },
   setup(props) {
     const expanded = reactive(new Set());
@@ -38,7 +34,7 @@ export const AppMetadataLibrary = {
         }
       } finally { busy.delete(type); }
     };
-    return { groups, isExpanded, toggle, add, busy };
+    return { groups, isExpanded, toggle, add, busy, metadataAvatarColor };
   },
   template: `
     <div class="space-y-3">
@@ -49,8 +45,9 @@ export const AppMetadataLibrary = {
           <span class="flex-1">{{ group.label }}</span><span class="font-mono text-gray-500 dark:text-gray-400">{{ group.total }}</span>
         </button>
         <div v-show="isExpanded(group.type)" class="p-2 pt-0 space-y-1">
-          <div v-for="item in group.items" :key="item.id" class="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/60 dark:bg-black/10">
-            <input :value="item.name" :aria-label="group.label + '名称'" @change="ctx.handleRecRename(group.type, item, $event)" class="min-w-0 flex-1 py-1 text-sm bg-transparent rounded outline-none focus:ring-1 focus:ring-blue-500">
+          <div v-for="item in group.items" :key="item.id" class="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/60 dark:bg-black/10 hover:bg-white dark:hover:bg-white/10">
+            <button @click="$emit('open-info', { type: group.type, id: item.id })" :aria-label="'查看' + item.name + '详情'" class="w-7 h-7 rounded-lg shrink-0 text-white shadow-sm" :style="{backgroundColor: metadataAvatarColor(item, group.type)}"><i class="fa-solid text-[10px]" :class="group.icon" aria-hidden="true"></i></button>
+            <input :value="item.name" :aria-label="group.label + '名称'" @change="ctx.handleRecRename(group.type, item, $event)" class="min-w-0 flex-1 py-1 text-sm font-semibold bg-transparent rounded outline-none focus:ring-1 focus:ring-blue-500">
             <button @click="ctx.removeRecItem(group.type, item.id)" :aria-label="'删除' + item.name" class="w-7 h-7 shrink-0 rounded text-gray-400 hover:text-red-500 hover:bg-red-500/10"><i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i></button>
           </div>
           <p v-if="!group.items.length" class="text-xs text-gray-500 dark:text-gray-400 text-center py-3">暂无{{ group.label }}</p>

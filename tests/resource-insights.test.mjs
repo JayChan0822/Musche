@@ -99,3 +99,31 @@ test('empty history has no fabricated ratios, dates, collaborators or trend', ()
   assert.deepEqual(result.trend, []);
   assert.ok(result.breakdowns.every((group) => group.items.length === 0));
 });
+
+for (const type of ['studio', 'engineer', 'operator', 'assistant']) {
+  test(`${type} details use recording assignments, separate sessions and exclude edit assignments`, () => {
+    const config = { ...settings, [`${type}s`]: [{ id: 'META', name: 'Team A' }] };
+    const pool = [item('DIRECT', { recordingInfo: { [type]: 'Team A' } }),
+      item('SCHEDULED'), item('EDIT', { editInfo: { [type]: 'Team A' }, sectionIndex: 4 }),
+      item('OVERRIDE', { recordingInfo: { [type]: 'Team B' } }),
+      item('OTHER_SESSION', { sessionId: 'S2', recordingInfo: { [type]: 'Team A' } }),
+      item('PARTIAL_NAME', { recordingInfo: { [type]: 'Team A / Team B' } })];
+    const scheduledTasks = [{ musicianId: 'M1', date: '2026-09-28', recordingInfo: { [type]: 'Team A' } }];
+    const args = { type, id: 'META', settings: config, scheduledTasks };
+    const result = analyze(pool, args);
+    assert.deepEqual(result.rows.map((row) => row.id).sort(), ['DIRECT', 'OTHER_SESSION', 'SCHEDULED']);
+    assert.equal(result.summary.averageRatio, 20);
+    assert.deepEqual(result.breakdowns.map((group) => group.type), ['musician', 'instrument', 'project']);
+    assert.equal(analyze(pool, { ...args, sessionId: 'S_DEFAULT' }).summary.trackCount, 2);
+    assert.equal(analyze(pool, { ...args, id: 'DELETED' }).summary.trackCount, 0);
+  });
+}
+
+test('metadata history counts each pool segment once and refuses ambiguous schedule attribution', () => {
+  const config = { ...settings, studios: [{ id: 'S', name: 'Studio A' }] };
+  const schedule = { musicianId: 'M1', templateId: 'T', date: '2026-09-28', recordingInfo: { studio: 'Studio A' } };
+  const args = { type: 'studio', id: 'S', settings: config, scheduledTasks: [schedule, { ...schedule }] };
+  assert.equal(analyze([item('T')], args).summary.actualSeconds, 3600);
+  args.scheduledTasks[1].recordingInfo = { studio: 'Studio B' };
+  assert.equal(analyze([item('T')], args).summary.trackCount, 0);
+});

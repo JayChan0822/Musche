@@ -1,5 +1,6 @@
 import { parseTime, timeToMinutes } from './time.js';
 import { peekItemSplitState } from './split-state.js';
+import { metadataTypes } from './metadata-types.js';
 
 export const insightDimensions = [
   { type: 'musician', label: '乐手' },
@@ -101,7 +102,10 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
   schedulesByMusician.forEach((list) => list.sort((a, b) =>
     (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || '')));
 
-  const rows = itemPool.filter((item) => item[`${type}Id`] === id && (!sessionId || sessionOf(item) === sessionId))
+  const isMetadata = metadataTypes.some((category) => category.type === type);
+  const metadataName = isMetadata ? settings[`${type}s`]?.find((entry) => entry.id === id)?.name : null;
+  const normalizedName = (value) => typeof value === 'string' ? value.trim().toLowerCase() : '';
+  const rows = itemPool.filter((item) => (isMetadata || item[`${type}Id`] === id) && (!sessionId || sessionOf(item) === sessionId))
     .flatMap((item) => {
       const split = peekItemSplitState(item, 'musician');
       if (!split.active) return [];
@@ -113,6 +117,13 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
       const exact = schedulesByTemplate.get(`${sessionOf(item)}|${item.id}`) || [];
       const related = schedulesByMusician.get(`${sessionOf(item)}|${item.musicianId}`) || [];
       const associated = exact.length ? exact : [related[split.sectionIndex]].filter(Boolean);
+      if (isMetadata) {
+        if (!metadataName) return [];
+        const direct = normalizedName(item.recordingInfo?.[type]);
+        const assignments = associated.map((task) => normalizedName(task.recordingInfo?.[type]));
+        const target = normalizedName(metadataName);
+        if (direct ? direct !== target : !assignments.length || !assignments.every((name) => name === target)) return [];
+      }
       const dates = [...new Set(associated.map((task) => validDate(task.date)).filter(Boolean))];
       const date = dates.length === 1 ? dates[0] : null;
       return [{

@@ -15,13 +15,18 @@
 }
 
 html.dark .liquid-window {
-    background: radial-gradient(
-            ellipse at center,
-            rgba(30, 32, 35, 0.95) 40%,
-            rgba(30, 32, 35, 0.2) 100%
-    );
+    /* An opaque canvas avoids banding from stacked low-contrast gradients. */
+    background: #1e1e1e;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border: none;
     box-shadow: none;
+}
+
+html.dark #main-content {
+    background: #1e1e1e;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .glass-sidebar {

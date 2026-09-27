@@ -4,6 +4,8 @@ import { createSSRApp, reactive } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { AppResourceInfoModal } from '../app/scripts/components/app-resource-info-modal.js';
 import { AppResourceSidebar } from '../app/scripts/components/app-resource-sidebar.js';
+import { AppMetadataLibrary } from '../app/scripts/components/app-metadata-library.js';
+import { metadataAvatarColor } from '../app/scripts/utils/metadata-types.js';
 
 function context() {
   return reactive({ currentSessionId: 'S_DEFAULT',
@@ -77,4 +79,36 @@ test('avatar selects the matching entity details instead of opening color editin
   assert.deepEqual(state.infoSelection.value, { type: 'musician', id: 'M' });
   assert.match(AppResourceSidebar.template, /@click="openInfo\(item\)"/);
   assert.doesNotMatch(AppResourceSidebar.template, /@click="ctx.openColorPicker/);
+});
+
+for (const [type, label, icon] of [['studio', '录音棚', 'fa-building'], ['engineer', '工程师', 'fa-sliders'], ['operator', '操作员', 'fa-headphones'], ['assistant', '助理', 'fa-user-group']]) {
+  test(`${label} avatars and details use the shared layout and associated recording history`, async () => {
+    const ctx = context();
+    ctx.settings[`${type}s`] = [{ id: 'META', name: 'Team A' }];
+    ctx.scheduledTasks[0].recordingInfo = { [type]: 'Team A' };
+    ctx.newRecInputs = { studio: '', engineer: '', operator: '', assistant: '' };
+    const listing = await renderToString(createSSRApp(AppMetadataLibrary, { ctx }));
+    assert.match(listing, /查看Team A详情/);
+    assert.ok(listing.includes(metadataAvatarColor(ctx.settings[`${type}s`][0], type)));
+    const { html, state } = await renderDetail(type, 'META', { ctx });
+    assert.ok(html.includes(label));
+    assert.ok(html.includes(icon));
+    assert.match(html, /关联录音倍率/);
+    assert.match(html, /×20\.0/);
+    assert.match(html, /Recorded Song/);
+    assert.equal(state.data.value.breakdowns.length, 3);
+    ctx.settings[`${type}s`][0].color = '#112233';
+    assert.equal(state.avatarColor.value, '#112233');
+  });
+}
+
+test('overview has a compact summary and recent recordings while trend stays in breakdown', async () => {
+  const { html } = await renderDetail('musician', 'M');
+  assert.match(html, /录音汇总/);
+  assert.match(html, /最近录音/);
+  assert.match(html, /<dl /);
+  assert.match(html, /<details /);
+  assert.doesNotMatch(html, /月度录制倍率|常合作对象 \/ 录音耗时分布|bg-blue-500\/5/);
+  const breakdown = await renderDetail('musician', 'M', { tab: 'breakdown' });
+  assert.match(breakdown.html, /月度录制倍率/);
 });

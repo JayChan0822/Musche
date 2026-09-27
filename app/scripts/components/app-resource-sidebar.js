@@ -13,6 +13,7 @@ export const AppResourceSidebar = {
     const editingGroupId = ref(null);
     const infoSelection = ref(null);
     const openInfo = (item) => { infoSelection.value = { type: library.activeType.value, id: item.id }; };
+    const openResourceInfo = (selection) => { infoSelection.value = selection; };
     watch(library.activeType, () => { editingGroupId.value = null; });
     const panel = ref(null);
     watch(() => props.open && props.overlay, async (open) => {
@@ -43,7 +44,7 @@ export const AppResourceSidebar = {
       await nextTick();
       nameInput.value?.focus();
     };
-    return { ...library, nameInput, editingGroupId, infoSelection, openInfo, panel, startCreate, trapFocus, navigateTabs };
+    return { ...library, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, startCreate, trapFocus, navigateTabs };
   },
   template: `
     <Transition name="library-backdrop"><button v-if="open && overlay" class="absolute inset-0 z-[60] bg-black/25 backdrop-blur-sm" aria-label="关闭资料库遮罩" @click="$emit('close')"></button></Transition>
@@ -82,7 +83,7 @@ export const AppResourceSidebar = {
         <div v-if="activeType !== 'metadata'" class="flex gap-2"><button :disabled="!!search.trim()" @click="toggleAll" class="hover:text-blue-500 disabled:opacity-30 px-1 py-1">{{ allExpanded ? '全部折叠' : '全部展开' }}</button><button v-if="totalCount" @click="ctx.clearSettingsList(activeType)" class="text-red-500 px-1 py-1">清空</button></div>
       </div>
       <div id="library-panel" :role="activeType === 'metadata' ? 'region' : 'tabpanel'" :aria-labelledby="activeType === 'metadata' ? 'library-metadata-title' : 'library-tab-' + activeType" class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 pb-3 space-y-3">
-        <AppMetadataLibrary v-if="activeType === 'metadata'" :ctx="ctx" :search="search" />
+        <AppMetadataLibrary v-if="activeType === 'metadata'" :ctx="ctx" :search="search" @open-info="openResourceInfo" />
         <template v-else>
         <section v-for="group in groups" :key="activeType + group.name" class="rounded-xl bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden">
           <div class="flex items-center gap-1 px-2 py-1.5 bg-black/[0.025] dark:bg-black/10">
