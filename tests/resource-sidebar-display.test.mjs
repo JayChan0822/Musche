@@ -58,7 +58,7 @@ for (const type of ['musician', 'project']) {
       assert.match(html, /项目信息/);
       assert.doesNotMatch(html, /aria-label="默认倍数"/);
     } else {
-      assert.match(html, /aria-label="默认倍数"/);
+      assert.doesNotMatch(html, /aria-label="默认倍数"|默认 ×/);
       assert.doesNotMatch(html, /MIDI 管理/);
     }
   });

@@ -103,7 +103,6 @@ export const AppEditModal = {
                                             <div class="w-2 h-2 rounded-full shrink-0" :style="{backgroundColor: m.color || '#a855f7'}"></div>
                                             <span>{{ m.name }}</span>
                                         </div>
-                                        <span class="text-[10px] opacity-50 font-mono bg-black/5 dark:bg-white/10 px-1 rounded">x{{m.defaultRatio}}</span>
                                     </div>
                                 </div>
                             </div>

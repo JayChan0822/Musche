@@ -193,7 +193,6 @@ export function registerSettingsSyncFeature(context) {
       group: group.trim(),
       color: generateRandomHexColor(),
     };
-    if (type === 'musician') nextItem.defaultRatio = 20;
 
     list.push(nextItem);
     return nextItem.id;

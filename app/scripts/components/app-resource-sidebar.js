@@ -83,7 +83,6 @@ export const AppResourceSidebar = {
               </div>
               <div class="mt-1.5 pl-9 flex items-center gap-2">
                 <input :value="item.group" :list="'library-groups-' + activeType" aria-label="所属分组" placeholder="未分组" @change="updateGroup(item, $event.target.value)" @mousedown.stop class="min-w-0 flex-1 w-0 bg-transparent text-[11px] text-gray-500 dark:text-gray-400 outline-none rounded focus:ring-1 focus:ring-blue-500 py-1">
-                <label v-if="activeType === 'musician'" class="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400" title="新任务使用的默认倍数">默认 ×<input type="number" min="0.1" step="0.1" :value="item.defaultRatio || 20" aria-label="默认倍数" @change="updateRatio(item, $event.target.value); $event.target.value = item.defaultRatio || 20" class="w-12 rounded bg-black/5 dark:bg-white/10 p-1 font-mono text-xs outline-none focus:ring-1 focus:ring-blue-500"></label>
                 <template v-if="activeType === 'project'">
                   <button @click="ctx.openProjectInfoModal(item)" :aria-label="item.name + '项目信息'" title="项目信息" class="w-7 h-7 rounded text-blue-500 hover:bg-blue-500/10"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                   <button @click="ctx.openMidiManager(item)" :aria-label="item.name + ' MIDI 管理'" title="MIDI 管理" class="rounded px-2 h-7 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10">MIDI</button>

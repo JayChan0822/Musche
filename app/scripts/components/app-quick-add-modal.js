@@ -55,15 +55,7 @@ export const AppQuickAddModal = {
                 </div>
             </div>
 
-            <div v-if="quickAddType === 'musician'">
-                <label class="text-[10px] font-bold opacity-50 uppercase block mb-1">Default Ratio</label>
-                <div class="flex items-center gap-2">
-                    <input type="number" v-model="quickAddForm.defaultRatio"
-                           class="glass-input w-24 text-center font-mono"
-                           @keydown.enter="!$event.isComposing && confirmQuickAdd()">
-                    <span class="text-xs opacity-50">x (Efficiency)</span>
-                </div>
-            </div>
+
         </div>
 
         <div class="flex justify-end gap-2 mt-2">

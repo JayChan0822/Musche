@@ -73,12 +73,6 @@ export function createResourceLibrary(ctx) {
     collapsed.delete(`${activeType.value}|${group}`);
     ctx.pushHistory();
   };
-  const updateRatio = (item, value) => {
-    const ratio = Number(value);
-    if (!Number.isFinite(ratio) || ratio <= 0 || item.defaultRatio === ratio) return;
-    item.defaultRatio = ratio;
-    ctx.pushHistory();
-  };
   return { resourceTabs, activeType, activeTab, search, totalCount, groupNames, groups, form, creating, saving,
-    isExpanded, toggleGroup, allExpanded, toggleAll, selectType, beginCreate, saveNew, updateGroup, updateRatio };
+    isExpanded, toggleGroup, allExpanded, toggleAll, selectType, beginCreate, saveNew, updateGroup };
 }

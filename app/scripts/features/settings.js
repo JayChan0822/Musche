@@ -323,7 +323,6 @@ export function registerSettingsFeature(context) {
       group: groupStr,
       color: generateRandomHexColor(),
     };
-    if (type === 'musician') nextItem.defaultRatio = 20;
 
     list.push(nextItem);
     if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
@@ -417,7 +416,6 @@ export function registerSettingsFeature(context) {
       group: group.trim(),
       color: generateRandomHexColor(),
     };
-    if (type === 'musician') nextItem.defaultRatio = 20;
 
     list.push(nextItem);
     return nextItem.id;

@@ -140,7 +140,7 @@ export function createMuscheStore(storageService) {
   });
   const showQuickAddModal = ref(false);
   const quickAddType = ref('');
-  const quickAddForm = reactive({ name: '', group: '', defaultRatio: 20 });
+  const quickAddForm = reactive({ name: '', group: '' });
   const showCropModal = ref(false);
   const cropImgSrc = ref('');
   const cropImgRef = ref(null);

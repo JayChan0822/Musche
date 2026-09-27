@@ -72,7 +72,6 @@ export const AppMobileTaskInput = {
                                         <span>{{ m.name }}</span>
                                     </div>
 
-                                    <span class="text-xs opacity-50 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono">x{{m.defaultRatio}}</span>
                                 </div>
 
                             </div>
@@ -143,7 +142,6 @@ export const AppMobileTaskInput = {
                                         <span>{{ m.name }}</span>
                                     </div>
 
-                                    <span class="text-xs opacity-50 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono">x{{m.defaultRatio}}</span>
                                 </div>
 
                             </div>
@@ -214,7 +212,6 @@ export const AppMobileTaskInput = {
                                         <span>{{ m.name }}</span>
                                     </div>
 
-                                    <span class="text-xs opacity-50 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono">x{{m.defaultRatio}}</span>
                                 </div>
 
                             </div>

@@ -41,7 +41,6 @@ export function registerQuickAddFeature(context) {
     quickAddType.value = type;
     quickAddForm.name = initialName.trim();
     quickAddForm.group = '';
-    quickAddForm.defaultRatio = 20;
     showQuickAddModal.value = true;
 
     setTimeout(() => {
@@ -51,7 +50,7 @@ export function registerQuickAddFeature(context) {
 
   const onMusicianSelect = () => {
     const musician = settings.musicians.find((item) => item.id === newItem.musicianId);
-    if (musician) newItem.ratio = musician.defaultRatio;
+    if (musician) newItem.ratio = getDefaultRatio(musician.id, 'musician');
   };
 
   const confirmQuickAdd = () => {
@@ -86,7 +85,6 @@ export function registerQuickAddFeature(context) {
       name: nameStr,
       group: quickAddForm.group.trim(),
       color: generateRandomHexColor(),
-      defaultRatio: quickAddForm.defaultRatio || 20,
     };
 
     if (type === 'project') {

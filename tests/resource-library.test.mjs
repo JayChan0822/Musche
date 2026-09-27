@@ -50,16 +50,11 @@ test('library group expansion and inline creation preserve all existing entries'
   assert.equal(f.creating.value, false);
 });
 
-test('group edits share data with task pickers and save once; invalid ratios are rejected', () => {
+test('group edits share data with task pickers and save once', () => {
   const h = harness();
   h.feature.updateGroup(h.ctx.settings.instruments[0], '  New group  ');
   assert.equal(h.ctx.settings.instruments[0].group, 'New group');
   assert.equal(h.saves(), 1);
   h.feature.updateGroup(h.ctx.settings.instruments[0], 'New group');
   assert.equal(h.saves(), 1);
-  const item = h.ctx.settings.musicians[0];
-  h.feature.updateRatio(item, '25');
-  assert.equal(item.defaultRatio, 25);
-  h.feature.updateRatio(item, '-1');
-  assert.equal(item.defaultRatio, 25);
 });

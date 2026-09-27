@@ -2987,8 +2987,8 @@ assert.match(
 );
 assert.match(
     appQuickAddModalComponent,
-    /template:\s*`[\s\S]*v-if="showQuickAddModal"[\s\S]*quickAddType[\s\S]*quickAddForm\.name[\s\S]*quickAddForm\.group[\s\S]*showGroupSuggestions[\s\S]*currentQuickAddGroups[\s\S]*quickAddForm\.defaultRatio[\s\S]*confirmQuickAdd[\s\S]*`/,
-    'app-quick-add-modal component must own the existing Quick Add modal template, including name, group suggestions, musician ratio, cancel, and save controls'
+    /template:\s*`[\s\S]*v-if="showQuickAddModal"[\s\S]*quickAddType[\s\S]*quickAddForm\.name[\s\S]*quickAddForm\.group[\s\S]*showGroupSuggestions[\s\S]*currentQuickAddGroups[\s\S]*confirmQuickAdd[\s\S]*`/,
+    'app-quick-add-modal component must own the existing Quick Add modal template, including name, group suggestions, cancel, and save controls'
 );
 assert.doesNotMatch(
     appScript,
@@ -10773,7 +10773,6 @@ for (const relativePath of requiredFiles) {
         quickAddForm: {
             name: '',
             group: '',
-            defaultRatio: 12,
         },
         showQuickAddModal: { value: false },
         activeDropdown: { value: 'edit_project' },
@@ -10827,7 +10826,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.quickAddType.value, 'musician', 'opening Quick Add should set the target type');
     assert.equal(refs.quickAddForm.name, '', 'opening Quick Add should reset the name field');
     assert.equal(refs.quickAddForm.group, '', 'opening Quick Add should reset the group field');
-    assert.equal(refs.quickAddForm.defaultRatio, 20, 'opening Quick Add should reset default ratio to the original value');
+    assert.equal('defaultRatio' in refs.quickAddForm, false, 'Quick Add does not collect a musician default ratio');
     assert.equal(refs.showQuickAddModal.value, true, 'opening Quick Add should show the modal');
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 120));
     assert.equal(focusedId, 'quick-add-name', 'opening Quick Add should focus the name input after the original delay');
@@ -10844,7 +10843,6 @@ for (const relativePath of requiredFiles) {
     refs.quickAddType.value = 'musician';
     refs.quickAddForm.name = 'New Player';
     refs.quickAddForm.group = 'New Team';
-    refs.quickAddForm.defaultRatio = 32;
     feature.confirmQuickAdd();
 
     assert.deepEqual(state.settings.musicians.at(-1), {
@@ -10852,10 +10850,9 @@ for (const relativePath of requiredFiles) {
         name: 'New Player',
         group: 'New Team',
         color: '#123456',
-        defaultRatio: 32,
-    }, 'saving Quick Add should append the new item with generated id, color, group, and default ratio');
+    }, 'saving Quick Add should append the new item with generated id, color, and group');
     assert.equal(state.newItem.musicianId, 'M_NEW', 'saving a musician Quick Add should select it in the draft item');
-    assert.equal(state.newItem.ratio, 32, 'saving a musician Quick Add should sync the draft ratio from the new musician default');
+    assert.equal(state.newItem.ratio, 24, 'saving a musician Quick Add should use the estimation service');
     assert.equal(historyCount, 1, 'saving Quick Add should push history once');
     assert.equal(refs.showQuickAddModal.value, false, 'saving Quick Add should close the modal');
     assert.equal(refs.activeDropdown.value, null, 'saving Quick Add should close the active dropdown');
@@ -10864,7 +10861,7 @@ for (const relativePath of requiredFiles) {
     state.settings.musicians.push({ id: 'M_EXISTING', name: 'Existing Player', defaultRatio: 14 });
     state.newItem.musicianId = 'M_EXISTING';
     feature.onMusicianSelect();
-    assert.equal(state.newItem.ratio, 14, 'musician select should sync the draft ratio from an existing musician default');
+    assert.equal(state.newItem.ratio, 24, 'musician select should use the estimation service');
 
     refs.itemPool.value = [{
         id: 'EXISTING_POOL',
