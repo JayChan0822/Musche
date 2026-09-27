@@ -1,7 +1,7 @@
 import { getCurrentScope, onScopeDispose } from 'vue';
 import { formatClock } from '../utils/time.js';
 
-// Command movement starts before native HTML drag-and-drop takes over mouse input.
+// Week-grid movement starts before native HTML drag-and-drop takes over mouse input.
 export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }) {
   const { scheduledTasks, pxPerMin, isMobile } = refs;
   const { settings } = state;
@@ -39,7 +39,11 @@ export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }
     }
     const gridTop = grid.getBoundingClientRect().top;
     const rawMinutes = settings.startHour * 60 + (event.clientY - gridTop - g.offsetY) / pxPerMin.value;
-    const minutes = Math.max(settings.startHour * 60, Math.min(settings.endHour * 60 - 1, Math.round(rawMinutes)));
+    const snapMinutes = g.precise || event.metaKey ? 1 : 15;
+    const minutes = Math.max(settings.startHour * 60, Math.min(
+      settings.endHour * 60 - snapMinutes,
+      Math.round(rawMinutes / snapMinutes) * snapMinutes,
+    ));
     const startTime = formatClock(Math.floor(minutes / 60), minutes % 60);
     g.candidate = { date: column.dataset.dateStr, startTime };
     Object.assign(g.ghost.style, {
@@ -108,7 +112,7 @@ export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }
   };
 
   const initPreciseScheduleMove = (event, task) => {
-    if (isMobile.value || event.button !== 0 || !event.metaKey) return;
+    if (isMobile.value || event.button !== 0) return;
     if (event.target.closest('.resize-handle, .mobile-resize-handle, button, input, select, textarea, a')) return;
     cleanup();
     event.preventDefault();
@@ -120,7 +124,7 @@ export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }
       scheduleId: task.scheduleId, source, rect, win, doc: getDocument(),
       startX: event.clientX, startY: event.clientY, offsetY: event.clientY - rect.top,
       originalOpacity: source.style.opacity, originalDraggable: source.draggable,
-      ghost: null, candidate: null,
+      precise: !!event.metaKey, ghost: null, candidate: null,
     };
     source.draggable = false;
     win.addEventListener('mousemove', move, true);

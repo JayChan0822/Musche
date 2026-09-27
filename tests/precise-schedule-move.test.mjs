@@ -52,8 +52,8 @@ function harness({ overlap = false } = {}) {
     target: { closest: () => null }, preventDefault() { prevented = true; }, stopPropagation() {}, ...overrides,
   }, refs.scheduledTasks.value[0]);
   // No native dragstart/drop events are delivered; mouse events can lose modifiers.
-  const move = (y = 272) => listeners.get('mousemove')?.({ clientX: 240, clientY: y, metaKey: false, preventDefault() {} });
-  const end = (y = 272) => listeners.get('mouseup')?.({ clientX: 240, clientY: y, metaKey: false });
+  const move = (y = 272, metaKey = false) => listeners.get('mousemove')?.({ clientX: 240, clientY: y, metaKey, preventDefault() {} });
+  const end = (y = 272, metaKey = false) => listeners.get('mouseup')?.({ clientX: 240, clientY: y, metaKey });
   return { refs, start, move, end, listeners, alerts, checks, label, history, historyRefs, source,
     get preview() { return preview; }, get prevented() { return prevented; },
     leave: () => { inside = false; }, scroll: () => { gridTop -= 20; },
@@ -110,13 +110,45 @@ for (const cancel of ['escape', 'blur', 'outside']) {
   });
 }
 
-test('normal dragging and resize handles keep their existing handlers', () => {
+test('resize handles and non-primary clicks keep their existing handlers', () => {
   const h = harness();
-  h.start({ metaKey: false });
+  h.start({ button: 2 });
   assert.equal(h.prevented, false);
   h.start({ target: { closest: () => ({}) } });
   assert.equal(h.prevented, false);
   assert.equal(h.listeners.size, 0);
+});
+
+test('ordinary mouse drag previews quarter-hour positions in the target column and preserves duration', () => {
+  const h = harness(); h.start({ metaKey: false }); h.move();
+  assert.equal(h.prevented, true);
+  assert.equal(h.source.draggable, false);
+  assert.equal(h.label.textContent, '10:15');
+  assert.equal(h.preview.style.left, '204px');
+  assert.equal(h.preview.style.top, '250px');
+  h.end();
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:15');
+  assert.equal(h.refs.scheduledTasks.value[0].estDuration, '01:00:00');
+  assert.equal(h.refs.scheduledTasks.value[0].date, '2026-09-28');
+  assert.equal(h.historyRefs.history.value.length, 2);
+  h.history.undo();
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:00');
+});
+
+test('ordinary drag can use Command to switch to minute precision', () => {
+  const h = harness(); h.start({ metaKey: false });
+  h.move(); assert.equal(h.label.textContent, '10:15');
+  h.move(272, true); assert.equal(h.label.textContent, '10:13');
+  h.move(272, false); assert.equal(h.label.textContent, '10:15');
+  h.end(272, true);
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:13');
+});
+
+test('ordinary drag released outside the grid cancels the move', () => {
+  const h = harness(); h.start({ metaKey: false }); h.move(); h.leave(); h.end();
+  assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:00');
+  assert.equal(h.historyRefs.history.value.length, 1);
+  assert.equal(h.preview, null);
 });
 
 test('click without moving does not create a history entry', () => {
