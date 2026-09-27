@@ -1,3 +1,6 @@
+import { stageStatus } from '../utils/workflow.js';
+import { scheduleContext, scheduleMatches, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { peekItemSplitState, setItemSplitState } from '../utils/split-state.js';
 export function registerScheduleDeletionFeature(context) {
   const { refs, state, actions } = context;
   const {
@@ -18,30 +21,43 @@ export function registerScheduleDeletionFeature(context) {
   const isResourceCompleted = (task) => {
     if (!task) return false;
 
-    const currentTab = sidebarTab.value;
+    const ctx = scheduleContext(task);
+    const related = itemPool.value.filter((item) =>
+      (item.sessionId || 'S_DEFAULT') === (task.sessionId || 'S_DEFAULT') &&
+      (task.templateId ? item.id === task.templateId : itemMatchesSchedule(item, task)) &&
+      peekItemSplitState(item, ctx.view).active !== false && !item.isSkipped);
+    if (related.some((item) => item.workflowStatus?.[ctx.stage] !== undefined)) {
+      return related.length > 0 && related.every((item) => {
+        if (item.workflowStatus?.[ctx.stage] !== undefined) return stageStatus(item, ctx.stage) === 'completed';
+        const actual = item.records?.[ctx.view]?.actualDuration;
+        return actual && actual.split(':').some((part) => Number(part) > 0);
+      });
+    }
+    const currentTab = ctx.view;
     let stat = null;
     let list = [];
 
     if (currentTab === 'project') {
-      list = projectStats.value;
-      if (task.projectId) stat = list.find((item) => item.id === task.projectId);
+      list = projectStats?.value || [];
+      if (task.editorId) stat = list.find((item) => item.id === task.editorId);
     } else if (currentTab === 'instrument') {
-      list = instrumentStats.value;
+      list = instrumentStats?.value || [];
       if (task.instrumentId) stat = list.find((item) => item.id === task.instrumentId);
     } else {
-      list = musicianStats.value;
+      list = musicianStats?.value || [];
       if (task.musicianId) stat = list.find((item) => item.id === task.musicianId);
     }
 
     return stat && stat.statusKey === 'completed';
   };
 
-  const clearPoolRecord = (templateId) => {
+  const clearPoolRecord = (templateId, schedule, preserveRecords = false) => {
+    if (preserveRecords) return;
     if (!templateId) return;
 
     const poolItem = itemPool.value.find((item) => item.id === templateId);
     if (poolItem && poolItem.records) {
-      ['musician', 'project', 'instrument'].forEach((type) => {
+      [scheduleContext(schedule || { stage: sidebarTab.value === 'project' ? 'edit' : 'rec' }).view].forEach((type) => {
         if (poolItem.records[type]) {
           poolItem.records[type].actualDuration = '';
           poolItem.records[type].recStart = '';
@@ -50,60 +66,49 @@ export function registerScheduleDeletionFeature(context) {
         }
       });
 
-      if (poolItem.musicianId) autoUpdateEfficiency(poolItem.musicianId, 'musician');
-      if (poolItem.projectId) autoUpdateEfficiency(poolItem.projectId, 'project');
+      const ctx = scheduleContext(schedule || { stage: sidebarTab.value === 'project' ? 'edit' : 'rec' });
+      const ownerId = ctx.stage === 'edit' ? poolItem.editorId : poolItem.musicianId;
+      if (ownerId) autoUpdateEfficiency(ownerId, ctx.view);
     }
   };
 
-  const clearAggregateRecords = (task) => {
-    let filterKey = 'musicianId';
-    let filterId = task.musicianId;
-    let viewType = 'musician';
-
-    if (task.projectId) {
-      filterKey = 'projectId';
-      filterId = task.projectId;
-      viewType = 'project';
-    } else if (task.instrumentId) {
-      filterKey = 'instrumentId';
-      filterId = task.instrumentId;
-      viewType = 'instrument';
-    }
-
+  const clearAggregateRecords = (task, preserveRecords = false) => {
+    const ctx = scheduleContext(task);
+    const viewType = ctx.view;
     const activeSessionId = currentSessionId?.value || 'S_DEFAULT';
     const relatedSchedules = scheduledTasks.value
       .filter((schedule) => (
         (schedule.sessionId || 'S_DEFAULT') === activeSessionId &&
-        schedule[filterKey] === filterId
+        scheduleMatches(schedule, task)
       ))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+      .sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || ''));
 
     const sectionIndex = relatedSchedules.findIndex((schedule) => schedule.scheduleId === task.scheduleId);
     if (sectionIndex === -1) return;
 
-    let hasCleared = false;
+    const changedOwners = new Set();
     itemPool.value.forEach((item) => {
-      if (item[filterKey] !== filterId) return;
+      if ((item.sessionId || 'S_DEFAULT') !== activeSessionId || !itemMatchesSchedule(item, task)) return;
+      const splitState = peekItemSplitState(item, viewType);
 
-      if (item.sectionIndex === sectionIndex && item.records && item.records[viewType]) {
+      if (!preserveRecords && splitState.sectionIndex === sectionIndex && item.records && item.records[viewType]) {
         const record = item.records[viewType];
         if (record.actualDuration || record.recStart) {
           record.actualDuration = '';
           record.recStart = '';
           record.recEnd = '';
           record.breakMinutes = 0;
-          hasCleared = true;
+          const owner = ctx.stage === 'edit' ? item.editorId : item.musicianId;
+          if (owner) changedOwners.add(owner);
         }
       }
 
-      if (item.sectionIndex > sectionIndex) {
-        item.sectionIndex--;
+      if (splitState.sectionIndex > sectionIndex) {
+        setItemSplitState(item, viewType, { sectionIndex: splitState.sectionIndex - 1 });
       }
     });
 
-    if (hasCleared) {
-      autoUpdateEfficiency(filterId, viewType);
-    }
+    changedOwners.forEach((owner) => autoUpdateEfficiency(owner, viewType));
   };
 
   const deleteCurrentSchedule = () => {
@@ -111,44 +116,10 @@ export function registerScheduleDeletionFeature(context) {
     if (!taskToDelete) return;
 
     if (isResourceCompleted(taskToDelete)) {
-      return openAlertModal('无法删除', '当前归属对象（人员/项目/乐器）已标记为【完成】。\n\n为防止误操作，请先清除该对象下部分曲目的录音数据，使其回到“进行中”状态后再尝试删除。');
+      return openAlertModal('无法删除', '当前归属对象（人员/项目/乐器）已标记为【完成】。\n\n为防止误操作，请先将对应阶段的完成状态改为“进行中”后再尝试删除；旧数据需先清除该阶段的实际记录。');
     }
 
-    if (taskToDelete.templateId) {
-      clearPoolRecord(taskToDelete.templateId);
-    } else {
-      const currentIdx = trackListData.value.currentSectionIndex;
-      const viewType = trackListData.value.viewType || 'musician';
-
-      if (trackListData.value.items) {
-        let hasCleared = false;
-        let targetId = null;
-
-        trackListData.value.items.forEach((item) => {
-          if (item.sectionIndex === currentIdx) {
-            if (item.records && item.records[viewType]) {
-              if (item.records[viewType].actualDuration || item.records[viewType].recStart) {
-                item.records[viewType].actualDuration = '';
-                item.records[viewType].recStart = '';
-                item.records[viewType].recEnd = '';
-                item.records[viewType].breakMinutes = 0;
-                hasCleared = true;
-              }
-
-              if (!targetId) {
-                if (viewType === 'project') targetId = item.projectId;
-                else if (viewType === 'instrument') targetId = item.instrumentId;
-                else targetId = item.musicianId;
-              }
-            }
-          }
-        });
-
-        if (hasCleared && targetId) {
-          autoUpdateEfficiency(targetId, viewType);
-        }
-      }
-    }
+    if (!taskToDelete.templateId) clearAggregateRecords(taskToDelete, true);
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);
     showTrackList.value = false;

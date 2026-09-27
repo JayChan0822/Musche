@@ -1,3 +1,5 @@
+import { setItemSplitState } from '../utils/split-state.js';
+import { scheduleContext, scheduleMatches, itemMatchesSchedule } from '../utils/schedule-context.js';
 export function registerScheduleTaskActivationFeature(context) {
   const { refs, utils, actions = {} } = context;
   const {
@@ -27,42 +29,6 @@ export function registerScheduleTaskActivationFeature(context) {
     setTimeout: setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
     getDocument = () => document,
   } = actions;
-
-  const getBlockInfo = (task) => {
-    if (task.musicianId) {
-      return { blockType: 'musician', filterId: task.musicianId };
-    }
-    if (task.projectId) {
-      return { blockType: 'project', filterId: task.projectId };
-    }
-    if (task.instrumentId) {
-      return { blockType: 'instrument', filterId: task.instrumentId };
-    }
-    return { blockType: 'musician', filterId: task.musicianId };
-  };
-
-  const isRelatedSchedule = (task, blockType, filterId) => {
-    if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-    if (blockType === 'musician') return task.musicianId === filterId;
-    if (blockType === 'project') return task.projectId === filterId && !task.musicianId;
-    if (blockType === 'instrument') return task.instrumentId === filterId && !task.musicianId && !task.projectId;
-    return false;
-  };
-
-  const isRelatedPoolItem = (item, blockType, filterId) => {
-    if ((item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
-    if (blockType === 'musician') return item.musicianId === filterId;
-    if (blockType === 'project') return item.projectId === filterId;
-    if (blockType === 'instrument') return item.instrumentId === filterId;
-    return false;
-  };
-
-  const getModalTitle = (blockType, filterId) => {
-    if (blockType === 'musician') return getNameById(filterId, 'musician');
-    if (blockType === 'project') return getNameById(filterId, 'project');
-    if (blockType === 'instrument') return getNameById(filterId, 'instrument');
-    return '';
-  };
 
   const scrollTrackListToCurrentSection = () => {
     setTimeoutFn(() => {
@@ -116,17 +82,17 @@ export function registerScheduleTaskActivationFeature(context) {
     const currentSchedule = scheduledTasks.value.find((scheduledTask) => scheduledTask.scheduleId === task.scheduleId);
     if (!currentSchedule) return;
 
-    const { blockType, filterId } = getBlockInfo(task);
+    const ctx = scheduleContext(task);
+    const blockType = ctx.view;
+    const filterId = ctx.id;
     const relatedSchedules = scheduledTasks.value
-      .filter((scheduledTask) => isRelatedSchedule(scheduledTask, blockType, filterId))
+      .filter((entry) => (entry.sessionId || 'S_DEFAULT') === currentSessionId.value && scheduleMatches(entry, task))
       .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-
-    const currentSectionIndex = relatedSchedules.findIndex((scheduledTask) => scheduledTask.scheduleId === task.scheduleId);
+    const currentSectionIndex = relatedSchedules.findIndex((entry) => entry.scheduleId === task.scheduleId);
     const totalSections = relatedSchedules.length;
     const viewType = normalizeSplitViewType(blockType);
-
     const poolItems = itemPool.value.filter((item) => (
-      isItemVisibleForView(item, viewType) && isRelatedPoolItem(item, blockType, filterId)
+      (item.sessionId || 'S_DEFAULT') === currentSessionId.value && isItemVisibleForView(item, viewType) && itemMatchesSchedule(item, task)
     ));
 
     poolItems.forEach((item) => {
@@ -134,10 +100,12 @@ export function registerScheduleTaskActivationFeature(context) {
       syncItemForView(item, viewType);
       if (item.sectionIndex === undefined) item.sectionIndex = 0;
       if (item.sectionIndex >= totalSections) item.sectionIndex = totalSections - 1;
+      setItemSplitState(item, viewType, { sectionIndex: item.sectionIndex });
     });
 
     trackListData.value = {
-      name: getModalTitle(blockType, filterId),
+      name: ctx.legacyProject ? getNameById(filterId, 'project') : filterId === '__UNASSIGNED__' ? '未分配' : getNameById(filterId, 'musician'),
+      stage: ctx.stage,
       items: poolItems,
       taskRef: currentSchedule,
       totalSections,

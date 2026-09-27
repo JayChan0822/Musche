@@ -1,3 +1,6 @@
+import { getScheduleStage, getAssigneeId, UNASSIGNED_ID, viewFromStage } from '../utils/workflow.js';
+import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { peekItemSplitState } from '../utils/split-state.js';
 import { computed, watch } from 'vue';
 
 export function registerSearchFeature(context) {
@@ -50,7 +53,7 @@ export function registerSearchFeature(context) {
   };
 
   const getFullSearchText = (task, groupName) => {
-    const mText = getNameWithGroup(task.musicianId, 'musician');
+    const mText = getNameWithGroup(task.musicianId, 'musician') + ' ' + getNameWithGroup(task.editorId, 'musician');
     const pText = getNameWithGroup(task.projectId, 'project');
     const iText = getNameWithGroup(task.instrumentId, 'instrument');
     const info = task.recordingInfo || {};
@@ -66,9 +69,9 @@ export function registerSearchFeature(context) {
   };
 
   const getStatsForCurrentSidebar = () => {
-    if (sidebarTab.value === 'project') return { targetList: projectStats.value, getTargetId: (task) => task.projectId };
+    if (sidebarTab.value === 'project') return { targetList: projectStats.value, getTargetId: (task) => getAssigneeId(task, 'edit') || UNASSIGNED_ID };
     if (sidebarTab.value === 'instrument') return { targetList: instrumentStats.value, getTargetId: (task) => task.instrumentId };
-    return { targetList: musicianStats.value, getTargetId: (task) => task.musicianId };
+    return { targetList: musicianStats.value, getTargetId: (task) => getAssigneeId(task, 'rec') || UNASSIGNED_ID };
   };
 
   const filteredScheduledTasks = computed(() => {
@@ -116,10 +119,8 @@ export function registerSearchFeature(context) {
     const groups = {};
     scheduledTasks.value.forEach((task) => {
       const sessionId = task.sessionId || 'S_DEFAULT';
-      let key = '';
-      if (task.musicianId) key = `M|${task.musicianId}`;
-      else if (task.projectId) key = `P|${task.projectId}`;
-      else if (task.instrumentId) key = `I|${task.instrumentId}`;
+      const context = scheduleContext(task);
+      const key = `${context.stage}|${context.field}|${context.id}`;
 
       const fullKey = `${sessionId}|${key}`;
       if (!groups[fullKey]) groups[fullKey] = [];
@@ -140,6 +141,7 @@ export function registerSearchFeature(context) {
 
       const selfText = [
         getNameWithGroup(task.musicianId, 'musician'),
+        getNameWithGroup(task.editorId, 'musician'),
         getNameWithGroup(task.projectId, 'project'),
         getNameWithGroup(task.instrumentId, 'instrument'),
         task.recordingInfo?.studio,
@@ -157,13 +159,8 @@ export function registerSearchFeature(context) {
         const mySectionIndex = scheduleSectionMap.get(task.scheduleId);
         subItems = itemPool.value.filter((item) => {
           if ((item.sessionId || 'S_DEFAULT') !== sessionId) return false;
-          let idMatch = false;
-          if (task.musicianId) idMatch = item.musicianId === task.musicianId;
-          else if (task.projectId) idMatch = item.projectId === task.projectId;
-          else if (task.instrumentId) idMatch = item.instrumentId === task.instrumentId;
-          if (!idMatch) return false;
-
-          const itemIndex = item.sectionIndex !== undefined ? item.sectionIndex : 0;
+          if (!itemMatchesSchedule(item, task)) return false;
+          const itemIndex = peekItemSplitState(item, viewFromStage(getScheduleStage(task))).sectionIndex;
           return itemIndex === mySectionIndex;
         });
       }
@@ -219,6 +216,7 @@ export function registerSearchFeature(context) {
       const text = [
         item.name,
         getNameById(item.musicianId, 'musician'),
+        getNameById(item.editorId, 'musician'),
         getNameById(item.instrumentId, 'instrument'),
         getNameById(item.projectId, 'project'),
         item.splitTag || '',

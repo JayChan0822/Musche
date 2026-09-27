@@ -1,3 +1,4 @@
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { computed, ref, watch } from 'vue';
 
 import { pickSidebarTab } from '../utils/sidebar-tabs.js';
@@ -169,11 +170,7 @@ export function registerMainViewNavigationFeature(context) {
 
   // ghost 任务跳转的目标分类：按 人员 → 项目 → 乐器 的优先级取第一个「仍然存在」的分类，
   // 乐器分类已下线，只有乐器 id 的任务回落到录音（默认分类），不会跳进没有入口的侧栏。
-  const getGhostTargetTab = (task) => pickSidebarTab([
-    task.musicianId && 'musician',
-    task.projectId && 'project',
-    task.instrumentId && 'instrument',
-  ].filter(Boolean));
+  const getGhostTargetTab = (task) => viewFromStage(getScheduleStage(task));
 
   const jumpToGhostContext = (task) => {
     isContextSwitching.value = true;

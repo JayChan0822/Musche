@@ -64,3 +64,14 @@ test('createSupabaseService lazy-loads the Supabase client only when cloud APIs 
   await service.signOut();
   assert.deepEqual(calls, ['load', ['create', 'https://example.supabase.co/', 'publishable-key']], 'subsequent calls must reuse the lazy client');
 });
+
+test('workflow writes require a verified server schema guard', async () => {
+ let writes = 0;
+ const client = { rpc: async()=>({error:{message:'missing function'}}), from:()=>({upsert:async()=>{writes++;return {error:null};}}) };
+ const service = createSupabaseService({url:'https://example.supabase.co',key:'key',createClientLoader:async()=>()=>client});
+ const result = await service.saveUserData('u',{schemaVersion:10},2);
+ assert.equal(writes,0); assert.match(result.error.message,/迁移|guard/i);
+ client.rpc=async()=>({data:10,error:null});
+ const success=await service.saveUserData('u',{schemaVersion:10},2);
+ assert.equal(success.error,null); assert.equal(writes,1);
+});

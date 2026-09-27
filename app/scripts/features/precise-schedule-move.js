@@ -1,3 +1,4 @@
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { getCurrentScope, onScopeDispose } from 'vue';
 import { formatClock } from '../utils/time.js';
 
@@ -95,8 +96,8 @@ export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }
     if (index < 0) return;
     const task = scheduledTasks.value[index];
     if (task.date === candidate.date && task.startTime === candidate.startTime) return;
-    const type = task.projectId ? 'project' : task.instrumentId ? 'instrument' : 'musician';
-    if (checkOverlap(candidate.date, candidate.startTime, task.estDuration, task.scheduleId, type)) {
+    const type = viewFromStage(getScheduleStage(task));
+    if (checkOverlap(candidate.date, candidate.startTime, task.estDuration, task.scheduleId, type, task)) {
       openAlertModal('时间冲突', '该时间段已有同类型的其他安排。');
       return;
     }

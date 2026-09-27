@@ -20,7 +20,7 @@ export function registerSettingsSyncFeature(context) {
 
   function getListForType(type) {
     if (type === 'instrument') return settings.instruments;
-    if (type === 'musician') return settings.musicians;
+    if (type === 'musician' || type === 'editor') return settings.musicians;
     if (type === 'project') return settings.projects;
     return [];
   }
@@ -184,7 +184,10 @@ export function registerSettingsSyncFeature(context) {
 
     const list = getListForType(type);
     const existing = list.find((item) => item.name.toLowerCase() === name.trim().toLowerCase());
-    if (existing) return existing.id;
+    if (existing) {
+      if (type === 'editor' || type === 'musician') existing.roles = [...new Set([...(existing.roles || ['musician']), type])];
+      return existing.id;
+    }
 
     const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
     const nextItem = {
@@ -194,6 +197,7 @@ export function registerSettingsSyncFeature(context) {
       color: generateRandomHexColor(),
     };
 
+    if (type === 'musician' || type === 'editor') nextItem.roles = [type];
     list.push(nextItem);
     return nextItem.id;
   }

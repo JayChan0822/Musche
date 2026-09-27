@@ -83,12 +83,13 @@ export const AppEditModal = {
 
                 <input :value="editingItem.musicDuration" @input="editingItem.musicDuration = $event.target.value" :readonly="isMobile" @click="isMobile && openDurationPicker($event, editingItem, 'musicDuration')" class="glass-input w-full font-mono font-bold tracking-widest text-center text-lg h-[42px]" :class="isMobile ? 'cursor-pointer caret-transparent' : 'cursor-text'" placeholder="00:00">
 
-                <div class="relative transition-all" :class="activeDropdown === 'edit_musician' ? 'z-[50]' : 'z-20'">
+                <div v-if="editingSource === 'pool' || editingItem.stage === 'rec'" class="relative transition-all" :class="activeDropdown === 'edit_musician' ? 'z-[50]' : 'z-20'">
                     <button @click.stop="toggleDropdown('edit_musician')" class="glass-input w-full h-[42px] flex items-center px-3 font-bold text-sm group">
-                        <span class="flex-1 truncate text-center">{{ getNameById(editingItem.musicianId, 'musician') }}</span>
+                        <span class="flex-1 truncate text-center">REC 演奏员 · {{ getNameById(editingItem.musicianId, 'musician') }}</span>
                         <i class="fa-solid fa-chevron-down opacity-30 text-[10px] transition-transform duration-200" :class="{'rotate-180': activeDropdown === 'edit_musician'}"></i>
                     </button>
                     <div v-if="activeDropdown === 'edit_musician'" class="custom-dropdown-menu">
+                        <button @click="selectOption('musician', {id: ''})" class="w-full px-3 py-2 text-left text-gray-500">暂不分配</button>
                         <div class="sticky top-0 bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-md p-2 border-b border-black/5 dark:border-white/5 z-20">
                             <input v-model="dropdownSearch" placeholder="搜索人员..." class="w-full bg-transparent text-sm px-2 py-1 outline-none placeholder:opacity-50" @click.stop>
                         </div>
@@ -109,6 +110,42 @@ export const AppEditModal = {
                         </div>
                     </div>
                 </div>
+                <div v-if="editingSource === 'pool' || editingItem.stage === 'edit'" class="relative transition-all" :class="activeDropdown === 'edit_editor' ? 'z-[50]' : 'z-20'">
+                    <button @click.stop="toggleDropdown('edit_editor')" class="glass-input w-full h-[42px] flex items-center px-3 font-bold text-sm group">
+                        <span class="flex-1 truncate text-center">EDIT 剪辑员 · {{ getNameById(editingItem.editorId, 'editor') }}</span>
+                        <i class="fa-solid fa-chevron-down opacity-30 text-[10px] transition-transform duration-200" :class="{'rotate-180': activeDropdown === 'edit_editor'}"></i>
+                    </button>
+                    <div v-if="activeDropdown === 'edit_editor'" class="custom-dropdown-menu">
+                        <button @click="selectOption('editor', {id: ''})" class="w-full px-3 py-2 text-left text-gray-500">暂不分配</button>
+                        <div class="sticky top-0 bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-md p-2 border-b border-black/5 dark:border-white/5 z-20">
+                            <input v-model="dropdownSearch" placeholder="搜索剪辑员..." class="w-full bg-transparent text-sm px-2 py-1 outline-none placeholder:opacity-50" @click.stop>
+                        </div>
+                        <div class="max-h-[200px] overflow-y-auto">
+                            <div v-for="group in getGroupedOptions(filteredOptions)" :key="group.name">
+                                <div class="sticky top-0 z-10 w-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider opacity-50 bg-gray-50/90 dark:bg-[#2c2c2e]/90 backdrop-blur border-y border-black/5 dark:border-white/5 flex justify-between items-center cursor-pointer" @click.stop="toggleDropdownGroup(group.name)">
+                                    {{ group.name }} <i class="fa-solid fa-chevron-right transition-transform" :class="{'rotate-90': dropdownExpandedGroups.has(group.name) || dropdownSearch}"></i>
+                                </div>
+                                <div v-show="dropdownExpandedGroups.has(group.name) || dropdownSearch">
+                                    <div v-for="m in group.items" :key="m.id" @click="selectOption('editor', m)" class="px-3 py-2.5 text-sm border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer flex justify-between items-center">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full shrink-0" :style="{backgroundColor: m.color || '#a855f7'}"></div>
+                                            <span>{{ m.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="editingSource === 'pool'" class="grid grid-cols-2 gap-3">
+                <label v-for="stage in ['rec', 'edit']" :key="stage" class="text-xs text-gray-500">
+                    {{ stage === 'rec' ? 'REC 录音状态' : 'EDIT 剪辑状态' }}
+                    <select :value="editingItem.workflowStatus?.[stage] || 'not-started'" @change="editingItem.workflowStatus = {...(editingItem.workflowStatus || {}), [stage]: $event.target.value}" class="glass-input w-full mt-1 text-sm h-10">
+                        <option value="not-started">未开始</option><option value="in-progress">进行中</option><option value="completed">已完成</option><option value="not-required">不需要</option>
+                    </select>
+                </label>
             </div>
 
             <div v-if="showOrchestrationField" class="mt-3">

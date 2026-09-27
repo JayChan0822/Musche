@@ -48,7 +48,7 @@ test('musician schedule ratio reacts to blocks without changing estimate default
   h.refs.scheduledTasks.value[0].estDuration = '01:15:00';
   assert.equal(h.ratio(), 25);
   assert.equal(h.settings.musicians[0].defaultRatio, 30);
-  assert.equal(h.feature.musicianStats.value[0].items[0].estDuration, '01:30:00');
+  assert.equal(h.feature.musicianStats.value[0].items[0].estDuration, '01:00:00');
 });
 
 test('schedule ratio totals blocks and their sections and ignores search/session/skipped items', () => {

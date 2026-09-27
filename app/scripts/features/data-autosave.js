@@ -1,3 +1,4 @@
+import { serializeWorkflowContent, isWorkflowWriteBlocked } from '../utils/workflow-migration.js';
 export function registerDataAutosaveFeature(context = {}) {
   const { refs = {}, state = {}, services = {}, actions = {}, vue = {} } = context;
   const {
@@ -20,7 +21,7 @@ export function registerDataAutosaveFeature(context = {}) {
   let syncTimeout = null;
 
   const handleDataChanged = () => {
-    if (isBootstrappingData.value) return;
+    if (isBootstrappingData.value || isWorkflowWriteBlocked(settings)) return;
 
     if (user.value) {
       if (saveStatus.value !== 'saving') {
@@ -34,11 +35,7 @@ export function registerDataAutosaveFeature(context = {}) {
       return;
     }
 
-    storageService.saveData('v9_data', {
-      pool: itemPool.value,
-      tasks: scheduledTasks.value,
-      settings: { ...settings, lastSessionId: currentSessionId.value },
-    });
+    storageService.saveData('v10_data', serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value }));
   };
 
   const mountDataAutosaveWatcher = () => {

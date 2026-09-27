@@ -88,7 +88,7 @@ test('Command mouse drag previews and commits minute precision without native dr
 
 test('precise move rejects overlap and keeps original date and duration', () => {
   const h = harness({ overlap: true }); h.start(); h.move(); h.end();
-  assert.deepEqual(h.checks[0], ['2026-09-28', '10:13', '01:00:00', 'B1', 'musician']);
+  assert.deepEqual(h.checks[0], ['2026-09-28', '10:13', '01:00:00', 'B1', 'musician', h.refs.scheduledTasks.value[0]]);
   assert.equal(h.refs.scheduledTasks.value[0].startTime, '10:00');
   assert.equal(h.refs.scheduledTasks.value[0].date, '2026-09-27');
   assert.equal(h.alerts.length, 1);

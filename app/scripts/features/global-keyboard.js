@@ -369,8 +369,8 @@ export function registerGlobalKeyboardFeature(context) {
 
     if (!taskToDelete) return undefined;
 
-    if (taskToDelete.templateId) await clearPoolRecord(taskToDelete.templateId);
-    else await clearAggregateRecords(taskToDelete);
+    if (taskToDelete.templateId) await clearPoolRecord(taskToDelete.templateId, taskToDelete, true);
+    else await clearAggregateRecords(taskToDelete, true);
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== selectedTaskId.value);
     clearSelection();

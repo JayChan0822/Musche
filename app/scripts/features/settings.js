@@ -30,7 +30,7 @@ export function registerSettingsFeature(context) {
 
   function getListForType(type) {
     if (type === 'instrument') return settings.instruments;
-    if (type === 'musician') return settings.musicians;
+    if (type === 'musician' || type === 'editor') return settings.musicians;
     if (type === 'project') return settings.projects;
     return [];
   }
@@ -324,6 +324,7 @@ export function registerSettingsFeature(context) {
       color: generateRandomHexColor(),
     };
 
+    if (type === 'musician' || type === 'editor') nextItem.roles = [type];
     list.push(nextItem);
     if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
     form.name = '';
@@ -333,13 +334,20 @@ export function registerSettingsFeature(context) {
   function deleteTypeItem(type, id, title) {
     openConfirmModal(
       title,
-      `确定删除该${title.replace('删除', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
+      type === 'musician' ? '确定删除该人员吗？当前任务与排期将保留，负责人改为待分配。历史工作记录保留原人员信息。' : `确定删除该${title.replace('删除', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
       () => {
         setListForType(type, getListForType(type).filter((item) => item.id !== id));
         const idKey = getIdKeyForType(type);
-        itemPool.value = itemPool.value.filter((item) => item[idKey] !== id);
-        scheduledTasks.value = scheduledTasks.value.filter((task) => task[idKey] !== id);
-        cleanupEmptySchedules();
+        if (type === 'musician') {
+          [...itemPool.value, ...scheduledTasks.value].forEach((item) => {
+            if (item.musicianId === id) item.musicianId = '';
+            if (item.editorId === id) item.editorId = '';
+          });
+        } else {
+          itemPool.value = itemPool.value.filter((item) => item[idKey] !== id);
+          scheduledTasks.value = scheduledTasks.value.filter((task) => task[idKey] !== id);
+          cleanupEmptySchedules();
+        }
         pushHistory();
       },
       true,
@@ -351,7 +359,7 @@ export function registerSettingsFeature(context) {
   }
 
   function removeMusician(id) {
-    deleteTypeItem('musician', id, '删除演奏员');
+    deleteTypeItem('musician', id, '删除人员');
   }
 
   function deleteProject(projectId) {
@@ -370,14 +378,21 @@ export function registerSettingsFeature(context) {
 
     openConfirmModal(
       title,
-      `确定要清空所有${title.replace('清空', '').replace('库', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
+      type === 'musician' ? '确定清空人员库吗？保留任务、排期和历史工作记录，当前负责人改为待分配。' : `确定要清空所有${title.replace('清空', '').replace('库', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
       () => {
         const idsToDelete = new Set(list.map((item) => item.id));
         setListForType(type, []);
         const idKey = getIdKeyForType(type);
-        itemPool.value = itemPool.value.filter((item) => !idsToDelete.has(item[idKey]));
-        scheduledTasks.value = scheduledTasks.value.filter((task) => !idsToDelete.has(task[idKey]));
-        cleanupEmptySchedules();
+        if (type === 'musician') {
+          [...itemPool.value, ...scheduledTasks.value].forEach((item) => {
+            if (idsToDelete.has(item.musicianId)) item.musicianId = '';
+            if (idsToDelete.has(item.editorId)) item.editorId = '';
+          });
+        } else {
+          itemPool.value = itemPool.value.filter((item) => !idsToDelete.has(item[idKey]));
+          scheduledTasks.value = scheduledTasks.value.filter((task) => !idsToDelete.has(task[idKey]));
+          cleanupEmptySchedules();
+        }
         pushHistory();
       },
       true,
@@ -407,7 +422,10 @@ export function registerSettingsFeature(context) {
 
     const list = getListForType(type);
     const existing = list.find((item) => item.name.toLowerCase() === name.trim().toLowerCase());
-    if (existing) return existing.id;
+    if (existing) {
+      if (type === 'editor' || type === 'musician') existing.roles = [...new Set([...(existing.roles || ['musician']), type])];
+      return existing.id;
+    }
 
     const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
     const nextItem = {
@@ -417,6 +435,7 @@ export function registerSettingsFeature(context) {
       color: generateRandomHexColor(),
     };
 
+    if (type === 'musician' || type === 'editor') nextItem.roles = [type];
     list.push(nextItem);
     return nextItem.id;
   }
@@ -452,15 +471,18 @@ export function registerSettingsFeature(context) {
         () => {
           itemPool.value.forEach((task) => {
             if (task[idKey] === item.id) task[idKey] = targetItem.id;
+            if (type === 'musician' && task.editorId === item.id) task.editorId = targetItem.id;
           });
           scheduledTasks.value.forEach((task) => {
             if (task[idKey] === item.id) task[idKey] = targetItem.id;
+            if (type === 'musician' && task.editorId === item.id) task.editorId = targetItem.id;
           });
 
           const index = list.findIndex((entry) => entry.id === item.id);
           if (index !== -1) list.splice(index, 1);
 
           if (type === 'musician') {
+            targetItem.roles = [...new Set([...(targetItem.roles || ['musician']), ...(item.roles || ['musician'])])];
             autoUpdateEfficiency(targetItem.id, 'musician');
           }
 

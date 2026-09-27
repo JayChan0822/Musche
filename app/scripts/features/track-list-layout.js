@@ -1,3 +1,4 @@
+import { setItemSplitState } from '../utils/split-state.js';
 // 布局与排序：日程块自动分配、按录音记录自动调整、排序比较器、会话比例与分配时长。
 // 从 track-list.js 抽取（2026-08 模块化重构 P2b）。纯领域逻辑，不触碰 DOM。
 export function createTrackListLayout(deps) {
@@ -111,6 +112,7 @@ export function createTrackListLayout(deps) {
       }
 
       item.sectionIndex = currentSection;
+      setItemSplitState(item, viewType, { sectionIndex: currentSection, estDuration: item.estDuration });
 
       if (currentSection < usedTimePerSection.length) {
         usedTimePerSection[currentSection] += itemDuration;

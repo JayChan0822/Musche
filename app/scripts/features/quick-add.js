@@ -34,7 +34,7 @@ export function registerQuickAddFeature(context) {
 
   const currentQuickAddGroups = computed(() => {
     const type = quickAddType.value;
-    return getExistingGroups(type);
+    return getExistingGroups(type === 'editor' ? 'musician' : type);
   });
 
   const openQuickAdd = (type, initialName = '') => {
@@ -64,9 +64,9 @@ export function registerQuickAddFeature(context) {
     if (type === 'instrument') {
       list = settings.instruments;
       label = '乐器';
-    } else if (type === 'musician') {
+    } else if ((type === 'musician' || type === 'editor')) {
       list = settings.musicians;
-      label = '演奏员';
+      label = type === 'editor' ? '剪辑员' : '演奏员';
     } else if (type === 'project') {
       list = settings.projects;
       label = '项目';
@@ -87,16 +87,18 @@ export function registerQuickAddFeature(context) {
       color: generateRandomHexColor(),
     };
 
+    if (type === 'musician' || type === 'editor') newItemObj.roles = [type];
+
     if (type === 'project') {
       settings.projects.push(newItemObj);
       newItem.projectId = newId;
     } else if (type === 'instrument') {
       settings.instruments.push(newItemObj);
       newItem.instrumentId = newId;
-    } else if (type === 'musician') {
+    } else if ((type === 'musician' || type === 'editor')) {
       settings.musicians.push(newItemObj);
-      newItem.musicianId = newId;
-      onMusicianSelect();
+      newItem[type === 'editor' ? 'editorId' : 'musicianId'] = newId;
+      if (type === 'musician') onMusicianSelect();
     }
 
     pushHistory();
@@ -106,8 +108,8 @@ export function registerQuickAddFeature(context) {
   };
 
   const addItemToPool = () => {
-    if (!newItem.projectId || !newItem.instrumentId || !newItem.musicianId || !newItem.musicDuration) {
-      openAlertModal('信息不完整', '请务必填写所有信息');
+    if (!newItem.projectId || !newItem.instrumentId || !newItem.musicDuration) {
+      openAlertModal('信息不完整', '请填写项目、乐器和内容时长；负责人可以稍后分配');
       return;
     }
 
@@ -130,7 +132,9 @@ export function registerQuickAddFeature(context) {
       sessionId: currentSessionId.value,
       projectId: newItem.projectId,
       instrumentId: newItem.instrumentId,
-      musicianId: newItem.musicianId,
+      musicianId: newItem.musicianId || '',
+      editorId: newItem.editorId || '',
+      workflowStatus: { rec: 'not-started', edit: 'not-started' },
       musicDuration: newItem.musicDuration,
       orchestration: '',
       ratios: { musician: null, project: null, instrument: null },

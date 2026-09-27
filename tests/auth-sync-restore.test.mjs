@@ -6,7 +6,7 @@ import { ref } from 'vue';
 import { registerAuthFeature } from '../app/scripts/features/auth.js';
 import { createDefaultSettings } from '../app/scripts/state/defaults.js';
 
-const CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
+const CLOUD_CACHE_KEY = 'musche_cloud_cache_v10';
 
 function createAuthHarness({
   cloudContent,
@@ -16,6 +16,7 @@ function createAuthHarness({
   getSession,
   loadUserData,
   startupTimeoutMs = 20,
+  storageOverrides = {},
 } = {}) {
   const settings = createDefaultSettings();
   const ensureCalls = [];
@@ -60,6 +61,7 @@ function createAuthHarness({
         saveData: (key, value) => savedData.push([key, value]),
         setItem: () => {},
         removeItem: (key) => removedItems.push(key),
+        ...storageOverrides,
       },
       supabaseService: {
         getSession: getSession || (async () => ({ data: { session: sessionUser ? { user: sessionUser } : null }, error: null })),
@@ -123,7 +125,7 @@ test('cloud sync restore normalizes legacy pool items and restores the last vali
 
   assert.deepEqual(ensureCalls, ['POOL_LEGACY'], 'cloud restore should normalize every restored pool item');
   assert.deepEqual(refs.itemPool.value[0].records, { musician: {}, project: {}, instrument: {} });
-  assert.deepEqual(refs.scheduledTasks.value, cloudContent.tasks, 'cloud restore should preserve scheduled tasks from the server');
+  assert.deepEqual(refs.scheduledTasks.value, cloudContent.tasks.map(task => ({...task, stage:'rec', editorId:''})), 'cloud restore should preserve scheduled tasks from the server');
   assert.equal(refs.localDataVersion.value, 3, 'cloud restore should retain the server data version');
   assert.equal(settings.startHour, 8, 'cloud restore should merge synced settings');
   assert.equal(refs.currentSessionId.value, 'S_B', 'cloud restore should select the synced last session when it still exists');
@@ -159,12 +161,13 @@ test('cloud sync restore caches the normalized snapshot for the signed-in user',
 
   await feature.loadCloudData();
 
-  assert.equal(savedData.length, 1);
-  assert.equal(savedData[0][0], CLOUD_CACHE_KEY);
+  const cacheWrites = savedData.filter(([key]) => key === CLOUD_CACHE_KEY);
+  assert.equal(cacheWrites.length, 1);
+  assert.equal(cacheWrites[0][0], CLOUD_CACHE_KEY);
   assert.equal(savedData[0][1].user.id, 'USER_1');
   assert.equal(savedData[0][1].version, 9);
   assert.equal(savedData[0][1].content.pool[0].records.musician.constructor, Object);
-  assert.deepEqual(savedData[0][1].content.tasks, cloudContent.tasks);
+  assert.deepEqual(savedData[0][1].content.tasks, cloudContent.tasks.map(task => ({...task, stage:'rec', editorId:''})));
 });
 
 test('boot restores a matching cloud cache before session recovery finishes', async () => {
@@ -278,10 +281,11 @@ test('successful cloud save refreshes the cached snapshot version and content', 
 
   await feature.saveToCloud(() => {});
 
-  assert.equal(savedData.length, 1);
-  assert.equal(savedData[0][1].version, 7);
-  assert.equal(savedData[0][1].content.pool[0].id, 'POOL_SAVED');
-  assert.equal(savedData[0][1].content.tasks[0].scheduleId, 'TASK_SAVED');
+  assert.equal(savedData.length, 2, 'write persists a recoverable draft before cloud save');
+  assert.equal(savedData[0][0], 'musche_workflow_unsynced:USER_1');
+  assert.equal(savedData[1][1].version, 7);
+  assert.equal(savedData[1][1].content.pool[0].id, 'POOL_SAVED');
+  assert.equal(savedData[1][1].content.tasks[0].scheduleId, 'TASK_SAVED');
 });
 
 test('logout clears the cached cloud snapshot before reloading', async () => {
@@ -300,4 +304,31 @@ test('factory reset clears the cached cloud snapshot', async () => {
   await getConfirmAction()();
 
   assert.ok(removedItems.includes(CLOUD_CACHE_KEY));
+});
+
+
+test('future schema fails before replacing data or allowing cloud writes', async () => {
+ const {feature, refs, alerts, savedData}=createAuthHarness({cloudContent:{schemaVersion:11,pool:[{id:'future'}],tasks:[],settings:{}}});
+ refs.itemPool.value=[{id:'untouched'}];
+ await assert.rejects(feature.loadCloudData(), /newer/);
+ assert.equal(refs.itemPool.value[0].id,'untouched');
+ await feature.saveToCloud(()=>{});
+ assert.equal(savedData.length,0); assert.equal(refs.saveStatus.value,'error');
+ assert.ok(alerts.some(([title])=>title.includes('数据保护')));
+});
+
+
+test('backup failure leaves live data unchanged and blocks writes', async () => {
+ const {feature,refs}=createAuthHarness({cloudContent:{pool:[{id:'incoming'}],tasks:[],settings:{}},storageOverrides:{setItem:()=>{throw Error('quota exceeded');}}});
+ refs.itemPool.value=[{id:'existing'}];
+ await assert.rejects(feature.loadCloudData(),/quota/);
+ assert.equal(refs.itemPool.value[0].id,'existing');
+ assert.equal(refs.saveStatus.value,'error');
+});
+test('offline bootstrap restores the unsynced local draft over older cache', async()=>{
+ const cachedData={user:{id:'USER_1',email:'a@b.c'},version:4,content:{schemaVersion:10,pool:[{id:'old'}],tasks:[],settings:{}}};
+ const draft={version:4,content:{schemaVersion:10,pool:[{id:'draft',editorId:'editor'}],tasks:[],settings:{}}};
+ const {feature,refs}=createAuthHarness({cachedData,getSession:()=>new Promise(()=>{}),startupTimeoutMs:5,storageOverrides:{loadData:key=>key===CLOUD_CACHE_KEY?cachedData:key==='musche_workflow_unsynced:USER_1'?draft:null}});
+ await feature.bootSessionData();
+ assert.equal(refs.itemPool.value[0].id,'draft'); assert.equal(refs.saveStatus.value,'unsaved');
 });

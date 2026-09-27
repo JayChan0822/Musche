@@ -1,3 +1,6 @@
+import { getScheduleStage, viewFromStage, getAssigneeId } from '../utils/workflow.js';
+import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { peekItemSplitState } from '../utils/split-state.js';
 import { computed, reactive, ref } from 'vue';
 
 import { timeToMinutes } from '../utils/time.js';
@@ -47,8 +50,8 @@ export function registerExportCsvFeature(context) {
 
   const exportMusicianOptions = computed(() => {
     const ids = new Set();
-    scheduledTasks.value.forEach((t) => { if (t.musicianId) ids.add(t.musicianId); });
-    itemPool.value.forEach((i) => { if (i.musicianId) ids.add(i.musicianId); });
+    scheduledTasks.value.forEach((t) => { if (getAssigneeId(t, getScheduleStage(t))) ids.add(getAssigneeId(t, getScheduleStage(t))); });
+    itemPool.value.forEach((i) => { if (i.musicianId) ids.add(i.musicianId); if (i.editorId) ids.add(i.editorId); });
     return [...ids]
       .map((id) => ({ id, name: getNameById(id, 'musician') }))
       .filter((o) => o.name && o.name !== '未知演奏员')
@@ -79,7 +82,7 @@ export function registerExportCsvFeature(context) {
   const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
   const HEADERS = [
-    '日期', '星期', '开始时间', '预计时长', '演奏者', '声部 / 乐组',
+    '日期', '星期', '开始时间', '预计时长', '负责人', '声部 / 乐组',
     '项目', '项目类型', '备注',
   ];
 
@@ -102,10 +105,8 @@ export function registerExportCsvFeature(context) {
     scheduledTasks.value.forEach((t) => {
       const sess = t.sessionId || 'S_DEFAULT';
       if (!sessionIds.has(sess)) return;
-      let key = '';
-      if (t.musicianId) key = `${sess}|M|${t.musicianId}`;
-      else if (t.projectId) key = `${sess}|P|${t.projectId}`;
-      else if (t.instrumentId) key = `${sess}|I|${t.instrumentId}`;
+      const context = scheduleContext(t);
+      const key = `${sess}|${context.stage}|${context.field}|${context.id}`;
       if (!key) return;
       if (!groups[key]) groups[key] = [];
       groups[key].push(t);
@@ -123,10 +124,11 @@ export function registerExportCsvFeature(context) {
     const sess = schedule.sessionId || 'S_DEFAULT';
     return itemPool.value.filter((item) => {
       if ((item.sessionId || 'S_DEFAULT') !== sess) return false;
-      if (schedule.musicianId && item.musicianId !== schedule.musicianId) return false;
-      if (schedule.projectId && !schedule.musicianId && item.projectId !== schedule.projectId) return false;
-      if (schedule.instrumentId && !schedule.musicianId && !schedule.projectId && item.instrumentId !== schedule.instrumentId) return false;
-      return (item.sectionIndex !== undefined ? item.sectionIndex : 0) === scheduleIndex;
+      const view = viewFromStage(getScheduleStage(schedule));
+      const part = peekItemSplitState(item, view);
+      if (!part.active) return false;
+      if (schedule.templateId) return item.id === schedule.templateId;
+      return itemMatchesSchedule(item, schedule) && part.sectionIndex === scheduleIndex;
     });
   }
 
@@ -189,10 +191,11 @@ export function registerExportCsvFeature(context) {
       const idxInfo = scheduleIndexMap.get(schedule.scheduleId);
       if (idxInfo === undefined) return;
 
-      const type = schedule.musicianId ? 'REC' : schedule.projectId ? 'EDT' : 'OTHER';
+      const stage = getScheduleStage(schedule);
+      const type = stage === 'rec' ? 'REC' : 'EDT';
       if (exportFilter.types.size > 0 && !exportFilter.types.has(type)) return;
       const items = getItemsForSchedule(schedule, idxInfo);
-      const recInfo = schedule.recordingInfo || {};
+      const recInfo = (stage === 'edit' ? schedule.editInfo : schedule.recordingInfo) || {};
       const estDurSec = parseTime(schedule.estDuration);
 
       const makeRow = (item) => ({
@@ -201,13 +204,13 @@ export function registerExportCsvFeature(context) {
         weekday: getWeekday(schedule.date),
         startTime: schedule.startTime || '',
         estDuration: formatEstDuration(estDurSec),
-        musician: safeGet(item?.musicianId || schedule.musicianId, 'musician'),
+        musician: safeGet(getAssigneeId(item || schedule, stage), 'musician'),
         instLabel: item ? buildInstLabel(item) : '',
         project: safeGet(item?.projectId || schedule.projectId, 'project'),
         projectType: type === 'REC' ? 'REC' : 'EDT',
         notes: type === 'REC' ? (recInfo.notes || '') : '',
         _projectId: item?.projectId || schedule.projectId || '',
-        _musicianId: item?.musicianId || schedule.musicianId || '',
+        _musicianId: getAssigneeId(item || schedule, stage),
         _instrumentId: item?.instrumentId || schedule.instrumentId || '',
       });
 

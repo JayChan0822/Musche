@@ -93,11 +93,16 @@ export function createSupabaseService({
       return withClient((client) => client.from('user_data').select('version').eq('user_id', userId).single());
     },
     saveUserData(userId, content, version) {
-      return withClient((client) => client.from('user_data').upsert({
-        user_id: userId,
-        content,
-        version,
-      }, { onConflict: 'user_id' }));
+      return withClient(async (client) => {
+        if (Number(content?.schemaVersion) >= 10) {
+          let capability;
+          try { capability = await client.rpc('musche_workflow_schema_version'); } catch { capability = null; }
+          if (capability?.error || Number(capability?.data) !== 10) {
+            return { data: null, error: { code: 'MUSCHE_SCHEMA_GUARD_REQUIRED', message: '云端尚未安装 v10 数据保护迁移，已阻止保存以防旧版本覆盖。请部署 supabase/migrations/20260928_workflow_schema_guard.sql 后重试。' } };
+          }
+        }
+        return client.from('user_data').upsert({ user_id: userId, content, version }, { onConflict: 'user_id' });
+      });
     },
     deleteUserData(userId) {
       return withClient((client) => client.from('user_data').delete().eq('user_id', userId));

@@ -1,3 +1,4 @@
+import { getScheduleStage, stageFromView, viewFromStage } from '../utils/workflow.js';
 import { reactive } from 'vue';
 
 export function registerSplitTaskFeature(context) {
@@ -132,6 +133,7 @@ export function registerSplitTaskFeature(context) {
       if (fields.projectId !== undefined) member.projectId = fields.projectId;
       if (fields.instrumentId !== undefined) member.instrumentId = fields.instrumentId;
       if (fields.musicianId !== undefined) member.musicianId = fields.musicianId;
+      if (fields.editorId !== undefined) member.editorId = fields.editorId;
       if (fields.group !== undefined) member.group = fields.group;
     });
 
@@ -140,7 +142,8 @@ export function registerSplitTaskFeature(context) {
       if (!familyIds.has(task.templateId)) return;
       if (fields.projectId !== undefined) task.projectId = fields.projectId;
       if (fields.instrumentId !== undefined) task.instrumentId = fields.instrumentId;
-      if (fields.musicianId !== undefined) task.musicianId = fields.musicianId;
+      if (getScheduleStage(task) === 'rec' && fields.musicianId !== undefined) task.musicianId = fields.musicianId;
+      if (getScheduleStage(task) === 'edit' && fields.editorId !== undefined) task.editorId = fields.editorId;
     });
   };
 
@@ -152,15 +155,16 @@ export function registerSplitTaskFeature(context) {
     });
   };
 
-  const syncScheduledDurationsFromFamily = (item) => {
+  const syncScheduledDurationsFromFamily = (item, viewType = null) => {
     const familyMembers = getSplitFamilyMembers(item);
     const familyById = new Map(familyMembers.map((member) => [member.id, member]));
 
     scheduledTasks.value.forEach((task) => {
+      if (viewType && getScheduleStage(task) !== stageFromView(viewType)) return;
       const template = familyById.get(task.templateId);
       if (!template) return;
 
-      const taskViewType = task.projectId ? 'project' : 'musician';
+      const taskViewType = viewFromStage(getScheduleStage(task));
       const taskState = peekSplitViewState(template, taskViewType);
 
       task.musicDuration = taskState.musicDuration || template.musicDuration;
@@ -218,6 +222,8 @@ export function registerSplitTaskFeature(context) {
       projectId: item.projectId,
       instrumentId: item.instrumentId,
       musicianId: item.musicianId,
+      editorId: item.editorId || '',
+      workflowStatus: { rec: 'not-started', edit: 'not-started' },
       ratio: newRatio,
       group: item.group || '',
       recordingInfo: cloneObject(item.recordingInfo),
@@ -264,7 +270,9 @@ export function registerSplitTaskFeature(context) {
         scheduleId: Date.now(),
         templateId: newTask.id,
         sessionId: currentSessionId.value,
-        musicianId: currentSchedule.musicianId ? newTask.musicianId : '',
+        stage: stageFromView(viewType),
+        musicianId: stageFromView(viewType) === 'rec' ? newTask.musicianId : '',
+        editorId: stageFromView(viewType) === 'edit' ? newTask.editorId : '',
         projectId: currentSchedule.projectId ? newTask.projectId : '',
         instrumentId: currentSchedule.instrumentId ? newTask.instrumentId : '',
         date: currentSchedule.date,

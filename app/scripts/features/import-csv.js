@@ -1,3 +1,4 @@
+import { getScheduleStage } from '../utils/workflow.js';
 import { computed, watch } from 'vue';
 import { parseCSVLine, parseCSVRobust } from '../utils/csv.js';
 import { timeToMinutes } from '../utils/time.js';
@@ -695,7 +696,7 @@ export function registerImportCsvFeature(context) {
           (task) =>
             task.date === current.date &&
             task.startTime === startStr &&
-            task.musicianId === current.mId &&
+            task.musicianId === current.mId && getScheduleStage(task) === 'rec' &&
             (task.sessionId || 'S_DEFAULT') === currentSessionId.value,
         );
 
@@ -706,6 +707,8 @@ export function registerImportCsvFeature(context) {
           scheduledTasks.value.push({
             scheduleId: targetScheduleId,
             sessionId: currentSessionId.value,
+            stage: 'rec',
+            editorId: '',
             musicianId: current.mId || null,
             projectId: !current.mId && current.pId ? current.pId : null,
             instrumentId: !current.mId && !current.pId && current.iId ? current.iId : null,
@@ -764,7 +767,7 @@ export function registerImportCsvFeature(context) {
           (task) =>
             task.date === current.date &&
             task.startTime === startStr &&
-            task.projectId === current.pId &&
+            task.projectId === current.pId && getScheduleStage(task) === 'edit' &&
             !task.musicianId &&
             (task.sessionId || 'S_DEFAULT') === currentSessionId.value,
         );
@@ -776,6 +779,8 @@ export function registerImportCsvFeature(context) {
           scheduledTasks.value.push({
             scheduleId: targetScheduleId,
             sessionId: currentSessionId.value,
+            stage: 'edit',
+            editorId: '',
             musicianId: null,
             projectId: current.pId,
             instrumentId: null,

@@ -187,6 +187,14 @@ export const AppTrackListModal = {
                             </div>
                         </div>
 
+                        <label class="flex items-center gap-2 text-xs py-1 cursor-pointer select-none" @click.stop>
+                            <input type="checkbox"
+                                   :checked="item.workflowStatus?.[trackListData.viewType === 'project' ? 'edit' : 'rec'] === 'completed'"
+                                   @change="item.workflowStatus = {...(item.workflowStatus || {}), [trackListData.viewType === 'project' ? 'edit' : 'rec']: $event.target.checked ? 'completed' : 'in-progress'}; pushHistory()"
+                                   class="accent-emerald-500 rounded">
+                            <span>{{ trackListData.viewType === 'project' ? '剪辑工作已完成' : '录音工作已完成' }}</span>
+                        </label>
+
                         <div class="flex items-center gap-2 bg-white/50 dark:bg-black/20 rounded-md p-1.5 border border-black/5 dark:border-white/5 transition-opacity duration-200"
                              :class="{'opacity-20 pointer-events-none select-none': item.isSkipped}">
 

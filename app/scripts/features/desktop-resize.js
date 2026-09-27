@@ -1,3 +1,4 @@
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 export function registerDesktopResizeFeature(context) {
   const { refs, utils, actions = {} } = context;
   const { resizing, pxPerMin } = refs;
@@ -48,11 +49,9 @@ export function registerDesktopResizeFeature(context) {
     if (!resizing.value) return;
 
     const task = resizing.value.task;
-    let type = 'musician';
-    if (task.projectId) type = 'project';
-    else if (task.instrumentId) type = 'instrument';
+    const type = viewFromStage(getScheduleStage(task));
 
-    if (checkOverlap(task.date, task.startTime, task.estDuration, task.scheduleId, type)) {
+    if (checkOverlap(task.date, task.startTime, task.estDuration, task.scheduleId, type, task)) {
       task.estDuration = resizing.value.originalDuration;
       openAlertModal('冲突', '调整后的时间有重叠');
     } else {

@@ -82,7 +82,7 @@ test('calcTrackDiff computes actualDuration and schedules the debounced write-ba
 
     // 09:00→09:05 = 5 分钟，扣 1 分钟休息 = 4 分钟 = 240s
     assert.equal(item.records.musician.actualDuration, '240s', 'actualDuration should be recEnd - recStart - break');
-    assert.equal(calls.resize, 1, 'schedule resize should run synchronously');
+    assert.equal(calls.resize, 0, 'actual records must not overwrite booked duration');
     assert.equal(calls.efficiency.length, 0, 'efficiency write-back is debounced, not synchronous');
 
     test.mock.timers.tick(1500);
@@ -91,4 +91,61 @@ test('calcTrackDiff computes actualDuration and schedules the debounced write-ba
   } finally {
     test.mock.timers.reset();
   }
+});
+
+test('clearing actual recording time preserves booked schedule duration', () => {
+  const { records, calls } = createRecords();
+  const item = {musicianId:'M1',records:{musician:{actualDuration:'01:00:00',recStart:'10:00',recEnd:'11:00'}}};
+  records.clearTrackTime(item);
+  assert.equal(item.records.musician.actualDuration,'');
+  assert.equal(calls.resize,0);
+});
+
+test('debounced actual save keeps original stage after user switches view', () => {
+  test.mock.timers.enable({apis:['setTimeout']});
+  try {
+    let view = 'musician';
+    const { records, calls } = createRecords({getViewType:()=>view,getTargetId:(item, type)=>type === 'project' ? item.editorId : item.musicianId});
+    records.saveTrackRecord({musicianId:'M',editorId:'E'});
+    view='project';
+    test.mock.timers.tick(1500);
+    assert.deepEqual(calls.efficiency,[['M','musician']]);
+  } finally { test.mock.timers.reset(); }
+});
+
+test('EDIT section adjustment never moves REC block for the same template', () => {
+  const rec={templateId:'T',stage:'rec',date:'2026-09-27',startTime:'10:00'};
+  const edit={templateId:'T',stage:'edit',date:'2026-09-27',startTime:'11:00'};
+  const target={stage:'edit',date:'2026-09-28',startTime:'12:00'};
+  const { records } = createRecords({getViewType:()=> 'project',scheduledTasks:ref([rec,edit]),trackListData:ref({schedules:[target]})});
+  records.syncTrackItemScheduleSection({id:'T',sectionIndex:0});
+  assert.equal(rec.date,'2026-09-27'); assert.equal(rec.startTime,'10:00');
+  assert.equal(edit.date,'2026-09-28'); assert.equal(edit.startTime,'12:00');
+});
+
+test('actual save captures execution owner and date once and preserves it after reassignment', () => {
+  test.mock.timers.enable({apis:['setTimeout']});
+  try {
+    const { records }=createRecords({getViewType:()=> 'project',trackListData:ref({schedules:[{stage:'edit',date:'2026-09-28'}]})});
+    const item={editorId:'E1',records:{project:{recStart:'10:00'}}};
+    records.saveTrackRecord(item);
+    assert.equal(item.records.project.assigneeId,'E1');
+    assert.equal(item.records.project.date,'2026-09-28');
+    item.editorId='E2';
+    records.saveTrackRecord(item);
+    assert.equal(item.records.project.assigneeId,'E1');
+    records.cancelPendingTrackSave();
+  } finally { test.mock.timers.reset(); }
+});
+
+test('empty actual data or missing assignee never invents historical ownership', () => {
+  const {records}=createRecords();
+  const item={musicianId:'M',records:{musician:{}}};
+  records.calcTrackDiff(item);
+  assert.equal(item.records.musician.assigneeId,undefined);
+  delete item.musicianId;
+  item.records.musician.recStart='10:00';
+  records.calcTrackDiff(item);
+  assert.equal(item.records.musician.assigneeId,'');
+  assert.equal(item.records.musician.date,undefined);
 });

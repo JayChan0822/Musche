@@ -1,27 +1,14 @@
+import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { serializeWorkflowContent, rememberWorkflowContent } from '../utils/workflow-migration.js';
 function getTrackListItemsForView({ itemPool, trackListData, currentSessionId, isItemVisibleForView }) {
-  const viewType = trackListData.value.viewType || 'musician';
   const taskRef = trackListData.value.taskRef;
-
-  let list = [];
-  if (viewType === 'project') {
-    list = itemPool.value.filter((item) => (
-      item.projectId === taskRef.projectId &&
-      (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-      isItemVisibleForView(item, viewType)
-    ));
-  } else if (viewType === 'instrument') {
-    list = itemPool.value.filter((item) => (
-      item.instrumentId === taskRef.instrumentId &&
-      (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-      isItemVisibleForView(item, viewType)
-    ));
-  } else {
-    list = itemPool.value.filter((item) => (
-      item.musicianId === taskRef.musicianId &&
-      (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
-      isItemVisibleForView(item, viewType)
-    ));
-  }
+  const context = scheduleContext(taskRef);
+  const viewType = context.view;
+  const list = itemPool.value.filter((item) => (
+    itemMatchesSchedule(item, taskRef) &&
+    (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+    isItemVisibleForView(item, viewType)
+  ));
 
   return { list, viewType };
 }
@@ -92,11 +79,7 @@ export function registerHistoryFeature(context) {
   };
 
   const pushHistory = () => {
-    const snapshot = JSON.stringify({
-      pool: itemPool.value,
-      tasks: scheduledTasks.value,
-      settings,
-    });
+    const snapshot = JSON.stringify(serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value));
 
     // 空快照保护：与当前索引处快照字节相同则跳过。
     // 必须放在分支截断之前——否则 no-op push 照样会先砍掉 redo 分支，
@@ -123,6 +106,7 @@ export function registerHistoryFeature(context) {
     if (historyIndex.value > 0) {
       historyIndex.value--;
       const snapshot = JSON.parse(history.value[historyIndex.value]);
+      rememberWorkflowContent(settings, snapshot);
       itemPool.value = snapshot.pool;
       scheduledTasks.value = snapshot.tasks;
 
@@ -139,6 +123,7 @@ export function registerHistoryFeature(context) {
     if (historyIndex.value < history.value.length - 1) {
       historyIndex.value++;
       const snapshot = JSON.parse(history.value[historyIndex.value]);
+      rememberWorkflowContent(settings, snapshot);
       itemPool.value = snapshot.pool;
       scheduledTasks.value = snapshot.tasks;
 

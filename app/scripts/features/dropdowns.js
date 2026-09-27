@@ -1,3 +1,4 @@
+import { peopleForRole } from '../utils/workflow.js';
 import { computed, reactive, ref, watch } from 'vue';
 
 export function registerDropdownsFeature(context) {
@@ -29,7 +30,7 @@ export function registerDropdownsFeature(context) {
     const realType = getRealType(type);
     if (realType === 'project') return settings.projects;
     if (realType === 'instrument') return settings.instruments;
-    if (realType === 'musician') return settings.musicians;
+    if (realType === 'musician' || realType === 'editor') return peopleForRole(settings, realType);
     return [];
   };
 
@@ -169,11 +170,13 @@ export function registerDropdownsFeature(context) {
       if (realType === 'project') editingItem.value.projectId = item.id;
       else if (realType === 'instrument') editingItem.value.instrumentId = item.id;
       else if (realType === 'musician') editingItem.value.musicianId = item.id;
+      else if (realType === 'editor') editingItem.value.editorId = item.id;
 
       activeDropdown.value = null;
       return;
     }
 
+    if (type === 'editor') newItem.editorId = item.id;
     if (type === 'project') newItem.projectId = item.id;
     if (type === 'instrument') newItem.instrumentId = item.id;
     if (type === 'musician') {

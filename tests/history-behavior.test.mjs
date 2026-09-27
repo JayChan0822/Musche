@@ -173,3 +173,20 @@ test('race simulation: undo inside the debounce window keeps redo working (93e04
     test.mock.timers.reset();
   }
 });
+
+test('undo fallback refreshes EDIT records by editor across projects',()=>{
+ const {feature,refs}=createHistory({actions:{reopenTrackListForTask:undefined}});
+ const schedule={scheduleId:'edit',stage:'edit',editorId:'e',projectId:'p1'};
+ refs.trackListData.value={viewType:'project',taskRef:schedule,items:[]}; refs.showTrackList.value=true;
+ refs.scheduledTasks.value=[schedule];
+ refs.itemPool.value=[{id:'a',editorId:'e',projectId:'p1',sessionId:'S1'},{id:'b',editorId:'e',projectId:'p2',sessionId:'S1'},{id:'c',editorId:'other',projectId:'p1',sessionId:'S1'}];
+ feature.pushHistory();refs.itemPool.value=[];feature.pushHistory();feature.undo();
+ assert.deepEqual(refs.trackListData.value.items.map(i=>i.id),['a','b']);
+});
+test('undo fallback preserves old project-owned EDIT aggregate',()=>{
+ const {feature,refs}=createHistory({actions:{reopenTrackListForTask:undefined}});
+ refs.trackListData.value={viewType:'project',taskRef:{scheduleId:'legacy',projectId:'p1'},items:[]};refs.showTrackList.value=true;
+ refs.itemPool.value=[{id:'a',projectId:'p1',sessionId:'S1'},{id:'b',projectId:'p2',sessionId:'S1'}];
+ feature.pushHistory();refs.itemPool.value=[];feature.pushHistory();feature.undo();
+ assert.deepEqual(refs.trackListData.value.items.map(i=>i.id),['a']);
+});

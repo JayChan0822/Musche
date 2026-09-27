@@ -161,7 +161,7 @@ export const AppMobileTaskInput = {
                 <button @click.stop="toggleDropdown('musician')"
                         class="w-full h-[64px] flex items-center justify-between px-4 bg-transparent active:bg-black/5 rounded-xl transition">
                     <div class="flex flex-col items-start min-w-0"><span
-                            class="text-[10px] opacity-40 font-bold uppercase tracking-wider mb-0.5">Musician</span>
+                            class="text-[10px] opacity-40 font-bold uppercase tracking-wider mb-0.5">REC / 演奏员（可稍后分配）</span>
                         <div class="flex items-center gap-2 w-full">
                             <div class="w-1.5 h-4 rounded-full shrink-0"
                                  :style="{backgroundColor: newItem.musicianId ? getGroupColor({musicianId: newItem.musicianId}, 'musicianId', true) : '#3b82f6'}"></div>
@@ -172,6 +172,7 @@ export const AppMobileTaskInput = {
                        :class="{'rotate-180': activeDropdown === 'musician'}"></i>
                 </button>
                 <div v-if="activeDropdown === 'musician'" class="custom-dropdown-menu">
+                    <button @click="selectOption('musician', {id: ''})" class="w-full px-4 py-2 text-left text-sm text-gray-500">暂不分配</button>
                     <div class="sticky top-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm p-2 border-b border-black/5 dark:border-white/5 z-20">
                         <input v-model="dropdownSearch" placeholder="搜索人员..."
                                class="w-full bg-transparent text-base px-2 py-1 outline-none placeholder:text-black/30 dark:placeholder:text-white/30"
@@ -222,6 +223,77 @@ export const AppMobileTaskInput = {
                     <button @click.stop="openQuickAdd('musician', dropdownSearch)"
                             class="w-full py-3 text-sm font-bold text-[#007aff] bg-black/5 dark:bg-white/5 hover:bg-[#007aff] hover:text-white transition flex items-center justify-center gap-2 border-t border-black/5 dark:border-white/5 sticky bottom-0 backdrop-blur-md">
                         <i class="fa-solid fa-plus"></i> 新建演奏员
+                    </button>
+                </div>
+            </div>
+
+            <div class="mobile-input-group transition-all duration-200"
+                 :class="activeDropdown === 'editor' ? 'z-[80] relative' : 'z-10 relative'">
+                <button @click.stop="toggleDropdown('editor')"
+                        class="w-full h-[64px] flex items-center justify-between px-4 bg-transparent active:bg-black/5 rounded-xl transition">
+                    <div class="flex flex-col items-start min-w-0"><span
+                            class="text-[10px] opacity-40 font-bold uppercase tracking-wider mb-0.5">EDIT / 剪辑员（可稍后分配）</span>
+                        <div class="flex items-center gap-2 w-full">
+                            <div class="w-1.5 h-4 rounded-full shrink-0"
+                                 :style="{backgroundColor: newItem.editorId ? getGroupColor({editorId: newItem.editorId}, 'editorId', true) : '#3b82f6'}"></div>
+                            <span class="font-bold text-lg truncate leading-tight">{{ getNameById(newItem.editorId, 'editor') === '未知剪辑员' ? '选择人员' : getNameById(newItem.editorId, 'editor')
+                                }}</span></div>
+                    </div>
+                    <i class="fa-solid fa-chevron-down opacity-30 text-xs transition-transform duration-300"
+                       :class="{'rotate-180': activeDropdown === 'editor'}"></i>
+                </button>
+                <div v-if="activeDropdown === 'editor'" class="custom-dropdown-menu">
+                    <button @click="selectOption('editor', {id: ''})" class="w-full px-4 py-2 text-left text-sm text-gray-500">暂不分配</button>
+                    <div class="sticky top-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm p-2 border-b border-black/5 dark:border-white/5 z-20">
+                        <input v-model="dropdownSearch" placeholder="搜索人员..."
+                               class="w-full bg-transparent text-base px-2 py-1 outline-none placeholder:text-black/30 dark:placeholder:text-white/30"
+                               @click.stop></div>
+
+                    <div class="max-h-[35vh] overflow-y-auto">
+                        <div v-for="group in getGroupedOptions(filteredOptions)" :key="group.name">
+
+                            <div class="sticky top-0 z-10 w-full px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50/95 dark:bg-[#2c2c2e]/95 backdrop-blur-md border-y border-black/5 dark:border-white/10 shadow-sm flex justify-between items-center cursor-pointer select-none"
+                                 @click.stop="toggleDropdownGroup(group.name)">
+                                <span>{{ group.name }}</span>
+
+                                <i class="fa-solid fa-chevron-right text-[10px] opacity-50 transition-transform duration-200"
+                                   :class="{'rotate-90': dropdownExpandedGroups.has(group.name) || dropdownSearch}"></i>
+                            </div>
+
+                            <div v-show="dropdownExpandedGroups.has(group.name) || dropdownSearch">
+
+                                <div v-if="activeDropdown !== 'editor'" v-for="item in group.items" :key="item.id"
+                                     @click="selectOption(activeDropdown === 'project' ? 'project' : 'instrument', item)"
+                                     class="px-4 py-3 text-base border-b border-black/5 dark:border-white/5 active:bg-black/5 flex items-center gap-3">
+
+                                    <div class="w-3 h-3 rounded-full shrink-0"
+                                         :style="{backgroundColor: item.color ? item.color : (activeDropdown === 'project' ? '#eab308' : '#3b82f6')}">
+                                    </div>
+
+                                    {{ item.name }}
+                                </div>
+
+                                <div v-if="activeDropdown === 'editor'" v-for="m in group.items" :key="m.id"
+                                     @click="selectOption('editor', m)"
+                                     class="px-4 py-3 text-base border-b border-black/5 dark:border-white/5 active:bg-black/5 flex justify-between items-center">
+
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-3 h-3 rounded-full shrink-0"
+                                             :style="{backgroundColor: m.color || '#a855f7'}">
+                                        </div>
+                                        <span>{{ m.name }}</span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                        <div v-if="filteredOptions.length===0" class="p-8 text-center opacity-40 text-sm">无结果
+                        </div>
+                    </div>
+                    <button @click.stop="openQuickAdd('editor', dropdownSearch)"
+                            class="w-full py-3 text-sm font-bold text-[#007aff] bg-black/5 dark:bg-white/5 hover:bg-[#007aff] hover:text-white transition flex items-center justify-center gap-2 border-t border-black/5 dark:border-white/5 sticky bottom-0 backdrop-blur-md">
+                        <i class="fa-solid fa-plus"></i> 新建剪辑员
                     </button>
                 </div>
             </div>

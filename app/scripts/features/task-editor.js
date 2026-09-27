@@ -1,3 +1,4 @@
+import { getScheduleStage, viewFromStage, getAssigneeId, stageFromView } from '../utils/workflow.js';
 export function registerTaskEditorFeature(context) {
   const { refs, split, utils, actions } = context;
   const {
@@ -37,12 +38,16 @@ export function registerTaskEditorFeature(context) {
   const getEditViewType = () => normalizeSplitViewType(
     editingSource.value === 'pool'
       ? sidebarTab.value
-      : ((trackListData.value && trackListData.value.viewType) || sidebarTab.value),
+      : viewFromStage(getScheduleStage(editingItem.value)),
   );
 
+  const estimateRatioForItem = (item, view = getEditViewType()) => {
+    const stageRatio = item.ratios?.[view];
+    return stageRatio > 0 ? stageRatio : getDefaultRatio(getAssigneeId(item, stageFromView(view)), view);
+  };
+
   const estimateDurationForItem = (item, musicDuration) => calculateEstTime(
-    musicDuration,
-    item.ratio || getDefaultRatio(item.musicianId),
+    musicDuration, estimateRatioForItem(item),
   );
 
   const showSplitDurationAlert = (rebalanceResult) => {
@@ -57,9 +62,8 @@ export function registerTaskEditorFeature(context) {
       editingItem.value.orchestration = editingItem.value.orchestration.trim();
     }
 
-    if (!editingItem.value.ratio || editingItem.value.ratio <= 0) {
-      editingItem.value.ratio = getDefaultRatio(editingItem.value.musicianId);
-    }
+    if (!(Number(editingItem.value.ratio) > 0)) editingItem.value.ratio = estimateRatioForItem(editingItem.value);
+    editingItem.value.ratios = { ...(editingItem.value.ratios || {}), [editViewType]: Number(editingItem.value.ratio) };
 
     editingItem.value.estDuration = calculateEstTime(
       editingItem.value.musicDuration,
@@ -87,6 +91,7 @@ export function registerTaskEditorFeature(context) {
       previousItem.projectId !== editingItem.value.projectId ||
       previousItem.instrumentId !== editingItem.value.instrumentId ||
       previousItem.musicianId !== editingItem.value.musicianId ||
+      previousItem.editorId !== editingItem.value.editorId ||
       previousItem.group !== editingItem.value.group
     );
     const orchestrationChanged = previousItem.orchestration !== editingItem.value.orchestration;
@@ -114,6 +119,7 @@ export function registerTaskEditorFeature(context) {
         projectId: editingItem.value.projectId,
         instrumentId: editingItem.value.instrumentId,
         musicianId: editingItem.value.musicianId,
+        editorId: editingItem.value.editorId || '',
         group: editingItem.value.group,
       });
     }
@@ -121,22 +127,23 @@ export function registerTaskEditorFeature(context) {
       syncFamilyOrchestration(savedItem, editingItem.value.orchestration);
     }
     syncFamilyTotalDuration(itemPool.value, savedItem.id, editViewType, estimateDurationForItem);
-    syncScheduledDurationsFromFamily(savedItem);
+    syncScheduledDurationsFromFamily(savedItem, editViewType);
 
     scheduledTasks.value = scheduledTasks.value.map((task) => {
       if (task.templateId !== editingItem.value.id) return task;
 
-      const nextTask = {
-        ...task,
-        musicDuration: editingItem.value.musicDuration,
-        ratio: editingItem.value.ratio,
-        estDuration: editingItem.value.estDuration,
-      };
+      const nextTask = { ...task };
+      if (viewFromStage(getScheduleStage(task)) === editViewType) {
+        nextTask.musicDuration = editingItem.value.musicDuration;
+        nextTask.ratio = editingItem.value.ratio;
+        nextTask.estDuration = editingItem.value.estDuration;
+      }
 
       if (sharedIdentityChanged) {
         if (nextTask.projectId) nextTask.projectId = editingItem.value.projectId;
         if (nextTask.instrumentId) nextTask.instrumentId = editingItem.value.instrumentId;
-        if (nextTask.musicianId) nextTask.musicianId = editingItem.value.musicianId;
+        if (getScheduleStage(nextTask) === 'rec') nextTask.musicianId = editingItem.value.musicianId || '';
+        if (getScheduleStage(nextTask) === 'edit') nextTask.editorId = editingItem.value.editorId || '';
       }
 
       return nextTask;
@@ -192,9 +199,12 @@ export function registerTaskEditorFeature(context) {
           return false;
         }
 
+        const ownerKey = getScheduleStage(editingItem.value) === 'edit' ? 'editorId' : 'musicianId';
+        poolItem[ownerKey] = editingItem.value[ownerKey] || '';
+        syncFamilySharedIdentity(poolItem, { [ownerKey]: poolItem[ownerKey] });
         syncFamilyLegacyFields(poolItem, editViewType);
         syncFamilyTotalDuration(itemPool.value, poolItem.id, editViewType, estimateDurationForItem);
-        syncScheduledDurationsFromFamily(poolItem);
+        syncScheduledDurationsFromFamily(poolItem, editViewType);
       }
     }
 
@@ -205,21 +215,21 @@ export function registerTaskEditorFeature(context) {
     if (editingItem.value.musicianId) {
       autoUpdateEfficiency(editingItem.value.musicianId, 'musician');
     }
-    if (editingItem.value.projectId) {
-      autoUpdateEfficiency(editingItem.value.projectId, 'project');
+    if (editingItem.value.editorId) {
+      autoUpdateEfficiency(editingItem.value.editorId, 'project');
     }
   };
 
   const openEditModal = (item, source) => {
+    editingSource.value = source;
     editingItem.value = JSON.parse(JSON.stringify(item));
+    if (source !== 'pool') editingItem.value.stage = getScheduleStage(item);
     ensureItemSplitViews(editingItem.value);
     if (source === 'pool') {
       syncLegacySplitFields(editingItem.value, sidebarTab.value);
     }
 
-    if (!editingItem.value.ratio || editingItem.value.ratio <= 0) {
-      editingItem.value.ratio = getDefaultRatio(editingItem.value.musicianId);
-    }
+    editingItem.value.ratio = estimateRatioForItem(editingItem.value);
 
     editingSource.value = source;
     showEditor.value = true;
@@ -257,9 +267,9 @@ export function registerTaskEditorFeature(context) {
       cleanupEmptySchedules();
     } else {
       if (editingItem.value.templateId) {
-        await clearPoolRecord(editingItem.value.templateId);
+        await clearPoolRecord(editingItem.value.templateId, editingItem.value, true);
       } else {
-        await clearAggregateRecords(editingItem.value);
+        await clearAggregateRecords(editingItem.value, true);
       }
       scheduledTasks.value = scheduledTasks.value.filter(
         (task) => task.scheduleId !== editingItem.value.scheduleId,

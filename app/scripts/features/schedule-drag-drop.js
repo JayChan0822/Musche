@@ -1,3 +1,5 @@
+import { scheduleIdentity } from '../utils/schedule-context.js';
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { formatClock } from '../utils/time.js';
 
 export function registerScheduleDragDropFeature(context) {
@@ -26,9 +28,7 @@ export function registerScheduleDragDropFeature(context) {
   };
 
   const getTaskType = (task) => {
-    if (task.projectId) return 'project';
-    if (task.instrumentId) return 'instrument';
-    return 'musician';
+    return viewFromStage(getScheduleStage(task));
   };
 
   const buildAggregateDuration = (item) => {
@@ -102,9 +102,9 @@ export function registerScheduleDragDropFeature(context) {
       }
 
       if (taskToDelete.templateId) {
-        await clearPoolRecord(taskToDelete.templateId);
+        await clearPoolRecord(taskToDelete.templateId, taskToDelete, true);
       } else if (typeof clearAggregateRecords === 'function') {
-        await clearAggregateRecords(taskToDelete);
+        await clearAggregateRecords(taskToDelete, true);
       } else {
         consoleError('找不到 clearAggregateRecords 函数，无法清理聚合数据');
       }
@@ -172,15 +172,15 @@ export function registerScheduleDragDropFeature(context) {
         return;
       }
     } else if (source === 'schedule') {
-      checkType = getTaskType(item);
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
       newDuration = item.estDuration;
       excludeId = item.scheduleId;
     } else if (source === 'pool') {
-      checkType = getTaskType(item);
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
       newDuration = item.estDuration;
     }
 
-    if (checkOverlap(dateStr, newStartTime, newDuration, excludeId, checkType)) {
+    if (checkOverlap(dateStr, newStartTime, newDuration, excludeId, checkType, scheduleIdentity(item, source, sidebarTab.value))) {
       openAlertModal('时间冲突', '该时间段已有同类型的其他安排。');
       draggedData = null;
       return;
@@ -199,6 +199,7 @@ export function registerScheduleDragDropFeature(context) {
         trackCount: item.trackCount,
         ratio: item.defaultRatio || 20,
       };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
     } else if (source === 'schedule') {
       const index = scheduledTasks.value.findIndex((task) => task.scheduleId === item.scheduleId);
@@ -222,6 +223,7 @@ export function registerScheduleDragDropFeature(context) {
         date: dateStr,
         startTime: newStartTime,
       };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
     }
 
@@ -243,7 +245,7 @@ export function registerScheduleDragDropFeature(context) {
     if (source === 'aggregate') {
       checkType = sidebarTab.value;
     } else {
-      checkType = getTaskType(item);
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
     }
 
     if (source === 'schedule') {
@@ -254,7 +256,7 @@ export function registerScheduleDragDropFeature(context) {
       targetDuration = item.estDuration || '00:30';
     }
 
-    if (checkOverlap(dateStr, targetStartTime, targetDuration, excludeId, checkType)) {
+    if (checkOverlap(dateStr, targetStartTime, targetDuration, excludeId, checkType, scheduleIdentity(item, source, sidebarTab.value))) {
       openAlertModal('时间冲突', '该日期已有同类型的其他安排。');
       draggedData = null;
       return;
@@ -308,6 +310,7 @@ export function registerScheduleDragDropFeature(context) {
         ratio,
         musicDuration,
       };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
       pushHistory();
     }

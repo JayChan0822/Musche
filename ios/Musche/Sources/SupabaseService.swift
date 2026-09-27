@@ -64,6 +64,11 @@ final class SupabaseService {
         var version: Int
     }
 
+    private struct SchemaProbe: Decodable {
+        struct Content: Decodable { var schemaVersion: Int? }
+        var content: Content
+    }
+
     private struct VersionRow: Decodable {
         var version: Int
     }
@@ -83,13 +88,18 @@ final class SupabaseService {
     func loadUserData() async throws -> UserData? {
         guard let userId else { return nil }
         do {
-            let row: CloudRow = try await client
+            let response = try await client
                 .from("user_data")
                 .select("content, version")
                 .eq("user_id", value: userId)
                 .single()
                 .execute()
-                .value
+            // Inspect the original JSON before Codable can silently discard newer fields.
+            let probe = try JSONDecoder().decode(SchemaProbe.self, from: response.data)
+            if (probe.content.schemaVersion ?? 0) > 9 {
+                throw NSError(domain: "Musche.Schema", code: 10, userInfo: [NSLocalizedDescriptionKey: "此数据已升级到新版工作流，请使用新版网页端。当前 iOS 版本不会保存或覆盖此数据。"])
+            }
+            let row = try JSONDecoder().decode(CloudRow.self, from: response.data)
             return UserData(cloudContent: row.content, version: row.version)
         } catch is PostgrestError {
             return nil
@@ -100,7 +110,7 @@ final class SupabaseService {
         guard let userId else {
             throw NSError(domain: "Musche", code: 1, userInfo: [NSLocalizedDescriptionKey: "未登录"])
         }
-        let serverVersion = try await fetchVersion(userId: userId)
+        let serverVersion = try await loadUserData()?.version ?? 0
         let result = Sync.attemptSave(localVersion: data.version, cloudVersion: serverVersion)
         if case .saved(let newVersion) = result {
             let payload = UpsertPayload(userId: userId, content: data.cloudContent, version: newVersion)

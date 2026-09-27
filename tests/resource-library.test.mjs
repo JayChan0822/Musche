@@ -87,3 +87,14 @@ test('Metadata is secondary and back restores the selected resource and search',
   assert.equal(f.activeType.value, 'musician');
   assert.equal(f.search.value, '张三');
 });
+
+test('person roles filter independently, preserve extra roles, and save new editors', async () => {
+  const {feature:f,ctx} = harness(); f.selectType('musician');
+  f.personRole.value='editor'; assert.equal(f.groups.value.length,0);
+  ctx.settings.musicians[0].roles=['musician','engineer'];
+  f.updateRoles(ctx.settings.musicians[0], 'both');
+  assert.deepEqual(ctx.settings.musicians[0].roles,['engineer','musician','editor']);
+  assert.equal(f.groups.value[0].items[0].id,'M');
+  f.newPersonRole.value='editor'; f.form.value.name='Jane'; await f.saveNew();
+  assert.deepEqual(ctx.settings.musicians.find(x=>x.id==='NEW').roles,['editor']);
+});

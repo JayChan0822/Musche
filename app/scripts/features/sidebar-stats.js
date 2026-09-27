@@ -1,3 +1,4 @@
+import { getScheduleStage, getAssigneeId, stageFromView, UNASSIGNED_ID } from '../utils/workflow.js';
 import { computed, reactive } from 'vue';
 
 export function registerSidebarStatsFeature(context) {
@@ -60,9 +61,13 @@ export function registerSidebarStatsFeature(context) {
     const recordTypeMap = {
       musicianId: 'musician',
       projectId: 'project',
+      editorId: 'project',
       instrumentId: 'instrument',
     };
     const currentRecordType = recordTypeMap[filterKey] || 'musician';
+    const stage = stageFromView(currentRecordType);
+    const ownerGrouping = filterKey === 'musicianId' || filterKey === 'editorId';
+    const groupId = (item) => ownerGrouping ? getAssigneeId(item, stage) || UNASSIGNED_ID : item[filterKey];
     const currentSessionItems = itemPool.value
       .filter((item) =>
         (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
@@ -125,7 +130,7 @@ export function registerSidebarStatsFeature(context) {
     const isSearchMode = textKeywords.length > 0;
 
     const stats = sourceList.map((group) => {
-      let poolItems = currentSessionItems.filter((item) => item[filterKey] === group.id);
+      let poolItems = currentSessionItems.filter((item) => groupId(item) === group.id);
       const groupPoolItems = poolItems;
 
       if (isSearchMode) {
@@ -141,13 +146,14 @@ export function registerSidebarStatsFeature(context) {
 
       const scheduleItems = scheduledTasks.value.filter(
         (task) =>
-          task[filterKey] === group.id &&
+          groupId(task) === group.id &&
+          getScheduleStage(task) === stage &&
           (task.sessionId || 'S_DEFAULT') === currentSessionId.value,
       );
       scheduleItems.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
       const scheduleCount = scheduleItems.length;
       // Use all associated music, even when the sidebar list is search-filtered.
-      const scheduledMusicSecs = currentRecordType === 'musician'
+      const scheduledMusicSecs = ownerGrouping
         ? groupPoolItems.filter((item) => !item.isSkipped && scheduleItems.some((block, index) =>
           block.templateId ? block.templateId === item.id : (item.sectionIndex || 0) === index,
         )).reduce((sum, item) => sum + parseTime(item.musicDuration), 0)
@@ -158,13 +164,16 @@ export function registerSidebarStatsFeature(context) {
         : null;
 
       let ratioComparison = null;
-      if (currentRecordType === 'musician') {
+      if (ownerGrouping) {
         let actualSeconds = 0;
         let recordedMusicSeconds = 0;
-        groupPoolItems.forEach((item) => {
+        currentSessionItems.forEach((item) => {
           if (item.isSkipped) return;
-          const actual = parseTime(item.records?.musician?.actualDuration);
-          const music = parseTime(item.musicDuration);
+          const record = item.records?.[currentRecordType];
+          const historicalOwner = record && Object.hasOwn(record, 'assigneeId') ? record.assigneeId : getAssigneeId(item, stage);
+          if (historicalOwner !== group.id) return;
+          const actual = parseTime(item.records?.[currentRecordType]?.actualDuration);
+          const music = parseTime(record?.musicDuration ?? item.musicDuration);
           if (actual > 0 && music > 0) {
             actualSeconds += actual;
             recordedMusicSeconds += music;
@@ -173,6 +182,7 @@ export function registerSidebarStatsFeature(context) {
         const averageRatio = recordedMusicSeconds > 0 ? actualSeconds / recordedMusicSeconds : null;
         const scheduledRatio = scheduledMusicSecs > 0 && blockSeconds > 0 ? blockSeconds / scheduledMusicSecs : null;
         ratioComparison = {
+          stage,
           averageRatio,
           scheduledRatio,
           differencePercent: averageRatio !== null && scheduledRatio !== null
@@ -205,15 +215,16 @@ export function registerSidebarStatsFeature(context) {
         : 0;
 
       let smartBaseRatio = 20;
-      if (avgRealRatio > 0) {
+      if (ownerGrouping && ratioComparison.averageRatio > 0) {
+        smartBaseRatio = ratioComparison.averageRatio;
+      } else if (!ownerGrouping && avgRealRatio > 0) {
         smartBaseRatio = avgRealRatio;
-      } else if (group.defaultRatio && group.defaultRatio > 0) {
-        smartBaseRatio = parseFloat(group.defaultRatio);
       }
 
       let totalSecs = 0;
       let totalActualSec = 0;
       let recordedCount = 0;
+      let completedCount = 0;
       let effectiveCount = 0;
 
       const displayItems = poolItems.map((rawItem) => {
@@ -237,7 +248,10 @@ export function registerSidebarStatsFeature(context) {
         const effectiveRatio = isManual ? validManualRatio : smartBaseRatio;
         const dynEst = calculateEstTime(rawItem.musicDuration, effectiveRatio);
 
-        if (!rawItem.isSkipped) {
+        const explicitStatus = rawItem.workflowStatus?.[stage];
+        const isSkipped = rawItem.isSkipped || explicitStatus === 'not-required';
+        if (!isSkipped) {
+          if (explicitStatus ? explicitStatus === 'completed' : !!actualDur) completedCount++;
           effectiveCount++;
           if (actualDur) {
             recordedCount++;
@@ -248,6 +262,7 @@ export function registerSidebarStatsFeature(context) {
 
         return {
           ...rawItem,
+          isSkipped,
           actualDuration: actualDur,
           ratio: effectiveRatio,
           isManualRatio: isManual,
@@ -340,16 +355,16 @@ export function registerSidebarStatsFeature(context) {
       }
 
       const trackCount = poolItems.length;
-      const hasMeasuredBaseline = currentRecordType !== 'musician' || ratioComparison.averageRatio !== null;
+      const hasMeasuredBaseline = !ownerGrouping || ratioComparison.averageRatio !== null;
       let statusKey = 'unscheduled';
 
       if (trackCount > 0 && effectiveCount === 0) {
         statusKey = 'completed';
-      } else if (effectiveCount > 0 && recordedCount === effectiveCount) {
+      } else if (effectiveCount > 0 && completedCount === effectiveCount) {
         statusKey = 'completed';
       } else if (hasMeasuredBaseline && scheduledSecs > 0 && scheduledSecs < totalSecs) {
         statusKey = 'insufficient';
-      } else if (recordedCount > 0) {
+      } else if (recordedCount > 0 || poolItems.some(item => item.workflowStatus?.[stage] === 'in-progress')) {
         statusKey = 'in-progress';
       } else if (!hasMeasuredBaseline && scheduleCount > 0) {
         statusKey = 'scheduled';
@@ -362,6 +377,9 @@ export function registerSidebarStatsFeature(context) {
       return {
         ...group,
         id: group.id,
+        stage,
+        assigneeId: ownerGrouping && group.id !== UNASSIGNED_ID ? group.id : '',
+        isUnassigned: ownerGrouping && group.id === UNASSIGNED_ID,
         items: displayItems,
         trackCount,
         scheduleCount,
@@ -406,8 +424,16 @@ export function registerSidebarStatsFeature(context) {
     });
   };
 
-  const musicianStats = computed(() => calculateGroupStats(settings.musicians, 'musicianId'));
-  const projectStats = computed(() => calculateGroupStats(settings.projects, 'projectId'));
+  const owners = (key, label) => {
+    const people = [...settings.musicians];
+    const ids = new Set(people.map((person) => person.id));
+    itemPool.value.forEach((item) => {
+      if (item[key] && !ids.has(item[key])) { people.push({ id: item[key], name: '未知' + label }); ids.add(item[key]); }
+    });
+    return [...people, { id: UNASSIGNED_ID, name: '待分配' + label, group: '', color: '#64748b' }];
+  };
+  const musicianStats = computed(() => calculateGroupStats(owners('musicianId', '演奏员'), 'musicianId'));
+  const projectStats = computed(() => calculateGroupStats(owners('editorId', '剪辑员'), 'editorId'));
   const instrumentStats = computed(() => calculateGroupStats(settings.instruments, 'instrumentId'));
 
   const activeTaskCount = computed(() =>
@@ -464,13 +490,9 @@ export function registerSidebarStatsFeature(context) {
 
   const jumpToStatSchedule = (stat) => {
     let relatedTasks = [];
-    if (sidebarTab.value === 'project') {
-      relatedTasks = scheduledTasks.value.filter((task) => task.projectId === stat.id);
-    } else if (sidebarTab.value === 'instrument') {
-      relatedTasks = scheduledTasks.value.filter((task) => task.instrumentId === stat.id);
-    } else {
-      relatedTasks = scheduledTasks.value.filter((task) => task.musicianId === stat.id);
-    }
+    const stage = stageFromView(sidebarTab.value);
+    relatedTasks = scheduledTasks.value.filter((task) =>
+      getScheduleStage(task) === stage && (getAssigneeId(task, stage) || UNASSIGNED_ID) === stat.id);
 
     relatedTasks = relatedTasks.filter((task) => (task.sessionId || 'S_DEFAULT') === currentSessionId.value);
 

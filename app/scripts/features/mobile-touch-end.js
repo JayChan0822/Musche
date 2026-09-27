@@ -1,3 +1,5 @@
+import { scheduleIdentity } from '../utils/schedule-context.js';
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { formatClock } from '../utils/time.js';
 
 export function registerMobileTouchEndFeature(context) {
@@ -21,9 +23,7 @@ export function registerMobileTouchEndFeature(context) {
   } = actions;
 
   const getCheckTypeForTask = (task) => {
-    if (task.projectId) return 'project';
-    if (task.instrumentId) return 'instrument';
-    return 'musician';
+    return viewFromStage(getScheduleStage(task));
   };
 
   const clearTimer = (timerKey) => {
@@ -90,10 +90,10 @@ export function registerMobileTouchEndFeature(context) {
       if (remainingMins === 0) remainingMins = 30;
       checkDuration = formatSecs(remainingMins * 60);
     } else if (state.dragSourceType === 'pool') {
-      checkType = getCheckTypeForTask(state.dragSourceTask);
+      checkType = getCheckTypeForTask(scheduleIdentity(state.dragSourceTask, state.dragSourceType, sidebarTab.value));
       checkDuration = state.dragSourceTask.estDuration;
     } else {
-      checkType = getCheckTypeForTask(state.dragSourceTask);
+      checkType = getCheckTypeForTask(scheduleIdentity(state.dragSourceTask, state.dragSourceType, sidebarTab.value));
       checkDuration = state.dragSourceTask.estDuration;
       excludeId = state.dragSourceTask.scheduleId;
     }
@@ -144,7 +144,7 @@ export function registerMobileTouchEndFeature(context) {
     const check = getWeekDropCheck();
     if (!check) return;
 
-    if (checkOverlap(dateStr, newTime, check.checkDuration, check.excludeId, check.checkType)) {
+    if (checkOverlap(dateStr, newTime, check.checkDuration, check.excludeId, check.checkType, scheduleIdentity(state.dragSourceTask, state.dragSourceType, sidebarTab.value))) {
       openAlertModal('时间冲突', '该时间段已有重叠的安排。');
       if (state.dragSourceEl) state.dragSourceEl.style.opacity = '';
       state.dragSourceEl = null;
@@ -153,10 +153,10 @@ export function registerMobileTouchEndFeature(context) {
     }
 
     if (state.dragSourceType === 'aggregate') {
-      scheduledTasks.value.push(createAggregateWeekTask(dateStr, newTime));
+      scheduledTasks.value.push({ ...createAggregateWeekTask(dateStr, newTime), ...scheduleIdentity(state.dragSourceTask, 'aggregate', sidebarTab.value) });
       pushHistory();
     } else if (state.dragSourceType === 'pool') {
-      scheduledTasks.value.push(createPoolWeekTask(dateStr, newTime));
+      scheduledTasks.value.push({ ...createPoolWeekTask(dateStr, newTime), templateId: state.dragSourceTask.id, ...scheduleIdentity(state.dragSourceTask, 'pool', sidebarTab.value) });
       pushHistory();
     } else if (
       state.dragSourceTask.startTime !== newTime ||
@@ -214,6 +214,7 @@ export function registerMobileTouchEndFeature(context) {
 
     if (state.dragSourceType === 'schedule') {
       if (state.dragSourceTask.date !== dateStr) {
+        if (checkOverlap(dateStr, state.dragSourceTask.startTime, state.dragSourceTask.estDuration, state.dragSourceTask.scheduleId, getCheckTypeForTask(state.dragSourceTask), state.dragSourceTask)) return openAlertModal('时间冲突', '人员或场地已有安排。');
         state.dragSourceTask.date = dateStr;
         pushHistory();
       }
@@ -223,25 +224,17 @@ export function registerMobileTouchEndFeature(context) {
     if (state.dragSourceType !== 'aggregate' && state.dragSourceType !== 'pool') return;
 
     const item = state.dragSourceTask;
-    let checkType = 'musician';
-    if (state.dragSourceType === 'pool') {
-      if (item.projectId) checkType = 'project';
-      else if (item.instrumentId) checkType = 'instrument';
-    } else if (sidebarTab.value === 'project') {
-      checkType = 'project';
-    } else if (sidebarTab.value === 'instrument') {
-      checkType = 'instrument';
-    }
+    const checkType = viewFromStage(getScheduleStage(scheduleIdentity(item, state.dragSourceType, sidebarTab.value)));
 
     const defaultStart = formatClock(settings.startHour);
     const estDur = state.dragSourceType === 'pool'
       ? item.estDuration
       : (item.estDuration || '00:30');
 
-    if (checkOverlap(dateStr, defaultStart, estDur, null, checkType)) {
+    if (checkOverlap(dateStr, defaultStart, estDur, null, checkType, scheduleIdentity(item, state.dragSourceType, sidebarTab.value))) {
       openAlertModal('冲突', '该日期已有安排，请切换到周视图查看详情。');
     } else {
-      scheduledTasks.value.push(createMonthTask(dateStr, defaultStart, item, checkType));
+      scheduledTasks.value.push({ ...createMonthTask(dateStr, defaultStart, item, checkType), templateId: state.dragSourceType === 'pool' ? item.id : undefined, ...scheduleIdentity(item, state.dragSourceType, sidebarTab.value) });
       pushHistory();
     }
   };

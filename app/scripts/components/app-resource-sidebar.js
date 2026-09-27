@@ -72,6 +72,9 @@ export const AppResourceSidebar = {
             <i class="fa-solid" :class="tab.icon" :style="activeType === tab.type ? {color: tab.color} : {}" aria-hidden="true"></i>{{ tab.label }}
           </button>
         </div>
+        <select v-if="activeType === 'musician'" v-model="personRole" aria-label="人员角色筛选" class="glass-input w-full h-9 text-xs">
+          <option value="all">全部人员</option><option value="musician">演奏员</option><option value="editor">剪辑员</option>
+        </select>
         <div class="relative">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-xs text-gray-400" aria-hidden="true"></i>
           <input v-model="search" :aria-label="'搜索' + activeTab.label" :placeholder="'搜索' + activeTab.label + '或分组…'" class="glass-input w-full h-9 !pl-8 !pr-8 text-xs">
@@ -97,6 +100,9 @@ export const AppResourceSidebar = {
                 <button @click="openInfo(item)" :aria-label="'查看' + item.name + '详情'" title="历史曲目与录音统计" class="w-7 h-7 rounded-lg shrink-0 text-white shadow-sm" :style="{backgroundColor: item.color || activeTab.color}"><i class="fa-solid text-[10px]" :class="activeTab.icon" aria-hidden="true"></i></button>
                 <input :value="item.name" :aria-label="activeTab.label + '名称'" @change="ctx.handleItemRename(activeType, item, $event)" @mousedown.stop class="min-w-0 flex-1 bg-transparent outline-none rounded focus:ring-1 focus:ring-blue-500 py-1 text-sm font-semibold">
                 <button @click="editingGroupId = editingGroupId === item.id ? null : item.id" :aria-label="'修改' + item.name + '分组'" :aria-expanded="editingGroupId === item.id" title="修改分组" class="w-6 h-7 shrink-0 rounded text-gray-400 hover:text-blue-500"><i class="fa-solid fa-folder-tree text-[10px]" aria-hidden="true"></i></button>
+                <select v-if="activeType === 'musician'" :value="getRoleValue(item)" @change="updateRoles(item, $event.target.value)" :aria-label="item.name + '角色'" class="glass-input w-20 h-7 text-[10px]">
+                  <option value="musician">演奏员</option><option value="editor">剪辑员</option><option value="both">演奏/剪辑</option>
+                </select>
                 <template v-if="activeType === 'project'">
                   <button @click="ctx.openProjectInfoModal(item)" :aria-label="item.name + '项目信息'" title="项目信息" class="w-7 h-7 rounded text-blue-500 hover:bg-blue-500/10"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                   <button @click="ctx.openMidiManager(item)" :aria-label="item.name + ' MIDI 管理'" title="MIDI 管理" class="rounded px-2 h-7 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10">MIDI</button>
@@ -120,6 +126,7 @@ export const AppResourceSidebar = {
       <div v-if="activeType !== 'metadata'" class="p-3 border-t border-black/5 dark:border-white/10 shrink-0">
         <form v-if="creating" @submit.prevent="saveNew" class="space-y-2">
           <div class="flex justify-between items-center text-xs font-bold"><span>新增{{ activeTab.label }}</span><button type="button" @click="creating = false" class="w-8 h-8 text-gray-500" aria-label="取消新增"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></div>
+          <select v-if="activeType === 'musician'" v-model="newPersonRole" aria-label="新人员角色" class="glass-input w-full h-9 text-xs"><option value="musician">演奏员</option><option value="editor">剪辑员</option><option value="both">演奏员与剪辑员</option></select>
           <input ref="nameInput" v-model="form.name" required :aria-label="'新' + activeTab.label + '名称'" placeholder="名称" class="glass-input w-full h-10 text-sm">
           <div class="flex gap-2"><input v-model="form.group" :list="'library-groups-' + activeType" aria-label="新条目分组" placeholder="分组（可选）" class="glass-input min-w-0 flex-1 h-10 text-xs"><button :disabled="saving || !form.name.trim()" class="px-4 h-10 rounded-xl bg-[#007aff] text-white text-xs font-bold disabled:opacity-40">{{ saving ? '保存中' : '添加' }}</button></div>
         </form>

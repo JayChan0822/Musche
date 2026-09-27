@@ -2,12 +2,19 @@ import { computed, reactive, ref } from 'vue';
 
 export const resourceTabs = [
   { type: 'instrument', label: '乐器', icon: 'fa-guitar', color: '#3b82f6' },
-  { type: 'musician', label: '乐手', icon: 'fa-user', color: '#a855f7' },
+  { type: 'musician', label: '人员', icon: 'fa-user', color: '#a855f7' },
   { type: 'project', label: '项目', icon: 'fa-folder', color: '#ca8a04' },
 ];
 
 export function createResourceLibrary(ctx) {
   const activeType = ref('instrument');
+  const personRole = ref('all');
+  const newPersonRole = ref('musician');
+  const getRoleValue = (item) => (item.roles || ['musician']).includes('editor') ? ((item.roles || []).includes('musician') ? 'both' : 'editor') : 'musician';
+  const updateRoles = (item, role) => {
+    item.roles = [...new Set([...(item.roles || []).filter((value) => !['musician', 'editor'].includes(value)), ...(role === 'both' ? ['musician', 'editor'] : [role])])];
+    ctx.pushHistory();
+  };
   const previousType = ref('instrument');
   const queries = reactive({ instrument: '', musician: '', project: '', metadata: '' });
   const expanded = reactive(new Set());
@@ -26,6 +33,7 @@ export function createResourceLibrary(ctx) {
     const query = search.value.trim().toLowerCase();
     const map = new Map();
     for (const item of list.value) {
+      if (activeType.value === 'musician' && personRole.value !== 'all' && !(item.roles || ['musician']).includes(personRole.value)) continue;
       if (query && !`${item.name} ${item.group || ''}`.toLowerCase().includes(query)) continue;
       const group = item.group?.trim() || '';
       if (!map.has(group)) map.set(group, []);
@@ -64,8 +72,13 @@ export function createResourceLibrary(ctx) {
     saving.value = true;
     const type = activeType.value;
     const group = form.value.group.trim();
+    const existingIds = new Set((ctx.settings.musicians || []).map((item) => item.id));
     try {
       await ctx.addSettingsItem(type);
+      if (type === 'musician') {
+        const added = ctx.settings.musicians.find((item) => !existingIds.has(item.id));
+        if (added) updateRoles(added, newPersonRole.value);
+      }
       if (!ctx.newSettingsItem[type].name) {
         queries[type] = '';
         expanded.add(`${type}|${group}`);
@@ -80,6 +93,6 @@ export function createResourceLibrary(ctx) {
     expanded.add(`${activeType.value}|${group}`);
     ctx.pushHistory();
   };
-  return { resourceTabs, activeType, activeTab, search, totalCount, groupNames, groups, form, creating, saving,
+  return { personRole, newPersonRole, getRoleValue, updateRoles, resourceTabs, activeType, activeTab, search, totalCount, groupNames, groups, form, creating, saving,
     isExpanded, toggleGroup, allExpanded, toggleAll, selectType, returnToLibrary, beginCreate, saveNew, updateGroup };
 }

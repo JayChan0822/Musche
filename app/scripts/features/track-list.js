@@ -31,7 +31,7 @@ export function registerTrackListFeature(context) {
   const getViewType = () => trackListData.value.viewType || 'musician';
 
   const getTargetId = (item, viewType) => {
-    if (viewType === 'project') return item.projectId;
+    if (viewType === 'project') return item.editorId;
     if (viewType === 'instrument') return item.instrumentId;
     return item.musicianId;
   };
@@ -63,6 +63,7 @@ export function registerTrackListFeature(context) {
     pruneEmptySchedules,
     getViewType,
     getTargetId,
+    getNameById,
     autoResizeScheduleByRecords: layout.autoResizeScheduleByRecords,
   });
 

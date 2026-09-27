@@ -111,8 +111,8 @@ export const AppSidebar = {
                                  :data-stat-id="stat.id"
 
                                  class="mobile-stat-card group py-6 px-5 sm:p-3"
-                                 :draggable="!stat.isFullyScheduled && stat.statusKey !== 'in-progress'"
-                                 @dragstart="(!stat.isFullyScheduled && stat.statusKey !== 'in-progress') && dragStart($event, stat, 'aggregate')"
+                                 :draggable="!stat.isUnassigned && !stat.isFullyScheduled && stat.statusKey !== 'in-progress'"
+                                 @dragstart="(!stat.isUnassigned && !stat.isFullyScheduled && stat.statusKey !== 'in-progress') && dragStart($event, stat, 'aggregate')"
 
                                  @click.stop="handleStatCardClick(stat)"
                                  @touchstart="handlePoolTouchStart($event, stat, 'aggregate')"
@@ -151,20 +151,20 @@ export const AppSidebar = {
                                         <span v-else-if="stat.statusKey === 'scheduled'" title="已安排时间，暂无平均倍数可判断是否充足" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
                                         <span v-else-if="stat.statusKey === 'insufficient'" class="px-2 py-1 rounded-md bg-red-500/10 text-red-500 dark:text-red-400 text-sm sm:text-xs font-bold whitespace-nowrap">缺时</span>
 
-                                        <button v-if="sidebarTab !== 'musician' && stat.avgRealRatio > 0"
+                                        <button v-if="!stat.ratioComparison && stat.avgRealRatio > 0"
                                                 @click.stop="autoUpdateEfficiency(stat.id, sidebarTab)"
                                                 class="px-2 py-1 rounded-md bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 text-sm sm:text-xs font-mono font-bold transition whitespace-nowrap border border-transparent dark:border-purple-500/20 hover:bg-purple-200 active:scale-95 cursor-pointer">
                                             x{{ stat.avgRealRatio }}
                                         </button>
 
-                                        <div v-else-if="sidebarTab !== 'musician' && stat.items && stat.items.length > 0"
+                                        <div v-else-if="!stat.ratioComparison && stat.items && stat.items.length > 0"
                                              class="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-sm sm:text-xs font-mono font-bold transition whitespace-nowrap border border-transparent cursor-default">
                                             x{{ getTaskRatio(stat.items[0]) }}
                                         </div>
                                     </div>
                                 </div>
 
-                                <AppRatioComparison v-if="sidebarTab === 'musician' && stat.ratioComparison" :comparison="stat.ratioComparison" />
+                                <AppRatioComparison v-if="stat.ratioComparison" :comparison="stat.ratioComparison" />
 
                                 <div class="flex justify-between items-baseline">
                                     <div class="text-[14px] opacity-50 font-medium flex items-center gap-2">

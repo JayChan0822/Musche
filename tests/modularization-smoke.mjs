@@ -395,6 +395,7 @@ const { registerPickerControlsFeature } = existsSync(pickerControlsFeaturePath)
     ? await import('../app/scripts/features/picker-controls.js')
     : {};
 const { registerHistoryFeature } = await import('../app/scripts/features/history.js');
+const { migrateWorkflowContent } = await import('../app/scripts/utils/workflow-migration.js');
 const { registerDataPortabilityFeature } = await import('../app/scripts/features/data-portability.js');
 const { registerExportCsvFeature } = await import('../app/scripts/features/export-csv.js');
 const { registerDataIoFeature } = existsSync(dataIoFeaturePath)
@@ -6063,7 +6064,7 @@ assert.match(
 
 assert.match(
     scheduleDeletionFeature,
-    /const\s+clearAggregateRecords\s*=\s*\(task\)\s*=>/,
+    /const\s+clearAggregateRecords\s*=\s*\(task,\s*preserveRecords\s*=\s*false\)\s*=>/,
     'schedule-deletion feature must own aggregate schedule record cleanup'
 );
 
@@ -7744,7 +7745,7 @@ assert.match(
 
 assert.match(
     splitTaskFeature,
-    /const\s+syncScheduledDurationsFromFamily\s*=\s*\(item\)\s*=>/,
+    /const\s+syncScheduledDurationsFromFamily\s*=\s*\(item,\s*viewType\s*=\s*null\)\s*=>/,
     'split-task feature must own scheduled split-family duration synchronization'
 );
 
@@ -8154,13 +8155,13 @@ for (const relativePath of requiredFiles) {
 {
     const refs = {
         itemPool: vueRef([
-            { id: 'ITEM1', sessionId: 'S1', projectId: 'P1', instrumentId: 'I1', musicianId: 'M1', splitTag: 'Lead', sectionIndex: 0 },
+            { id: 'ITEM1', sessionId: 'S1', projectId: 'P1', instrumentId: 'I1', musicianId: 'M1', editorId: 'E1', splitTag: 'Lead', sectionIndex: 0 },
             { id: 'ITEM2', sessionId: 'S1', projectId: 'P1', instrumentId: 'I2', musicianId: 'M1', splitTag: 'Bassoon Detail', sectionIndex: 1 },
         ]),
         scheduledTasks: vueRef([
             { scheduleId: 1, sessionId: 'S1', musicianId: 'M1', date: '2026-05-29', startTime: '09:00', recordingInfo: { studio: 'Room A' } },
             { scheduleId: 2, sessionId: 'S1', musicianId: 'M1', date: '2026-05-29', startTime: '10:00', recordingInfo: { studio: 'Room B' } },
-            { scheduleId: 3, sessionId: 'S1', projectId: 'P1', date: '2026-05-29', startTime: '11:00' },
+            { scheduleId: 3, sessionId: 'S1', stage: 'edit', editorId: 'E1', projectId: 'P1', date: '2026-05-29', startTime: '11:00' },
         ]),
         globalSearchQuery: vueRef(''),
         currentSearchIndex: vueRef(0),
@@ -8177,7 +8178,7 @@ for (const relativePath of requiredFiles) {
     const state = {
         sidebarTab: vueRef('musician'),
         musicianStats: vueRef([{ id: 'M1', statusKey: 'completed' }]),
-        projectStats: vueRef([{ id: 'P1', statusKey: 'in-progress' }]),
+        projectStats: vueRef([{ id: 'E1', statusKey: 'in-progress' }]),
         instrumentStats: vueRef([{ id: 'I1', statusKey: 'missing' }]),
         settings: {
             musicians: [{ id: 'M1', name: 'Yi Li Player', group: 'Soloists' }],
@@ -9677,9 +9678,9 @@ for (const relativePath of requiredFiles) {
     refs.currentSessionId.value = 'S2';
     feature.handleDataChanged();
     const localSave = calls.find((entry) => entry[0] === 'saveData');
-    assert.equal(localSave[1], 'v9_data', 'guest autosave should persist to the legacy offline data key');
-    assert.deepEqual(localSave[2].pool, refs.itemPool.value, 'guest autosave should persist the current pool');
-    assert.deepEqual(localSave[2].tasks, refs.scheduledTasks.value, 'guest autosave should persist scheduled tasks');
+    assert.equal(localSave[1], 'v10_data', 'guest autosave should preserve the legacy offline data key');
+    assert.deepEqual(localSave[2].pool, migrateWorkflowContent({pool:refs.itemPool.value}).pool, 'guest autosave should persist the current pool');
+    assert.deepEqual(localSave[2].tasks, migrateWorkflowContent({tasks:refs.scheduledTasks.value}).tasks, 'guest autosave should persist scheduled tasks');
     assert.equal(localSave[2].settings.lastSessionId, 'S2', 'guest autosave should stamp the current session id into saved settings');
 
     refs.isBootstrappingData.value = true;
@@ -10420,7 +10421,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(refs.scheduledTasks.value[0].projectId, 'P2', 'saving a pool item should sync changed project identity to scheduled copies');
     assert.equal(refs.showEditor.value, false, 'saving a pool edit should close the editor');
     assert.equal(historyCount, 1, 'saving a pool edit should push history once');
-    assert.deepEqual(efficiencyCalls, [['M1', 'musician'], ['P2', 'project']], 'saving a pool edit should refresh musician and project efficiency');
+    assert.deepEqual(efficiencyCalls, [['M1', 'musician']], 'saving a pool edit must not treat the project as an editor');
 }
 
 {
@@ -10850,6 +10851,7 @@ for (const relativePath of requiredFiles) {
         name: 'New Player',
         group: 'New Team',
         color: '#123456',
+        roles: ['musician'],
     }, 'saving Quick Add should append the new item with generated id, color, and group');
     assert.equal(state.newItem.musicianId, 'M_NEW', 'saving a musician Quick Add should select it in the draft item');
     assert.equal(state.newItem.ratio, 24, 'saving a musician Quick Add should use the estimation service');
@@ -10885,6 +10887,8 @@ for (const relativePath of requiredFiles) {
         projectId: 'P1',
         instrumentId: 'I_OLD',
         musicianId: 'M_EXISTING',
+        editorId: '',
+        workflowStatus: { rec: 'not-started', edit: 'not-started' },
         musicDuration: '02:30',
         orchestration: '',
         ratios: { musician: null, project: null, instrument: null },
@@ -11065,9 +11069,10 @@ for (const relativePath of requiredFiles) {
     feature.pushHistory();
     assert.equal(refs.historyIndex.value, 2, 'pushHistory should append after the current index');
     assert.deepEqual(JSON.parse(refs.history.value.at(-1)), {
-        pool: [{ id: 'LIVE' }],
-        tasks: [{ scheduleId: 300 }],
+        pool: [{ id: 'LIVE', editorId: '' }],
+        tasks: [{ scheduleId: 300, stage: 'rec', editorId: '' }],
         settings: { marker: 'live', untouched: true },
+        schemaVersion: 10,
     }, 'pushHistory should snapshot pool, tasks, and settings');
 
     refs.history.value = Array.from({ length: 50 }, (_, index) => JSON.stringify({ pool: [{ id: index }], tasks: [], settings: {} }));
@@ -11110,6 +11115,7 @@ for (const relativePath of requiredFiles) {
     };
 
     const feature = registerDataPortabilityFeature({
+        services: {storageService:{getItem:()=>null,setItem:()=>{}}},
         refs,
         state,
         utils: {
@@ -11162,11 +11168,11 @@ for (const relativePath of requiredFiles) {
     inputs.at(-1)[3]('backup-file');
     assert.equal(downloads.at(-1).fileName, 'backup-file.json', 'JSON export should append .json when missing');
     assert.equal(downloads.at(-1).mimeType, 'application/json', 'JSON export should download JSON mime type');
-    assert.deepEqual(JSON.parse(downloads.at(-1).content), {
+    assert.deepEqual(JSON.parse(downloads.at(-1).content), migrateWorkflowContent({
         pool: refs.itemPool.value,
         tasks: refs.scheduledTasks.value,
         settings: state.settings,
-    }, 'JSON export should snapshot pool, tasks, and settings');
+    }), 'JSON export should snapshot pool, tasks, and settings');
 
     feature.importJSON();
     assert.equal(feature.showImportModal.value, true, 'importJSON should show the restore modal');
@@ -11191,8 +11197,8 @@ for (const relativePath of requiredFiles) {
         },
     };
     feature.handleJSONFile(event);
-    assert.deepEqual(refs.itemPool.value, [{ id: 'RESTORED' }], 'JSON import should restore pool data');
-    assert.deepEqual(refs.scheduledTasks.value, [{ scheduleId: 99 }], 'JSON import should restore scheduled tasks');
+    assert.deepEqual(refs.itemPool.value, [{ id: 'RESTORED',editorId:'' }], 'JSON import should restore pool data');
+    assert.deepEqual(refs.scheduledTasks.value, [{ scheduleId: 99,stage:'rec',editorId:'' }], 'JSON import should restore scheduled tasks');
     assert.equal(state.settings.marker, 'restored', 'JSON import should merge settings');
     assert.equal(refs.currentSessionId.value, 'S_RESTORED', 'JSON import should restore the last active session when the backup contains a valid session id');
     assert.equal(historyCount, 2, 'JSON import should push history before and after restore');
@@ -11450,17 +11456,15 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [1, 2], 'protected schedule deletion should not remove tasks');
 
     refs.sidebarTab.value = 'project';
+    state.musicianStats.value[0].statusKey = 'in-progress';
     feature.deleteCurrentSchedule();
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [2], 'single-template schedule deletion should remove the schedule block');
     assert.deepEqual(poolItem.records, {
-        musician: { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 },
-        project: { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 },
-        instrument: { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 },
-    }, 'single-template schedule deletion should clear pool records in every view');
-    assert.deepEqual(efficiencyCalls.slice(0, 2), [
-        ['M1', 'musician'],
-        ['P1', 'project'],
-    ], 'single-template schedule deletion should refresh musician and project efficiency');
+        musician: { actualDuration: '00:10', recStart: '09:00', recEnd: '09:10', breakMinutes: 5 },
+        project: { actualDuration: '00:20', recStart: '10:00', recEnd: '10:20', breakMinutes: 3 },
+        instrument: { actualDuration: '00:30', recStart: '11:00', recEnd: '11:30', breakMinutes: 2 },
+    }, 'single-template schedule deletion only clears its own stage');
+    assert.deepEqual(efficiencyCalls, [], 'removing an allocation preserves actual records');
     assert.equal(refs.showTrackList.value, false, 'schedule deletion should close TrackList');
     assert.equal(historyCount, 1, 'schedule deletion should push history once');
 
@@ -11497,8 +11501,8 @@ for (const relativePath of requiredFiles) {
     feature.deleteCurrentSchedule();
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [4], 'aggregate schedule deletion should remove only the selected schedule block');
     assert.deepEqual(aggregateItems[0].records.musician, { actualDuration: '00:05', recStart: '09:00', recEnd: '09:05', breakMinutes: 1 }, 'aggregate deletion should not clear other sections');
-    assert.deepEqual(aggregateItems[1].records.musician, { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 }, 'aggregate deletion should clear records only in the current section');
-    assert.deepEqual(efficiencyCalls.at(-1), ['M2', 'musician'], 'aggregate deletion should refresh efficiency for the cleared section owner');
+    assert.deepEqual(aggregateItems[1].records.musician, { actualDuration: '00:06', recStart: '09:10', recEnd: '09:16', breakMinutes: 2 }, 'removing an aggregate allocation preserves actual records');
+    assert.deepEqual(efficiencyCalls, [], 'allocation removal does not change historical efficiency');
 
     const aggregateCleanupItems = [
         {
@@ -11545,7 +11549,7 @@ for (const relativePath of requiredFiles) {
         { actualDuration: '', recStart: '', recEnd: '', breakMinutes: 0 },
         'aggregate cleanup should clear records for the matching section',
     );
-    assert.equal(aggregateCleanupItems[2].sectionIndex, 1, 'aggregate cleanup should shift later matching sections down');
+    assert.equal(aggregateCleanupItems[2].splitViews.musician.sectionIndex, 1, 'aggregate cleanup should shift only the affected stage section');
     assert.equal(aggregateCleanupItems[3].sectionIndex, 1, 'aggregate cleanup should not shift other resources');
     assert.deepEqual(efficiencyCalls.at(-1), ['M10', 'musician'], 'aggregate cleanup should refresh matching resource efficiency when records were cleared');
 }
@@ -11665,6 +11669,7 @@ for (const relativePath of requiredFiles) {
             storageService: {
                 loadData: () => null,
                 setItem: () => {},
+                saveData: () => {},
                 clearAll: () => {},
             },
             supabaseService: {
@@ -11699,8 +11704,8 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(fetchCalls, ['USER_1'], 'page unload should force a final cloud save for unsaved changes');
     assert.equal(saveCalls.length, 1, 'page unload should persist one cloud payload');
     assert.equal(saveCalls[0].version, 4, 'page unload should increment from the server version during forced save');
-    assert.deepEqual(saveCalls[0].data.pool, refs.itemPool.value, 'page unload should save the current pool');
-    assert.deepEqual(saveCalls[0].data.tasks, refs.scheduledTasks.value, 'page unload should save the current scheduled tasks');
+    assert.deepEqual(saveCalls[0].data.pool, migrateWorkflowContent({pool:refs.itemPool.value}).pool, 'page unload should save the current pool');
+    assert.deepEqual(saveCalls[0].data.tasks, migrateWorkflowContent({tasks:refs.scheduledTasks.value}).tasks, 'page unload should save the current scheduled tasks');
     assert.equal(saveCalls[0].data.settings.lastSessionId, 'S1', 'page unload should preserve the current session id in settings');
     assert.equal(statusChanges[0], 'saving', 'page unload should mark the cloud save as saving');
 }
@@ -11745,6 +11750,7 @@ for (const relativePath of requiredFiles) {
             storageService: {
                 loadData: () => null,
                 setItem: () => {},
+                saveData: () => {},
                 clearAll: () => {},
             },
             supabaseService: {
@@ -12239,7 +12245,7 @@ for (const relativePath of requiredFiles) {
     assert.deepEqual(bodyRemoved, [clone], 'touch end should remove the floating drag clone from the document body');
     assert.equal(state.dragElClone, null, 'touch end should clear the drag clone state');
     assert.deepEqual(removedClasses, ['drag-over'], 'touch end should clear the active drop-slot highlight');
-    assert.deepEqual(overlapChecks, [['2026-06-02', '09:30', '1800s', 'DRAG_TASK', 'project']], 'week touch drop should preserve snapped time conflict checks for moved schedule tasks');
+    assert.deepEqual(overlapChecks, [['2026-06-02', '09:30', '1800s', 'DRAG_TASK', 'project', task]], 'week touch drop should preserve snapped time conflict checks for moved schedule tasks');
     assert.equal(task.date, '2026-06-02', 'week touch drop should update the dragged schedule task date');
     assert.equal(task.startTime, '09:30', 'week touch drop should update the dragged schedule task time');
 
@@ -12408,12 +12414,12 @@ for (const relativePath of requiredFiles) {
         },
     });
 
-    assert.equal(feature.getDefaultRatio('P1', 'project'), 12, 'ratio feature should read project default ratios');
+    assert.equal(feature.getDefaultRatio('P1', 'project'), 20, 'ratio feature should read project default ratios');
     assert.equal(feature.getDefaultRatio('missing', 'project'), 20, 'ratio feature should fall back to global default when no setting matches');
     assert.equal(feature.calculateEstTime('00:30', 2), '60s', 'ratio feature should calculate estimated duration from music duration and ratio');
     assert.equal(feature.calculateEstTime('00:30', 0), '30s', 'ratio feature should preserve the legacy ratio fallback when the ratio is falsy');
     assert.equal(feature.getTaskRatio({ id: 'T1', musicianId: 'M1', projectId: 'P1', instrumentId: 'I1', ratios: { project: 15 } }), 15, 'ratio feature should prefer local ratio for the active TrackList view');
-    assert.equal(feature.getTaskRatio({ id: 'T2', musicianId: 'M1', projectId: 'P1', instrumentId: 'I1', ratios: { project: null } }), 12, 'ratio feature should inherit default ratio for the active TrackList view');
+    assert.equal(feature.getTaskRatio({ id: 'T2', musicianId: 'M1', projectId: 'P1', instrumentId: 'I1', ratios: { project: null } }), 20, 'ratio feature should inherit default ratio for the active TrackList view');
 
     refs.showTrackList.value = false;
     assert.equal(feature.getTaskRatio({ id: 'T3', musicianId: 'M1', projectId: 'P1', instrumentId: 'I1', ratios: { instrument: 7 } }), 7, 'ratio feature should fall back to sidebar tab when TrackList is closed');
@@ -12503,15 +12509,15 @@ for (const relativePath of requiredFiles) {
     }];
 
     feature.autoUpdateEfficiency('M1', 'musician');
-    assert.equal(state.settings.musicians[0].defaultRatio, 1.5, 'auto efficiency should update the matching setting default ratio from current-session recordings');
+    assert.equal(state.settings.musicians[0].defaultRatio, 18, 'derived efficiency must not rewrite stored defaults');
     assert.equal(refs.itemPool.value[0].ratios.musician, null, 'auto efficiency should keep auto-following pool items unlocked');
-    assert.equal(refs.itemPool.value[0].ratio, 1.5, 'auto efficiency should update auto-following pool item display ratio');
-    assert.equal(refs.itemPool.value[0].estDuration, '45s', 'auto efficiency should recalculate pool item estimated duration');
+    assert.equal(refs.itemPool.value[0].ratio, 18, 'derived efficiency must not rewrite task estimates');
+    assert.equal(refs.itemPool.value[0].estDuration, 'old', 'derived efficiency must preserve task estimate');
     assert.equal(refs.itemPool.value[1].ratio, 9, 'auto efficiency should not override manually-ratioed pool items');
     assert.equal(refs.itemPool.value[2].ratio, 18, 'auto efficiency should never write to other-session pool items (regression: cross-session ratio corruption)');
     assert.equal(refs.itemPool.value[2].estDuration, 'other-old', 'auto efficiency should leave other-session estDuration untouched');
-    assert.equal(refs.scheduledTasks.value[0].ratios.musician, null, 'auto efficiency should unlock scheduled items that were pinned to the legacy default');
-    assert.equal(refs.scheduledTasks.value[0].ratio, 1.5, 'auto efficiency should update scheduled item display ratio');
+    assert.equal(refs.scheduledTasks.value[0].ratios.musician, 20, 'derived efficiency must preserve booked ratios');
+    assert.equal(refs.scheduledTasks.value[0].ratio, 20, 'derived efficiency must preserve booked ratios');
 
     refs.itemPool.value = [{
         id: 'NO_DATA',
@@ -12526,8 +12532,8 @@ for (const relativePath of requiredFiles) {
     refs.scheduledTasks.value = [];
     feature.autoUpdateEfficiency('P1', 'project');
     assert.equal(state.settings.projects[0].defaultRatio, 12, 'auto efficiency should preserve an existing default ratio when there is no recording data');
-    assert.equal(refs.itemPool.value[0].ratio, 12, 'auto efficiency should apply the preserved default to auto-following items with no recording data');
-    assert.equal(refs.itemPool.value[0].estDuration, '720s', 'auto efficiency should recalculate estDuration from the preserved default (fallback write path)');
+    assert.equal(refs.itemPool.value[0].ratio, 5, 'no-record estimates remain unchanged');
+    assert.equal(refs.itemPool.value[0].estDuration, 'project-old', 'no-record estimates remain unchanged');
 
     refs.itemPool.value = [
         {
@@ -12579,7 +12585,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(historyPushes, 1, 'legacy ratio cleanup should push one history entry after confirmation');
 
     assert.deepEqual(alerts, [['清理完成', '已成功将 2 个任务重置为自动跟随模式。\n现在它们会乖乖跟随大卡片的效率了！']], 'legacy ratio cleanup should report the number of changed tasks');
-    assert.equal(state.settings.musicians[0].defaultRatio, 1.5, 'legacy ratio cleanup should trigger the existing musician efficiency refresh when stats are available');
+    assert.equal(state.settings.musicians[0].defaultRatio, 18, 'legacy ratio cleanup should trigger the existing musician efficiency refresh when stats are available');
 
     global.window = previousWindow;
 }
@@ -12870,7 +12876,7 @@ for (const relativePath of requiredFiles) {
     }, '2026-05-29');
 
     assert.deepEqual(removedDragOverClasses, ['drag-over'], 'week drops should remove existing drag-over highlights');
-    assert.deepEqual(overlapCalls, [['2026-05-29', '09:15', '1800s', 'SCHED_DRAG', 'project']], 'week drops should preserve overlap checks with snapped time and task type');
+    assert.deepEqual(overlapCalls, [['2026-05-29', '09:15', '1800s', 'SCHED_DRAG', 'project', task]], 'week drops should preserve overlap checks with snapped time and task type');
     assert.notEqual(refs.scheduledTasks.value[0], task, 'moving an existing schedule block should replace the task object to refresh Vue');
     assert.equal(refs.scheduledTasks.value[0].date, '2026-05-29', 'week drops should update the moved task date');
     assert.equal(refs.scheduledTasks.value[0].startTime, '09:15', 'week drops should snap moved task start time to the 15-minute grid');
@@ -12902,7 +12908,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(createdPoolTask.templateId, 'POOL_DRAG', 'week drops from pool should preserve the source pool item id as templateId');
     assert.equal(createdPoolTask.instrumentId, 'I1', 'week drops from pool should preserve instrument ids');
     assert.equal(createdPoolTask.startTime, '09:00', 'week drops from pool should snap against the top of the time grid');
-    assert.deepEqual(overlapCalls.at(-1), ['2026-05-30', '09:00', '1800s', null, 'instrument'], 'week drops from pool should check overlap with the source resource type');
+    assert.deepEqual(overlapCalls.at(-1), ['2026-05-30', '09:00', '1800s', null, 'musician', { stage: 'rec', musicianId: 'M1', editorId: '', projectId: '' }], 'week drops from pool should check overlap with the source resource type');
     assert.equal(historyCount, 2, 'week drops from pool should push history after creation');
 
     const conflictTask = {
@@ -13031,7 +13037,7 @@ for (const relativePath of requiredFiles) {
         actions: {
             getDocumentBody: () => body,
             checkOverlap: (...args) => {
-                assert.deepEqual(args, ['2026-05-29', '09:00', task.estDuration, 'TASK_DESKTOP_RESIZE', 'project'], 'desktop resize should check overlap using the task resource type');
+                assert.deepEqual(args, ['2026-05-29', '09:00', task.estDuration, 'TASK_DESKTOP_RESIZE', 'project', task], 'desktop resize should check overlap using the task resource type');
                 return overlap;
             },
             openAlertModal: (...args) => alerts.push(args),

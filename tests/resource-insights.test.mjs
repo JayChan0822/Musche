@@ -127,3 +127,11 @@ test('metadata history counts each pool segment once and refuses ambiguous sched
   args.scheduledTasks[1].recordingInfo = { studio: 'Studio B' };
   assert.equal(analyze([item('T')], args).summary.trackCount, 0);
 });
+
+test('EDIT insights use editor, independent split duration, edit metadata and historical assignee snapshot', () => {
+ const pool=[item('T',{editorId:'M2',workflowStatus:{rec:'completed',edit:'in-progress'},editInfo:{engineer:'Editor'},splitViews:{musician:{active:true,musicDuration:'03:00'},project:{active:true,musicDuration:'01:00'}},records:{musician:{actualDuration:'01:00:00',assigneeId:'M1'},project:{actualDuration:'00:08:00',assigneeId:'M2',assigneeName:'Bob',musicDuration:'01:00',date:'2026-09-28'}}})];
+ const result=analyze(pool,{stage:'edit',id:'M2'});assert.equal(result.summary.averageRatio,8);assert.equal(result.summary.actualSeconds,480);assert.equal(result.summary.completedCount,0);
+ pool[0].editorId='M1';assert.equal(analyze(pool,{stage:'edit',id:'M2'}).summary.actualSeconds,480);assert.equal(analyze(pool,{stage:'edit',id:'M1'}).rows.length,0);
+ assert.equal(analyze(pool).summary.averageRatio,20);
+ const metadata=analyze(pool,{stage:'edit',type:'engineer',id:'ENG',settings:{...settings,engineers:[{id:'ENG',name:'Editor'}]}});assert.equal(metadata.summary.actualSeconds,480);
+});

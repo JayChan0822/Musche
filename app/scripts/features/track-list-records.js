@@ -1,5 +1,6 @@
+import { getScheduleStage, stageFromView, getAssigneeId } from '../utils/workflow.js';
 // 记录读写：录音起止时间、中断时长、日程块实际时间的计算与回写。
-// 从 track-list.js 抽取（2026-08 模块化重构 P2b）。依赖 layout 的 autoResizeScheduleByRecords。
+// 实际记录与排期独立；只有显式自动调整操作可以改变安排时长。
 export function createTrackListRecords(deps) {
   const {
     trackListData,
@@ -16,7 +17,7 @@ export function createTrackListRecords(deps) {
     pruneEmptySchedules,
     getViewType,
     getTargetId,
-    autoResizeScheduleByRecords,
+    getNameById,
   } = deps;
 
   let trackSaveTimer = null;
@@ -28,10 +29,29 @@ export function createTrackListRecords(deps) {
     }
   };
 
+  const captureRecordIdentity = (item, viewType = getViewType()) => {
+    const record = item.records?.[viewType];
+    if (!record) return;
+    const hasStarted = /^\d{1,2}:\d{2}$/.test(record.recStart || '');
+    const hasActual = (record.actualDuration || '').split(':').some((part) => Number(part) > 0);
+    if (!hasStarted && !hasActual) return;
+    const stage = stageFromView(viewType);
+    const assigneeId = getAssigneeId(item, stage);
+    if (!Object.prototype.hasOwnProperty.call(record, 'assigneeId')) {
+      record.assigneeId = assigneeId;
+      if (getNameById && assigneeId) record.assigneeName = getNameById(assigneeId, 'musician');
+    }
+    if (!record.musicDuration && item.musicDuration) record.musicDuration = item.musicDuration;
+    const data = trackListData.value;
+    const schedule = data.schedules?.[Number(item.sectionIndex) || 0] || data.taskRef;
+    if (!record.date && schedule?.date && getScheduleStage(schedule) === stage) record.date = schedule.date;
+  };
+
   const calcTrackDiff = (item) => {
     const viewType = getViewType();
     const record = item.records[viewType];
     if (!record) return;
+    captureRecordIdentity(item, viewType);
 
     if (record.recStart && record.recEnd) {
       const [sh, sm] = record.recStart.split(':').map(Number);
@@ -54,7 +74,6 @@ export function createTrackListRecords(deps) {
       record.actualDuration = formatSecs(diffSecs);
 
       saveTrackRecord(item);
-      autoResizeScheduleByRecords(true);
     }
   };
 
@@ -150,7 +169,7 @@ export function createTrackListRecords(deps) {
     if (!targetSchedule) return false;
 
     let didUpdate = false;
-    const exactSchedule = scheduledTasks.value.find((task) => task.templateId === item.id);
+    const exactSchedule = scheduledTasks.value.find((task) => task.templateId === item.id && getScheduleStage(task) === stageFromView(getViewType()) && (task.sessionId || 'S_DEFAULT') === (targetSchedule.sessionId || 'S_DEFAULT'));
 
     if (exactSchedule) {
       if (exactSchedule.date !== targetSchedule.date) {
@@ -192,10 +211,11 @@ export function createTrackListRecords(deps) {
   };
 
   const saveTrackRecord = (item) => {
+    captureRecordIdentity(item);
     if (trackSaveTimer) clearTimeout(trackSaveTimer);
+    const viewType = getViewType();
+    const targetId = getTargetId(item, viewType);
     trackSaveTimer = setTimeout(() => {
-      const viewType = getViewType();
-      const targetId = getTargetId(item, viewType);
 
       autoUpdateEfficiency(targetId, viewType);
       // debounce 写回发生在 pushHistory 快照之外（calcTrackDiff 不推历史），
@@ -211,8 +231,11 @@ export function createTrackListRecords(deps) {
     record.recStart = '';
     record.recEnd = '';
     record.actualDuration = '';
+    delete record.assigneeId;
+    delete record.assigneeName;
+    delete record.musicDuration;
+    delete record.date;
 
-    autoResizeScheduleByRecords(true);
 
     const targetId = getTargetId(item, viewType);
     autoUpdateEfficiency(targetId, viewType);

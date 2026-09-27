@@ -1,8 +1,10 @@
+import { migrateWorkflowContent, preserveWorkflowBackup, rememberWorkflowContent, serializeWorkflowContent, setWorkflowWriteBlocked } from '../utils/workflow-migration.js';
 import { computed } from 'vue';
 
 import { createDefaultSettings } from '../state/defaults.js';
 
-const CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
+const CLOUD_CACHE_KEY = 'musche_cloud_cache_v10';
+const LEGACY_CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
 const DEFAULT_STARTUP_TIMEOUT_MS = 8000;
 
 function createStartupTimeoutError(label) {
@@ -85,17 +87,29 @@ export function registerAuthFeature(context) {
     currentSessionId.value = exists ? exists.id : fallbackSession.id;
   }
 
+  let dataProtectionError = null;
   function createCloudContent() {
-    return {
-      pool: itemPool.value,
-      tasks: scheduledTasks.value,
-      settings: { ...settings, lastSessionId: currentSessionId.value },
-    };
+    return serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value });
   }
 
   function applyCloudContent(content, version = 0) {
     if (!content || typeof content !== 'object') return false;
 
+    let migrated;
+    try {
+      migrated = migrateWorkflowContent(content);
+      if (Number(content.schemaVersion || 0) < 10) preserveWorkflowBackup(storageService, content, `${user.value?.id || 'guest'}:${version}`);
+    } catch (error) {
+      dataProtectionError = error;
+      setWorkflowWriteBlocked(settings, true);
+      setSaveStatus('error');
+      openAlertModal('数据保护', error.message);
+      throw error;
+    }
+    content = migrated;
+    dataProtectionError = null;
+    setWorkflowWriteBlocked(settings, false);
+    rememberWorkflowContent(settings, content);
     cancelPendingTrackSave();
     localDataVersion.value = version || 0;
     if (Array.isArray(content.pool)) {
@@ -106,16 +120,7 @@ export function registerAuthFeature(context) {
     }
 
     if (content.settings && typeof content.settings === 'object') {
-      if (content.settings.startHour !== undefined) settings.startHour = content.settings.startHour;
-      if (content.settings.endHour !== undefined) settings.endHour = content.settings.endHour;
-      if (content.settings.sessions) settings.sessions = content.settings.sessions;
-      if (content.settings.instruments) settings.instruments = content.settings.instruments;
-      if (content.settings.musicians) settings.musicians = content.settings.musicians;
-      if (content.settings.projects) settings.projects = content.settings.projects;
-      if (content.settings.studios) settings.studios = content.settings.studios;
-      if (content.settings.engineers) settings.engineers = content.settings.engineers;
-      if (content.settings.operators) settings.operators = content.settings.operators;
-      if (content.settings.assistants) settings.assistants = content.settings.assistants;
+      Object.assign(settings, content.settings);
 
       restoreCurrentSession(content.settings.lastSessionId);
     }
@@ -135,6 +140,7 @@ export function registerAuthFeature(context) {
     if (typeof storageService.removeItem !== 'function') return;
     try {
       storageService.removeItem(CLOUD_CACHE_KEY);
+      storageService.removeItem(LEGACY_CLOUD_CACHE_KEY);
     } catch (error) {
       console.warn('Cloud cache cleanup failed:', error);
     }
@@ -158,14 +164,16 @@ export function registerAuthFeature(context) {
   function restoreCloudCache() {
     if (typeof storageService.loadData !== 'function') return null;
     try {
-      const cache = storageService.loadData(CLOUD_CACHE_KEY);
+      const cache = storageService.loadData(CLOUD_CACHE_KEY) || storageService.loadData(LEGACY_CLOUD_CACHE_KEY);
       if (!cache?.user?.id || !cache.content || typeof cache.content !== 'object') return null;
 
       user.value = cache.user;
-      applyCloudContent(cache.content, cache.version);
+      const draft = storageService.loadData(`musche_workflow_unsynced:${cache.user.id}`);
+      applyCloudContent(draft?.version === cache.version && draft.content ? draft.content : cache.content, cache.version);
+      if (draft?.version === cache.version && draft.content) setSaveStatus('unsaved');
       return cache;
     } catch (error) {
-      clearCloudCache();
+      if (!dataProtectionError) clearCloudCache();
       return null;
     }
   }
@@ -186,6 +194,9 @@ export function registerAuthFeature(context) {
 
   function resetWorkingData() {
     cancelPendingTrackSave();
+    dataProtectionError = null;
+    setWorkflowWriteBlocked(settings, false);
+    rememberWorkflowContent(settings, {});
     const defaults = createDefaultSettings();
     Object.keys(settings).forEach((key) => {
       delete settings[key];
@@ -199,17 +210,9 @@ export function registerAuthFeature(context) {
 
   function restoreGuestData(isSidebarOpen) {
     cancelPendingTrackSave();
-    const localData = storageService.loadData('v9_data') || {};
-    if (localData.settings) {
-      applyCloudContent({ settings: localData.settings }, 0);
-    }
-
-    if (localData.pool && localData.pool.length > 0) {
-      itemPool.value = localData.pool.map((item) => ensureItemRecords(item));
-      scheduledTasks.value = localData.tasks || [];
-    } else {
-      initDefaultData(isSidebarOpen);
-    }
+    const localData = storageService.loadData('v10_data') || storageService.loadData('v9_data');
+    if (localData) applyCloudContent(localData, 0);
+    else initDefaultData(isSidebarOpen);
   }
 
   function initDefaultData(isSidebarOpen) {
@@ -271,14 +274,22 @@ export function registerAuthFeature(context) {
     if (error) throw error;
 
     if (data && data.content) {
-      applyCloudContent(data.content, data.version);
+      const draft = storageService.loadData(`musche_workflow_unsynced:${user.value.id}`);
+      if (draft?.content && draft.version === data.version) {
+        applyCloudContent(draft.content, data.version);
+        setSaveStatus('unsaved');
+        openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
+      } else {
+        applyCloudContent(data.content, data.version);
+        if (draft?.content) openAlertModal('有本地未同步备份', '云端版本已变化，已加载云端数据；此设备的未同步备份仍保留，未覆盖。');
+      }
       persistCloudCache();
       return true;
     }
 
     clearCloudCache();
     resetWorkingData();
-    const localData = storageService.loadData('v9_data');
+    const localData = storageService.loadData('v10_data') || storageService.loadData('v9_data');
     if (!localData) return false;
 
     const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
@@ -288,18 +299,12 @@ export function registerAuthFeature(context) {
       '数据冲突',
       '检测到您本地有旧数据，而云端是空的。\n\n您希望如何处理？',
       async () => {
-        const dataToUpload = {
-          pool: localData.pool || [],
-          tasks: localData.tasks || [],
-          settings: localData.settings || settings,
-        };
+        const dataToUpload = migrateWorkflowContent({ ...localData, pool: localData.pool || [], tasks: localData.tasks || [], settings: localData.settings || settings });
+        preserveWorkflowBackup(storageService, localData, 'guest-before-cloud-upload');
         const { error: uploadError } = await supabaseService.saveUserData(user.value.id, dataToUpload, 1);
 
         if (!uploadError) {
-          localDataVersion.value = 1;
-          cancelPendingTrackSave();
-          itemPool.value = dataToUpload.pool;
-          scheduledTasks.value = dataToUpload.tasks;
+          applyCloudContent(dataToUpload, 1);
           persistCloudCache();
           openAlertModal('成功', '✅ 本地数据已成功上传！');
         } else {
@@ -315,15 +320,22 @@ export function registerAuthFeature(context) {
 
   async function saveToCloud(handleManualSync, force = false) {
     if (!user.value) return;
+    if (dataProtectionError) {
+      setSaveStatus('error');
+      openAlertModal('数据保护：未保存', dataProtectionError.message);
+      return;
+    }
 
     setSaveStatus('saving');
 
     try {
+      // Keep a recoverable local draft even while server deployment/network blocks writes.
+      storageService.saveData(`musche_workflow_unsynced:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
       const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
       const serverVersion = serverRecord ? serverRecord.version : 0;
-      if (serverVersion > localDataVersion.value && !force) {
+      if (serverVersion > localDataVersion.value) {
         setSaveStatus('error');
 
 
@@ -347,6 +359,7 @@ export function registerAuthFeature(context) {
       if (saveError) throw saveError;
 
       localDataVersion.value = newVersion;
+      storageService.removeItem?.(`musche_workflow_unsynced:${user.value.id}`);
       persistCloudCache();
       setTimeout(() => {
         setSaveStatus('saved');
@@ -354,6 +367,7 @@ export function registerAuthFeature(context) {
     } catch (error) {
       console.error('保存失败', error);
       setSaveStatus('error');
+      openAlertModal('云端未保存', error.message || '请稍后重试');
     }
   }
 
@@ -544,6 +558,7 @@ export function registerAuthFeature(context) {
         }
 
         storageService.removeItem('v9_data');
+        storageService.removeItem('v10_data');
         clearCloudCache();
         storageService.removeItem('musche_tour_seen');
         localDataVersion.value = 0;
@@ -617,7 +632,7 @@ export function registerAuthFeature(context) {
         }
       }
 
-      if (itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
+      if (!dataProtectionError && itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
         initDefaultData(isSidebarOpen);
       }
     }

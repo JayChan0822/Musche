@@ -14,6 +14,7 @@ export function createAppState({ ref, reactive, getWindowWidth = () => globalThi
       projectId: '',
       instrumentId: '',
       musicianId: '',
+      editorId: '',
       musicDuration: '',
       ratio: 20,
     }),

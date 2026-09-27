@@ -1095,7 +1095,7 @@ export function assertRootAppStateBoundary({ createAppState, vueRef, vueReactive
   assert.equal(appStateB.isMobile.value, false, 'app state module must derive desktop state from the provided window width');
   assert.deepEqual(
     appStateA.newItem,
-    { projectId: '', instrumentId: '', musicianId: '', musicDuration: '', ratio: 20 },
+    { projectId: '', instrumentId: '', musicianId: '', editorId: '', musicDuration: '', ratio: 20 },
     'app state module must create the new-item draft state',
   );
   assert.equal(appStateA.sortField.value, 'status', 'app state module must create the default stats sort field');

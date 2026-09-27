@@ -1,3 +1,5 @@
+import { stageFromView, viewFromStage, getAssigneeId } from '../utils/workflow.js';
+import { peekItemSplitState } from '../utils/split-state.js';
 export function registerRatioFeature(context) {
   const { refs, state, actions = {} } = context;
   const {
@@ -54,20 +56,20 @@ export function registerRatioFeature(context) {
   };
 
   const getDefaultRatio = (id, type = 'musician') => {
-    let list = [];
-
-    if (type === 'project') list = settings.projects;
-    else if (type === 'instrument') list = settings.instruments;
-    else list = settings.musicians;
-
-    if (!list || !Array.isArray(list)) return 20;
-
-    const item = list.find((entry) => entry.id === id);
-    if (item && item.defaultRatio && item.defaultRatio > 0) {
-      return item.defaultRatio;
-    }
-
-    return 20;
+    const stage = stageFromView(type);
+    const view = viewFromStage(stage);
+    let actual = 0, music = 0;
+    if (id) itemPool.value.forEach((item) => {
+      const record = item.records?.[view];
+      const owner = record && Object.hasOwn(record, 'assigneeId') ? record.assigneeId : getAssigneeId(item, stage);
+      if (owner !== id || item.isSkipped || (item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return;
+      const part = peekItemSplitState(item, view);
+      const duration = parseTime(record?.actualDuration);
+      const content = parseTime(record?.musicDuration ?? part.musicDuration);
+      if (part.active && duration > 0 && content > 0) { actual += duration; music += content; }
+    });
+    // Initial estimate only. Never present this fallback as observed efficiency.
+    return music > 0 ? Number((actual / music).toFixed(1)) : 20;
   };
 
   const calculateEstTime = (duration, ratio) => formatSecs(parseTime(duration) * (ratio || 1));
@@ -90,7 +92,7 @@ export function registerRatioFeature(context) {
     }
 
     let targetId = null;
-    if (type === 'project') targetId = item.projectId;
+    if (type === 'project') targetId = item.editorId;
     else if (type === 'instrument') targetId = item.instrumentId;
     else targetId = item.musicianId;
 
@@ -100,10 +102,11 @@ export function registerRatioFeature(context) {
   const calculateSingleRatio = (item) => {
     const type = getActiveRatioType();
     const record = item.records?.[type];
-    if (!record || !record.actualDuration || !item.musicDuration) return '-';
+    const musicDuration = peekItemSplitState(item, type).musicDuration;
+    if (!record || !record.actualDuration || !musicDuration) return '-';
 
     const actualSeconds = parseTime(record.actualDuration);
-    const musicSeconds = parseTime(item.musicDuration);
+    const musicSeconds = parseTime(musicDuration);
     if (musicSeconds === 0) return '-';
 
     return (actualSeconds / musicSeconds).toFixed(1);
@@ -124,75 +127,10 @@ export function registerRatioFeature(context) {
   };
 
   const autoUpdateEfficiency = (targetId, viewType) => {
+    // Statistics are derived. Recording changes must not rewrite booked schedules,
+    // the other stage's estimates, or a person's stored historical identity.
     if (!targetId || !viewType) return;
-
-    let idKey = 'musicianId';
-    let list = settings.musicians;
-    if (viewType === 'project') {
-      idKey = 'projectId';
-      list = settings.projects;
-    } else if (viewType === 'instrument') {
-      idKey = 'instrumentId';
-      list = settings.instruments;
-    }
-
-    const items = itemPool.value.filter((item) =>
-      item[idKey] === targetId &&
-      (item.sessionId || 'S_DEFAULT') === currentSessionId.value);
-
-    let totalActual = 0;
-    let totalMusic = 0;
-
-    items.forEach((item) => {
-      ensureItemRecords(item);
-      const record = item.records[viewType];
-      if (record && record.actualDuration && item.musicDuration) {
-        const actualSeconds = parseTime(record.actualDuration);
-        const musicSeconds = parseTime(item.musicDuration);
-        if (actualSeconds > 0 && musicSeconds > 0) {
-          totalActual += actualSeconds;
-          totalMusic += musicSeconds;
-        }
-      }
-    });
-
-    let newRatio = 0;
-    if (totalMusic > 0) {
-      newRatio = parseFloat((totalActual / totalMusic).toFixed(1));
-    }
-
-    const settingItem = list.find((item) => item.id === targetId);
-    let oldDefaultRatio = 20;
-
-    if (settingItem) {
-      oldDefaultRatio = settingItem.defaultRatio || 20;
-      if (newRatio > 0) {
-        settingItem.defaultRatio = newRatio;
-      } else {
-        newRatio = oldDefaultRatio;
-      }
-    } else if (newRatio === 0) {
-      newRatio = 20;
-    }
-
-    const updateTask = (task) => {
-      if (task[idKey] !== targetId || !task.musicDuration) return;
-      if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return;
-
-      ensureItemRecords(task);
-      const currentDimRatio = task.ratios[viewType];
-      if (!currentDimRatio || currentDimRatio == oldDefaultRatio || parseFloat(currentDimRatio) === 20) {
-        task.ratios[viewType] = null;
-
-        if (task.ratio !== newRatio) {
-          task.ratio = newRatio;
-          task.estDuration = calculateEstTime(task.musicDuration, newRatio);
-        }
-      }
-    };
-
-    itemPool.value.forEach(updateTask);
-    scheduledTasks.value.forEach(updateTask);
+    return getDefaultRatio(targetId, viewType);
   };
 
   const cleanOldRatios = () => {

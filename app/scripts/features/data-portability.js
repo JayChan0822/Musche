@@ -1,3 +1,5 @@
+import { getScheduleStage, getAssigneeId } from '../utils/workflow.js';
+import { migrateWorkflowContent, preserveWorkflowBackup, rememberWorkflowContent, serializeWorkflowContent } from '../utils/workflow-migration.js';
 import { ref } from 'vue';
 
 function defaultDownloadTextFile(content, fileName, mimeType) {
@@ -19,7 +21,8 @@ function defaultReadFileAsText(file, encoding, onLoad) {
 }
 
 export function registerDataPortabilityFeature(context) {
-  const { refs, state, utils, actions, ioState = {} } = context;
+  const { refs, state, utils, actions, ioState = {}, services = {} } = context;
+  const backupStorage = services.storageService || globalThis.localStorage;
   const { itemPool, scheduledTasks, currentSessionId } = refs;
   const { settings } = state;
   const { parseTime, getNameById, getDate = () => new Date() } = utils;
@@ -60,11 +63,12 @@ export function registerDataPortabilityFeature(context) {
         const endD = new Date(startD.getTime() + durSec * 1000);
         const endStr = `${endD.getFullYear()}${String(endD.getMonth() + 1).padStart(2, '0')}${String(endD.getDate()).padStart(2, '0')}T${String(endD.getHours()).padStart(2, '0')}${String(endD.getMinutes()).padStart(2, '0')}00`;
 
-        const musicianName = getNameById(task.musicianId, 'musician');
+        const stage = getScheduleStage(task);
+        const musicianName = getNameById(getAssigneeId(task, stage), 'musician');
         const instrumentName = getNameById(task.instrumentId, 'instrument');
         const projectName = getNameById(task.projectId, 'project');
 
-        ics += `BEGIN:VEVENT\nUID:${task.scheduleId}\nDTSTAMP:${dStr}T${startStr}\nDTSTART:${dStr}T${startStr}\nDTEND:${endStr}\nSUMMARY:${musicianName} - ${instrumentName} (${projectName})\nDESCRIPTION:录制时长:${task.estDuration}\nEND:VEVENT\n`;
+        ics += `BEGIN:VEVENT\nUID:${task.scheduleId}\nDTSTAMP:${dStr}T${startStr}\nDTSTART:${dStr}T${startStr}\nDTEND:${endStr}\nSUMMARY:${musicianName} - ${instrumentName} (${projectName})\nDESCRIPTION:${stage === 'edit' ? '剪辑' : '录制'}时长:${task.estDuration}\nEND:VEVENT\n`;
       });
       ics += 'END:VCALENDAR';
 
@@ -83,11 +87,7 @@ export function registerDataPortabilityFeature(context) {
       let fileName = inputName;
       if (!fileName.toLowerCase().endsWith('.json')) fileName += '.json';
 
-      const data = {
-        pool: itemPool.value,
-        tasks: scheduledTasks.value,
-        settings,
-      };
+      const data = serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value);
       downloadTextFile(JSON.stringify(data, null, 2), fileName, 'application/json');
     }, '文件将保存到您的下载文件夹');
   };
@@ -118,14 +118,19 @@ export function registerDataPortabilityFeature(context) {
 
     readFileAsText(file, 'UTF-8', (ev) => {
       try {
-        const data = JSON.parse(ev.target.result);
+        const original = JSON.parse(ev.target.result);
+        const data = migrateWorkflowContent(original);
 
         if (!data.pool && !data.tasks && !data.settings) {
           throw new Error('无效的备份文件');
         }
 
+        const backupId = `import:${file.name || 'backup'}:${Date.now()}`;
+        preserveWorkflowBackup(backupStorage, original, backupId);
+        preserveWorkflowBackup(backupStorage, serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value), `${backupId}:previous`);
         cancelPendingTrackSave();
         pushHistory();
+        rememberWorkflowContent(settings, data);
         itemPool.value = data.pool || [];
         scheduledTasks.value = data.tasks || [];
         if (data.settings) Object.assign(settings, data.settings);
@@ -136,7 +141,7 @@ export function registerDataPortabilityFeature(context) {
         openAlertModal('导入成功', '数据已成功恢复！');
       } catch (err) {
         logError(err);
-        openAlertModal('导入失败', '文件格式错误或已损坏。');
+        openAlertModal('导入失败', err.message || '文件格式错误或已损坏。');
       }
     });
     e.target.value = '';

@@ -59,7 +59,7 @@ test('ensureItemRecords migrates legacy ratio/recording fields into per-view rec
   assert.equal(item.ratios.instrument, null);
 });
 
-test('getDefaultRatio reads the per-type setting and falls back to 20', () => {
+test('getDefaultRatio ignores historical stored defaults without actual stage records', () => {
   const feature = createFeature({
     settings: {
       musicians: [{ id: 'M1', defaultRatio: 35 }],
@@ -68,8 +68,8 @@ test('getDefaultRatio reads the per-type setting and falls back to 20', () => {
     },
   });
 
-  assert.equal(feature.getDefaultRatio('M1', 'musician'), 35);
-  assert.equal(feature.getDefaultRatio('P1', 'project'), 50);
+  assert.equal(feature.getDefaultRatio('M1', 'musician'), 20);
+  assert.equal(feature.getDefaultRatio('P1', 'project'), 20);
   assert.equal(feature.getDefaultRatio('MISSING', 'musician'), 20, 'missing entry falls back to 20');
   assert.equal(feature.getDefaultRatio('X', 'instrument'), 20, 'empty list falls back to 20');
 });
@@ -90,7 +90,7 @@ test('getTaskRatio prefers the active-view ratio over the default setting', () =
 
   assert.equal(feature.getTaskRatio(item), 45, 'local ratio wins over default');
   item.ratios.musician = null;
-  assert.equal(feature.getTaskRatio(item), 30, 'falls back to the musician default ratio');
+  assert.equal(feature.getTaskRatio(item), 20, 'no observed records uses an initial estimate');
 });
 
 test('calculateSingleRatio returns the actual/music ratio or dash', () => {
@@ -120,72 +120,26 @@ test('isDefaultRatio compares against the musician default or the x20 baseline',
   assert.equal(feature.isDefaultRatio({}), true, 'missing ratio counts as default');
 });
 
-test('autoUpdateEfficiency recomputes the default ratio and resets x20-following tasks', () => {
+test('autoUpdateEfficiency returns a derived ratio without mutating estimates or bookings', () => {
   const settings = { musicians: [{ id: 'M1', defaultRatio: 20 }], projects: [], instruments: [] };
-  const pool = [
-    // 2 分钟音乐、1 分钟实际 → 平均倍率 0.5
-    { id: 'T1', musicianId: 'M1', sessionId: 'S_DEFAULT', musicDuration: '02:00', ratio: 20 },
-    { id: 'T2', musicianId: 'M1', sessionId: 'S_DEFAULT', musicDuration: '02:00', ratio: 20 },
-  ];
-  const scheduled = [{ id: 'S1', musicianId: 'M1', sessionId: 'S_DEFAULT', musicDuration: '02:00', ratio: 20 }];
-  const feature = createFeature({ itemPool: pool, scheduledTasks: scheduled, settings });
-
-  // 给两个任务各写入 1 分钟实际录音
-  pool.forEach((item) => {
-    feature.ensureItemRecords(item);
-    item.records.musician.actualDuration = '01:00';
-  });
-
-  feature.autoUpdateEfficiency('M1', 'musician');
-
-  assert.equal(settings.musicians[0].defaultRatio, 0.5, 'musician default ratio should update to the actual/music average');
-  pool.forEach((item) => {
-    assert.equal(item.ratios.musician, null, 'x20 tasks should reset to auto-follow (null ratio)');
-    assert.equal(item.ratio, 0.5);
-    assert.equal(item.estDuration, '00:01:00', 'estDuration should follow the new ratio');
-  });
-  assert.equal(scheduled[0].ratio, 0.5, 'scheduledTasks should follow the same rule');
+  const pool = [{ id: 'T1', musicianId: 'M1', musicDuration: '02:00', ratio: 20,
+    records: { musician: { actualDuration: '01:00' } } }];
+  const scheduled = [{ stage: 'rec', musicianId: 'M1', estDuration: '02:00:00' }];
+  const feature = createFeature({ settings, itemPool: pool, scheduledTasks: scheduled });
+  const before = JSON.stringify({ settings, pool, scheduled });
+  assert.equal(feature.autoUpdateEfficiency('M1', 'musician'), 0.5);
+  assert.equal(JSON.stringify({ settings, pool, scheduled }), before);
 });
 
-test('autoUpdateEfficiency ignores other dimensions', () => {
-  const settings = { musicians: [{ id: 'M1', defaultRatio: 20 }], projects: [], instruments: [] };
+test('derived averages exclude other people, stages, and sessions without normalizing them', () => {
   const pool = [
-    { id: 'T1', musicianId: 'M1', sessionId: 'S_DEFAULT', musicDuration: '02:00', ratio: 20 },
-    { id: 'T2', musicianId: 'OTHER', sessionId: 'S_DEFAULT', musicDuration: '02:00', ratio: 20 },
+    { id: 'T1', musicianId: 'M1', sessionId: 'S_A', musicDuration: '02:00', records: { musician: { actualDuration: '01:00' } } },
+    { id: 'T2', musicianId: 'M1', sessionId: 'S_B', musicDuration: '02:00', records: { musician: { actualDuration: '10:00:00' } } },
+    { id: 'T3', musicianId: 'OTHER', sessionId: 'S_A', musicDuration: '02:00', records: { musician: { actualDuration: '10:00:00' } } },
   ];
-  const feature = createFeature({ itemPool: pool, scheduledTasks: [], settings });
-  pool.forEach((item) => {
-    feature.ensureItemRecords(item);
-    item.records.musician.actualDuration = '01:00';
-  });
-
-  feature.autoUpdateEfficiency('M1', 'musician');
-
-  assert.equal(settings.musicians[0].defaultRatio, 0.5);
-  assert.equal(pool[1].ratio, 20, 'other musician should be untouched');
-});
-
-test('autoUpdateEfficiency never writes across sessions (regression: A-session recording must not mutate B-session tasks)', () => {
-  const settings = { musicians: [{ id: 'M1', defaultRatio: 20 }], projects: [], instruments: [] };
-  const pool = [
-    // 当前会话 S_A：2 分钟音乐、1 分钟实际
-    { id: 'T1', musicianId: 'M1', sessionId: 'S_A', musicDuration: '02:00', ratio: 20 },
-    // 另一会话 S_B：同乐手，必须保持原样（Ctrl+Z 救不回，写坏即丢）
-    { id: 'T2', musicianId: 'M1', sessionId: 'S_B', musicDuration: '02:00', ratio: 20 },
-  ];
-  const scheduled = [{ id: 'S1', musicianId: 'M1', sessionId: 'S_B', musicDuration: '02:00', ratio: 20 }];
-  const feature = createFeature({ itemPool: pool, scheduledTasks: scheduled, settings, currentSessionId: 'S_A' });
-  // 真实场景：只有当前会话的任务有录音，B 会话任务从未被触碰
-  feature.ensureItemRecords(pool[0]);
-  pool[0].records.musician.actualDuration = '01:00';
-
-  feature.autoUpdateEfficiency('M1', 'musician');
-
-  assert.equal(settings.musicians[0].defaultRatio, 0.5, 'average ratio comes from the current session only');
-  assert.equal(pool[0].ratios.musician, null, 'current-session x20 task resets to auto-follow');
-  assert.equal(pool[0].ratio, 0.5);
-  assert.equal(pool[1].ratio, 20, 'other-session pool task must stay untouched');
-  assert.equal(pool[1].estDuration, undefined, 'other-session pool task must not gain an estDuration');
-  assert.equal(pool[1].ratios, undefined, 'other-session task must not even be normalized');
-  assert.equal(scheduled[0].ratio, 20, 'other-session scheduled task must stay untouched');
+  const feature = createFeature({ itemPool: pool, currentSessionId: 'S_A' });
+  const before = JSON.stringify(pool);
+  assert.equal(feature.autoUpdateEfficiency('M1', 'musician'), 0.5);
+  assert.equal(feature.autoUpdateEfficiency('M1', 'project'), 20);
+  assert.equal(JSON.stringify(pool), before);
 });

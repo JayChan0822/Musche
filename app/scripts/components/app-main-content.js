@@ -232,7 +232,7 @@ export const AppMainContent = {
                                                                  'is-ghost': isTaskGhost(task)
                                                              }"
                                                      :style="{
-                                                                 backgroundColor: task.projectId ? '#eab308' : (task.instrumentId ? '#3b82f6' : '#a855f7'),
+                                                                 backgroundColor: task.stage === 'edit' || (!task.stage && task.projectId && !task.musicianId) ? '#eab308' : '#a855f7',
                                                                  color: 'white'
                                                              }"
                                                      @click.stop="selectTask(task.scheduleId, 'schedule')"
@@ -299,7 +299,7 @@ export const AppMainContent = {
                          'is-ghost': isTaskGhost(task)
                      }"
                                                  :style="{
-                         backgroundColor: task.projectId ? '#eab308' : (task.instrumentId ? '#3b82f6' : '#a855f7'),
+                         backgroundColor: task.stage === 'edit' || (!task.stage && task.projectId && !task.musicianId) ? '#eab308' : '#a855f7',
                          color: 'white'
                      }"
                                                  @click.stop="selectTask(task.scheduleId, 'schedule')"

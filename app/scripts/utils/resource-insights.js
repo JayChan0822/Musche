@@ -1,9 +1,10 @@
+import { getAssigneeId, getScheduleStage, stageFromView, viewFromStage } from './workflow.js';
 import { parseTime, timeToMinutes } from './time.js';
 import { peekItemSplitState } from './split-state.js';
 import { metadataTypes } from './metadata-types.js';
 
 export const insightDimensions = [
-  { type: 'musician', label: '乐手' },
+  { type: 'musician', label: '人员' },
   { type: 'instrument', label: '乐器' },
   { type: 'project', label: '项目' },
 ];
@@ -33,7 +34,7 @@ function summarize(rows) {
     families.get(row.familyKey).push(row);
   });
   const active = rows.filter((row) => row.status !== 'skipped');
-  const recorded = active.filter((row) => row.status === 'recorded');
+  const recorded = active.filter((row) => row.actualSeconds > 0);
   const samples = recorded.filter((row) => row.musicSeconds > 0);
   const sum = (list, field) => list.reduce((total, row) => total + row[field], 0);
   const sampleMusic = sum(samples, 'musicSeconds');
@@ -45,7 +46,7 @@ function summarize(rows) {
     else if (eligible.every((row) => row.status === 'recorded')) completedCount++;
     else {
       pendingCount++;
-      if (eligible.some((row) => row.status === 'recorded')) partialCount++;
+      if (eligible.some((row) => row.status === 'recorded' || row.status === 'in-progress')) partialCount++;
     }
     const valid = eligible.filter((row) => row.ratio !== null);
     const music = sum(valid, 'musicSeconds');
@@ -68,7 +69,15 @@ function summarize(rows) {
   };
 }
 
-export function buildResourceInsights({ type, id, settings = {}, itemPool = [], scheduledTasks = [], sessionId = null }) {
+export function buildResourceInsights({ type, id, settings = {}, itemPool = [], scheduledTasks = [], sessionId = null, stage = 'rec' }) {
+  stage = stageFromView(stage);
+  const view = viewFromStage(stage);
+  const recordOf = (item) => item.records ? (item.records[view] || {}) : stage === 'rec' ? item : {};
+  const ownerOf = (item) => {
+    const record = recordOf(item);
+    return Object.hasOwn(record, 'assigneeId') ? record.assigneeId || '' : getAssigneeId(item, stage);
+  };
+  const infoField = stage === 'edit' ? 'editInfo' : 'recordingInfo';
   const names = Object.fromEntries(insightDimensions.map(({ type: dim }) =>
     [dim, new Map((settings[`${dim}s`] || []).map((item) => [item.id, item.name]))]));
   const sessions = new Map((settings.sessions || []).map((item) => [item.id, item.name]));
@@ -78,7 +87,7 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
     let current = item;
     while (current && !seen.has(current.id)) {
       seen.add(current.id);
-      const parent = peekItemSplitState(current, 'musician').splitFromId;
+      const parent = peekItemSplitState(current, view).splitFromId;
       if (!parent) return `${sessionOf(item)}|${current.id}`;
       current = lookup.get(`${sessionOf(item)}|${parent}`);
       if (!current) return `${sessionOf(item)}|${parent}`;
@@ -88,13 +97,15 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
   const schedulesByMusician = new Map();
   const schedulesByTemplate = new Map();
   scheduledTasks.forEach((task) => {
+    if (getScheduleStage(task) !== stage) return;
     if (task.templateId) {
       const key = `${sessionOf(task)}|${task.templateId}`;
       if (!schedulesByTemplate.has(key)) schedulesByTemplate.set(key, []);
       schedulesByTemplate.get(key).push(task);
     }
-    if (task.musicianId) {
-      const key = `${sessionOf(task)}|${task.musicianId}`;
+    const owner = getAssigneeId(task, stage);
+    if (owner) {
+      const key = `${sessionOf(task)}|${owner}`;
       if (!schedulesByMusician.has(key)) schedulesByMusician.set(key, []);
       schedulesByMusician.get(key).push(task);
     }
@@ -105,37 +116,40 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
   const isMetadata = metadataTypes.some((category) => category.type === type);
   const metadataName = isMetadata ? settings[`${type}s`]?.find((entry) => entry.id === id)?.name : null;
   const normalizedName = (value) => typeof value === 'string' ? value.trim().toLowerCase() : '';
-  const rows = itemPool.filter((item) => (isMetadata || item[`${type}Id`] === id) && (!sessionId || sessionOf(item) === sessionId))
+  const rows = itemPool.filter((item) => (isMetadata || (type === 'musician' ? ownerOf(item) : item[`${type}Id`]) === id) && (!sessionId || sessionOf(item) === sessionId))
     .flatMap((item) => {
-      const split = peekItemSplitState(item, 'musician');
+      const split = peekItemSplitState(item, view);
       if (!split.active) return [];
       // Once per-view records exist, legacy fields may describe EDIT. Never reuse them.
-      const record = item.records ? (item.records.musician || {}) : item;
+      const record = recordOf(item);
+      const owner = ownerOf(item);
       const actual = actualSeconds(record);
-      const music = seconds(split.musicDuration);
-      const skipped = !!item.isSkipped;
+      const music = seconds(record.musicDuration ?? split.musicDuration);
+      const skipped = !!item.isSkipped || item.workflowStatus?.[stage] === 'not-required';
       const exact = schedulesByTemplate.get(`${sessionOf(item)}|${item.id}`) || [];
-      const related = schedulesByMusician.get(`${sessionOf(item)}|${item.musicianId}`) || [];
+      const related = schedulesByMusician.get(`${sessionOf(item)}|${owner}`) || [];
       const associated = exact.length ? exact : [related[split.sectionIndex]].filter(Boolean);
       if (isMetadata) {
         if (!metadataName) return [];
-        const direct = normalizedName(item.recordingInfo?.[type]);
-        const assignments = associated.map((task) => normalizedName(task.recordingInfo?.[type]));
+        const direct = normalizedName(item[infoField]?.[type]);
+        const assignments = associated.map((task) => normalizedName(task[infoField]?.[type]));
         const target = normalizedName(metadataName);
         if (direct ? direct !== target : !assignments.length || !assignments.every((name) => name === target)) return [];
       }
       const dates = [...new Set(associated.map((task) => validDate(task.date)).filter(Boolean))];
-      const date = dates.length === 1 ? dates[0] : null;
+      const date = validDate(record.date) || (dates.length === 1 ? dates[0] : null);
       return [{
         id: item.id, key: `${sessionOf(item)}|${item.id}`, familyKey: familyKey(item),
         name: item.name || names.instrument.get(item.instrumentId) || '未命名曲目',
         splitTag: split.splitTag, sessionId: sessionOf(item), sessionName: sessions.get(sessionOf(item)) || '未命名日程',
-        musicianId: item.musicianId || '', musician: names.musician.get(item.musicianId) || '未指定乐手',
+        stage, musicianId: owner, musician: record.assigneeName || names.musician.get(owner) || (stage === 'edit' ? '未指定剪辑员' : '未指定演奏员'),
         instrumentId: item.instrumentId || '', instrument: names.instrument.get(item.instrumentId) || '未指定乐器',
         projectId: item.projectId || '', project: names.project.get(item.projectId) || '未指定项目',
         date, startTime: record.recStart || '', musicSeconds: music, actualSeconds: actual,
         breakSeconds: Number.isFinite(Number(record.breakMinutes)) ? Math.max(0, Number(record.breakMinutes)) * 60 : 0,
-        status: skipped ? 'skipped' : actual > 0 ? 'recorded' : 'pending',
+        status: skipped ? 'skipped' : item.workflowStatus?.[stage]
+          ? (item.workflowStatus[stage] === 'completed' ? 'recorded' : item.workflowStatus[stage] === 'in-progress' ? 'in-progress' : 'pending')
+          : actual > 0 ? 'recorded' : 'pending',
         ratio: !skipped && actual > 0 && music > 0 ? actual / music : null,
       }];
     }).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.startTime.localeCompare(a.startTime) || a.name.localeCompare(b.name, 'zh-CN'));
@@ -149,7 +163,7 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
     });
     const items = [...groups].map(([key, items]) => ({ id: key, name: items[0][dimension.type], ...summarize(items) }))
       .sort((a, b) => b.actualSeconds - a.actualSeconds || b.trackCount - a.trackCount || a.name.localeCompare(b.name, 'zh-CN'));
-    return { ...dimension, items };
+    return { ...dimension, label: dimension.type === 'musician' ? (stage === 'edit' ? '剪辑员' : '演奏员') : dimension.label, items };
   });
   const months = new Map();
   rows.filter((row) => row.ratio !== null && row.date).forEach((row) => {

@@ -510,8 +510,8 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const handleTaskDblClick = (...args) => scheduleInteractionsFeature.handleTaskDblClick(...args);
             Object.assign(assembly.helpers, { handleTaskDblClick });
 
-            const checkOverlap = (date, startTime, durationStr, excludeId, checkType) =>
-                scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType);
+            const checkOverlap = (date, startTime, durationStr, excludeId, checkType, resource) =>
+                scheduleFeature.checkOverlap(date, startTime, durationStr, excludeId, checkType, resource);
 
             const moveDivider = (dividerIndex, direction, shouldSaveHistory = true) =>
                 scheduleFeature.moveDivider(dividerIndex, direction, shouldSaveHistory);

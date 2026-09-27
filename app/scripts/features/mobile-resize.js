@@ -1,3 +1,4 @@
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 export function registerMobileResizeFeature(context) {
   const { refs, utils, actions = {} } = context;
   const {
@@ -94,11 +95,9 @@ export function registerMobileResizeFeature(context) {
         if (!task) return;
 
         const newDurationStr = task.estDuration;
-        let type = 'musician';
-        if (task.projectId) type = 'project';
-        else if (task.instrumentId) type = 'instrument';
+        const type = viewFromStage(getScheduleStage(task));
 
-        if (checkOverlap(task.date, task.startTime, newDurationStr, task.scheduleId, type)) {
+        if (checkOverlap(task.date, task.startTime, newDurationStr, task.scheduleId, type, task)) {
           task.estDuration = mobileResizeState.originalDuration;
           openAlertModal('冲突', '调整后的时间与现有任务冲突');
         } else {

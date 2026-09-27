@@ -1,13 +1,9 @@
+import { getScheduleStage, viewFromStage, stageFromView } from '../utils/workflow.js';
+import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { peekItemSplitState, setItemSplitState as writeSplitState } from '../utils/split-state.js';
 import { computed } from 'vue';
 
-import { SIDEBAR_TABS } from '../utils/sidebar-tabs.js';
 
-// 分类 → 任务上对应的 id 字段
-const TASK_ID_KEY_BY_TAB = {
-  musician: 'musicianId',
-  project: 'projectId',
-  instrument: 'instrumentId',
-};
 
 export function registerScheduleFeature(context) {
   const { refs, state, utils, actions } = context;
@@ -61,7 +57,7 @@ export function registerScheduleFeature(context) {
     return hours * 60 + minutes;
   }
 
-  function checkOverlap(date, startTime, durationStr, excludeId, checkType) {
+  function checkOverlap(date, startTime, durationStr, excludeId, checkType, resource) {
     const newStart = timeToMinutes(startTime);
     const newEnd = newStart + parseTime(durationStr) / 60;
 
@@ -70,11 +66,16 @@ export function registerScheduleFeature(context) {
       if (task.date !== date) return false;
       if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
 
-      let taskType = 'musician';
-      if (task.projectId) taskType = 'project';
-      else if (task.instrumentId) taskType = 'instrument';
-
-      if (taskType !== checkType) return false;
+      const candidate = resource || scheduledTasks.value.find((entry) => entry.scheduleId === excludeId);
+      if (candidate) {
+        const candidateOwner = candidate.assigneeId || (getScheduleStage(candidate) === 'edit' ? candidate.editorId : candidate.musicianId);
+        const taskOwner = getScheduleStage(task) === 'edit' ? task.editorId : task.musicianId;
+        const candidateStudio = candidate.studioId || candidate.recordingInfo?.studio;
+        const taskStudio = task.studioId || task.recordingInfo?.studio;
+        const samePerson = candidateOwner && candidateOwner !== '__UNASSIGNED__' && candidateOwner === taskOwner;
+        const sameStudio = candidateStudio && candidateStudio === taskStudio;
+        if (!samePerson && !sameStudio) return false;
+      } else if (viewFromStage(getScheduleStage(task)) !== checkType) return false;
 
       const taskStart = timeToMinutes(task.startTime);
       const taskEnd = taskStart + parseTime(task.estDuration) / 60;
@@ -87,11 +88,8 @@ export function registerScheduleFeature(context) {
     const groups = {};
 
     const getGroupKey = (task) => {
-      const sessionId = task.sessionId || 'S_DEFAULT';
-      if (task.musicianId) return `${sessionId}|M|${task.musicianId}`;
-      if (task.projectId) return `${sessionId}|P|${task.projectId}`;
-      if (task.instrumentId) return `${sessionId}|I|${task.instrumentId}`;
-      return null;
+      const ctx = scheduleContext(task);
+      return JSON.stringify([task.sessionId || 'S_DEFAULT', ctx.stage, ctx.field, ctx.id]);
     };
 
     scheduledTasks.value.forEach((task) => {
@@ -107,18 +105,16 @@ export function registerScheduleFeature(context) {
     Object.entries(groups).forEach(([key, scheduleBlocks]) => {
       scheduleBlocks.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
 
-      const [sessionId, type, id] = key.split('|');
+      const [sessionId] = JSON.parse(key);
+      const view = scheduleContext(scheduleBlocks[0]).view;
       const poolItems = itemPool.value.filter((item) => {
         if ((item.sessionId || 'S_DEFAULT') !== sessionId) return false;
-        if (type === 'M') return item.musicianId === id;
-        if (type === 'P') return item.projectId === id;
-        if (type === 'I') return item.instrumentId === id;
-        return false;
+        return itemMatchesSchedule(item, scheduleBlocks[0]) && peekItemSplitState(item, view).active !== false;
       });
 
       const taskMap = new Map();
       poolItems.forEach((item) => {
-        let index = parseInt(item.sectionIndex, 10);
+        let index = parseInt(peekItemSplitState(item, view).sectionIndex, 10);
         if (Number.isNaN(index)) index = 0;
         if (!taskMap.has(index)) taskMap.set(index, []);
         taskMap.get(index).push(item);
@@ -132,7 +128,7 @@ export function registerScheduleFeature(context) {
         schedulesKeepSet.add(block.scheduleId);
         if (oldIndex !== newBlockIndex) {
           relatedTasks.forEach((item) => {
-            item.sectionIndex = newBlockIndex;
+            writeSplitState(item, view, { sectionIndex: newBlockIndex });
           });
         }
         newBlockIndex++;
@@ -162,6 +158,7 @@ export function registerScheduleFeature(context) {
       listData.items.forEach((item) => {
         if (item.sectionIndex > index) {
           item.sectionIndex--;
+          writeSplitState(item, listData.viewType || sidebarTab.value, { sectionIndex: item.sectionIndex });
         }
       });
     }
@@ -224,14 +221,12 @@ export function registerScheduleFeature(context) {
       }
     };
 
-    let type = 'musician';
-    if (task.projectId) type = 'project';
-    else if (task.instrumentId) type = 'instrument';
+    const type = viewFromStage(getScheduleStage(task));
 
     if (direction === 'up') {
       if (isMonth) {
         const newDate = addDaysToDate(task.date, -7);
-        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
           return;
         }
         if (newDate !== task.date) {
@@ -242,7 +237,7 @@ export function registerScheduleFeature(context) {
         }
       } else {
         const newTime = addMinutesToTime(task.startTime, -30);
-        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type, task)) {
           return;
         }
         if (newTime !== task.startTime) {
@@ -254,7 +249,7 @@ export function registerScheduleFeature(context) {
     } else if (direction === 'down') {
       if (isMonth) {
         const newDate = addDaysToDate(task.date, 7);
-        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
           return;
         }
         if (newDate !== task.date) {
@@ -265,7 +260,7 @@ export function registerScheduleFeature(context) {
         }
       } else {
         const newTime = addMinutesToTime(task.startTime, 30);
-        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type)) {
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type, task)) {
           return;
         }
         if (newTime !== task.startTime) {
@@ -276,7 +271,7 @@ export function registerScheduleFeature(context) {
       }
     } else if (direction === 'left') {
       const newDate = addDaysToDate(task.date, -1);
-      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
         return;
       }
       if (newDate !== task.date) {
@@ -292,7 +287,7 @@ export function registerScheduleFeature(context) {
       }
     } else if (direction === 'right') {
       const newDate = addDaysToDate(task.date, 1);
-      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type)) {
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
         return;
       }
       if (newDate !== task.date) {
@@ -335,13 +330,8 @@ export function registerScheduleFeature(context) {
     const taskSession = task.sessionId || 'S_DEFAULT';
     if (taskSession !== currentSessionId.value) return true;
 
-    // 任务在任何一个「还在用的分类」里都没有 id（例如乐器分类下线后只剩 instrumentId 的老任务）：
-    // 每个分类下都判成幽灵的话，它就永远灰着、点了也跳不到能显示它的地方，所以按正常任务处理。
-    const belongsToLiveTab = SIDEBAR_TABS.some((tab) => task[TASK_ID_KEY_BY_TAB[tab]]);
-    if (!belongsToLiveTab) return false;
-
-    const idKey = TASK_ID_KEY_BY_TAB[sidebarTab.value];
-    return idKey ? !task[idKey] : false;
+    if (!task.stage && !task.musicianId && !task.editorId && !task.projectId) return false;
+    return getScheduleStage(task) !== stageFromView(sidebarTab.value);
   }
 
   function getTaskStyle(task) {
@@ -350,8 +340,7 @@ export function registerScheduleFeature(context) {
     const height = (parseTime(task.estDuration) / 60) * pxPerMin.value;
 
     let baseColor = '#a855f7';
-    if (task.projectId) baseColor = '#eab308';
-    else if (task.instrumentId) baseColor = '#3b82f6';
+    if (getScheduleStage(task) === 'edit') baseColor = '#eab308';
 
     return {
       top: `${top}px`,
@@ -362,8 +351,11 @@ export function registerScheduleFeature(context) {
   }
 
   function getBlockTitle(task) {
-    if (task.musicianId) return getNameById(task.musicianId, 'musician');
-    if (task.projectId) return getNameById(task.projectId, 'project');
+    const ctx = scheduleContext(task);
+    if (ctx.stage === 'edit' && task.editorId) return getNameById(task.editorId, 'musician');
+    if (ctx.stage === 'rec' && task.musicianId) return getNameById(task.musicianId, 'musician');
+    if (ctx.legacyProject) return getNameById(task.projectId, 'project');
+    if (task.stage) return '未分配';
     if (task.instrumentId) return getNameById(task.instrumentId, 'instrument');
     return '未命名日程';
   }
