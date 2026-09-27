@@ -15,7 +15,7 @@ export const AppMainContent = {
   template: `
             <main id="main-content"
                   v-show="!isMobile || mobileTab==='schedule'"
-                  class="flex-1 flex flex-col relative bg-white/30 dark:bg-[#1e1e1e]/60 backdrop-blur-md"
+                  class="flex-1 min-w-0 flex flex-col relative bg-white/30 dark:bg-[#1e1e1e]/60 backdrop-blur-md"
                   :class="isMobile ? 'w-full absolute inset-0 z-30' : ''"
                   @touchstart="onMainTouchStart"
                   @touchend="onMainTouchEnd"

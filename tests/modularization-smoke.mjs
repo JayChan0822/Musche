@@ -1101,7 +1101,7 @@ assert.doesNotMatch(
 );
 assert.match(
     appRootShellComponent,
-    /template:\s*`[\s\S]*liquid-window[\s\S]*<app-header :ctx="ctx\.appHeader"><\/app-header>[\s\S]*<app-sidebar :ctx="ctx\.appSidebar"><\/app-sidebar>[\s\S]*<app-main-content :ctx="ctx\.appMainContent"><\/app-main-content>[\s\S]*<app-mobile-controls :ctx="ctx\.appMobileControls"><\/app-mobile-controls>[\s\S]*`/,
+    /template:\s*`[\s\S]*liquid-window[\s\S]*<app-header :ctx="ctx\.appHeader"[^>]*><\/app-header>[\s\S]*<app-sidebar :ctx="ctx\.appSidebar"><\/app-sidebar>[\s\S]*<app-main-content :ctx="ctx\.appMainContent"><\/app-main-content>[\s\S]*<app-mobile-controls :ctx="ctx\.appMobileControls"><\/app-mobile-controls>[\s\S]*`/,
     'app-root-shell must own the root liquid-window layout and pass the existing focused child contexts through'
 );
 assert.match(

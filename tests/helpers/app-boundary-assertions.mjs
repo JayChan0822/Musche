@@ -711,7 +711,7 @@ export function assertAppRootTemplateSurface() {
 export function assertRootShellStateBoundary({ createRootShellState, vueReactive }) {
   assert.match(
     rootShellStateModule,
-    /export function createRootShellState\(\{\s*reactive,\s*appHeader,\s*appSidebar,\s*appMainContent,\s*appMobileControls,\s*appStandaloneOverlaysShell,\s*appTaskActionModalsShell,\s*appAccountModalsShell,\s*appUtilityModalsShell,\s*appUniversalModalsShell,\s*appPickerModalsShell,\s*appExportCreditModalsShell,\s*appMidiCsvImportModalsShell,\s*appMetadataInfoModalsShell,?\s*\}\)\s*\{[\s\S]*const appRootShell\s*=\s*reactive\(\{[\s\S]*appHeader[\s\S]*appSidebar[\s\S]*appMainContent[\s\S]*appMobileControls[\s\S]*\}\);[\s\S]*const appRootOverlaysShell\s*=\s*reactive\(\{[\s\S]*appStandaloneOverlaysShell[\s\S]*appTaskActionModalsShell[\s\S]*appAccountModalsShell[\s\S]*appUtilityModalsShell[\s\S]*appUniversalModalsShell[\s\S]*appPickerModalsShell[\s\S]*appExportCreditModalsShell[\s\S]*appMidiCsvImportModalsShell[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);[\s\S]*return\s*\{[\s\S]*appRootShell[\s\S]*appRootOverlaysShell[\s\S]*\};[\s\S]*\}/,
+    /export function createRootShellState\(\{\s*reactive,\s*appHeader,\s*appSidebar,\s*appMainContent,\s*appMobileControls,\s*appResourceLibrary,\s*appStandaloneOverlaysShell,\s*appTaskActionModalsShell,\s*appAccountModalsShell,\s*appUtilityModalsShell,\s*appUniversalModalsShell,\s*appPickerModalsShell,\s*appExportCreditModalsShell,\s*appMidiCsvImportModalsShell,\s*appMetadataInfoModalsShell,?\s*\}\)\s*\{[\s\S]*const appRootShell\s*=\s*reactive\(\{[\s\S]*appHeader[\s\S]*appSidebar[\s\S]*appMainContent[\s\S]*appMobileControls[\s\S]*\}\);[\s\S]*const appRootOverlaysShell\s*=\s*reactive\(\{[\s\S]*appStandaloneOverlaysShell[\s\S]*appTaskActionModalsShell[\s\S]*appAccountModalsShell[\s\S]*appUtilityModalsShell[\s\S]*appUniversalModalsShell[\s\S]*appPickerModalsShell[\s\S]*appExportCreditModalsShell[\s\S]*appMidiCsvImportModalsShell[\s\S]*appMetadataInfoModalsShell[\s\S]*\}\);[\s\S]*return\s*\{[\s\S]*appRootShell[\s\S]*appRootOverlaysShell[\s\S]*\};[\s\S]*\}/,
     'root-shell-state module must own the two top-level root shell ctx wrappers',
   );
 
@@ -721,6 +721,7 @@ export function assertRootShellStateBoundary({ createRootShellState, vueReactive
     appSidebar: { name: 'sidebar' },
     appMainContent: { name: 'main' },
     appMobileControls: { name: 'mobile' },
+    appResourceLibrary: { name: 'library' },
     appStandaloneOverlaysShell: { name: 'standalone-overlays' },
     appTaskActionModalsShell: { name: 'task-actions' },
     appAccountModalsShell: { name: 'account' },
@@ -735,13 +736,14 @@ export function assertRootShellStateBoundary({ createRootShellState, vueReactive
   const rootShellStateB = createRootShellState(rootShellInputs);
   assert.deepEqual(
     Object.keys(rootShellStateA.appRootShell),
-    ['appHeader', 'appSidebar', 'appMainContent', 'appMobileControls'],
+    ['appHeader', 'appSidebar', 'appMainContent', 'appMobileControls', 'appResourceLibrary'],
     'root shell state must expose only the main root shell ctx group',
   );
   assert.deepEqual(rootShellStateA.appRootShell.appHeader, rootShellInputs.appHeader, 'root shell state must preserve the app header ctx value');
   assert.deepEqual(rootShellStateA.appRootShell.appSidebar, rootShellInputs.appSidebar, 'root shell state must preserve the app sidebar ctx value');
   assert.deepEqual(rootShellStateA.appRootShell.appMainContent, rootShellInputs.appMainContent, 'root shell state must preserve the app main content ctx value');
   assert.deepEqual(rootShellStateA.appRootShell.appMobileControls, rootShellInputs.appMobileControls, 'root shell state must preserve the app mobile controls ctx value');
+  assert.deepEqual(rootShellStateA.appRootShell.appResourceLibrary, rootShellInputs.appResourceLibrary, 'root shell state must preserve the resource library ctx value');
   assert.deepEqual(
     Object.keys(rootShellStateA.appRootOverlaysShell),
     [

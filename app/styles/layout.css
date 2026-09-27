@@ -30,6 +30,24 @@ html.dark .liquid-window {
     border-right: 1px solid rgba(0, 0, 0, 0.05);
 }
 
+.resource-sidebar {
+    width: 320px;
+    max-width: 90vw;
+    background: rgba(245, 245, 247, 0.96);
+    backdrop-filter: blur(30px);
+    color: #1f2937;
+}
+
+html.dark .resource-sidebar {
+    background: rgba(35, 35, 38, 0.97);
+    color: #f3f4f6;
+}
+
+@media (max-width: 639px) {
+    .resource-sidebar button { min-height: 36px; }
+    .resource-sidebar input { font-size: 16px; }
+}
+
 html.dark .glass-sidebar {
     background: rgba(40, 40, 40, 0.4);
     border-right: 1px solid rgba(255, 255, 255, 0.05);

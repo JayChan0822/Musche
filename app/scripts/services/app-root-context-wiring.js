@@ -73,6 +73,7 @@ export function createAppRootContexts({ assembly, factories }) {
         appSidebar: shells.appSidebar,
         appMainContent: shells.appMainContent,
         appMobileControls: shells.appMobileControls,
+        appResourceLibrary: shells.appSettingsModal,
         appStandaloneOverlaysShell: shells.appStandaloneOverlaysShell,
         appTaskActionModalsShell: shells.appTaskActionModalsShell,
         appAccountModalsShell: shells.appAccountModalsShell,

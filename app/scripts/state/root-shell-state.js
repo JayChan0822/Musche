@@ -4,6 +4,7 @@ export function createRootShellState({
     appSidebar,
     appMainContent,
     appMobileControls,
+    appResourceLibrary,
     appStandaloneOverlaysShell,
     appTaskActionModalsShell,
     appAccountModalsShell,
@@ -23,6 +24,7 @@ export function createRootShellState({
         appSidebar,
         appMainContent,
         appMobileControls,
+        appResourceLibrary,
     });
 
     const appRootOverlaysShell = reactive({

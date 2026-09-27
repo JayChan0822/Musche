@@ -1,6 +1,8 @@
 export const AppHeader = {
   name: 'AppHeader',
+  emits: ['toggle-library'],
   props: {
+    libraryOpen: Boolean,
     ctx: {
       type: Object,
       required: true,
@@ -294,6 +296,13 @@ export const AppHeader = {
                 </div>
 
                 <div class="w-px h-6 bg-black/10 dark:bg-white/10 mx-1 hidden sm:block"></div>
+
+                <button id="library-toggle" @click="$emit('toggle-library')"
+                        :aria-expanded="libraryOpen" aria-controls="resource-library" aria-label="资料库" :title="libraryOpen ? '收起资料库' : '展开资料库'"
+                        class="w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-lg flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
+                        :class="libraryOpen ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'hover:bg-black/5 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400'">
+                    <i class="fa-solid fa-book-open text-base" aria-hidden="true"></i>
+                </button>
 
                 <button @click="ctx.startTour"
                         class="hidden sm:flex w-11 h-11 sm:w-9 sm:h-9 rounded-md hover:bg-black/5 dark:hover:bg-white/10 items-center justify-center transition group relative"
