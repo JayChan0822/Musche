@@ -36,6 +36,8 @@ test('library tabs search independently by name and group using shared settings'
 
 test('library group expansion and inline creation preserve all existing entries', async () => {
   const { feature: f, ctx } = harness();
+  assert.equal(f.isExpanded('Plucks'), false);
+  f.toggleGroup('Plucks');
   assert.equal(f.isExpanded('Plucks'), true);
   f.toggleGroup('Plucks');
   assert.equal(f.isExpanded('Plucks'), false);
@@ -48,6 +50,22 @@ test('library group expansion and inline creation preserve all existing entries'
   assert.equal(f.search.value, '');
   assert.equal(f.isExpanded('Plucks'), true);
   assert.equal(f.creating.value, false);
+});
+
+test('groups start collapsed in every tab and search only temporarily expands matches', () => {
+  const { feature: f } = harness();
+  assert.equal(f.allExpanded.value, false);
+  f.search.value = 'guzheng';
+  assert.equal(f.isExpanded('Plucks'), true);
+  f.search.value = '';
+  assert.equal(f.isExpanded('Plucks'), false);
+  f.toggleAll();
+  assert.equal(f.isExpanded('Plucks'), true);
+  assert.equal(f.isExpanded('Winds'), true);
+  f.toggleAll();
+  assert.equal(f.isExpanded('Winds'), false);
+  f.selectType('musician');
+  assert.equal(f.isExpanded(''), false);
 });
 
 test('group edits share data with task pickers and save once', () => {

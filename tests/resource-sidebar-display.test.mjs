@@ -17,7 +17,8 @@ test('right library renders three tabs, search and management actions', async ()
   assert.equal((html.match(/role="tab"/g) || []).length, 3);
   assert.match(html, /搜索乐器/);
   assert.match(html, /Guzheng/);
-  assert.match(html, /所属分组/);
+  assert.doesNotMatch(html, /aria-label="所属分组"/);
+  assert.match(html, /修改Guzheng分组/);
   assert.match(html, /新增乐器/);
   assert.match(html, /删除Guzheng/);
   assert.match(html, /修改Guzheng颜色/);

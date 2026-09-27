@@ -8,6 +8,8 @@ export const AppResourceSidebar = {
   setup(props) {
     const library = createResourceLibrary(props.ctx);
     const nameInput = ref(null);
+    const editingGroupId = ref(null);
+    watch(library.activeType, () => { editingGroupId.value = null; });
     const panel = ref(null);
     watch(() => props.open && props.overlay, async (open) => {
       if (open) {
@@ -36,7 +38,7 @@ export const AppResourceSidebar = {
       await nextTick();
       nameInput.value?.focus();
     };
-    return { ...library, nameInput, panel, startCreate, trapFocus, navigateTabs };
+    return { ...library, nameInput, editingGroupId, panel, startCreate, trapFocus, navigateTabs };
   },
   template: `
     <button v-if="open && overlay" class="absolute inset-0 z-[60] bg-black/25 backdrop-blur-sm" aria-label="关闭资料库遮罩" @click="$emit('close')"></button>
@@ -75,18 +77,19 @@ export const AppResourceSidebar = {
             <span class="text-[10px] text-gray-500 dark:text-gray-400 px-2">{{ group.items.length }}</span>
           </div>
           <div v-show="isExpanded(group.name)" class="p-1 space-y-1">
-            <div v-for="item in group.items" :key="item.id" class="group/item p-2 rounded-lg bg-white/60 dark:bg-black/10 hover:bg-white dark:hover:bg-white/10">
-              <div class="flex items-center gap-2">
+            <div v-for="item in group.items" :key="item.id" class="group/item px-2 py-1 rounded-lg bg-white/60 dark:bg-black/10 hover:bg-white dark:hover:bg-white/10">
+              <div class="flex items-center gap-1.5">
                 <button @click="ctx.openColorPicker(item, activeType)" :aria-label="'修改' + item.name + '颜色'" class="w-7 h-7 rounded-lg shrink-0 text-white shadow-sm" :style="{backgroundColor: item.color || activeTab.color}"><i class="fa-solid text-[10px]" :class="activeTab.icon" aria-hidden="true"></i></button>
                 <input :value="item.name" :aria-label="activeTab.label + '名称'" @change="ctx.handleItemRename(activeType, item, $event)" @mousedown.stop class="min-w-0 flex-1 bg-transparent outline-none rounded focus:ring-1 focus:ring-blue-500 py-1 text-sm font-semibold">
-                <button @click="ctx.removeSettingsItem(activeType, item.id)" :aria-label="'删除' + item.name" class="w-7 h-7 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10"><i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i></button>
-              </div>
-              <div class="mt-1.5 pl-9 flex items-center gap-2">
-                <input :value="item.group" :list="'library-groups-' + activeType" aria-label="所属分组" placeholder="未分组" @change="updateGroup(item, $event.target.value)" @mousedown.stop class="min-w-0 flex-1 w-0 bg-transparent text-[11px] text-gray-500 dark:text-gray-400 outline-none rounded focus:ring-1 focus:ring-blue-500 py-1">
+                <button @click="editingGroupId = editingGroupId === item.id ? null : item.id" :aria-label="'修改' + item.name + '分组'" :aria-expanded="editingGroupId === item.id" title="修改分组" class="w-6 h-7 shrink-0 rounded text-gray-400 hover:text-blue-500"><i class="fa-solid fa-folder-tree text-[10px]" aria-hidden="true"></i></button>
                 <template v-if="activeType === 'project'">
                   <button @click="ctx.openProjectInfoModal(item)" :aria-label="item.name + '项目信息'" title="项目信息" class="w-7 h-7 rounded text-blue-500 hover:bg-blue-500/10"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                   <button @click="ctx.openMidiManager(item)" :aria-label="item.name + ' MIDI 管理'" title="MIDI 管理" class="rounded px-2 h-7 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10">MIDI</button>
                 </template>
+                <button @click="ctx.removeSettingsItem(activeType, item.id)" :aria-label="'删除' + item.name" class="w-6 h-7 shrink-0 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10"><i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i></button>
+              </div>
+              <div v-if="editingGroupId === item.id" class="pt-1 pb-1 pl-9">
+                <input :value="item.group" :list="'library-groups-' + activeType" aria-label="所属分组" placeholder="未分组" @change="updateGroup(item, $event.target.value); editingGroupId = null" @keydown.esc.stop="editingGroupId = null" class="glass-input w-full h-8 text-xs">
               </div>
             </div>
           </div>

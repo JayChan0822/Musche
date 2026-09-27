@@ -9,7 +9,7 @@ export const resourceTabs = [
 export function createResourceLibrary(ctx) {
   const activeType = ref('instrument');
   const queries = reactive({ instrument: '', musician: '', project: '' });
-  const collapsed = reactive(new Set());
+  const expanded = reactive(new Set());
   const creating = ref(false);
   const saving = ref(false);
   const activeTab = computed(() => resourceTabs.find((tab) => tab.type === activeType.value));
@@ -30,17 +30,17 @@ export function createResourceLibrary(ctx) {
       .map(([name, items]) => ({ name, items: items.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true })) }));
   });
   const form = computed(() => ctx.newSettingsItem[activeType.value]);
-  const isExpanded = (group) => !!search.value.trim() || !collapsed.has(`${activeType.value}|${group}`);
+  const isExpanded = (group) => !!search.value.trim() || expanded.has(`${activeType.value}|${group}`);
   const toggleGroup = (group) => {
     const key = `${activeType.value}|${group}`;
-    if (collapsed.has(key)) collapsed.delete(key); else collapsed.add(key);
+    if (expanded.has(key)) expanded.delete(key); else expanded.add(key);
   };
   const allExpanded = computed(() => groups.value.every((group) => isExpanded(group.name)));
   const toggleAll = () => {
     const collapse = allExpanded.value;
     groups.value.forEach(({ name }) => {
       const key = `${activeType.value}|${name}`;
-      if (collapse) collapsed.add(key); else collapsed.delete(key);
+      if (collapse) expanded.delete(key); else expanded.add(key);
     });
   };
   const selectType = (type) => {
@@ -61,7 +61,7 @@ export function createResourceLibrary(ctx) {
       await ctx.addSettingsItem(type);
       if (!ctx.newSettingsItem[type].name) {
         queries[type] = '';
-        collapsed.delete(`${type}|${group}`);
+        expanded.add(`${type}|${group}`);
         if (activeType.value === type) creating.value = false;
       }
     } finally { saving.value = false; }
@@ -70,7 +70,7 @@ export function createResourceLibrary(ctx) {
     const group = value.trim();
     if ((item.group || '') === group) return;
     item.group = group;
-    collapsed.delete(`${activeType.value}|${group}`);
+    expanded.add(`${activeType.value}|${group}`);
     ctx.pushHistory();
   };
   return { resourceTabs, activeType, activeTab, search, totalCount, groupNames, groups, form, creating, saving,
