@@ -78,3 +78,13 @@ test('JSON import/export preserves extension fields and stage assignment',()=>{
  assert.equal(exported.tasks[0].stage,'edit');assert.equal(exported.tasks[0].editorId,'e');
  assert.deepEqual(exported.settings.musicians[0].roles,['editor']);
 });
+
+test('quota-full import downloads the previous state before restoring the source file', () => {
+ let callback, backup;
+ const {feature,refs}=createPortability({storage:{getItem:()=>null,setItem:()=>{throw new DOMException('full','QuotaExceededError');}},actions:{readFileAsText:(_f,_e,cb)=>{callback=cb;},downloadTextFile:text=>{backup=JSON.parse(text);}}});
+ refs.scheduledTasks.value=[{scheduleId:'previous'}];
+ feature.handleJSONFile({target:{files:[{name:'recovery.json'}],value:''}});
+ callback({target:{result:JSON.stringify({pool:[{id:'restored'}],tasks:[{scheduleId:'recovered'}],settings:{}})}});
+ assert.equal(backup.tasks[0].scheduleId,'previous');
+ assert.equal(refs.scheduledTasks.value[0].scheduleId,'recovered');
+});

@@ -370,7 +370,7 @@ test('offline bootstrap restores the unsynced local draft over older cache', asy
  const draft={version:4,content:{schemaVersion:10,pool:[{id:'draft',editorId:'editor'}],tasks:[],settings:{}}};
  const {feature,refs}=createAuthHarness({cachedData,getSession:()=>new Promise(()=>{}),startupTimeoutMs:5,storageOverrides:{loadData:key=>key===CLOUD_CACHE_KEY?cachedData:key==='musche_workflow_unsynced_v11:USER_1'?draft:null}});
  await feature.bootSessionData();
- assert.equal(refs.itemPool.value[0].id,'draft'); assert.equal(refs.saveStatus.value,'unsaved');
+ assert.equal(refs.itemPool.value[0].id,'draft'); assert.equal(refs.saveStatus.value,'error');
 });
 
 test('cloud saves serialize overlapping requests and save the newest pending edit', async () => {
@@ -421,4 +421,23 @@ test('local quota plus cloud failure offers export without claiming a local back
   assert.equal(typeof h.getConfirmAction(), 'function');
   await h.getConfirmAction()();
   assert.equal(exported.schemaVersion, 11);
+});
+
+test('failed cloud bootstrap never creates or uploads demo data', async () => {
+  let writes = 0;
+  const h = createAuthHarness({ loadUserData: async () => { throw new Error('timeout'); },
+    serviceOverrides: { saveUserData: async () => { writes++; return { error: null }; } } });
+  await h.feature.bootSessionData();
+  await h.feature.saveToCloud(() => {});
+  assert.equal(h.refs.scheduledTasks.value.length, 0);
+  assert.equal(h.refs.itemPool.value.length, 0);
+  assert.equal(writes, 0);
+});
+
+test('a standalone unsynced draft is restored when cloud load fails without cache', async () => {
+  const h = createAuthHarness({ loadUserData: async () => { throw new Error('timeout'); }, storageOverrides: {
+    loadData: key => key === 'musche_workflow_unsynced_v11:USER_1' ? { version: 5, content: { pool: [{ id: 'mine' }], tasks: [{ scheduleId: 'retained' }], settings: {} } } : null,
+  } });
+  await h.feature.bootSessionData();
+  assert.equal(h.refs.scheduledTasks.value[0].scheduleId, 'retained');
 });

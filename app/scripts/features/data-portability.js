@@ -125,8 +125,16 @@ export function registerDataPortabilityFeature(context) {
         const data = migrateWorkflowContent(original);
 
         const backupId = `import:${file.name || 'backup'}:${Date.now()}`;
-        preserveWorkflowBackup(backupStorage, original, backupId);
-        preserveWorkflowBackup(backupStorage, serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value), `${backupId}:previous`);
+        const previous = serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value);
+        try {
+          preserveWorkflowBackup(backupStorage, original, backupId);
+          preserveWorkflowBackup(backupStorage, previous, `${backupId}:previous`);
+        } catch (error) {
+          if (error?.name !== 'QuotaExceededError') throw error;
+          // The selected source file already exists on disk. Preserve the replaced
+          // state as a download when browser storage cannot hold another copy.
+          downloadTextFile(JSON.stringify(previous, null, 2), `Musche-导入前保护备份-${Date.now()}.json`, 'application/json');
+        }
         cancelPendingTrackSave();
         pushHistory();
         rememberWorkflowContent(settings, data);
@@ -137,7 +145,7 @@ export function registerDataPortabilityFeature(context) {
         pushHistory();
 
         showImportModal.value = false;
-        openAlertModal('导入成功', '数据已成功恢复！');
+        openAlertModal('导入成功', '数据已恢复到当前页面。请保留原始备份文件；导入成功不代表云端已保存，关闭页面前请确认保存状态。');
       } catch (err) {
         logError(err);
         openAlertModal('导入失败', err.message || '文件格式错误或已损坏。');

@@ -713,7 +713,10 @@ export function registerAuthFeature(context) {
       const { data } = await withStartupTimeout(supabaseService.getSession(), 'Session recovery');
       session = data?.session || null;
     } catch (error) {
-      if (!cachedData) restoreGuestData(isSidebarOpen);
+      dataProtectionError = new Error('账号状态加载失败，已暂停保存以保护原数据。请恢复连接后重试。');
+      setWorkflowWriteBlocked(settings, true);
+      setSaveStatus('error');
+      openAlertModal('数据尚未加载', dataProtectionError.message);
       if (!skipHistory) pushHistory();
       return;
     }
@@ -736,10 +739,16 @@ export function registerAuthFeature(context) {
         await loadCloudData({ withStartupDeadline: true });
       } catch (error) {
         if (!cacheMatchesSession) {
-          cancelPendingTrackSave();
-          itemPool.value = [];
-          scheduledTasks.value = [];
+          // Recovery drafts remain useful even if disposable cloud caches are absent.
+          const draft = storageService.loadData(`musche_workflow_unsynced_v11:${session.user.id}`) || storageService.loadData(`musche_workflow_unsynced:${session.user.id}`);
+          if (draft?.content) {
+            try { applyCloudContent(draft.content, draft.version); } catch { /* Keep protection active. */ }
+          }
         }
+        dataProtectionError = new Error('云端数据加载失败，已暂停保存，防止空白或演示数据覆盖原日程。现有备份未删除，请恢复连接后重试同步。');
+        setWorkflowWriteBlocked(settings, true);
+        setSaveStatus('error');
+        openAlertModal('数据尚未加载', dataProtectionError.message);
       }
 
       if (!dataProtectionError && itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
