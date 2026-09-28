@@ -455,13 +455,50 @@ test('database revision conflicts suspend repeated writes until cloud data is lo
  assert.equal(writes,2);
 });
 
-test('manual sync reports storage failure accurately without replacing live data', async()=>{
+test('manual sync retains conflicting draft and shows cloud with saving blocked', async()=>{
  const h=createAuthHarness({version:3,cloudContent:{pool:[{id:'cloud'}],tasks:[],settings:{}},storageOverrides:{
  loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?{version:1,content:{pool:[{id:'draft'}],tasks:[],settings:{}}}:null,
  saveData:()=>{throw new DOMException('full','QuotaExceededError');}
  }});
  h.refs.itemPool.value=[{id:'current'}];
  await h.feature.handleManualSync();
- assert.equal(h.refs.itemPool.value[0].id,'current');
- assert.ok(h.alerts.some(args=>args.join(' ').includes('本地存储空间不足')));
+ assert.equal(h.refs.itemPool.value[0].id,'cloud');
+ assert.equal(h.refs.saveStatus.value,'error');
+ assert.equal(typeof h.getConfirmAction(),'function');
+});
+
+test('startup exposes the actual cloud failure instead of only generic protection text', async()=>{
+ const h=createAuthHarness({loadUserData:async()=>({data:null,error:{code:'57014',message:'statement timeout'}})});
+ await h.feature.bootSessionData();
+ assert.ok(h.alerts.some(args=>args.join(' ').includes('57014')));
+});
+
+test('quota-full conflict can display cloud read-only while preserving original draft', async()=>{
+ const draft={version:1,content:{pool:[{id:'draft'}],tasks:[],settings:{}}};
+ const h=createAuthHarness({version:3,cloudContent:{pool:[{id:'cloud'}],tasks:[],settings:{}},storageOverrides:{
+ loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?draft:null,
+ saveData:()=>{throw new DOMException('full','QuotaExceededError');}
+ }});
+ await h.feature.bootSessionData();
+ assert.equal(h.refs.itemPool.value[0].id,'cloud');
+ assert.equal(h.refs.saveStatus.value,'error');
+ assert.equal(draft.content.pool[0].id,'draft');
+ assert.equal(typeof h.getConfirmAction(),'function');
+});
+
+test('quota recovery exports the original draft and blocks cloud writes until export succeeds', async()=>{
+ let writes=0,exported;
+ const draft={version:1,content:{pool:[{id:'old-local'}],tasks:[],settings:{}}};
+ const h=createAuthHarness({version:3,cloudContent:{pool:[{id:'cloud'}],tasks:[],settings:{}},storageOverrides:{
+ loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?draft:null,
+ saveData:()=>{throw new DOMException('full','QuotaExceededError');}
+ },actionOverrides:{exportUnsyncedBackup:async content=>{exported=content;}},serviceOverrides:{saveUserData:async()=>{writes++;return {error:null};}}});
+ await h.feature.loadCloudData();
+ await h.feature.saveToCloud(()=>{});
+ assert.equal(writes,0);
+ await h.getConfirmAction()();
+ assert.equal(exported.pool[0].id,'old-local');
+ assert.equal(h.refs.itemPool.value[0].id,'cloud');
+ await h.feature.saveToCloud(()=>{});
+ assert.equal(writes,1);
 });

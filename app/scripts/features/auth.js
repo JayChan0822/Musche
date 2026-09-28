@@ -295,7 +295,27 @@ export function registerAuthFeature(context) {
         setSaveStatus('unsaved');
         openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
       } else {
-        const archiveKey = draft?.content ? archiveUnsyncedDraft(draft) : null;
+        let archiveKey = null;
+        if (draft?.content) {
+          try { archiveKey = archiveUnsyncedDraft(draft); }
+          catch (error) {
+            if (error?.name !== 'QuotaExceededError') throw error;
+            // The existing draft is already durable. Do not require a duplicate
+            // localStorage copy just to display the independently loaded cloud data.
+            applyCloudContent(data.content, data.version);
+            dataProtectionError = new Error('本地存储空间不足，旧的未同步备份仍保留。当前显示云端数据，保存已暂停；请先导出旧备份。');
+            setWorkflowWriteBlocked(settings, true);
+            setSaveStatus('error');
+            openConfirmModal('云端已加载，本地备份待导出', dataProtectionError.message,
+              async () => {
+                await exportUnsyncedBackup(draft.content, draft.version);
+                dataProtectionError = null;
+                setWorkflowWriteBlocked(settings, false);
+                setSaveStatus('unsaved');
+              }, false, '导出旧备份', '暂不处理');
+            return true;
+          }
+        }
         applyCloudContent(data.content, data.version);
         if (archiveKey && !storageService.loadData(`${archiveKey}:exported`)) openConfirmModal(
           '有本地未同步备份',
@@ -686,6 +706,7 @@ export function registerAuthFeature(context) {
   }
 
   function describeSyncError(error) {
+    if (error?.code === 'MUSCHE_STARTUP_TIMEOUT') return '云端启动读取超过等待时间，尚未确认加载完成。可手动同步重试；当前数据不会自动上传。';
     if (error?.name === 'QuotaExceededError') return '本地存储空间不足，无法归档未同步备份，已停止替换当前数据。请先导出备份；这不是网络连接错误。';
     if (error?.code === '40001') return '云端版本冲突（40001）：已暂停自动保存。请先导出当前数据，再同步核对云端版本；若持续冲突，需要检查数据库触发器。';
     if (error?.code === '57014') return '数据库执行超时（57014）。请求已到达数据库，但未在限制时间内完成。';
@@ -759,7 +780,8 @@ export function registerAuthFeature(context) {
             try { applyCloudContent(draft.content, draft.version); } catch { /* Keep protection active. */ }
           }
         }
-        dataProtectionError = new Error('云端数据加载失败，已暂停保存，防止空白或演示数据覆盖原日程。现有备份未删除，请恢复连接后重试同步。');
+        console.error('启动数据加载失败', error);
+        dataProtectionError = new Error(`${describeSyncError(error)}\n已暂停保存，防止空白或演示数据覆盖原日程。现有备份未删除。`);
         setWorkflowWriteBlocked(settings, true);
         setSaveStatus('error');
         openAlertModal('数据尚未加载', dataProtectionError.message);
