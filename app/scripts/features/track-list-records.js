@@ -1,4 +1,6 @@
 import { getScheduleStage, stageFromView, getAssigneeId } from '../utils/workflow.js';
+import { ensureWorkflowLedger, getWorkLogs, getActiveWorkLog, appendWorkLog, updateWorkLog, invalidateWorkLog, setActiveWorkLog, hydrateWorkRecord, getPartAllocation } from '../utils/workflow-ledger.js';
+import { assignItemSchedule, resolveItemSchedule } from '../utils/stable-schedule.js';
 // 记录读写：录音起止时间、中断时长、日程块实际时间的计算与回写。
 // 实际记录与排期独立；只有显式自动调整操作可以改变安排时长。
 export function createTrackListRecords(deps) {
@@ -18,9 +20,67 @@ export function createTrackListRecords(deps) {
     getViewType,
     getTargetId,
     getNameById,
+    settings,
   } = deps;
 
   let trackSaveTimer = null;
+  const ensureLedger = () => settings && ensureWorkflowLedger(settings, itemPool.value, scheduledTasks.value, { bootstrap: !settings.workflow });
+  const workAttempts = (item) => settings ? getWorkLogs(settings, item, stageFromView(getViewType())) : [];
+
+  const writeCurrentAttempt = (item, viewType = getViewType()) => {
+    if (!settings) return;
+    ensureLedger();
+    const stage = stageFromView(viewType);
+    const record = item.records?.[viewType];
+    if (!record) return;
+    const active = getActiveWorkLog(settings, item, stage);
+    if (active) {
+      updateWorkLog(settings, active.id, record);
+    } else if (record.recStart || record.recEnd || record.actualDuration || record.date) {
+      appendWorkLog(settings, item, stage, record);
+    }
+  };
+
+  const startNewWorkAttempt = (item) => {
+    if (!settings) return;
+    cancelPendingTrackSave();
+    captureRecordIdentity(item);
+    writeCurrentAttempt(item);
+    const stage = stageFromView(getViewType());
+    const allocation = getPartAllocation(settings, item, stage);
+    const schedule = scheduledTasks.value.find((block) => block.scheduleId === allocation?.scheduleId);
+    appendWorkLog(settings, item, stage, {
+      recStart: '', recEnd: '', actualDuration: '', breakMinutes: 0,
+      assigneeId: getAssigneeId(item, stage),
+      assigneeName: getNameById?.(getAssigneeId(item, stage), 'musician') || '',
+      date: schedule?.date || '', recordingInfo: item.recordingInfo || schedule?.recordingInfo || {}, editInfo: item.editInfo || schedule?.editInfo || {},
+    });
+    hydrateWorkRecord(settings, item, stage);
+    item.workflowStatus = { ...(item.workflowStatus || {}), [stage]: 'in-progress' };
+    pushHistory();
+  };
+
+  const selectWorkAttempt = (item, id) => {
+    if (!settings) return;
+    cancelPendingTrackSave();
+    captureRecordIdentity(item);
+    writeCurrentAttempt(item);
+    setActiveWorkLog(settings, item, stageFromView(getViewType()), id);
+    pushHistory();
+  };
+
+  const saveWorkAttempt = (item) => {
+    const record = item.records?.[getViewType()];
+    if (record?.actualDuration && !/^\d{1,3}:[0-5]\d(?::[0-5]\d)?$/.test(record.actualDuration.trim())) {
+      openAlertModal('耗时格式错误', '请输入 MM:SS 或 HH:MM:SS。');
+      if (settings) hydrateWorkRecord(settings, item, stageFromView(getViewType()));
+      return;
+    }
+    captureRecordIdentity(item);
+    writeCurrentAttempt(item);
+    cancelPendingTrackSave();
+    pushHistory();
+  };
 
   const cancelPendingTrackSave = () => {
     if (trackSaveTimer) {
@@ -43,8 +103,12 @@ export function createTrackListRecords(deps) {
     }
     if (!record.musicDuration && item.musicDuration) record.musicDuration = item.musicDuration;
     const data = trackListData.value;
-    const schedule = data.schedules?.[Number(item.sectionIndex) || 0] || data.taskRef;
+    const schedule = settings?.workflow?.version === 11
+      ? resolveItemSchedule(settings, item, viewType, data.schedules || [])
+      : data.schedules?.[Number(item.sectionIndex) || 0] || data.taskRef;
     if (!record.date && schedule?.date && getScheduleStage(schedule) === stage) record.date = schedule.date;
+    if (!record.recordingInfo) record.recordingInfo = { ...(item.recordingInfo || schedule?.recordingInfo || {}) };
+    if (!record.editInfo) record.editInfo = { ...(item.editInfo || schedule?.editInfo || {}) };
   };
 
   const calcTrackDiff = (item) => {
@@ -73,6 +137,9 @@ export function createTrackListRecords(deps) {
 
       record.actualDuration = formatSecs(diffSecs);
 
+      saveTrackRecord(item);
+    } else if (settings) {
+      record.actualDuration = '';
       saveTrackRecord(item);
     }
   };
@@ -168,6 +235,11 @@ export function createTrackListRecords(deps) {
     const targetSchedule = trackListData.value.schedules[sectionIndex];
     if (!targetSchedule) return false;
 
+    if (settings?.workflow?.version === 11) {
+      assignItemSchedule(settings, item, getViewType(), targetSchedule, sectionIndex);
+      return true;
+    }
+
     let didUpdate = false;
     const exactSchedule = scheduledTasks.value.find((task) => task.templateId === item.id && getScheduleStage(task) === stageFromView(getViewType()) && (task.sessionId || 'S_DEFAULT') === (targetSchedule.sessionId || 'S_DEFAULT'));
 
@@ -212,6 +284,7 @@ export function createTrackListRecords(deps) {
 
   const saveTrackRecord = (item) => {
     captureRecordIdentity(item);
+    writeCurrentAttempt(item);
     if (trackSaveTimer) clearTimeout(trackSaveTimer);
     const viewType = getViewType();
     const targetId = getTargetId(item, viewType);
@@ -226,6 +299,14 @@ export function createTrackListRecords(deps) {
 
   const clearTrackTime = (item) => {
     const viewType = getViewType();
+    if (settings?.workflow?.version === 11) {
+      cancelPendingTrackSave();
+      const active = getActiveWorkLog(settings, item, stageFromView(viewType));
+      if (active) invalidateWorkLog(settings, active.id);
+      setActiveWorkLog(settings, item, stageFromView(viewType), null);
+      pushHistory();
+      return;
+    }
     const record = item.records[viewType];
 
     record.recStart = '';
@@ -244,6 +325,10 @@ export function createTrackListRecords(deps) {
   };
 
   return {
+    workAttempts,
+    startNewWorkAttempt,
+    selectWorkAttempt,
+    saveWorkAttempt,
     calcTrackDiff,
     setTrackBreak,
     deleteTrackFromList,

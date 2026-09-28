@@ -49,6 +49,7 @@ export function registerTrackListFeature(context) {
   });
 
   const records = createTrackListRecords({
+    settings,
     trackListData,
     itemPool,
     scheduledTasks,

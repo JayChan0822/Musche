@@ -1,3 +1,6 @@
+import { getWorkLogs } from '../utils/workflow-ledger.js';
+import { stageFromView } from '../utils/workflow.js';
+import { assignItemSchedule, projectItemSection, hasStableScheduleLinks } from '../utils/stable-schedule.js';
 import { setItemSplitState } from '../utils/split-state.js';
 // 布局与排序：日程块自动分配、按录音记录自动调整、排序比较器、会话比例与分配时长。
 // 从 track-list.js 抽取（2026-08 模块化重构 P2b）。纯领域逻辑，不触碰 DOM。
@@ -20,6 +23,7 @@ export function createTrackListLayout(deps) {
 
     if (!listData.items || !listData.schedules || listData.schedules.length === 0) return;
 
+    if (hasStableScheduleLinks(settings)) listData.items.forEach((item) => projectItemSection(settings, item, viewType, listData.schedules));
     const capacities = listData.schedules.map((schedule) => parseTime(schedule.estDuration));
     const totalScheduleCapacity = capacities.reduce((sum, value) => sum + value, 0);
 
@@ -111,7 +115,7 @@ export function createTrackListLayout(deps) {
         currentSection++;
       }
 
-      item.sectionIndex = currentSection;
+      assignItemSchedule(settings, item, viewType, listData.schedules[currentSection], currentSection);
       setItemSplitState(item, viewType, { sectionIndex: currentSection, estDuration: item.estDuration });
 
       if (currentSection < usedTimePerSection.length) {
@@ -127,6 +131,7 @@ export function createTrackListLayout(deps) {
     const items = trackListData.value.items;
     const viewType = getViewType();
 
+    if (hasStableScheduleLinks(settings)) items.forEach((item) => projectItemSection(settings, item, viewType, sections));
     let hasUpdate = false;
 
     sections.forEach((scheduleRef, sectionIndex) => {
@@ -138,8 +143,11 @@ export function createTrackListLayout(deps) {
       let minMins = Infinity;
       let maxMins = -Infinity;
 
-      sectionItems.forEach((item) => {
-        const rec = item.records[viewType];
+      const sectionRecords = hasStableScheduleLinks(settings)
+        ? items.flatMap((item) => getWorkLogs(settings, item, stageFromView(viewType)).filter(log =>
+          String(log.scheduleId) === String(scheduleRef.scheduleId) && log.date === scheduleRef.date))
+        : sectionItems.map(item => item.records[viewType]);
+      sectionRecords.forEach((rec) => {
         if (!rec) return;
 
         if (rec.recStart) {

@@ -74,7 +74,7 @@ test('JSON import/export preserves extension fields and stage assignment',()=>{
  feature.handleJSONFile({target:{files:[{name:'b.json'}],value:''}});
  readCallback({target:{result:JSON.stringify({customExtension:{important:true},pool:[{id:'t',editorId:'e'}],tasks:[{scheduleId:1,stage:'edit',musicianId:'m',editorId:'e'}],settings:{musicians:[{id:'e',roles:['editor']}]}})}});
  feature.exportJSON();
- assert.equal(exported.schemaVersion,10);assert.deepEqual(exported.customExtension,{important:true});
+ assert.equal(exported.schemaVersion,11);assert.deepEqual(exported.customExtension,{important:true});
  assert.equal(exported.tasks[0].stage,'edit');assert.equal(exported.tasks[0].editorId,'e');
  assert.deepEqual(exported.settings.musicians[0].roles,['editor']);
 });

@@ -13,6 +13,7 @@ export function wireSplitTaskFeature(assembly) {
 
     const { helpers } = assembly;
     return registerSplitTaskFeature({
+        state: { settings: assembly.state.settings },
         refs: {
             showSplitModal,
             itemPool,

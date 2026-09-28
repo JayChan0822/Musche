@@ -1,11 +1,13 @@
 import { getScheduleStage, getAssigneeId } from './workflow.js';
+import { ensureWorkflowLedger, hydrateWorkRecord } from './workflow-ledger.js';
 
-export const WORKFLOW_SCHEMA_VERSION = 10;
+export const WORKFLOW_SCHEMA_VERSION = 11;
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
 export function migrateWorkflowContent(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid workflow content');
   if (Number(input.schemaVersion || 0) > WORKFLOW_SCHEMA_VERSION) throw new Error('This data uses a newer schema; update Musche before opening it.');
+  if (Number(input.schemaVersion || 0) === WORKFLOW_SCHEMA_VERSION && !input.settings?.workflow) throw new Error('Invalid v11 data: missing independent workflow records');
   for (const key of ['pool', 'tasks']) {
     if (input[key] !== undefined && !Array.isArray(input[key])) throw new Error(`Invalid ${key}`);
   }
@@ -26,11 +28,14 @@ export function migrateWorkflowContent(input) {
   if (data.settings?.musicians) data.settings.musicians = data.settings.musicians.map((person) => ({
     ...person, roles: Array.isArray(person.roles) ? person.roles : ['musician'],
   }));
+  data.settings ||= {};
+  ensureWorkflowLedger(data.settings, data.pool || [], data.tasks || [], { bootstrap: Number(input.schemaVersion || 0) < 11 && !input.settings?.workflow });
+  for (const item of data.pool || []) for (const stage of ['rec', 'edit']) hydrateWorkRecord(data.settings, item, stage);
   return data;
 }
 
 export function preserveWorkflowBackup(storage, content, source = 'guest') {
-  const key = `musche_pre_workflow_v10:${encodeURIComponent(source)}`;
+  const key = `musche_pre_workflow_v11:${encodeURIComponent(source)}`;
   const read = typeof storage?.getItem === 'function' ? (key) => storage.getItem(key) : typeof storage?.loadData === 'function' ? (key) => storage.loadData(key) : null;
   const write = typeof storage?.setItem === 'function' ? (key, value) => storage.setItem(key, value) : typeof storage?.saveData === 'function' ? (key, value) => storage.saveData(key, JSON.parse(value)) : null;
   if (!read || !write) {
@@ -48,6 +53,7 @@ export function createWorkflowContent(base = {}, current = {}) {
 const envelopes = new WeakMap();
 export function rememberWorkflowContent(settings, content) { envelopes.set(settings, clone(content)); }
 export function serializeWorkflowContent(settings, pool, tasks, extraSettings = {}) {
+  ensureWorkflowLedger(settings, pool, tasks, { bootstrap: !settings.workflow });
   return migrateWorkflowContent(createWorkflowContent(envelopes.get(settings), { pool, tasks, settings: { ...settings, ...extraSettings } }));
 }
 

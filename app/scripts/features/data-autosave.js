@@ -35,7 +35,7 @@ export function registerDataAutosaveFeature(context = {}) {
       return;
     }
 
-    storageService.saveData('v10_data', serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value }));
+    storageService.saveData('v11_data', serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value }));
   };
 
   const mountDataAutosaveWatcher = () => {

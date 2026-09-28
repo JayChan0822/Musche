@@ -222,7 +222,7 @@ export const AppSidebar = {
 
                                         <div class="flex items-center gap-2 min-w-0 overflow-hidden flex-1 mr-2">
                                             <div class="w-1.5 h-1.5 rounded-full shrink-0"
-                                                 :style="{backgroundColor: getGroupColor(item, sidebarTab === 'project' ? 'musicianId' : 'projectId', true)}">
+                                                 :style="{backgroundColor: getGroupColor(item, 'projectId', true)}">
                                             </div>
 
                                             <div class="flex flex-col min-w-0">
@@ -248,9 +248,7 @@ export const AppSidebar = {
 
                                                 <span class="text-[9px] opacity-50 truncate leading-tight mt-0.5">
                                                       {{
-                                                        sidebarTab === 'project'
-                                                        ? getNameById(item.musicianId, 'musician')
-                                                        : getNameById(item.projectId, 'project')
+                                                        getNameById(item.projectId, 'project')
                                                         }}
                                                 </span>
                                             </div>

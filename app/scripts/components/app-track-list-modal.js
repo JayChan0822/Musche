@@ -187,6 +187,15 @@ export const AppTrackListModal = {
                             </div>
                         </div>
 
+                        <div class="flex flex-wrap items-center gap-2 text-xs" @click.stop>
+                            <select v-if="workAttempts(item).length" :value="item.records[trackListData.viewType].workLogId || ''" @change="selectWorkAttempt(item, $event.target.value)" aria-label="选择工作记录" class="glass-input h-8 min-w-0 flex-1 text-xs">
+                                <option value="" disabled>选择历史记录</option>
+                                <option v-for="attempt in workAttempts(item)" :key="attempt.id" :value="attempt.id">第 {{ attempt.attemptNumber }} 次 · {{ attempt.date || '日期未记录' }} · {{ attempt.actualDuration || '未计时' }}</option>
+                            </select>
+                            <span v-else class="text-gray-500 flex-1">暂无工作记录</span>
+                            <button @click="startNewWorkAttempt(item)" class="px-2 py-1.5 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-500/10">＋ 新增{{ trackListData.viewType === 'project' ? '剪辑' : '录音' }} / 返工</button>
+                            <input type="date" :value="item.records[trackListData.viewType].date || ''" @change="item.records[trackListData.viewType].date = $event.target.value; saveWorkAttempt(item)" aria-label="工作记录日期" class="glass-input h-8 text-xs w-32">
+                        </div>
                         <label class="flex items-center gap-2 text-xs py-1 cursor-pointer select-none" @click.stop>
                             <input type="checkbox"
                                    :checked="item.workflowStatus?.[trackListData.viewType === 'project' ? 'edit' : 'rec'] === 'completed'"
@@ -236,8 +245,8 @@ export const AppTrackListModal = {
                             </div>
 
                             <button @click="clearTrackTime(item)"
-                                    :disabled="!item.records[trackListData.viewType].recStart && !item.records[trackListData.viewType].recEnd"
-                                    title="清除时间记录"
+                                    :disabled="!item.records[trackListData.viewType].workLogId && !item.records[trackListData.viewType].recStart && !item.records[trackListData.viewType].recEnd"
+                                    title="作废当前记录（可撤销），其他次数保留"
                                     class="w-7 h-7 ml-1 flex items-center justify-center rounded-md transition shrink-0"
                                     :class="(!item.records[trackListData.viewType].recStart && !item.records[trackListData.viewType].recEnd) ? 'opacity-20 cursor-default text-gray-400' : 'text-gray-400 hover:text-red-500 hover:bg-red-500/10 cursor-pointer'">
                                 <i class="fa-solid fa-eraser text-xs"></i>
@@ -246,10 +255,7 @@ export const AppTrackListModal = {
                             <div class="w-px h-5 bg-black/10 dark:bg-white/10 mx-1"></div>
 
                             <div class="flex flex-col items-end min-w-[50px] leading-none gap-1">
-                                <span class="font-mono text-xs font-bold"
-                                      :class="item.records[trackListData.viewType].actualDuration ? 'text-indigo-500' : 'opacity-30'">
-                                    {{ item.records[trackListData.viewType].actualDuration || '--:--' }}
-                                </span>
+                                <input :value="item.records[trackListData.viewType].actualDuration || ''" @change="item.records[trackListData.viewType].actualDuration = $event.target.value; saveWorkAttempt(item)" aria-label="本次实际耗时" placeholder="00:00:00" class="w-20 bg-transparent outline-none focus:ring-1 focus:ring-blue-500 text-right font-mono text-xs font-bold text-indigo-500">
 
                                 <div class="flex items-center gap-1" title="效率比值">
                                     <span class="text-[8px] opacity-40 uppercase">EFF</span>

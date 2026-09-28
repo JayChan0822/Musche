@@ -74,4 +74,13 @@ test('workflow writes require a verified server schema guard', async () => {
  client.rpc=async()=>({data:10,error:null});
  const success=await service.saveUserData('u',{schemaVersion:10},2);
  assert.equal(success.error,null); assert.equal(writes,1);
+ const ledgerWrite=await service.saveUserData('u',{schemaVersion:11},3);
+ assert.equal(ledgerWrite.error.code,'MUSCHE_SCHEMA_GUARD_REQUIRED');
+ assert.equal(writes,1);
+ client.rpc=async()=>({data:undefined,error:null});
+ assert.equal((await service.saveUserData('u',{schemaVersion:11},3)).error.code,'MUSCHE_SCHEMA_GUARD_REQUIRED');
+ assert.equal(writes,1);
+ client.rpc=async()=>({data:11,error:null});
+ assert.equal((await service.saveUserData('u',{schemaVersion:11},3)).error,null);
+ assert.equal(writes,2);
 });

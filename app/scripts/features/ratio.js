@@ -1,3 +1,4 @@
+import { getWorkLogs } from '../utils/workflow-ledger.js';
 import { stageFromView, viewFromStage, getAssigneeId } from '../utils/workflow.js';
 import { peekItemSplitState } from '../utils/split-state.js';
 export function registerRatioFeature(context) {
@@ -60,6 +61,12 @@ export function registerRatioFeature(context) {
     const view = viewFromStage(stage);
     let actual = 0, music = 0;
     if (id) itemPool.value.forEach((item) => {
+      if (settings.workflow?.version >= 11) {
+        if (item.isSkipped || (item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return;
+        const logs = getWorkLogs(settings, item, stage).filter(log => log.assigneeId === id && parseTime(log.actualDuration) > 0 && parseTime(log.musicDuration) > 0);
+        if (logs.length) { actual += logs.reduce((sum, log) => sum + parseTime(log.actualDuration), 0); music += parseTime(logs[0].musicDuration); }
+        return;
+      }
       const record = item.records?.[view];
       const owner = record && Object.hasOwn(record, 'assigneeId') ? record.assigneeId : getAssigneeId(item, stage);
       if (owner !== id || item.isSkipped || (item.sessionId || 'S_DEFAULT') !== currentSessionId.value) return;
@@ -101,6 +108,11 @@ export function registerRatioFeature(context) {
 
   const calculateSingleRatio = (item) => {
     const type = getActiveRatioType();
+    if (settings.workflow?.version >= 11) {
+      const logs = getWorkLogs(settings, item, stageFromView(type)).filter(log => parseTime(log.actualDuration) > 0 && parseTime(log.musicDuration) > 0);
+      const music = parseTime(logs[0]?.musicDuration);
+      return music > 0 ? (logs.reduce((sum, log) => sum + parseTime(log.actualDuration), 0) / music).toFixed(1) : '-';
+    }
     const record = item.records?.[type];
     const musicDuration = peekItemSplitState(item, type).musicDuration;
     if (!record || !record.actualDuration || !musicDuration) return '-';

@@ -1,3 +1,4 @@
+import { getWorkLogs, getPartAllocation } from '../utils/workflow-ledger.js';
 import { getScheduleStage, getAssigneeId, stageFromView, UNASSIGNED_ID } from '../utils/workflow.js';
 import { computed, reactive } from 'vue';
 
@@ -66,6 +67,11 @@ export function registerSidebarStatsFeature(context) {
     };
     const currentRecordType = recordTypeMap[filterKey] || 'musician';
     const stage = stageFromView(currentRecordType);
+    const canonical = settings.workflow?.version >= 11;
+    const logsOf = item => getWorkLogs(settings, item, stage);
+    const belongsToBlock = (item, block, index) => canonical
+      ? getPartAllocation(settings, item, stage)?.scheduleId === block.scheduleId
+      : block.templateId ? block.templateId === item.id : (item.sectionIndex || 0) === index;
     const ownerGrouping = filterKey === 'musicianId' || filterKey === 'editorId';
     const groupId = (item) => ownerGrouping ? getAssigneeId(item, stage) || UNASSIGNED_ID : item[filterKey];
     const currentSessionItems = itemPool.value
@@ -155,7 +161,7 @@ export function registerSidebarStatsFeature(context) {
       // Use all associated music, even when the sidebar list is search-filtered.
       const scheduledMusicSecs = ownerGrouping
         ? groupPoolItems.filter((item) => !item.isSkipped && scheduleItems.some((block, index) =>
-          block.templateId ? block.templateId === item.id : (item.sectionIndex || 0) === index,
+          belongsToBlock(item, block, index),
         )).reduce((sum, item) => sum + parseTime(item.musicDuration), 0)
         : 0;
       const blockSeconds = scheduleItems.reduce((sum, block) => sum + parseTime(block.estDuration), 0);
@@ -167,8 +173,13 @@ export function registerSidebarStatsFeature(context) {
       if (ownerGrouping) {
         let actualSeconds = 0;
         let recordedMusicSeconds = 0;
-        currentSessionItems.forEach((item) => {
+        (canonical ? itemPool.value.filter(item => (item.sessionId || 'S_DEFAULT') === currentSessionId.value) : currentSessionItems).forEach((item) => {
           if (item.isSkipped) return;
+          if (canonical) {
+            const logs = logsOf(item).filter(log => log.assigneeId === group.id && parseTime(log.actualDuration) > 0 && parseTime(log.musicDuration) > 0);
+            if (logs.length) { actualSeconds += logs.reduce((sum, log) => sum + parseTime(log.actualDuration), 0); recordedMusicSeconds += parseTime(logs[0].musicDuration); }
+            return;
+          }
           const record = item.records?.[currentRecordType];
           const historicalOwner = record && Object.hasOwn(record, 'assigneeId') ? record.assigneeId : getAssigneeId(item, stage);
           if (historicalOwner !== group.id) return;
@@ -199,6 +210,11 @@ export function registerSidebarStatsFeature(context) {
       let groupTotalMusic = 0;
 
       poolItems.forEach((item) => {
+        if (canonical) {
+          const logs = logsOf(item).filter(log => (!ownerGrouping || log.assigneeId === group.id) && parseTime(log.actualDuration) > 0 && parseTime(log.musicDuration) > 0);
+          if (logs.length) { groupTotalActual += logs.reduce((sum, log) => sum + parseTime(log.actualDuration), 0); groupTotalMusic += parseTime(logs[0].musicDuration); }
+          return;
+        }
         const rec = item.records ? item.records[currentRecordType] : null;
         if (rec && rec.actualDuration && item.musicDuration) {
           const actual = parseTime(rec.actualDuration);
@@ -229,7 +245,8 @@ export function registerSidebarStatsFeature(context) {
 
       const displayItems = poolItems.map((rawItem) => {
         const rec = rawItem.records ? rawItem.records[currentRecordType] : null;
-        const actualDur = rec && rec.actualDuration ? rec.actualDuration : null;
+        const loggedSeconds = canonical ? logsOf(rawItem).filter(log => !ownerGrouping || log.assigneeId === group.id).reduce((sum, log) => sum + parseTime(log.actualDuration), 0) : 0;
+        const actualDur = canonical ? (loggedSeconds > 0 ? formatSecs(loggedSeconds) : null) : rec && rec.actualDuration ? rec.actualDuration : null;
 
         const manualRatio = rawItem.ratios ? rawItem.ratios[currentRecordType] : null;
         const rawVal = manualRatio ? parseFloat(manualRatio) : 0;
@@ -303,9 +320,7 @@ export function registerSidebarStatsFeature(context) {
       if (isSearchMode) {
         displayItems.forEach((item) => {
           if (
-            item.sectionIndex !== undefined &&
-            item.sectionIndex >= 0 &&
-            item.sectionIndex < scheduleItems.length &&
+            (canonical ? scheduleItems.some((block, index) => belongsToBlock(item, block, index)) : item.sectionIndex !== undefined && item.sectionIndex >= 0 && item.sectionIndex < scheduleItems.length) &&
             item.actualDuration &&
             item.actualDuration !== '00:00'
           ) {
@@ -317,36 +332,25 @@ export function registerSidebarStatsFeature(context) {
           const blockTotalSecs = parseTime(block.estDuration);
           const itemsInBlock = poolItems.filter((item) => {
             const sectionIndex = item.sectionIndex !== undefined ? item.sectionIndex : 0;
-            return sectionIndex === blockIndex;
+            return belongsToBlock(item, block, blockIndex);
           });
-          const totalBreakSecs = itemsInBlock.reduce((sum, item) => {
-            const rec = item.records && item.records[currentRecordType];
-            const breakMins = rec && rec.breakMinutes ? parseInt(rec.breakMinutes, 10) : 0;
-            return sum + breakMins * 60;
-          }, 0);
+          const blockRecords = canonical
+            ? currentSessionItems.flatMap(item => logsOf(item)).filter(log => log.scheduleId === block.scheduleId && (!ownerGrouping || log.assigneeId === group.id))
+            : itemsInBlock.map(item => item.records?.[currentRecordType]).filter(Boolean);
+          const totalBreakSecs = blockRecords.reduce((sum, record) => sum + Math.max(0, Number(record.breakMinutes) || 0) * 60, 0);
           let totalGapSecs = 0;
-          const recordedItems = itemsInBlock.filter((item) => {
-            const rec = item.records?.[currentRecordType];
-            return rec && rec.recStart && rec.recEnd;
-          });
-          recordedItems.sort((a, b) => {
-            const timeA = a.records[currentRecordType].recStart;
-            const timeB = b.records[currentRecordType].recStart;
-            return timeA.localeCompare(timeB);
-          });
+          const recordedItems = blockRecords.filter(record => record.recStart && record.recEnd)
+            .sort((a, b) => a.recStart.localeCompare(b.recStart));
           for (let index = 0; index < recordedItems.length - 1; index++) {
-            const currRec = recordedItems[index].records[currentRecordType];
-            const nextRec = recordedItems[index + 1].records[currentRecordType];
+            const currRec = recordedItems[index];
+            const nextRec = recordedItems[index + 1];
             const toMins = (time) => {
               const [hours, minutes] = time.split(':').map(Number);
               return hours * 60 + minutes;
             };
             const endMins = toMins(currRec.recEnd);
             const startMins = toMins(nextRec.recStart);
-            if (startMins >= endMins) {
-              const gap = startMins - endMins;
-              if (gap > 0) totalGapSecs += gap * 60;
-            }
+            if (startMins >= endMins) totalGapSecs += (startMins - endMins) * 60;
           }
           let netBlockDuration = blockTotalSecs - totalBreakSecs - totalGapSecs;
           if (netBlockDuration < 0) netBlockDuration = 0;

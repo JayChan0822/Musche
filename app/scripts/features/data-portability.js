@@ -119,11 +119,10 @@ export function registerDataPortabilityFeature(context) {
     readFileAsText(file, 'UTF-8', (ev) => {
       try {
         const original = JSON.parse(ev.target.result);
-        const data = migrateWorkflowContent(original);
-
-        if (!data.pool && !data.tasks && !data.settings) {
+        if (!original || (!original.pool && !original.tasks && !original.settings)) {
           throw new Error('无效的备份文件');
         }
+        const data = migrateWorkflowContent(original);
 
         const backupId = `import:${file.name || 'backup'}:${Date.now()}`;
         preserveWorkflowBackup(backupStorage, original, backupId);

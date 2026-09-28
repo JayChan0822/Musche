@@ -1,11 +1,12 @@
-import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { hasStableScheduleLinks, resolveItemSchedule, projectItemSection } from '../utils/stable-schedule.js';
+import { scheduleContext, itemMatchesSchedule, scheduleMatches } from '../utils/schedule-context.js';
 import { serializeWorkflowContent, rememberWorkflowContent } from '../utils/workflow-migration.js';
-function getTrackListItemsForView({ itemPool, trackListData, currentSessionId, isItemVisibleForView }) {
+function getTrackListItemsForView({ settings, itemPool, trackListData, currentSessionId, isItemVisibleForView }) {
   const taskRef = trackListData.value.taskRef;
   const context = scheduleContext(taskRef);
   const viewType = context.view;
   const list = itemPool.value.filter((item) => (
-    itemMatchesSchedule(item, taskRef) &&
+    (hasStableScheduleLinks(settings) ? !!resolveItemSchedule(settings, item, viewType, trackListData.value.schedules || []) : itemMatchesSchedule(item, taskRef)) &&
     (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
     isItemVisibleForView(item, viewType)
   ));
@@ -51,6 +52,14 @@ export function registerHistoryFeature(context) {
   const refreshTrackList = () => {
     if (!showTrackList.value || !trackListData.value.taskRef) return;
 
+    const restoredTask = scheduledTasks.value.find(task => String(task.scheduleId) === String(trackListData.value.taskRef.scheduleId));
+    if (hasStableScheduleLinks(settings)) {
+      if (!restoredTask) { showTrackList.value = false; trackListData.value = null; return; }
+      const schedules = scheduledTasks.value.filter(task => (task.sessionId || 'S_DEFAULT') === currentSessionId.value && scheduleMatches(task, restoredTask))
+        .sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+      Object.assign(trackListData.value, { taskRef: restoredTask, schedules, totalSections: schedules.length,
+        currentSectionIndex: schedules.indexOf(restoredTask) });
+    }
     if (typeof reopenTrackListForTask === 'function') {
       const activeScheduleId = trackListData.value.taskRef.scheduleId;
       const restoredTask = scheduledTasks.value.find((task) => (
@@ -67,6 +76,7 @@ export function registerHistoryFeature(context) {
     }
 
     const { list, viewType } = getTrackListItemsForView({
+      settings,
       itemPool,
       trackListData,
       currentSessionId,
@@ -74,6 +84,7 @@ export function registerHistoryFeature(context) {
     });
 
     syncItemsForView(list, viewType);
+    if (hasStableScheduleLinks(settings)) list.forEach(item => projectItemSection(settings, item, viewType, trackListData.value.schedules));
     sortTrackListItems(list, viewType);
     trackListData.value.items = list;
   };

@@ -9678,7 +9678,7 @@ for (const relativePath of requiredFiles) {
     refs.currentSessionId.value = 'S2';
     feature.handleDataChanged();
     const localSave = calls.find((entry) => entry[0] === 'saveData');
-    assert.equal(localSave[1], 'v10_data', 'guest autosave should preserve the legacy offline data key');
+    assert.equal(localSave[1], 'v11_data', 'guest autosave should preserve the legacy offline data key');
     assert.deepEqual(localSave[2].pool, migrateWorkflowContent({pool:refs.itemPool.value}).pool, 'guest autosave should persist the current pool');
     assert.deepEqual(localSave[2].tasks, migrateWorkflowContent({tasks:refs.scheduledTasks.value}).tasks, 'guest autosave should persist scheduled tasks');
     assert.equal(localSave[2].settings.lastSessionId, 'S2', 'guest autosave should stamp the current session id into saved settings');
@@ -11068,12 +11068,7 @@ for (const relativePath of requiredFiles) {
     state.settings.marker = 'live';
     feature.pushHistory();
     assert.equal(refs.historyIndex.value, 2, 'pushHistory should append after the current index');
-    assert.deepEqual(JSON.parse(refs.history.value.at(-1)), {
-        pool: [{ id: 'LIVE', editorId: '' }],
-        tasks: [{ scheduleId: 300, stage: 'rec', editorId: '' }],
-        settings: { marker: 'live', untouched: true },
-        schemaVersion: 10,
-    }, 'pushHistory should snapshot pool, tasks, and settings');
+    assert.deepEqual(JSON.parse(refs.history.value.at(-1)), migrateWorkflowContent({ pool: refs.itemPool.value, tasks: refs.scheduledTasks.value, settings: state.settings }), 'pushHistory should snapshot normalized workflow data');
 
     refs.history.value = Array.from({ length: 50 }, (_, index) => JSON.stringify({ pool: [{ id: index }], tasks: [], settings: {} }));
     refs.historyIndex.value = 49;
@@ -12658,7 +12653,7 @@ for (const relativePath of requiredFiles) {
         currentTarget: { getBoundingClientRect: () => ({ top: 100 }) },
     }, splitTask);
 
-    assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), [1000, 1001], 'double-click split should replace the original schedule with two new blocks');
+    assert.deepEqual(refs.scheduledTasks.value.map((task) => task.scheduleId), ['ACT_SPLIT', 1001], 'double-click split keeps the original block identity for stable allocations');
     assert.deepEqual(refs.scheduledTasks.value.map((task) => task.estDuration), ['1800s', '1800s'], 'double-click split should divide durations at the snapped click position');
     assert.equal(refs.scheduledTasks.value[1].startTime, '9:30', 'double-click split should preserve the original non-padded hour formatting');
 

@@ -1,3 +1,4 @@
+import { ensureWorkflowLedger, linkWorkPart, appendWorkLog, getWorkLogs, hydrateWorkRecord } from '../utils/workflow-ledger.js';
 import { getScheduleStage } from '../utils/workflow.js';
 import { computed, watch } from 'vue';
 import { parseCSVLine, parseCSVRobust } from '../utils/csv.js';
@@ -421,7 +422,9 @@ export function registerImportCsvFeature(context) {
     const affectedProjectIds = new Set();
     const affectedInstrumentIds = new Set();
     const col = csvHeadersMap.value;
+    ensureWorkflowLedger(settings, itemPool.value, scheduledTasks.value, { bootstrap: !settings.workflow });
     const taskToScheduleMap = new Map();
+    const importedStages = [];
     const snapshotLoaded = new Set();
 
     const ensureSnapshot = (id, type) => {
@@ -504,8 +507,9 @@ export function registerImportCsvFeature(context) {
 
         let taskItem = itemPool.value.find(
           (item) =>
-            item.projectId === projectId &&
-            item.name === data.name_merge &&
+            (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+            item.projectId === projectId && item.instrumentId === instrumentId &&
+            (item.name || settings.instruments.find(i => i.id === instrumentId)?.name) === data.name_merge &&
             item.musicianId === musicianId &&
             item.splitTag === (data.isSplit ? `Part ${data.partIndex + 1}` : null),
         );
@@ -546,7 +550,7 @@ export function registerImportCsvFeature(context) {
 
         if (recDate && recStart) {
           if (taskItem.records) {
-            if (!taskItem.records.musician) taskItem.records.musician = {};
+            taskItem.records.musician = { recStart: '', recEnd: '', actualDuration: '', breakMinutes: 0, assigneeId: musicianId || '', musicDuration: data.duration || taskItem.musicDuration };
             taskItem.records.musician.recStart = recStart;
             if (recEnd) {
               taskItem.records.musician.recEnd = recEnd;
@@ -566,6 +570,7 @@ export function registerImportCsvFeature(context) {
           const row = data._raw;
           validRecordings.push({
             task: taskItem,
+            record: { ...taskItem.records.musician },
             pId: projectId,
             iId: instrumentId,
             mId: musicianId,
@@ -588,8 +593,9 @@ export function registerImportCsvFeature(context) {
 
       let taskItem = itemPool.value.find(
         (item) =>
-          item.projectId === projectId &&
-          item.name === data.name_merge &&
+          (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+          item.projectId === projectId && item.instrumentId === instrumentId &&
+          (item.name || settings.instruments.find(i => i.id === instrumentId)?.name) === data.name_merge &&
           item.musicianId === musicianId &&
           item.splitTag === (data.isSplit ? `Part ${data.partIndex + 1}` : null),
       );
@@ -623,7 +629,7 @@ export function registerImportCsvFeature(context) {
 
       if (editDate && editStart) {
         if (taskItem.records) {
-          if (!taskItem.records.project) taskItem.records.project = {};
+          taskItem.records.project = { recStart: '', recEnd: '', actualDuration: '', breakMinutes: 0, assigneeId: taskItem.editorId || '', musicDuration: data.duration || taskItem.musicDuration };
 
           taskItem.records.project.recStart = editStart;
           if (editEnd) {
@@ -649,6 +655,7 @@ export function registerImportCsvFeature(context) {
 
         validEditings.push({
           task: taskItem,
+          record: { ...taskItem.records.project, actualDuration: formatSecs(Math.max(0, durationMins) * 60) },
           pId: projectId,
           iId: instrumentId,
           mId: musicianId,
@@ -672,6 +679,7 @@ export function registerImportCsvFeature(context) {
         let startMins = current.startMins;
         let endMins = current.endMins;
         const items = [current.task];
+        const attempts = [current];
         const infos = [current.info];
 
         while (index + 1 < validRecordings.length) {
@@ -681,6 +689,7 @@ export function registerImportCsvFeature(context) {
           if (next.startMins - endMins <= 60) {
             endMins = Math.max(endMins, next.endMins);
             items.push(next.task);
+            attempts.push(next);
             infos.push(next.info);
             index++;
           } else {
@@ -729,7 +738,9 @@ export function registerImportCsvFeature(context) {
 
         items.forEach((item) => {
           taskToScheduleMap.set(item.id, targetScheduleId);
+          linkWorkPart(settings, item, 'rec', targetScheduleId);
         });
+        attempts.forEach(attempt => importedStages.push({item: attempt.task, stage: 'rec', blockId: targetScheduleId, record: { ...attempt.record, recordingInfo: attempt.info, date: attempt.date }}));
       }
     }
 
@@ -742,6 +753,7 @@ export function registerImportCsvFeature(context) {
         let endMins = current.endMins;
         let durationMins = current.durationMins;
         const items = [current.task];
+        const attempts = [current];
         const infos = [current.info];
 
         while (index + 1 < validEditings.length) {
@@ -752,6 +764,7 @@ export function registerImportCsvFeature(context) {
             endMins = next.endMins;
             durationMins += next.durationMins;
             items.push(next.task);
+            attempts.push(next);
             infos.push(next.info);
             index++;
           } else {
@@ -799,7 +812,9 @@ export function registerImportCsvFeature(context) {
 
         items.forEach((item) => {
           taskToScheduleMap.set(item.id, targetScheduleId);
+          linkWorkPart(settings, item, 'edit', targetScheduleId);
         });
+        attempts.forEach(attempt => importedStages.push({item: attempt.task, stage: 'edit', blockId: targetScheduleId, record: { ...attempt.record, editInfo: attempt.info, date: attempt.date }}));
       }
     }
 
@@ -834,6 +849,17 @@ export function registerImportCsvFeature(context) {
       });
     };
 
+    ensureWorkflowLedger(settings, itemPool.value, scheduledTasks.value);
+    for (const {item, stage, blockId, record} of importedStages) {
+      const view = stage === 'edit' ? 'project' : 'musician';
+      if (!record) continue;
+      const block = scheduledTasks.value.find((entry) => entry.scheduleId === blockId);
+      const date = block?.date || record.date || '';
+      const duplicate = getWorkLogs(settings, item, stage).some((log) => log.date === date &&
+        log.recStart === record.recStart && log.recEnd === record.recEnd && log.actualDuration === record.actualDuration);
+      if (!duplicate) appendWorkLog(settings, item, stage, record, { scheduleId: blockId, date });
+      hydrateWorkRecord(settings, item, stage);
+    }
     affectedMusicianIds.forEach((id) => updateIndexes(id, 'musician'));
     affectedProjectIds.forEach((id) => updateIndexes(id, 'project'));
     affectedInstrumentIds.forEach((id) => updateIndexes(id, 'instrument'));

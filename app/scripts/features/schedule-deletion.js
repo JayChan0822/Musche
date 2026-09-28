@@ -1,3 +1,4 @@
+import { hasStableScheduleLinks, resolveItemSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { stageStatus } from '../utils/workflow.js';
 import { scheduleContext, scheduleMatches, itemMatchesSchedule } from '../utils/schedule-context.js';
 import { peekItemSplitState, setItemSplitState } from '../utils/split-state.js';
@@ -11,7 +12,7 @@ export function registerScheduleDeletionFeature(context) {
     showTrackList,
     sidebarTab,
   } = refs;
-  const { musicianStats, projectStats, instrumentStats } = state;
+  const { musicianStats, projectStats, instrumentStats, settings } = state;
   const {
     openAlertModal,
     pushHistory,
@@ -24,7 +25,8 @@ export function registerScheduleDeletionFeature(context) {
     const ctx = scheduleContext(task);
     const related = itemPool.value.filter((item) =>
       (item.sessionId || 'S_DEFAULT') === (task.sessionId || 'S_DEFAULT') &&
-      (task.templateId ? item.id === task.templateId : itemMatchesSchedule(item, task)) &&
+      (hasStableScheduleLinks(settings) ? !!resolveItemSchedule(settings, item, ctx.view, [task]) :
+        (task.templateId ? item.id === task.templateId : itemMatchesSchedule(item, task))) &&
       peekItemSplitState(item, ctx.view).active !== false && !item.isSkipped);
     if (related.some((item) => item.workflowStatus?.[ctx.stage] !== undefined)) {
       return related.length > 0 && related.every((item) => {
@@ -52,7 +54,8 @@ export function registerScheduleDeletionFeature(context) {
   };
 
   const clearPoolRecord = (templateId, schedule, preserveRecords = false) => {
-    if (preserveRecords) return;
+    if (schedule) unlinkSchedule(settings, itemPool.value, schedule);
+    if (preserveRecords || hasStableScheduleLinks(settings)) return;
     if (!templateId) return;
 
     const poolItem = itemPool.value.find((item) => item.id === templateId);
@@ -73,6 +76,10 @@ export function registerScheduleDeletionFeature(context) {
   };
 
   const clearAggregateRecords = (task, preserveRecords = false) => {
+    if (hasStableScheduleLinks(settings)) {
+      unlinkSchedule(settings, itemPool.value, task);
+      return;
+    }
     const ctx = scheduleContext(task);
     const viewType = ctx.view;
     const activeSessionId = currentSessionId?.value || 'S_DEFAULT';
@@ -119,6 +126,7 @@ export function registerScheduleDeletionFeature(context) {
       return openAlertModal('无法删除', '当前归属对象（人员/项目/乐器）已标记为【完成】。\n\n为防止误操作，请先将对应阶段的完成状态改为“进行中”后再尝试删除；旧数据需先清除该阶段的实际记录。');
     }
 
+    unlinkSchedule(settings, itemPool.value, taskToDelete);
     if (!taskToDelete.templateId) clearAggregateRecords(taskToDelete, true);
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);

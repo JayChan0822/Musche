@@ -8,6 +8,7 @@ export function registerScheduleInteractionsFeature(context) {
 
   const scheduleDragDropFeature = registerScheduleDragDropFeature({
     refs: {
+      itemPool: refs.itemPool,
       scheduledTasks: refs.scheduledTasks,
       pxPerMin: refs.pxPerMin,
       sidebarTab: refs.sidebarTab,
@@ -31,6 +32,7 @@ export function registerScheduleInteractionsFeature(context) {
   });
 
   const scheduleTaskActivationFeature = registerScheduleTaskActivationFeature({
+    state: { settings: state.settings },
     refs: {
       scheduledTasks: refs.scheduledTasks,
       itemPool: refs.itemPool,

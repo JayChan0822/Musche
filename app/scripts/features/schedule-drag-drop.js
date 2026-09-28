@@ -1,10 +1,11 @@
+import { allocateNewSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { scheduleIdentity } from '../utils/schedule-context.js';
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { formatClock } from '../utils/time.js';
 
 export function registerScheduleDragDropFeature(context) {
   const { refs, state, utils, actions = {} } = context;
-  const { scheduledTasks, pxPerMin, sidebarTab, currentSessionId, isMobile } = refs;
+  const { itemPool, scheduledTasks, pxPerMin, sidebarTab, currentSessionId, isMobile } = refs;
   const { settings } = state;
   const { formatSecs } = utils;
   const {
@@ -109,6 +110,7 @@ export function registerScheduleDragDropFeature(context) {
         consoleError('找不到 clearAggregateRecords 函数，无法清理聚合数据');
       }
 
+      unlinkSchedule(settings, itemPool?.value || [], taskToDelete);
       scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);
 
       pushHistory();
@@ -201,6 +203,7 @@ export function registerScheduleDragDropFeature(context) {
       };
       Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
     } else if (source === 'schedule') {
       const index = scheduledTasks.value.findIndex((task) => task.scheduleId === item.scheduleId);
       if (index !== -1) {
@@ -225,6 +228,7 @@ export function registerScheduleDragDropFeature(context) {
       };
       Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
     }
 
     pushHistory();
@@ -312,6 +316,7 @@ export function registerScheduleDragDropFeature(context) {
       };
       Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
       scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
       pushHistory();
     }
 

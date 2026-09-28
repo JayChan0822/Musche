@@ -2,7 +2,7 @@ import { registerSelectionFeature } from './selection.js';
 import { registerVisiblePoolItemsFeature } from './visible-pool-items.js';
 
 export function registerPoolInteractionsFeature(context) {
-  const { refs, actions } = context;
+  const { refs, actions, state } = context;
 
   const visiblePoolItemsFeature = registerVisiblePoolItemsFeature({
     actions: {
@@ -12,6 +12,7 @@ export function registerPoolInteractionsFeature(context) {
   });
 
   const selectionFeature = registerSelectionFeature({
+    state,
     refs: {
       selectedSource: refs.selectedSource,
       selectedTaskId: refs.selectedTaskId,

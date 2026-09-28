@@ -75,6 +75,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             sidebarTab,
                         },
                         state: {
+                            settings: assembly.state.settings,
                             musicianStats,
                             projectStats,
                             instrumentStats,
@@ -419,6 +420,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                     const { helpers } = assembly;
                     return registerMobileTouchFeature({
                         refs: {
+                            itemPool: assembly.refs.itemPool,
                             isMobile,
                             mobileTab,
                             currentView,

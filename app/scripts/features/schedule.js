@@ -1,3 +1,4 @@
+import { hasStableScheduleLinks, resolveItemSchedule, projectItemSection, assignItemSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { getScheduleStage, viewFromStage, stageFromView } from '../utils/workflow.js';
 import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
 import { peekItemSplitState, setItemSplitState as writeSplitState } from '../utils/split-state.js';
@@ -83,6 +84,10 @@ export function registerScheduleFeature(context) {
     });
   }
 
+  const hasHistoricalWork = (block) => hasStableScheduleLinks(settings) && settings.workflow.workLogs.some(log =>
+    String(log.scheduleId) === String(block.scheduleId) &&
+    (log.sessionId || 'S_DEFAULT') === (block.sessionId || 'S_DEFAULT') && log.stage === getScheduleStage(block));
+
   function cleanupEmptySchedules() {
     const activePoolIds = new Set(itemPool.value.map((item) => item.id));
     const groups = {};
@@ -109,12 +114,14 @@ export function registerScheduleFeature(context) {
       const view = scheduleContext(scheduleBlocks[0]).view;
       const poolItems = itemPool.value.filter((item) => {
         if ((item.sessionId || 'S_DEFAULT') !== sessionId) return false;
-        return itemMatchesSchedule(item, scheduleBlocks[0]) && peekItemSplitState(item, view).active !== false;
+        return (hasStableScheduleLinks(settings) ? !!resolveItemSchedule(settings, item, view, scheduleBlocks) : itemMatchesSchedule(item, scheduleBlocks[0])) && peekItemSplitState(item, view).active !== false;
       });
 
       const taskMap = new Map();
       poolItems.forEach((item) => {
-        let index = parseInt(peekItemSplitState(item, view).sectionIndex, 10);
+        let index = hasStableScheduleLinks(settings)
+          ? scheduleBlocks.indexOf(resolveItemSchedule(settings, item, view, scheduleBlocks))
+          : parseInt(peekItemSplitState(item, view).sectionIndex, 10);
         if (Number.isNaN(index)) index = 0;
         if (!taskMap.has(index)) taskMap.set(index, []);
         taskMap.get(index).push(item);
@@ -128,7 +135,7 @@ export function registerScheduleFeature(context) {
         schedulesKeepSet.add(block.scheduleId);
         if (oldIndex !== newBlockIndex) {
           relatedTasks.forEach((item) => {
-            writeSplitState(item, view, { sectionIndex: newBlockIndex });
+            if (!hasStableScheduleLinks(settings)) writeSplitState(item, view, { sectionIndex: newBlockIndex });
           });
         }
         newBlockIndex++;
@@ -137,6 +144,11 @@ export function registerScheduleFeature(context) {
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => {
       if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return true;
+      if (hasHistoricalWork(task)) return true;
+      if (hasStableScheduleLinks(settings)) return itemPool.value.some(item =>
+        (item.sessionId || 'S_DEFAULT') === (task.sessionId || 'S_DEFAULT') &&
+        peekItemSplitState(item, scheduleContext(task).view).active !== false &&
+        !!resolveItemSchedule(settings, item, scheduleContext(task).view, [task]));
       if (task.templateId) return activePoolIds.has(task.templateId);
       return schedulesKeepSet.has(task.scheduleId);
     });
@@ -147,11 +159,14 @@ export function registerScheduleFeature(context) {
     const listData = trackListData.value;
     if (!listData.schedules || listData.schedules.length === 0) return;
 
+    if (hasStableScheduleLinks(settings)) listData.items.forEach((item) => projectItemSection(settings, item, listData.viewType || sidebarTab.value, listData.schedules));
     for (let index = listData.schedules.length - 1; index >= 0; index--) {
       const itemsInSection = listData.items.filter((item) => item.sectionIndex === index);
       if (itemsInSection.length > 0) continue;
 
       const scheduleToRemove = listData.schedules[index];
+      if (hasHistoricalWork(scheduleToRemove)) continue;
+      unlinkSchedule(settings, itemPool.value, scheduleToRemove);
       scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== scheduleToRemove.scheduleId);
       listData.schedules.splice(index, 1);
 
@@ -195,6 +210,8 @@ export function registerScheduleFeature(context) {
       }
     }
 
+    if (movedItem) assignItemSchedule(settings, movedItem, trackListData.value.viewType || sidebarTab.value,
+      trackListData.value.schedules?.[movedItem.sectionIndex], movedItem.sectionIndex);
     if (movedItem && typeof setItemSplitState === 'function') {
       setItemSplitState(movedItem, trackListData.value.viewType || sidebarTab.value, {
         sectionIndex: movedItem.sectionIndex,

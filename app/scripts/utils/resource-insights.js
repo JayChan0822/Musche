@@ -1,6 +1,7 @@
 import { getAssigneeId, getScheduleStage, stageFromView, viewFromStage } from './workflow.js';
 import { parseTime, timeToMinutes } from './time.js';
 import { peekItemSplitState } from './split-state.js';
+import { getWorkLogs, getWorkPartId, getPartAllocation } from './workflow-ledger.js';
 import { metadataTypes } from './metadata-types.js';
 
 export const insightDimensions = [
@@ -37,7 +38,16 @@ function summarize(rows) {
   const recorded = active.filter((row) => row.actualSeconds > 0);
   const samples = recorded.filter((row) => row.musicSeconds > 0);
   const sum = (list, field) => list.reduce((total, row) => total + row[field], 0);
-  const sampleMusic = sum(samples, 'musicSeconds');
+  const uniqueParts = (list) => [...new Map(list.map(row => [row.partKey || row.key, row])).values()];
+  const partMusic = (list) => {
+    const parts = new Map();
+    [...list].sort((a, b) => (a.attemptNumber || 0) - (b.attemptNumber || 0)).forEach(row => {
+      const key = row.partKey || row.key;
+      if (row.musicSeconds > 0 && !parts.has(key)) parts.set(key, row);
+    });
+    return sum([...parts.values()], 'musicSeconds');
+  };
+  const sampleMusic = partMusic(samples);
   const ratios = [];
   let completedCount = 0, pendingCount = 0, skippedCount = 0, partialCount = 0;
   families.forEach((segments) => {
@@ -49,20 +59,20 @@ function summarize(rows) {
       if (eligible.some((row) => row.status === 'recorded' || row.status === 'in-progress')) partialCount++;
     }
     const valid = eligible.filter((row) => row.ratio !== null);
-    const music = sum(valid, 'musicSeconds');
+    const music = partMusic(valid);
     if (music > 0) ratios.push(sum(valid, 'actualSeconds') / music);
   });
   ratios.sort((a, b) => a - b);
   const midpoint = Math.floor(ratios.length / 2);
   const dates = recorded.map((row) => row.date).filter(Boolean).sort();
   return {
-    trackCount: families.size, segmentCount: rows.length,
+    trackCount: families.size, segmentCount: uniqueParts(rows).length, attemptCount: rows.filter(row => row.logId).length,
     completedCount, pendingCount, skippedCount, partialCount,
-    musicSeconds: sum(active, 'musicSeconds'), recordedMusicSeconds: sampleMusic,
+    musicSeconds: partMusic(active), recordedMusicSeconds: sampleMusic,
     actualSeconds: sum(recorded, 'actualSeconds'), breakSeconds: sum(recorded, 'breakSeconds'),
     averageRatio: sampleMusic > 0 ? sum(samples, 'actualSeconds') / sampleMusic : null,
     medianRatio: ratios.length ? (ratios.length % 2 ? ratios[midpoint] : (ratios[midpoint - 1] + ratios[midpoint]) / 2) : null,
-    sampleCount: ratios.length, sampleSegments: samples.length,
+    sampleCount: ratios.length, sampleSegments: uniqueParts(samples).length,
     unratedCount: recorded.length - samples.length,
     undatedRecordedCount: recorded.filter((row) => !row.date).length,
     latestDate: dates.at(-1) || null,
@@ -73,10 +83,6 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
   stage = stageFromView(stage);
   const view = viewFromStage(stage);
   const recordOf = (item) => item.records ? (item.records[view] || {}) : stage === 'rec' ? item : {};
-  const ownerOf = (item) => {
-    const record = recordOf(item);
-    return Object.hasOwn(record, 'assigneeId') ? record.assigneeId || '' : getAssigneeId(item, stage);
-  };
   const infoField = stage === 'edit' ? 'editInfo' : 'recordingInfo';
   const names = Object.fromEntries(insightDimensions.map(({ type: dim }) =>
     [dim, new Map((settings[`${dim}s`] || []).map((item) => [item.id, item.name]))]));
@@ -116,22 +122,31 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
   const isMetadata = metadataTypes.some((category) => category.type === type);
   const metadataName = isMetadata ? settings[`${type}s`]?.find((entry) => entry.id === id)?.name : null;
   const normalizedName = (value) => typeof value === 'string' ? value.trim().toLowerCase() : '';
-  const rows = itemPool.filter((item) => (isMetadata || (type === 'musician' ? ownerOf(item) : item[`${type}Id`]) === id) && (!sessionId || sessionOf(item) === sessionId))
+  const canonical = settings.workflow?.version >= 11;
+  const archivedItems = canonical ? (settings.workflow.workParts || []).filter(part => part.stage === stage && !itemPool.some(item => getWorkPartId(item, stage) === part.id)).map(part => {
+    const base = settings.workflow.baseTasks?.find(task => task.id === part.taskId) || {};
+    return { ...base, id: part.poolItemId || part.itemId, sessionId: part.sessionId, musicDuration: part.musicDuration, musicianId: stage === 'rec' ? part.assigneeId : '', editorId: stage === 'edit' ? part.assigneeId : '', workflowStatus: { [stage]: part.status }, splitViews: { [view]: { active: true, musicDuration: part.musicDuration, splitTag: part.splitTag } } };
+  }).filter(item => getWorkLogs(settings, item, stage).length) : [];
+  const rows = [...itemPool, ...archivedItems].filter((item) => (canonical || isMetadata || type === 'musician' || item[`${type}Id`] === id) && (!sessionId || sessionOf(item) === sessionId))
     .flatMap((item) => {
       const split = peekItemSplitState(item, view);
-      if (!split.active) return [];
+      if (!split.active && (!canonical || !getWorkLogs(settings, item, stage).length)) return [];
       // Once per-view records exist, legacy fields may describe EDIT. Never reuse them.
-      const record = recordOf(item);
-      const owner = ownerOf(item);
+      const logs = canonical ? getWorkLogs(settings, item, stage) : [];
+      return (logs.length ? logs : [canonical ? {} : recordOf(item)]).flatMap((record) => {
+      const owner = Object.hasOwn(record, 'assigneeId') ? record.assigneeId || '' : getAssigneeId(item, stage);
+      if (type === 'musician' && owner !== id) return [];
+      if (!isMetadata && type !== 'musician' && (record[`${type}Id`] ?? item[`${type}Id`]) !== id) return [];
       const actual = actualSeconds(record);
       const music = seconds(record.musicDuration ?? split.musicDuration);
       const skipped = !!item.isSkipped || item.workflowStatus?.[stage] === 'not-required';
       const exact = schedulesByTemplate.get(`${sessionOf(item)}|${item.id}`) || [];
       const related = schedulesByMusician.get(`${sessionOf(item)}|${owner}`) || [];
-      const associated = exact.length ? exact : [related[split.sectionIndex]].filter(Boolean);
+      const allocation = canonical ? getPartAllocation(settings, item, stage) : null;
+      const associated = canonical ? scheduledTasks.filter(task => task.scheduleId === (record.id ? record.scheduleId : allocation?.scheduleId) && sessionOf(task) === sessionOf(item)) : exact.length ? exact : [related[split.sectionIndex]].filter(Boolean);
       if (isMetadata) {
         if (!metadataName) return [];
-        const direct = normalizedName(item[infoField]?.[type]);
+        const direct = normalizedName((record[infoField] || record.metadata || item[infoField])?.[type]);
         const assignments = associated.map((task) => normalizedName(task[infoField]?.[type]));
         const target = normalizedName(metadataName);
         if (direct ? direct !== target : !assignments.length || !assignments.every((name) => name === target)) return [];
@@ -139,12 +154,12 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
       const dates = [...new Set(associated.map((task) => validDate(task.date)).filter(Boolean))];
       const date = validDate(record.date) || (dates.length === 1 ? dates[0] : null);
       return [{
-        id: item.id, key: `${sessionOf(item)}|${item.id}`, familyKey: familyKey(item),
+        id: item.id, key: record.id || `${sessionOf(item)}|${item.id}`, logId: record.id || null, attemptNumber: record.attemptNumber || null, partKey: canonical ? getWorkPartId(item, stage) : `${sessionOf(item)}|${item.id}`, familyKey: canonical ? (settings.workflow.workParts?.find(part => part.id === getWorkPartId(item, stage))?.taskId || familyKey(item)) : familyKey(item),
         name: item.name || names.instrument.get(item.instrumentId) || '未命名曲目',
         splitTag: split.splitTag, sessionId: sessionOf(item), sessionName: sessions.get(sessionOf(item)) || '未命名日程',
         stage, musicianId: owner, musician: record.assigneeName || names.musician.get(owner) || (stage === 'edit' ? '未指定剪辑员' : '未指定演奏员'),
-        instrumentId: item.instrumentId || '', instrument: names.instrument.get(item.instrumentId) || '未指定乐器',
-        projectId: item.projectId || '', project: names.project.get(item.projectId) || '未指定项目',
+        instrumentId: record.instrumentId ?? item.instrumentId ?? '', instrument: names.instrument.get(record.instrumentId ?? item.instrumentId) || '未指定乐器',
+        projectId: record.projectId ?? item.projectId ?? '', project: names.project.get(record.projectId ?? item.projectId) || '未指定项目',
         date, startTime: record.recStart || '', musicSeconds: music, actualSeconds: actual,
         breakSeconds: Number.isFinite(Number(record.breakMinutes)) ? Math.max(0, Number(record.breakMinutes)) * 60 : 0,
         status: skipped ? 'skipped' : item.workflowStatus?.[stage]
@@ -152,6 +167,7 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
           : actual > 0 ? 'recorded' : 'pending',
         ratio: !skipped && actual > 0 && music > 0 ? actual / music : null,
       }];
+      });
     }).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.startTime.localeCompare(a.startTime) || a.name.localeCompare(b.name, 'zh-CN'));
 
   const breakdowns = insightDimensions.filter((dim) => dim.type !== type).map((dimension) => {

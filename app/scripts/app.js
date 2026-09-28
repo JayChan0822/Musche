@@ -541,6 +541,10 @@ import { createAppDependencies } from './services/app-dependencies.js';
             const setTrackNow = withTrackListFeature('setTrackNow');
             const saveTrackRecord = withTrackListFeature('saveTrackRecord');
             const clearTrackTime = withTrackListFeature('clearTrackTime');
+            const workAttempts = withTrackListFeature('workAttempts', []);
+            const startNewWorkAttempt = withTrackListFeature('startNewWorkAttempt');
+            const selectWorkAttempt = withTrackListFeature('selectWorkAttempt');
+            const saveWorkAttempt = withTrackListFeature('saveWorkAttempt');
             const getOrchSize = withTrackListFeature('getOrchSize', 0);
             const isOrchestraGroup = withTrackListFeature('isOrchestraGroup', false);
             const isPercussionGroup = withTrackListFeature('isPercussionGroup', false);
@@ -559,6 +563,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 autoResizeScheduleByRecords, saveScheduleActualTime, saveTrackActual,
                 autoDistributeSections, startDividerDrag, calcTrackDiff, setTrackBreak, deleteTrackFromList,
                 setTrackNow, clearTrackTime, isPercussionGroup, isStringGroup,
+                workAttempts, startNewWorkAttempt, selectWorkAttempt, saveWorkAttempt,
                 sortTrackList, startTrackDrag,
                 cancelPendingTrackSave,
             });

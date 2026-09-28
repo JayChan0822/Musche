@@ -1,3 +1,4 @@
+import { getPartAllocation } from '../utils/workflow-ledger.js';
 import { getScheduleStage, getAssigneeId, UNASSIGNED_ID, viewFromStage } from '../utils/workflow.js';
 import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
 import { peekItemSplitState } from '../utils/split-state.js';
@@ -152,7 +153,9 @@ export function registerSearchFeature(context) {
       if (textKeywords.every((keyword) => smartMatch(selfText, keyword))) return true;
 
       let subItems = [];
-      if (task.templateId) {
+      if (settings.workflow?.version === 11) {
+        subItems = itemPool.value.filter((item) => getPartAllocation(settings, item, getScheduleStage(task))?.scheduleId === task.scheduleId);
+      } else if (task.templateId) {
         const exactItem = itemPool.value.find((item) => item.id === task.templateId);
         if (exactItem) subItems.push(exactItem);
       } else {

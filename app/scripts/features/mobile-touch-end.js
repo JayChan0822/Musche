@@ -1,3 +1,4 @@
+import { allocateNewSchedule } from '../utils/stable-schedule.js';
 import { scheduleIdentity } from '../utils/schedule-context.js';
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { formatClock } from '../utils/time.js';
@@ -21,6 +22,11 @@ export function registerMobileTouchEndFeature(context) {
     openAlertModal = () => {},
     pushHistory = () => {},
   } = actions;
+
+  const appendSchedule = (block) => {
+    scheduledTasks.value.push(block);
+    allocateNewSchedule(getSettings(), refs.itemPool?.value || (state.dragSourceType === 'pool' ? [state.dragSourceTask] : []), block);
+  };
 
   const getCheckTypeForTask = (task) => {
     return viewFromStage(getScheduleStage(task));
@@ -153,10 +159,10 @@ export function registerMobileTouchEndFeature(context) {
     }
 
     if (state.dragSourceType === 'aggregate') {
-      scheduledTasks.value.push({ ...createAggregateWeekTask(dateStr, newTime), ...scheduleIdentity(state.dragSourceTask, 'aggregate', sidebarTab.value) });
+      appendSchedule({ ...createAggregateWeekTask(dateStr, newTime), ...scheduleIdentity(state.dragSourceTask, 'aggregate', sidebarTab.value) });
       pushHistory();
     } else if (state.dragSourceType === 'pool') {
-      scheduledTasks.value.push({ ...createPoolWeekTask(dateStr, newTime), templateId: state.dragSourceTask.id, ...scheduleIdentity(state.dragSourceTask, 'pool', sidebarTab.value) });
+      appendSchedule({ ...createPoolWeekTask(dateStr, newTime), templateId: state.dragSourceTask.id, ...scheduleIdentity(state.dragSourceTask, 'pool', sidebarTab.value) });
       pushHistory();
     } else if (
       state.dragSourceTask.startTime !== newTime ||
@@ -234,7 +240,7 @@ export function registerMobileTouchEndFeature(context) {
     if (checkOverlap(dateStr, defaultStart, estDur, null, checkType, scheduleIdentity(item, state.dragSourceType, sidebarTab.value))) {
       openAlertModal('冲突', '该日期已有安排，请切换到周视图查看详情。');
     } else {
-      scheduledTasks.value.push({ ...createMonthTask(dateStr, defaultStart, item, checkType), templateId: state.dragSourceType === 'pool' ? item.id : undefined, ...scheduleIdentity(item, state.dragSourceType, sidebarTab.value) });
+      appendSchedule({ ...createMonthTask(dateStr, defaultStart, item, checkType), templateId: state.dragSourceType === 'pool' ? item.id : undefined, ...scheduleIdentity(item, state.dragSourceType, sidebarTab.value) });
       pushHistory();
     }
   };

@@ -135,3 +135,60 @@ test('EDIT insights use editor, independent split duration, edit metadata and hi
  assert.equal(analyze(pool).summary.averageRatio,20);
  const metadata=analyze(pool,{stage:'edit',type:'engineer',id:'ENG',settings:{...settings,engineers:[{id:'ENG',name:'Editor'}]}});assert.equal(metadata.summary.actualSeconds,480);
 });
+
+test('canonical attempts sum effort, count content once, preserve owners and never revive legacy adapters', async () => {
+  const { ensureWorkflowLedger, appendWorkLog } = await import('../app/scripts/utils/workflow-ledger.js');
+  const pool = [item('T', { workflowStatus: { rec: 'completed' } })];
+  const config = structuredClone(settings);
+  ensureWorkflowLedger(config, pool);
+  assert.equal(analyze(pool, { settings: config }).summary.actualSeconds, 0);
+  appendWorkLog(config, pool[0], 'rec', { actualDuration: '00:10:00', musicDuration: '02:00', assigneeId: 'M1', date: '2026-09-01' });
+  appendWorkLog(config, pool[0], 'rec', { actualDuration: '00:05:00', musicDuration: '02:00', assigneeId: 'M1', date: '2026-09-02' });
+  appendWorkLog(config, pool[0], 'rec', { actualDuration: '00:03:00', musicDuration: '02:00', assigneeId: 'M2', date: '2026-09-03' });
+  const result = analyze(pool, { settings: config });
+  assert.equal(result.rows.length, 2);
+  assert.deepEqual(result.rows.map(row => row.attemptNumber), [2, 1]);
+  assert.equal(result.summary.actualSeconds, 900);
+  assert.equal(result.summary.recordedMusicSeconds, 120);
+  assert.equal(result.summary.averageRatio, 7.5);
+  assert.equal(result.summary.trackCount, 1);
+  assert.equal(result.summary.segmentCount, 1);
+  assert.equal(result.summary.attemptCount, 2);
+  const overall = analyze(pool, { settings: config, type: 'instrument', id: 'I1' });
+  assert.equal(overall.summary.averageRatio, 9);
+  assert.equal(overall.summary.musicSeconds, 120);
+  assert.equal(overall.summary.sampleSegments, 1);
+  assert.equal(analyze(pool, { settings: config, id: 'M2' }).summary.averageRatio, 1.5);
+  config.workflow.workLogs[1].voided = true;
+  assert.equal(analyze(pool, { settings: config }).summary.actualSeconds, 600);
+  assert.equal(analyze([], { settings: config }).summary.actualSeconds, 600, 'removed pool items retain recorded history');
+});
+
+test('canonical history follows recorded stable schedule id, ignoring section index and schedule reorder', async () => {
+  const { ensureWorkflowLedger, appendWorkLog, linkWorkPart } = await import('../app/scripts/utils/workflow-ledger.js');
+  const pool = [item('T')];
+  const config = structuredClone(settings);
+  const schedules = [{ scheduleId: 'LATE', stage: 'rec', musicianId: 'M1', date: '2026-09-20' }, { scheduleId: 'EARLY', stage: 'rec', musicianId: 'M1', date: '2026-09-01' }];
+  ensureWorkflowLedger(config, pool, schedules);
+  linkWorkPart(config, pool[0], 'rec', 'LATE');
+  appendWorkLog(config, pool[0], 'rec', { actualDuration: '00:10:00', musicDuration: '02:00', assigneeId: 'M1' });
+  const result = analyze(pool, { settings: config, scheduledTasks: schedules });
+  assert.equal(result.rows[0].date, '2026-09-20');
+  assert.equal(analyze(pool, { settings: config, scheduledTasks: [...schedules].reverse() }).rows[0].date, '2026-09-20');
+});
+
+test('canonical history retains resource snapshots and does not borrow a newly booked date for unscheduled work', async () => {
+  const { ensureWorkflowLedger, appendWorkLog, linkWorkPart } = await import('../app/scripts/utils/workflow-ledger.js');
+  const pool = [item('T')];
+  const config = structuredClone(settings);
+  ensureWorkflowLedger(config, pool);
+  appendWorkLog(config, pool[0], 'rec', { actualDuration: '00:10:00', musicDuration: '02:00', assigneeId: 'M1' });
+  pool[0].instrumentId = 'I2';
+  pool[0].projectId = 'P2';
+  linkWorkPart(config, pool[0], 'rec', 'NEW');
+  const result = analyze(pool, { settings: config, type: 'instrument', id: 'I1', scheduledTasks: [{ scheduleId: 'NEW', stage: 'rec', musicianId: 'M1', date: '2026-09-28' }] });
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].date, null);
+  assert.equal(result.rows[0].projectId, 'P1');
+  assert.equal(analyze(pool, { settings: config, type: 'instrument', id: 'I2' }).summary.actualSeconds, 0);
+});

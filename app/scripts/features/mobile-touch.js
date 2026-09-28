@@ -47,6 +47,7 @@ export function registerMobileTouchFeature(context) {
 
   const touchEndFeature = registerMobileTouchEndFeature({
     refs: {
+      itemPool: refs.itemPool,
       scheduledTasks: refs.scheduledTasks,
       pxPerMin: refs.pxPerMin,
       sidebarTab: refs.sidebarTab,

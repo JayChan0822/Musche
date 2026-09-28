@@ -1,7 +1,9 @@
+import { hasStableScheduleLinks, projectItemSection, resolveItemSchedule } from '../utils/stable-schedule.js';
 import { setItemSplitState } from '../utils/split-state.js';
 import { scheduleContext, scheduleMatches, itemMatchesSchedule } from '../utils/schedule-context.js';
 export function registerScheduleTaskActivationFeature(context) {
-  const { refs, utils, actions = {} } = context;
+  const { refs, utils, actions = {}, state = {} } = context;
+  const { settings } = state;
   const {
     scheduledTasks,
     itemPool,
@@ -63,7 +65,7 @@ export function registerScheduleTaskActivationFeature(context) {
     if (splitM * 60 >= totalSeconds || splitM <= 0) return;
 
     const firstTask = JSON.parse(JSON.stringify(task));
-    firstTask.scheduleId = getNow();
+    firstTask.scheduleId = task.scheduleId;
     firstTask.estDuration = formatSecs(splitM * 60);
 
     const secondTask = JSON.parse(JSON.stringify(task));
@@ -92,12 +94,17 @@ export function registerScheduleTaskActivationFeature(context) {
     const totalSections = relatedSchedules.length;
     const viewType = normalizeSplitViewType(blockType);
     const poolItems = itemPool.value.filter((item) => (
-      (item.sessionId || 'S_DEFAULT') === currentSessionId.value && isItemVisibleForView(item, viewType) && itemMatchesSchedule(item, task)
+      (item.sessionId || 'S_DEFAULT') === currentSessionId.value && isItemVisibleForView(item, viewType) &&
+      (hasStableScheduleLinks(settings) ? !!resolveItemSchedule(settings, item, viewType, relatedSchedules) : itemMatchesSchedule(item, task))
     ));
 
     poolItems.forEach((item) => {
       ensureItemRecords(item);
       syncItemForView(item, viewType);
+      if (hasStableScheduleLinks(settings)) {
+        projectItemSection(settings, item, viewType, relatedSchedules);
+        return;
+      }
       if (item.sectionIndex === undefined) item.sectionIndex = 0;
       if (item.sectionIndex >= totalSections) item.sectionIndex = totalSections - 1;
       setItemSplitState(item, viewType, { sectionIndex: item.sectionIndex });

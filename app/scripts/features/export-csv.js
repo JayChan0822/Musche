@@ -1,3 +1,4 @@
+import { getPartAllocation } from '../utils/workflow-ledger.js';
 import { getScheduleStage, viewFromStage, getAssigneeId } from '../utils/workflow.js';
 import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
 import { peekItemSplitState } from '../utils/split-state.js';
@@ -127,6 +128,7 @@ export function registerExportCsvFeature(context) {
       const view = viewFromStage(getScheduleStage(schedule));
       const part = peekItemSplitState(item, view);
       if (!part.active) return false;
+      if (settings.workflow?.version === 11) return getPartAllocation(settings, item, getScheduleStage(schedule))?.scheduleId === schedule.scheduleId;
       if (schedule.templateId) return item.id === schedule.templateId;
       return itemMatchesSchedule(item, schedule) && part.sectionIndex === scheduleIndex;
     });

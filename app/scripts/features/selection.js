@@ -1,5 +1,8 @@
+import { hasStableScheduleLinks, resolveItemSchedule } from '../utils/stable-schedule.js';
+import { getScheduleStage, stageFromView } from '../utils/workflow.js';
 export function registerSelectionFeature(context) {
-  const { refs, actions = {} } = context;
+  const { refs, actions = {}, state = {} } = context;
+  const { settings } = state;
   const {
     selectedSource,
     selectedTaskId,
@@ -28,7 +31,7 @@ export function registerSelectionFeature(context) {
     if (!task) return;
 
     let targetId = null;
-    if (sidebarTab.value === 'project') targetId = task.projectId;
+    if (sidebarTab.value === 'project') targetId = task.editorId || task.projectId;
     else if (sidebarTab.value === 'instrument') targetId = task.instrumentId;
     else targetId = task.musicianId;
 
@@ -78,6 +81,12 @@ export function registerSelectionFeature(context) {
     if (!poolItem) return;
 
     const activeSessionId = currentSessionId?.value || 'S_DEFAULT';
+    if (hasStableScheduleLinks(settings)) {
+      const block = resolveItemSchedule(settings, poolItem, sidebarTab.value, scheduledTasks.value.filter(task =>
+        (task.sessionId || 'S_DEFAULT') === activeSessionId && getScheduleStage(task) === stageFromView(sidebarTab.value)));
+      if (block) smartScrollToTask(block);
+      return;
+    }
     const specificTask = scheduledTasks.value.find((task) => (
       (task.sessionId || 'S_DEFAULT') === activeSessionId &&
       task.templateId === id

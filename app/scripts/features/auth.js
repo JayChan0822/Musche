@@ -3,7 +3,8 @@ import { computed } from 'vue';
 
 import { createDefaultSettings } from '../state/defaults.js';
 
-const CLOUD_CACHE_KEY = 'musche_cloud_cache_v10';
+const CLOUD_CACHE_KEY = 'musche_cloud_cache_v11';
+const PREVIOUS_CLOUD_CACHE_KEY = 'musche_cloud_cache_v10';
 const LEGACY_CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
 const DEFAULT_STARTUP_TIMEOUT_MS = 8000;
 
@@ -98,7 +99,7 @@ export function registerAuthFeature(context) {
     let migrated;
     try {
       migrated = migrateWorkflowContent(content);
-      if (Number(content.schemaVersion || 0) < 10) preserveWorkflowBackup(storageService, content, `${user.value?.id || 'guest'}:${version}`);
+      if (Number(content.schemaVersion || 0) < 11) preserveWorkflowBackup(storageService, content, `${user.value?.id || 'guest'}:${version}`);
     } catch (error) {
       dataProtectionError = error;
       setWorkflowWriteBlocked(settings, true);
@@ -140,6 +141,7 @@ export function registerAuthFeature(context) {
     if (typeof storageService.removeItem !== 'function') return;
     try {
       storageService.removeItem(CLOUD_CACHE_KEY);
+      storageService.removeItem(PREVIOUS_CLOUD_CACHE_KEY);
       storageService.removeItem(LEGACY_CLOUD_CACHE_KEY);
     } catch (error) {
       console.warn('Cloud cache cleanup failed:', error);
@@ -164,11 +166,11 @@ export function registerAuthFeature(context) {
   function restoreCloudCache() {
     if (typeof storageService.loadData !== 'function') return null;
     try {
-      const cache = storageService.loadData(CLOUD_CACHE_KEY) || storageService.loadData(LEGACY_CLOUD_CACHE_KEY);
+      const cache = storageService.loadData(CLOUD_CACHE_KEY) || storageService.loadData(PREVIOUS_CLOUD_CACHE_KEY) || storageService.loadData(LEGACY_CLOUD_CACHE_KEY);
       if (!cache?.user?.id || !cache.content || typeof cache.content !== 'object') return null;
 
       user.value = cache.user;
-      const draft = storageService.loadData(`musche_workflow_unsynced:${cache.user.id}`);
+      const draft = storageService.loadData(`musche_workflow_unsynced_v11:${cache.user.id}`) || storageService.loadData(`musche_workflow_unsynced:${cache.user.id}`);
       applyCloudContent(draft?.version === cache.version && draft.content ? draft.content : cache.content, cache.version);
       if (draft?.version === cache.version && draft.content) setSaveStatus('unsaved');
       return cache;
@@ -210,7 +212,7 @@ export function registerAuthFeature(context) {
 
   function restoreGuestData(isSidebarOpen) {
     cancelPendingTrackSave();
-    const localData = storageService.loadData('v10_data') || storageService.loadData('v9_data');
+    const localData = storageService.loadData('v11_data') || storageService.loadData('v10_data') || storageService.loadData('v9_data');
     if (localData) applyCloudContent(localData, 0);
     else initDefaultData(isSidebarOpen);
   }
@@ -274,7 +276,7 @@ export function registerAuthFeature(context) {
     if (error) throw error;
 
     if (data && data.content) {
-      const draft = storageService.loadData(`musche_workflow_unsynced:${user.value.id}`);
+      const draft = storageService.loadData(`musche_workflow_unsynced_v11:${user.value.id}`) || storageService.loadData(`musche_workflow_unsynced:${user.value.id}`);
       if (draft?.content && draft.version === data.version) {
         applyCloudContent(draft.content, data.version);
         setSaveStatus('unsaved');
@@ -289,7 +291,7 @@ export function registerAuthFeature(context) {
 
     clearCloudCache();
     resetWorkingData();
-    const localData = storageService.loadData('v10_data') || storageService.loadData('v9_data');
+    const localData = storageService.loadData('v11_data') || storageService.loadData('v10_data') || storageService.loadData('v9_data');
     if (!localData) return false;
 
     const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
@@ -330,7 +332,7 @@ export function registerAuthFeature(context) {
 
     try {
       // Keep a recoverable local draft even while server deployment/network blocks writes.
-      storageService.saveData(`musche_workflow_unsynced:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
+      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
       const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
@@ -359,7 +361,7 @@ export function registerAuthFeature(context) {
       if (saveError) throw saveError;
 
       localDataVersion.value = newVersion;
-      storageService.removeItem?.(`musche_workflow_unsynced:${user.value.id}`);
+      storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`);
       persistCloudCache();
       setTimeout(() => {
         setSaveStatus('saved');
@@ -558,6 +560,7 @@ export function registerAuthFeature(context) {
         }
 
         storageService.removeItem('v9_data');
+        storageService.removeItem('v11_data');
         storageService.removeItem('v10_data');
         clearCloudCache();
         storageService.removeItem('musche_tour_seen');

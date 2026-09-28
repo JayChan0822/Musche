@@ -22,3 +22,20 @@ test('stage estimates follow the correct person and actual updates do not rewrit
   assert.equal(item.records.musician.actualDuration, '01:00:00');
   assert.equal(settings.projects[0].defaultRatio, 99);
 });
+
+test('rework average sums attempts once per content and never reads stale legacy record', async () => {
+  const { ensureWorkflowLedger, appendWorkLog } = await import('../app/scripts/utils/workflow-ledger.js');
+  const item = { id: 'T', musicianId: 'A', editorId: 'B', musicDuration: '02:00', records: { musician: { actualDuration: '10:00:00' } } };
+  const settings = { musicians: [], projects: [], instruments: [] };
+  ensureWorkflowLedger(settings, [item]);
+  const feature = registerRatioFeature({ refs: { itemPool: { value: [item] }, scheduledTasks: { value: [] }, currentSessionId: { value: 'S_DEFAULT' },
+    trackListData: { value: {} }, showTrackList: { value: false }, sidebarTab: { value: 'musician' } }, state: { settings }, utils: { parseTime, formatSecs }, actions: {} });
+  assert.equal(feature.getDefaultRatio('A'), 20);
+  assert.equal(feature.calculateSingleRatio(item), '-');
+  appendWorkLog(settings, item, 'rec', { actualDuration: '00:10:00', musicDuration: '02:00', assigneeId: 'A' });
+  appendWorkLog(settings, item, 'rec', { actualDuration: '00:05:00', musicDuration: '02:00', assigneeId: 'A' });
+  appendWorkLog(settings, item, 'edit', { actualDuration: '00:02:00', musicDuration: '02:00', assigneeId: 'B' });
+  assert.equal(feature.getDefaultRatio('A'), 7.5);
+  assert.equal(feature.calculateSingleRatio(item), '7.5');
+  assert.equal(feature.getDefaultRatio('B', 'project'), 1);
+});

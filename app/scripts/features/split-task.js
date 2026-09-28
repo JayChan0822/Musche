@@ -1,8 +1,10 @@
+import { assignItemSchedule } from '../utils/stable-schedule.js';
 import { getScheduleStage, stageFromView, viewFromStage } from '../utils/workflow.js';
 import { reactive } from 'vue';
 
 export function registerSplitTaskFeature(context) {
-  const { refs, split, utils, actions } = context;
+  const { refs, split, utils, actions, state = {} } = context;
+  const { settings } = state;
   const {
     showSplitModal,
     itemPool,
@@ -258,7 +260,7 @@ export function registerSplitTaskFeature(context) {
     const nextSchedule = trackListData.value.schedules[currentIdx + 1];
 
     if (nextSchedule) {
-      setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
+      assignItemSchedule(settings, newTask, viewType, nextSchedule, currentIdx + 1);
     } else if (currentSchedule) {
       const startMins = timeToMinutes(currentSchedule.startTime);
       const durMins = parseTime(currentSchedule.estDuration) / 60;
@@ -284,7 +286,7 @@ export function registerSplitTaskFeature(context) {
       };
 
       scheduledTasks.value.push(scheduleEntry);
-      setItemSplitState(newTask, viewType, { sectionIndex: currentIdx + 1 });
+      assignItemSchedule(settings, newTask, viewType, scheduleEntry, currentIdx + 1);
       trackListData.value.schedules.push(scheduleEntry);
       trackListData.value.totalSections++;
     } else {

@@ -97,8 +97,8 @@ export function createSupabaseService({
         if (Number(content?.schemaVersion) >= 10) {
           let capability;
           try { capability = await client.rpc('musche_workflow_schema_version'); } catch { capability = null; }
-          if (capability?.error || Number(capability?.data) !== 10) {
-            return { data: null, error: { code: 'MUSCHE_SCHEMA_GUARD_REQUIRED', message: '云端尚未安装 v10 数据保护迁移，已阻止保存以防旧版本覆盖。请部署 supabase/migrations/20260928_workflow_schema_guard.sql 后重试。' } };
+          if (capability?.error || !Number.isFinite(Number(capability?.data)) || Number(capability?.data) < Number(content.schemaVersion)) {
+            return { data: null, error: { code: 'MUSCHE_SCHEMA_GUARD_REQUIRED', message: '云端尚未安装 v11 数据保护迁移，已阻止保存以防旧版本覆盖。请部署 supabase/migrations/20260928_workflow_ledger_v11_guard.sql 后重试。' } };
           }
         }
         return client.from('user_data').upsert({ user_id: userId, content, version }, { onConflict: 'user_id' });

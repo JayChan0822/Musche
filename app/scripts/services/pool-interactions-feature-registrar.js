@@ -16,6 +16,7 @@ export function wirePoolInteractionsFeature(assembly) {
     } = assembly.refs;
 
     return registerPoolInteractionsFeature({
+        state: { settings: assembly.state?.settings },
         refs: {
             selectedSource,
             selectedTaskId,
