@@ -189,6 +189,7 @@ export const AppMainContent = {
 
                         <div v-else-if="currentView === 'month'"
                              key="view-month"
+                             data-calendar-scroller
                              class="w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
                              @scroll="handleInfiniteScroll"
                              @click="clearSelection">
@@ -254,8 +255,8 @@ export const AppMainContent = {
                                 </div>
                             </Transition>
 
-                            <div v-else class="w-full pb-20 animate-[fadeIn_0.3s]">
-                                <div class="sticky top-0 z-[100] grid grid-cols-7 bg-gray-100/95 dark:bg-[#1c1c1e]/95 backdrop-blur-md border-b border-glass-border dark:border-glass-borderDark shadow-sm">
+                            <div v-else class="w-full pb-20 animate-[calendarFadeIn_0.3s]">
+                                <div data-calendar-weekdays class="sticky top-0 z-[100] grid grid-cols-7 bg-gray-100/95 dark:bg-[#1c1c1e]/95 backdrop-blur-md border-b border-glass-border dark:border-glass-borderDark shadow-sm">
                                     <div v-for="w in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']"
                                          class="p-2 text-center text-[10px] uppercase font-bold opacity-50">
                                         {{w}}

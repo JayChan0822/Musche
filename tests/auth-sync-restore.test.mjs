@@ -445,16 +445,22 @@ test('a standalone unsynced draft is restored when cloud load fails without cach
   assert.equal(h.refs.scheduledTasks.value[0].scheduleId, 'retained');
 });
 
-test('database revision conflicts suspend repeated writes until cloud data is loaded', async () => {
+for (const conflictCode of ['40001', 'PT409']) {
+test(`database revision conflict ${conflictCode} suspends writes and preserves the draft until cloud data is loaded`, async () => {
  let writes=0;
- const h=createAuthHarness({version:0,cloudContent:{pool:[],tasks:[],settings:{}},serviceOverrides:{saveUserData:async()=>{writes++;return {error:{code:'40001',message:'Musche revision conflict'}};}}});
+ const h=createAuthHarness({version:0,cloudContent:{pool:[],tasks:[],settings:{}},serviceOverrides:{saveUserData:async()=>{writes++;return {error:{code:conflictCode,message:'Musche revision conflict'}};}}});
+ h.refs.itemPool.value = [{ id: 'unsynced-edit' }];
  await h.feature.saveToCloud(()=>{});
  await h.feature.saveToCloud(()=>{});
  assert.equal(writes,1);
+ assert.equal(h.refs.localDataVersion.value,0);
+ assert.ok(h.savedData.some(([key, draft]) => key === 'musche_workflow_unsynced_v11:USER_1' && draft.content.pool.some(item => item.id === 'unsynced-edit')));
+ assert.ok(h.alerts.some(args => args.join(' ').includes('已暂停自动保存')));
  await h.feature.loadCloudData();
  await h.feature.saveToCloud(()=>{});
  assert.equal(writes,2);
 });
+}
 
 test('manual sync retains conflicting draft and shows cloud with saving blocked', async()=>{
  const h=createAuthHarness({version:3,cloudContent:{pool:[{id:'cloud'}],tasks:[],settings:{}},storageOverrides:{

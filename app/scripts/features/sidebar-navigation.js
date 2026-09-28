@@ -8,7 +8,6 @@ export function registerSidebarNavigationFeature(context) {
   const {
     isDragActive = () => false,
 
-    getDocument = () => document,
     setTimeoutFn = setTimeout,
   } = actions;
 
@@ -34,12 +33,17 @@ export function registerSidebarNavigationFeature(context) {
     if (!targetId) return;
 
     setTimeoutFn(() => {
-      const el = getDocument().querySelector(`[data-stat-id="${targetId}"]`);
+      const container = sidebarScrollRef.value;
+      const el = container?.querySelector(`[data-stat-id="${targetId}"]`);
 
       if (el) {
-        el.scrollIntoView({
+        const card = el.getBoundingClientRect();
+        const viewport = container.getBoundingClientRect();
+        const targetTop = container.scrollTop + card.top - viewport.top - container.clientTop
+          + card.height / 2 - container.clientHeight * 0.382;
+        container.scrollTo({
+          top: Math.max(0, Math.min(container.scrollHeight - container.clientHeight, targetTop)),
           behavior: 'smooth',
-          block: 'center',
         });
 
         el.classList.add('ring-2', 'ring-[#ffffff]');

@@ -9,6 +9,9 @@ export function wireSessionFeature(assembly) {
         refs: {
             currentSessionId,
             activeDropdown,
+            itemPool: assembly.refs.itemPool,
+            scheduledTasks: assembly.refs.scheduledTasks,
+            showTrackList: assembly.refs.showTrackList,
         },
         state: {
             settings,

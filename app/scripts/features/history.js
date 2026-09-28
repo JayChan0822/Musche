@@ -124,6 +124,9 @@ export function registerHistoryFeature(context) {
       if (snapshot.settings) {
         Object.assign(settings, snapshot.settings);
       }
+      if (settings.sessions?.length && !settings.sessions.some(session => session.id === currentSessionId.value)) {
+        currentSessionId.value = settings.sessions[0].id;
+      }
 
       refreshTrackList();
     }
@@ -140,6 +143,9 @@ export function registerHistoryFeature(context) {
 
       if (snapshot.settings) {
         Object.assign(settings, snapshot.settings);
+      }
+      if (settings.sessions?.length && !settings.sessions.some(session => session.id === currentSessionId.value)) {
+        currentSessionId.value = settings.sessions[0].id;
       }
 
       refreshTrackList();

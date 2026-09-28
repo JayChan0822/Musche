@@ -38,6 +38,7 @@ export function wireViewNavigationFeature(assembly) {
             filteredScheduledTasks,
             weekContainer,
             pxPerMin,
+            slotHeight: assembly.refs.slotHeight,
             isMobile,
             flashingTaskId,
             mobileTab,

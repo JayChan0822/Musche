@@ -513,7 +513,7 @@ export function registerAuthFeature(context) {
       return true;
     } catch (error) {
       console.error('保存失败', error);
-      if (error?.code === '40001') revisionConflict = true;
+      if (error?.code === 'PT409' || error?.code === '40001') revisionConflict = true;
       // Include edits made while the failed request was in flight in the recovery draft.
       let recoveryContent;
       let backedUp = false;
@@ -754,7 +754,7 @@ export function registerAuthFeature(context) {
   function describeSyncError(error) {
     if (error?.code === 'MUSCHE_STARTUP_TIMEOUT') return '云端启动读取超过等待时间，尚未确认加载完成。可手动同步重试；当前数据不会自动上传。';
     if (error?.name === 'QuotaExceededError') return '本地存储空间不足，无法归档未同步备份，已停止替换当前数据。请先导出备份；这不是网络连接错误。';
-    if (error?.code === '40001') return '云端版本冲突（40001）：已暂停自动保存。请先导出当前数据，再同步核对云端版本；若持续冲突，需要检查数据库触发器。';
+    if (error?.code === 'PT409' || error?.code === '40001') return '云端版本冲突：已暂停自动保存。请先导出当前数据，再同步核对云端版本。';
     if (error?.code === '57014') return '数据库执行超时（57014）。请求已到达数据库，但未在限制时间内完成。';
     return `${error?.code ? `[${error.code}] ` : ''}${error?.message || '无法完成同步，请检查连接后重试。'}`;
   }

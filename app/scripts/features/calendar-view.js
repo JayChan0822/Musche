@@ -23,6 +23,7 @@ export function registerCalendarViewFeature(context) {
     setViewTransitionName = () => {},
     getNow = () => Date.now(),
     getDate = () => new Date(),
+    getDocument = () => document,
     setTimeoutFn = setTimeout,
     // 手机端已经没有周视图入口（顶部按钮只留桌面端），跳转改成打开当天的日视图
     openMobileDayView = null,
@@ -37,7 +38,7 @@ export function registerCalendarViewFeature(context) {
   // 周视图任务格过渡（标尺已固定在外层，只滑任务格，锚定在时间列右侧）
   const weekTransitionName = ref('week-slide-next');
   const monthKeyOf = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  // scrolled 模式的主导月份：可视区域内格子占比最高的月（决定标题 + 灰化）
+  // 标题跟随黄金分割点所在周；定位日期在该周内时，保留目标月份。
   const activeMonthKey = ref(monthKeyOf(viewDate.value));
   let activeMonthRaf = null;
   let lastHeaderTap = 0;
@@ -245,28 +246,31 @@ export function registerCalendarViewFeature(context) {
     return days;
   });
 
-  // 根据滚动容器可视区域内各月份格子的占比，更新主导月份（标题 + 灰化）
+  const calendarAnchorOffset = (scroller) => {
+    const header = scroller.querySelector('[data-calendar-weekdays]')?.offsetHeight || 0;
+    return header + Math.max(0, scroller.clientHeight - header) * 0.382;
+  };
+
+  // 月底定位今天时，下个月可能占据大部分屏幕，不能用整屏占比决定标题。
   const updateActiveMonth = (scrollerEl) => {
     if (!scrollerEl || activeMonthRaf) return;
 
     const run = () => {
       activeMonthRaf = null;
-      const viewTop = scrollerEl.scrollTop;
-      const viewBottom = viewTop + scrollerEl.clientHeight;
-      const counts = new Map();
+      const anchor = scrollerEl.scrollTop + calendarAnchorOffset(scrollerEl);
+      let firstVisible = null;
+      let targetInAnchorRow = null;
+      const targetDate = formatDate(viewDate.value);
       const cells = scrollerEl.querySelectorAll('[data-month-key]');
       for (const cell of cells) {
         const top = cell.offsetTop;
         const bottom = top + cell.offsetHeight;
-        if (bottom <= viewTop || top >= viewBottom) continue;
-        const mk = cell.getAttribute('data-month-key');
-        if (mk) counts.set(mk, (counts.get(mk) || 0) + 1);
+        if (bottom <= anchor || top > anchor) continue;
+        if (!firstVisible) firstVisible = cell;
+        if (top !== firstVisible.offsetTop) break;
+        if (cell.getAttribute('data-date') === targetDate) targetInAnchorRow = cell;
       }
-      let best = null;
-      let bestCount = 0;
-      for (const [mk, count] of counts) {
-        if (count > bestCount) { bestCount = count; best = mk; }
-      }
+      const best = (targetInAnchorRow || firstVisible)?.getAttribute('data-month-key');
       if (best && best !== activeMonthKey.value) {
         activeMonthKey.value = best;
       }
@@ -311,27 +315,27 @@ export function registerCalendarViewFeature(context) {
     }
   };
 
+  let monthScrollRevision = 0;
   const scrollToMonthDate = (targetDate, { smooth = false } = {}) => {
+    const revision = ++monthScrollRevision;
     const targetDateStr = formatDate(targetDate);
     const behavior = smooth ? 'smooth' : 'auto';
 
-    setTimeout(() => {
-      const el = document.querySelector(`[data-date="${targetDateStr}"]`);
-
-      if (el) {
-        // block:'start'：目标月/日贴滚动容器顶部（原 'center' 会把 1 号摆到视口正中）
-        el.scrollIntoView({ behavior, block: 'start' });
-      } else {
-        const year = targetDate.getFullYear();
-        const month = String(targetDate.getMonth() + 1).padStart(2, '0');
-        const monthStartId = `${year}-${month}-01`;
-        const monthEl = document.querySelector(`[data-month-start="${monthStartId}"]`);
-
-        if (monthEl) {
-          monthEl.scrollIntoView({ behavior, block: 'start' });
-        }
-      }
-    }, 50);
+    nextTick(async () => {
+      const doc = getDocument();
+      if (doc.fonts?.status === 'loading') await doc.fonts.ready;
+      if (revision !== monthScrollRevision) return;
+      const scroller = doc.querySelector('[data-calendar-scroller]');
+      if (!scroller) return;
+      const el = scroller.querySelector(`[data-date="${targetDateStr}"]`)
+        || scroller.querySelector(`[data-month-start="${monthKeyOf(targetDate)}-01"]`);
+      if (!el) return;
+      // 只移动日历自身，避免 scrollIntoView 同时滚动外层容器。
+      let top = 0;
+      for (let node = el; node && node !== scroller; node = node.offsetParent) top += node.offsetTop;
+      activeMonthKey.value = monthKeyOf(targetDate);
+      scroller.scrollTo({ top: Math.max(0, top + el.offsetHeight / 2 - calendarAnchorOffset(scroller)), behavior });
+    });
   };
 
   watch(flatScrolledDays, () => {
@@ -344,13 +348,9 @@ export function registerCalendarViewFeature(context) {
     renderedRange.past = 6;
     renderedRange.future = 18;
 
-    // 切月后月份标题立即跟随，不依赖 IntersectionObserver 异步触发
-    // （scrollIntoView 是 instant，observer 的顶部 10% 区域可能不覆盖新位置）
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
       // scrolled 模式切月：纵向平滑滚动到目标月（左右箭头语义 = 上下翻页）。
-      // 标题/灰化由滚动过程中的占比计算（updateActiveMonth）自然驱动，
-      // 不在此预设 activeMonthKey——否则标题会先跳目标月、滚动途中又被
-      // 占比计算弹回旧月，造成闪烁。
+      // 标题/灰化跟随黄金分割点所在周，不受下个月占据屏幕大部分面积影响。
       scrollToMonthDate(viewDate.value, { smooth: true });
     }
   });

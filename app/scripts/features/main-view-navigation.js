@@ -1,5 +1,5 @@
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import { pickSidebarTab } from '../utils/sidebar-tabs.js';
 
@@ -10,6 +10,8 @@ export function registerMainViewNavigationFeature(context) {
     monthViewMode,
     viewDate,
     dayColWidth,
+    slotHeight,
+    weekContainer,
     isMobile,
     isResizingMobile,
     currentSessionId,
@@ -85,7 +87,29 @@ export function registerMainViewNavigationFeature(context) {
     }
   };
 
+  let zoomRevision = 0;
   const onMainWheel = (event) => {
+    if (event.metaKey && currentView.value === 'week' && slotHeight && weekContainer?.value) {
+      const container = weekContainer.value;
+      if (!container.contains(event.target)) return;
+      event.preventDefault();
+      if (isDragActive() || isResizingMobile.value || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      const header = container.firstElementChild?.offsetHeight || 0;
+      const offset = Math.max(header, event.clientY - container.getBoundingClientRect().top);
+      const oldHeight = slotHeight.value;
+      const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
+      const height = Math.max(16, Math.min(120, oldHeight * Math.exp(-Math.max(-240, Math.min(240, delta)) * 0.003)));
+      if (height === oldHeight) return;
+      const anchor = (container.scrollTop + offset - header) / oldHeight;
+      // Apply scroll synchronously with the new layout before the next wheel event.
+      slotHeight.value = height;
+      const revision = ++zoomRevision;
+      nextTick(() => {
+        if (revision === zoomRevision && currentView.value === 'week' && weekContainer.value === container)
+          container.scrollTop = Math.max(0, header + anchor * height - offset);
+      });
+      return;
+    }
     if (isWheelLocked || event.ctrlKey || event.metaKey) return;
 
     if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 30) {

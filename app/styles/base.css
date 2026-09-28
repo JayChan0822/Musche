@@ -95,6 +95,12 @@ html.dark body {
     --grid-line-dark: rgba(255, 255, 255, 0.08);
 }
 
+/* 长月历只淡入：缩放会改变启动定位时的坐标与 offsetParent。 */
+@keyframes calendarFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

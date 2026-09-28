@@ -9274,7 +9274,7 @@ for (const relativePath of requiredFiles) {
     const classOps = [];
     const scrollCalls = [];
     const statEl = {
-        scrollIntoView: (options) => scrollCalls.push(options),
+        getBoundingClientRect: () => ({ top: 900, height: 120 }),
         classList: {
             add: (...classes) => classOps.push(['add', classes]),
             remove: (...classes) => classOps.push(['remove', classes]),
@@ -9300,7 +9300,12 @@ for (const relativePath of requiredFiles) {
         },
     });
 
-    feature.sidebarScrollRef.value = { scrollTop: 64 };
+    feature.sidebarScrollRef.value = {
+        scrollTop: 64, clientHeight: 600, scrollHeight: 2400, clientTop: 0,
+        getBoundingClientRect: () => ({ top: 100 }),
+        querySelector: (selector) => { queriedSelectors.push(selector); return statEl; },
+        scrollTo: (options) => scrollCalls.push(options),
+    };
     feature.switchSidebarTab('project');
     assert.equal(refs.sidebarTab.value, 'project', 'switchSidebarTab should update the active sidebar tab');
     assert.equal(feature.sidebarTransitionName.value, 'slide-next', 'switchSidebarTab should set next transition when moving forward');
@@ -9330,7 +9335,7 @@ for (const relativePath of requiredFiles) {
 
     feature.scrollToSidebarItem('M1');
     assert.deepEqual(queriedSelectors, ['[data-stat-id="M1"]'], 'scrollToSidebarItem should query the stat id marker');
-    assert.deepEqual(scrollCalls[0], { behavior: 'smooth', block: 'center' }, 'scrollToSidebarItem should center the selected stat smoothly');
+    assert.deepEqual(scrollCalls[0], { top: 630.8, behavior: 'smooth' }, 'scrollToSidebarItem should align the card center with the upper golden section');
     assert.deepEqual(classOps, [
         ['add', ['ring-2', 'ring-[#ffffff]']],
         ['remove', ['ring-2', 'ring-[#ffffff]']],
@@ -11612,7 +11617,7 @@ for (const relativePath of requiredFiles) {
     confirms.at(-1)[2]();
     assert.equal(state.settings.sessions.some((session) => session.id === 'S_NEW_1'), false, 'delete action should remove the current session after confirmation');
     assert.equal(refs.currentSessionId.value, 'S1', 'delete action should switch back to the first remaining session');
-    assert.equal(historyCount, 3, 'delete action should push history after deletion');
+    assert.equal(historyCount, 4, 'delete action should capture history before and after deletion');
 
 
     state.settings.sessions = [{ id: 'ONLY', name: 'Only Session' }];

@@ -1,9 +1,10 @@
+import { deleteSessionData } from '../utils/delete-session.js';
 import { withLoadingDialog } from '../services/loading-dialog.js';
 import { computed } from 'vue';
 
 export function registerSessionFeature(context) {
   const { refs, state, utils, actions } = context;
-  const { currentSessionId, activeDropdown } = refs;
+  const { currentSessionId, activeDropdown, itemPool = { value: [] }, scheduledTasks = { value: [] }, showTrackList } = refs;
   const { settings } = state;
   const { generateUniqueId } = utils;
   const {
@@ -58,14 +59,20 @@ export function registerSessionFeature(context) {
         return;
       }
 
+      const deletingSessionId = currentSessionId.value;
       openConfirmModal(
         '删除日程',
-        '确定删除当前日程？\n（属于该日程的任务仍然会保留在日程表中）',
+        '确定删除当前日程及其中全部任务、排期和工作记录？仅该日程使用的项目也会删除；跨日程共用的项目、人员和乐器保留。可撤销。',
         () => {
-          const idx = settings.sessions.findIndex((session) => session.id === currentSessionId.value);
-          settings.sessions.splice(idx, 1);
+          if (!settings.sessions.some(session => session.id === deletingSessionId) || settings.sessions.length <= 1) return;
           cancelPendingTrackSave();
-          currentSessionId.value = settings.sessions[0].id;
+          pushHistory();
+          const result = deleteSessionData(settings, itemPool.value, scheduledTasks.value, deletingSessionId);
+          if (!result) return;
+          itemPool.value = result.pool;
+          scheduledTasks.value = result.tasks;
+          if (showTrackList) showTrackList.value = false;
+          if (currentSessionId.value === deletingSessionId) currentSessionId.value = settings.sessions[0].id;
           pushHistory();
 
         },
