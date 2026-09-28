@@ -282,8 +282,26 @@ export function registerAuthFeature(context) {
         setSaveStatus('unsaved');
         openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
       } else {
+        if (draft?.content) archiveUnsyncedDraft(draft);
         applyCloudContent(data.content, data.version);
-        if (draft?.content) openAlertModal('有本地未同步备份', '云端版本已变化，已加载云端数据；此设备的未同步备份仍保留，未覆盖。');
+        if (draft?.content) openConfirmModal(
+          '有本地未同步备份',
+          '当前显示云端数据。本地未同步修改已单独归档，可先导出为 JSON 对照；导出不会覆盖云端。',
+          () => {
+            const blob = new Blob([JSON.stringify(draft.content, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Musche-本地未同步备份-v${draft.version ?? 'unknown'}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          },
+          false,
+          '导出本地备份',
+          '暂用云端数据',
+        );
       }
       persistCloudCache();
       return true;
@@ -320,6 +338,21 @@ export function registerAuthFeature(context) {
     return false;
   }
 
+  function archiveUnsyncedDraft(draft) {
+    const prefix = `musche_workflow_recovery:${user.value.id}:${draft.version ?? 'unknown'}`;
+    const serialized = JSON.stringify(draft);
+    let index = 0;
+    let key = prefix;
+    let existing = storageService.loadData(key);
+    while (existing) {
+      if (JSON.stringify(existing) === serialized) return key;
+      key = `${prefix}:${++index}`;
+      existing = storageService.loadData(key);
+    }
+    storageService.saveData(key, draft);
+    return key;
+  }
+
   async function saveToCloud(handleManualSync, force = false) {
     if (!user.value) return;
     if (dataProtectionError) {
@@ -331,6 +364,8 @@ export function registerAuthFeature(context) {
     setSaveStatus('saving');
 
     try {
+      const prior = storageService.loadData(`musche_workflow_unsynced_v11:${user.value.id}`);
+      if (prior?.content && prior.version !== localDataVersion.value) archiveUnsyncedDraft(prior);
       // Keep a recoverable local draft even while server deployment/network blocks writes.
       storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
       const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);

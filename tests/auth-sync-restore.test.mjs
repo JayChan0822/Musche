@@ -288,6 +288,22 @@ test('successful cloud save refreshes the cached snapshot version and content', 
   assert.equal(savedData[1][1].content.tasks[0].scheduleId, 'TASK_SAVED');
 });
 
+test('a conflicting local draft is archived before a later save replaces the working draft', async () => {
+  const key='musche_workflow_unsynced_v11:USER_1';
+  const draft={version:2,content:{pool:[{id:'LOCAL_ONLY'}],tasks:[],settings:{}}};
+  const writes=[];
+  const h=createAuthHarness({version:6,cloudContent:{pool:[{id:'CLOUD'}],tasks:[],settings:{}},storageOverrides:{
+    loadData:k=>k===key?draft:null,
+    saveData:(k,v)=>writes.push([k,JSON.parse(JSON.stringify(v))]),
+  }});
+  await h.feature.loadCloudData();
+  await h.feature.saveToCloud(()=>{});
+  const archived=writes.find(([k])=>k.startsWith('musche_workflow_recovery:'));
+  assert.ok(archived);
+  assert.deepEqual(archived[1],draft);
+  assert.ok(writes.findIndex(([k])=>k===archived[0]) < writes.findIndex(([k])=>k===key));
+});
+
 test('logout clears the cached cloud snapshot before reloading', async () => {
   const { feature, removedItems, getReloadCount } = createAuthHarness();
 
