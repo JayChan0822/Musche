@@ -502,3 +502,36 @@ test('quota recovery exports the original draft and blocks cloud writes until ex
  await h.feature.saveToCloud(()=>{});
  assert.equal(writes,1);
 });
+
+test('exported quota draft is not prompted again but changed content at same revision is', async () => {
+ let confirmations=0;
+ const draft={version:1,content:{pool:[{id:'old'}],tasks:[],settings:{}}};
+ const h=createAuthHarness({version:3,cloudContent:{pool:[],tasks:[],settings:{}},storageOverrides:{
+ loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?draft:null,
+ saveData:()=>{throw new DOMException('full','QuotaExceededError');}
+ },actionOverrides:{exportUnsyncedBackup:async()=>{},openConfirmModal:(_t,_m,cb)=>{confirmations++;h.exportAction=cb;}}});
+ await h.feature.loadCloudData();
+ await h.exportAction();
+ await h.feature.loadCloudData();
+ assert.equal(confirmations,1);
+ draft.content.pool.push({id:'new-change'});
+ await h.feature.loadCloudData();
+ assert.equal(confirmations,2);
+});
+
+test('export acknowledgement survives restart and a failed export never acknowledges the draft', async () => {
+ const store=new Map(); let confirm; let count=0; let fail=true;
+ const draft={version:1,content:{pool:[{id:'old'}],tasks:[],settings:{}}};
+ const options={version:3,cloudContent:{pool:[],tasks:[],settings:{}},storageOverrides:{
+ loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?draft:store.get(key),
+ saveData:(key,value)=>{if(!key.startsWith('musche_workflow_exported_draft_v11:')) throw new DOMException('full','QuotaExceededError');store.set(key,value);}
+ },actionOverrides:{exportUnsyncedBackup:async()=>{if(fail)throw Error('download failed');},openConfirmModal:(_t,_m,cb)=>{count++;confirm=cb;}}};
+ const first=createAuthHarness(options);
+ await first.feature.loadCloudData();
+ await assert.rejects(confirm(),/download failed/);
+ await first.feature.loadCloudData();assert.equal(count,2);
+ fail=false;await confirm();
+ const restarted=createAuthHarness(options);
+ await restarted.feature.loadCloudData();assert.equal(count,2);
+ assert.equal(restarted.refs.itemPool.value.length,0);
+});

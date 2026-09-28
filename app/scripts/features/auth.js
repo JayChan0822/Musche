@@ -279,6 +279,36 @@ export function registerAuthFeature(context) {
     }
   }
 
+  const exportedDrafts = new Map();
+  const draftExportKey = (accountId) => `musche_workflow_exported_draft_v11:${accountId}`;
+  async function draftFingerprint(serialized) {
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  async function wasDraftExported(draft, accountId) {
+    const serialized = JSON.stringify(draft);
+    if (exportedDrafts.get(accountId) === serialized) return true;
+    try {
+      const marker = storageService.loadData(draftExportKey(accountId));
+      return !!marker && marker === await draftFingerprint(serialized);
+    } catch { return false; }
+  }
+  async function markDraftExported(draft, accountId) {
+    const serialized = JSON.stringify(draft);
+    exportedDrafts.set(accountId, serialized);
+    try {
+      const marker = await draftFingerprint(serialized);
+      try { storageService.saveData(draftExportKey(accountId), marker); }
+      catch (error) {
+        if (error?.name !== 'QuotaExceededError') throw error;
+        clearCloudCache();
+        storageService.saveData(draftExportKey(accountId), marker);
+      }
+    } catch (error) {
+      console.warn('Export acknowledgement is retained for this page only:', error);
+    }
+  }
+
   async function loadCloudData({ withStartupDeadline = false } = {}) {
     if (!user.value) return;
 
@@ -296,7 +326,7 @@ export function registerAuthFeature(context) {
         openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
       } else {
         let archiveKey = null;
-        if (draft?.content) {
+        if (draft?.content && !await wasDraftExported(draft, user.value.id)) {
           try { archiveKey = archiveUnsyncedDraft(draft); }
           catch (error) {
             if (error?.name !== 'QuotaExceededError') throw error;
@@ -306,9 +336,13 @@ export function registerAuthFeature(context) {
             dataProtectionError = new Error('本地存储空间不足，旧的未同步备份仍保留。当前显示云端数据，保存已暂停；请先导出旧备份。');
             setWorkflowWriteBlocked(settings, true);
             setSaveStatus('error');
+            const exportAccountId = user.value.id;
+            const exportDraft = JSON.parse(JSON.stringify(draft));
             openConfirmModal('云端已加载，本地备份待导出', dataProtectionError.message,
               async () => {
-                await exportUnsyncedBackup(draft.content, draft.version);
+                await exportUnsyncedBackup(exportDraft.content, exportDraft.version);
+                await markDraftExported(exportDraft, exportAccountId);
+                if (user.value?.id !== exportAccountId) return;
                 dataProtectionError = null;
                 setWorkflowWriteBlocked(settings, false);
                 setSaveStatus('unsaved');
