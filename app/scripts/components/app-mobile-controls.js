@@ -69,7 +69,7 @@ export const AppMobileControls = {
                         <span>任务池</span>
                     </button>
 
-                    <button @click="ctx.showMobileTaskInput = true"
+                    <button id="tour-mobile-new-task" @click="ctx.showMobileTaskInput = true"
                             class="mobile-tab-item"
                             :class="{'active': ctx.showMobileTaskInput && !ctx.isSearchFocused}">
                         <i class="fa-solid fa-circle-plus text-2xl mb-0.5"></i>

@@ -3,7 +3,7 @@ export function registerTourFeature(context) {
   const { isMobile, isSidebarOpen, mobileTab, showMobileTaskInput, sidebarScrollRef } = refs;
   const { storageService } = services;
   const actionBag = actions || {};
-  const { getWindow = () => window, setTimeoutFn = setTimeout } = actionBag;
+  const { getWindow = () => window, getDocument = () => globalThis.document, setTimeoutFn = setTimeout } = actionBag;
   const loadDriver = actionBag.loadDriver || (() => Promise.all([
     import('driver.js'),
     import('driver.js/dist/driver.css'),
@@ -14,7 +14,7 @@ export function registerTourFeature(context) {
     {
       popover: {
         title: '欢迎使用 Musche',
-        description: '这是一款专为音乐人设计的智能排程工具。<br>已为您预设了演示数据，让我们花 1 分钟了解核心流程。',
+        description: '这是一款专为音乐人设计的智能排程工具。<br>从任务、排期到资料库，一起了解核心流程。',
         align: 'center',
       },
     },
@@ -30,7 +30,7 @@ export function registerTourFeature(context) {
       element: '#sidebar',
       popover: {
         title: '任务池 (Pool)',
-        description: '这里存放所有待排程的资源。<br>点击顶部的 <b>REC 录音 / EDIT 编辑</b> 标签可切换分类。',
+        description: '任务由项目和乐器组成。<br><b>REC 录音</b>分配给演奏员，<b>EDIT 剪辑</b>分配给剪辑员；两个阶段分别安排。',
         side: 'right',
         align: 'start',
       },
@@ -57,7 +57,7 @@ export function registerTourFeature(context) {
       element: '#tour-new-task',
       popover: {
         title: '添加任务',
-        description: '点击这里录入新的人员、乐器或项目。<br>支持手动输入或 CSV 批量导入。',
+        description: '选择项目和乐器，填写曲目时长，并分配演奏员或剪辑员。<br>人员、乐器和项目也可以在资料库中维护。',
         side: 'bottom',
       },
     },
@@ -67,9 +67,9 @@ export function registerTourFeature(context) {
         title: '日程表 (Schedule)',
         description: `
                     主工作台，支持<b>周/月</b>视图切换。
-                    <br>已为您在“今天”创建了一个演示日程。
+                    <br>周视图中移动或拉伸任务块按 15 分钟吸附，按住 Command 可按 1 分钟微调。
                     <hr style="margin:8px 0; opacity:0.2">
-                    <b>双击日程块</b>：打开 TrackList 详情页，可记录实际录音时间、拆分任务或自动计算效率倍率。
+                    <b>双击日程块</b>：打开任务详情，记录实际工作时间、拆分任务，或新增返工记录。REC 与 EDIT 的工作记录分别统计。
                 `,
         side: 'left',
         align: 'center',
@@ -149,7 +149,7 @@ export function registerTourFeature(context) {
       element: '#sidebar',
       popover: {
         title: '任务池 (Task Pool)',
-        description: '这里存放所有待排程的资源。<br>点击上方标签或左右滑动可切换 <b>REC 录音 / EDIT 编辑</b>。<br><b>长按卡片</b>即可拖拽到日程表中。',
+        description: '任务由项目和乐器组成。<br>切换 <b>REC 录音 / EDIT 剪辑</b>，分别安排演奏员和剪辑员。<br><b>长按卡片</b>即可拖拽到日程表中。',
         side: 'top',
         align: 'center',
       },
@@ -181,7 +181,7 @@ export function registerTourFeature(context) {
       element: '#tour-new-task',
       popover: {
         title: '添加任务',
-        description: '点击这里录入新的人员、乐器或项目。<br>支持手动输入或 CSV 批量导入。',
+        description: '选择项目和乐器，填写曲目时长，并分配演奏员或剪辑员。<br>人员、乐器和项目也可以在资料库中维护。',
         side: 'bottom',
       },
     },
@@ -199,6 +199,36 @@ export function registerTourFeature(context) {
       },
     },
   ];
+
+  const librarySteps = [
+    {
+      element: '#library-toggle',
+      disableActiveInteraction: true,
+      popover: { title: '资料库 (Library)', description: '点击右上角的资料库按钮，从右侧打开抽屉。<br>在这里统一维护乐器、人员和项目，背景日程保持原位。', side: 'bottom' },
+    },
+    {
+      element: '#tour-library-tabs', libraryStep: true, disableActiveInteraction: true,
+      popover: { title: '乐器、人员与项目', description: '通过三个标签切换资料，支持搜索、新建和分组浏览。<br><b>人员</b>里可筛选演奏员与剪辑员，供 REC 和 EDIT 分配任务时使用。', side: 'left' },
+    },
+    {
+      element: '#library-panel', libraryStep: true, disableActiveInteraction: true,
+      popover: { title: '点击头像查看信息', description: '展开分组后，点击资料头像查看详情。<br>可浏览历史曲目、工作耗时和倍率，并按录音或剪辑阶段查看统计；没有记录时会显示空状态。', side: 'left' },
+    },
+    {
+      element: '#tour-library-metadata', libraryStep: true, disableActiveInteraction: true,
+      popover: { title: '录音资料 (Metadata)', description: '录音棚、工程师、操作员和助理放在这个独立入口中。<br>同样可以新建资料、点击头像查看关联信息；点击返回可回到资料库。', side: 'left' },
+    },
+  ];
+  desktopSteps.splice(desktopSteps.length - 1, 0, ...librarySteps);
+  mobileSteps.splice(mobileSteps.length - 1, 0, ...librarySteps);
+  mobileSteps.find(step => step.element === '#tour-new-task').element = '#tour-mobile-new-task';
+
+  const libraryButton = () => getDocument()?.getElementById('library-toggle');
+  const libraryIsOpen = () => libraryButton()?.getAttribute('aria-expanded') === 'true';
+  const setLibraryOpen = (open) => {
+    if (libraryIsOpen() !== open) libraryButton()?.click();
+  };
+  const waitForDrawer = () => new Promise(resolve => setTimeoutFn(resolve, 350));
 
   const getDriverObj = () => {
     if (!driverObjPromise) {
@@ -218,16 +248,63 @@ export function registerTourFeature(context) {
     storageService.removeItem('musche_sidebar_tour_seen');
     const driverObj = await getDriverObj();
 
+    const originallyOpen = libraryIsOpen();
+    let restoreMetadata = false;
+    let ended = false;
+    let navigating = false;
+    const restoreLibraryPage = () => {
+      if (restoreMetadata) getDocument()?.getElementById('tour-library-metadata')?.click();
+      restoreMetadata = false;
+    };
+    const steps = getWindow().innerWidth < 800 ? mobileSteps : desktopSteps;
+    const navigate = async (direction) => {
+      if (ended || navigating) return;
+      navigating = true;
+      try {
+        const next = steps[(driverObj.getActiveIndex() ?? 0) + direction];
+        if (next?.libraryStep) {
+          setLibraryOpen(true);
+          await waitForDrawer();
+          if (ended) return;
+          const back = getDocument()?.getElementById('library-back');
+          if (back) {
+            restoreMetadata = true;
+            back.click();
+            await waitForDrawer();
+          }
+        } else {
+          restoreLibraryPage();
+          if (libraryIsOpen()) {
+            setLibraryOpen(false);
+            await waitForDrawer();
+          }
+        }
+        if (!ended) direction > 0 ? driverObj.moveNext() : driverObj.movePrevious();
+      } finally {
+        navigating = false;
+      }
+    };
+    setLibraryOpen(false);
+    driverObj.setConfig({
+      steps, showProgress: true, animate: true, allowClose: true,
+      doneBtnText: '开始使用', nextBtnText: '下一步', prevBtnText: '上一步',
+      onNextClick: () => navigate(1),
+      onPrevClick: () => navigate(-1),
+      onDestroyed: () => {
+        ended = true;
+        restoreLibraryPage();
+        setLibraryOpen(originallyOpen);
+      },
+    });
+
     if (getWindow().innerWidth < 800) {
       mobileTab.value = 'schedule';
       showMobileTaskInput.value = false;
-      driverObj.setConfig({ steps: mobileSteps });
       driverObj.drive();
     } else {
       isSidebarOpen.value = true;
-      driverObj.setConfig({ steps: desktopSteps });
       setTimeoutFn(() => {
-        driverObj.drive();
+        if (!ended) driverObj.drive();
       }, 400);
     }
 

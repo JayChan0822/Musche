@@ -58,10 +58,10 @@ export const AppResourceSidebar = {
           <button class="w-9 h-9 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="收起资料库" @click="$emit('close')"><i class="fa-solid fa-outdent rotate-180" aria-hidden="true"></i></button>
         </div>
         <div v-if="activeType === 'metadata'" class="flex items-center gap-2">
-          <button @click="returnToLibrary" class="w-8 h-8 rounded-lg hover:bg-black/5 dark:hover:bg-white/10" aria-label="返回资料库"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
+          <button id="library-back" @click="returnToLibrary" class="w-8 h-8 rounded-lg hover:bg-black/5 dark:hover:bg-white/10" aria-label="返回资料库"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i></button>
           <h3 id="library-metadata-title" class="text-sm font-bold">录音资料 <span class="text-[10px] font-normal text-gray-500 dark:text-gray-400">Metadata</span></h3>
         </div>
-        <div v-else class="flex gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl" role="tablist" aria-label="资料分类" @keydown="navigateTabs">
+        <div v-else id="tour-library-tabs" class="flex gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-xl" role="tablist" aria-label="资料分类" @keydown="navigateTabs">
           <button v-for="tab in resourceTabs" :key="tab.type" :id="'library-tab-' + tab.type" role="tab" :aria-selected="activeType === tab.type" aria-controls="library-panel"
                   class="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-blue-500"
                   :class="activeType === tab.type ? 'bg-white dark:bg-white/15 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'"
@@ -128,7 +128,7 @@ export const AppResourceSidebar = {
           <div class="flex gap-2"><input v-model="form.group" :list="'library-groups-' + activeType" aria-label="新条目分组" placeholder="分组（可选）" class="glass-input min-w-0 flex-1 h-10 text-xs"><button :disabled="saving || !form.name.trim()" class="px-4 h-10 rounded-xl bg-[#007aff] text-white text-xs font-bold disabled:opacity-40">{{ saving ? '保存中' : '添加' }}</button></div>
         </form>
         <button v-else @click="startCreate" class="w-full py-2.5 rounded-xl bg-[#007aff] hover:bg-[#0062cc] text-white text-xs font-bold flex items-center justify-center gap-2"><i class="fa-solid fa-plus" aria-hidden="true"></i>新增{{ activeTab.label }}</button>
-        <button @click="selectType('metadata')" class="mt-3 pt-3 border-t border-black/5 dark:border-white/10 w-full flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 hover:text-blue-500">
+        <button id="tour-library-metadata" @click="selectType('metadata')" class="mt-3 pt-3 border-t border-black/5 dark:border-white/10 w-full flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400 hover:text-blue-500">
           <i class="fa-solid fa-database" aria-hidden="true"></i><span class="flex-1 text-left">录音资料 <span class="text-[10px] opacity-70">Metadata</span></span><i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i>
         </button>
       </div>
