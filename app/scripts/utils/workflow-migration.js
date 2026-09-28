@@ -53,8 +53,10 @@ export function createWorkflowContent(base = {}, current = {}) {
 const envelopes = new WeakMap();
 export function rememberWorkflowContent(settings, content) { envelopes.set(settings, clone(content)); }
 export function serializeWorkflowContent(settings, pool, tasks, extraSettings = {}) {
-  ensureWorkflowLedger(settings, pool, tasks, { bootstrap: !settings.workflow });
-  return migrateWorkflowContent(createWorkflowContent(envelopes.get(settings), { pool, tasks, settings: { ...settings, ...extraSettings } }));
+  // Serialization must never write to reactive state watched by autosave.
+  const snapshot = clone(createWorkflowContent(envelopes.get(settings), { pool, tasks, settings: { ...settings, ...extraSettings } }));
+  ensureWorkflowLedger(snapshot.settings, snapshot.pool, snapshot.tasks, { bootstrap: !snapshot.settings.workflow });
+  return migrateWorkflowContent(snapshot);
 }
 
 const protectedSettings = new WeakSet();

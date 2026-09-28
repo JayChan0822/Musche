@@ -42,12 +42,12 @@ test('empty records are not assigned historical identity',()=>{
  const data=migrateWorkflowContent({pool:[{records:{musician:{},project:{}}}]});
  assert.deepEqual(data.pool[0].records,{musician:{},project:{}});
 });
-test('first serialization bootstraps canonical runtime ledger before tagging schema v11',async()=>{
+test('first serialization bootstraps snapshot ledger without mutating runtime state',async()=>{
  const {serializeWorkflowContent}=await import('../app/scripts/utils/workflow-migration.js');
  const settings={},pool=[{id:'new',musicianId:'m',records:{musician:{actualDuration:'10:00'}}}],tasks=[{scheduleId:'s',musicianId:'m'}];
  const saved=serializeWorkflowContent(settings,pool,tasks);
  assert.equal(saved.settings.workflow.workLogs.length,1);
- assert.equal(settings.workflow.workLogs.length,1);
+ assert.equal(settings.workflow,undefined);
  assert.equal(saved.settings.workflow.allocations[0].scheduleId,'s');
  const again=serializeWorkflowContent(settings,pool,tasks);
  assert.deepEqual(again,saved);

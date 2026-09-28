@@ -357,7 +357,26 @@ export function registerAuthFeature(context) {
     return key;
   }
 
-  async function saveToCloud(handleManualSync, force = false) {
+  let activeSave = null;
+  let saveQueued = false;
+  let lastSaveError = null;
+
+  function saveToCloud(handleManualSync, force = false) {
+    if (activeSave) {
+      saveQueued = true;
+      return activeSave;
+    }
+    activeSave = (async () => {
+      do {
+        saveQueued = false;
+        const saved = await performCloudSave(handleManualSync, force);
+        if (!saved) break;
+      } while (saveQueued);
+    })().finally(() => { activeSave = null; });
+    return activeSave;
+  }
+
+  async function performCloudSave(handleManualSync, force = false) {
     if (!user.value) return;
     if (dataProtectionError) {
       setSaveStatus('error');
@@ -371,7 +390,8 @@ export function registerAuthFeature(context) {
       const prior = storageService.loadData(`musche_workflow_unsynced_v11:${user.value.id}`);
       if (prior?.content && prior.version !== localDataVersion.value) archiveUnsyncedDraft(prior);
       // Keep a recoverable local draft even while server deployment/network blocks writes.
-      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
+      const dataToSave = createCloudContent();
+      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: dataToSave });
       const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
@@ -394,21 +414,33 @@ export function registerAuthFeature(context) {
       }
 
       const newVersion = serverVersion + 1;
-      const dataToSave = createCloudContent();
 
       const { error: saveError } = await supabaseService.saveUserData(user.value.id, dataToSave, newVersion);
       if (saveError) throw saveError;
 
       localDataVersion.value = newVersion;
-      storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`);
+      const latest = createCloudContent();
+      if (JSON.stringify(latest) !== JSON.stringify(dataToSave)) {
+        saveQueued = true;
+        storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: newVersion, content: latest });
+      } else {
+        storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`);
+      }
       persistCloudCache();
-      setTimeout(() => {
-        setSaveStatus('saved');
-      }, 500);
+      lastSaveError = null;
+      setSaveStatus(saveQueued ? 'unsaved' : 'saved');
+      return true;
     } catch (error) {
       console.error('保存失败', error);
+      // Include edits made while the failed request was in flight in the recovery draft.
+      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
       setSaveStatus('error');
-      openAlertModal('云端未保存', error.message || '请稍后重试');
+      const errorKey = `${error.code || ''}:${error.message || ''}`;
+      if (force || lastSaveError !== errorKey) {
+        openAlertModal('云端未保存', `${error.message || '请稍后重试'}\n修改已保留为本地未同步备份。`);
+      }
+      lastSaveError = errorKey;
+      return false;
     }
   }
 

@@ -82,7 +82,7 @@ test('calcTrackDiff computes actualDuration and schedules the debounced write-ba
 
     // 09:00→09:05 = 5 分钟，扣 1 分钟休息 = 4 分钟 = 240s
     assert.equal(item.records.musician.actualDuration, '240s', 'actualDuration should be recEnd - recStart - break');
-    assert.equal(calls.resize, 0, 'actual records must not overwrite booked duration');
+    assert.equal(calls.resize, 1, 'recorded start and end update the associated schedule');
     assert.equal(calls.efficiency.length, 0, 'efficiency write-back is debounced, not synchronous');
 
     test.mock.timers.tick(1500);
@@ -148,4 +148,11 @@ test('empty actual data or missing assignee never invents historical ownership',
   records.calcTrackDiff(item);
   assert.equal(item.records.musician.assigneeId,'');
   assert.equal(item.records.musician.date,undefined);
+});
+
+test('recording times immediately updates the linked schedule through layout', () => {
+  const { records, calls } = createRecords();
+  records.calcTrackDiff({ records: { musician: { recStart: '10:03', recEnd: '10:17' } } });
+  records.cancelPendingTrackSave();
+  assert.equal(calls.resize, 1);
 });

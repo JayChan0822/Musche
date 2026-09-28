@@ -2,7 +2,7 @@ import { getScheduleStage, stageFromView, getAssigneeId } from '../utils/workflo
 import { ensureWorkflowLedger, getWorkLogs, getActiveWorkLog, appendWorkLog, updateWorkLog, invalidateWorkLog, setActiveWorkLog, hydrateWorkRecord, getPartAllocation } from '../utils/workflow-ledger.js';
 import { assignItemSchedule, resolveItemSchedule } from '../utils/stable-schedule.js';
 // 记录读写：录音起止时间、中断时长、日程块实际时间的计算与回写。
-// 实际记录与排期独立；只有显式自动调整操作可以改变安排时长。
+// 实际记录独立保存；录入起止时间后按稳定关联更新对应日程块。
 export function createTrackListRecords(deps) {
   const {
     trackListData,
@@ -14,6 +14,7 @@ export function createTrackListRecords(deps) {
     openAlertModal,
     pushHistory,
     autoUpdateEfficiency,
+    autoResizeScheduleByRecords = () => {},
     checkCanDeleteSplit,
     restoreSplitTime,
     pruneEmptySchedules,
@@ -285,6 +286,7 @@ export function createTrackListRecords(deps) {
   const saveTrackRecord = (item) => {
     captureRecordIdentity(item);
     writeCurrentAttempt(item);
+    autoResizeScheduleByRecords(true);
     if (trackSaveTimer) clearTimeout(trackSaveTimer);
     const viewType = getViewType();
     const targetId = getTargetId(item, viewType);

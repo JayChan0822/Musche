@@ -18,6 +18,7 @@ function createAuthHarness({
   startupTimeoutMs = 20,
   storageOverrides = {},
   actionOverrides = {},
+  serviceOverrides = {},
 } = {}) {
   const settings = createDefaultSettings();
   const ensureCalls = [];
@@ -71,6 +72,7 @@ function createAuthHarness({
         saveUserData: async () => ({ data: null, error: null }),
         signOut: async () => ({ error: null }),
         deleteUserData: async () => ({ error: null }),
+        ...serviceOverrides,
       },
     },
     actions: {
@@ -369,4 +371,31 @@ test('offline bootstrap restores the unsynced local draft over older cache', asy
  const {feature,refs}=createAuthHarness({cachedData,getSession:()=>new Promise(()=>{}),startupTimeoutMs:5,storageOverrides:{loadData:key=>key===CLOUD_CACHE_KEY?cachedData:key==='musche_workflow_unsynced_v11:USER_1'?draft:null}});
  await feature.bootSessionData();
  assert.equal(refs.itemPool.value[0].id,'draft'); assert.equal(refs.saveStatus.value,'unsaved');
+});
+
+test('cloud saves serialize overlapping requests and save the newest pending edit', async () => {
+  let release;
+  let calls = 0;
+  const h = createAuthHarness({ version: 0, serviceOverrides: {
+    saveUserData: async () => { calls++; if (calls === 1) await new Promise(resolve => { release = resolve; }); return { error: null }; },
+  } });
+  const first = h.feature.saveToCloud(() => {});
+  await new Promise(resolve => setImmediate(resolve));
+  h.refs.itemPool.value.push({ id: 'new' });
+  const second = h.feature.saveToCloud(() => {});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(calls, 1);
+  release();
+  await Promise.all([first, second]);
+  assert.equal(calls, 2);
+});
+
+test('repeated automatic save errors retain a draft but alert only once', async () => {
+  const h = createAuthHarness({ version: 0, serviceOverrides: {
+    saveUserData: async () => ({ error: { code: '57014', message: 'canceling statement due to statement timeout' } }),
+  } });
+  await h.feature.saveToCloud(() => {});
+  await h.feature.saveToCloud(() => {});
+  assert.equal(h.alerts.length, 1);
+  assert.ok(h.savedData.some(([key]) => key.includes('unsynced_v11')));
 });
