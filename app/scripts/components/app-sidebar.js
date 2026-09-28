@@ -110,7 +110,7 @@ export const AppSidebar = {
 
                                  :data-stat-id="stat.id"
 
-                                 class="mobile-stat-card group py-6 px-5 sm:p-3"
+                                 class="mobile-stat-card compact-stat-card group py-3 px-4 sm:p-3"
                                  :draggable="!stat.isUnassigned && !stat.isFullyScheduled && stat.statusKey !== 'in-progress'"
                                  @dragstart="(!stat.isUnassigned && !stat.isFullyScheduled && stat.statusKey !== 'in-progress') && dragStart($event, stat, 'aggregate')"
 
@@ -131,7 +131,7 @@ export const AppSidebar = {
 
                             </button>
 
-                            <div class="pl-10">
+                            <div class="pl-4">
                                 <div class="flex justify-between items-center mb-1">
                                     <div class="flex items-center flex-1 min-w-0 pr-2">
                                         <div class="font-bold text-2xl sm:text-lg leading-none truncate">
@@ -145,6 +145,7 @@ export const AppSidebar = {
                                     </div>
 
                                     <div class="flex items-center gap-1 shrink-0">
+                                        <AppRatioComparison v-if="stat.ratioComparison" :comparison="stat.ratioComparison" />
                                         <span v-if="stat.statusKey === 'completed'" class="px-2 py-1 rounded-md bg-blue-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">完成</span>
                                         <span v-else-if="stat.statusKey === 'in-progress'" class="px-2 py-1 rounded-md bg-orange-500 text-white text-sm sm:text-xs font-bold shadow-sm whitespace-nowrap">进行中</span>
                                         <span v-else-if="stat.statusKey === 'full'" class="px-2 py-1 rounded-md bg-green-500/10 text-green-600 dark:text-green-400 text-sm sm:text-xs font-bold whitespace-nowrap">已排</span>
@@ -164,17 +165,15 @@ export const AppSidebar = {
                                     </div>
                                 </div>
 
-                                <AppRatioComparison v-if="stat.ratioComparison" :comparison="stat.ratioComparison" />
-
-                                <div class="flex justify-between items-baseline">
+                                <div class="flex justify-between items-baseline gap-2 mt-2">
                                     <div class="text-[14px] opacity-50 font-medium flex items-center gap-2">
-                                        <span>{{ stat.trackCount }} Items</span>
+                                        <span>{{ stat.trackCount }} 项</span>
                                         <span v-if="stat.scheduledSeconds > 0"
                                               class="text-[13px] font-mono font-bold opacity-60 bg-black/5 dark:bg-white/10 px-1.5 rounded-md">
-                                                {{ formatSecs(stat.scheduledSeconds) }}
+                                                已排 {{ formatSecs(stat.scheduledSeconds) }}
                                             </span>
                                     </div>
-                                    <div class="flex items-baseline gap-1">
+                                    <div class="flex items-baseline gap-1 whitespace-nowrap"><span class="text-[10px] text-gray-500">预计</span>
                                             <span class="text-2xl sm:text-lg font-mono font-bold tracking-tight"
                                                   :class="{
                                                       'text-blue-500 dark:text-blue-400': stat.statusKey === 'completed',

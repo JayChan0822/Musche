@@ -1101,3 +1101,15 @@ input[type=range].custom-slider::-webkit-slider-thumb {
     .resource-info-modal .insight-metrics > div { padding: 0 10px; }
     .resource-info-modal .insight-metrics > div:last-child { grid-column: 1 / -1; border-left: 0; border-top: 1px solid rgb(128 128 128 / 15%); padding: 12px 0 0; }
 }
+
+.ratio-detail-popover {
+    position: fixed;
+    z-index: 6500;
+    width: min(288px, calc(100vw - 16px));
+    background: #fff;
+    color: #111827;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 20%);
+}
+.dark .ratio-detail-popover { background: #303033; color: #f3f4f6; }
+html .mobile-stat-card.compact-stat-card { padding: 12px 14px !important; border-radius: 18px !important; }

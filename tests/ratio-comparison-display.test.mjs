@@ -10,29 +10,23 @@ const render = (overrides = {}) => renderToString(createSSRApp(AppRatioCompariso
   ...overrides,
 } }));
 
-test('comparison renders both ratios with labels, margin, and time evidence', async () => {
+test('ratio button is collapsed and shows scheduled ratio only', async () => {
   const html = await render();
-  assert.match(html, /平均/);
-  assert.match(html, /×20\.0/);
-  assert.match(html, /安排/);
+  assert.match(html, /aria-expanded="false"/);
   assert.match(html, /×25\.0/);
-  assert.match(html, /余量 \+25%/);
-  assert.match(html, /历史录音 02:00:00 \/ 对应曲目 00:06:00/);
-  assert.match(html, /本次安排 01:15:00 \/ 对应曲目 00:03:00/);
+  assert.doesNotMatch(html, /×20\.0/);
+  assert.match(html, /bg-teal-400/);
 });
 
-test('comparison communicates tight and equal schedules in text', async () => {
-  const tight = await render({ scheduledRatio: 15, differencePercent: -25 });
-  assert.match(tight, /偏紧 −25%/);
-  const equal = await render({ scheduledRatio: 20, differencePercent: 0 });
-  assert.match(equal, /与平均一致/);
-  assert.doesNotMatch(equal, /余量 \+0%/);
+test('tight schedules use an orange indicator', async () => {
+  const html = await render({ scheduledRatio: 15, differencePercent: -25 });
+  assert.match(html, /bg-orange-400/);
+  assert.match(html, /×15\.0/);
 });
 
-test('missing average and schedule render dashes without default or difference badges', async () => {
+test('missing data has a neutral indicator and no invented default', async () => {
   const html = await render({ averageRatio: null, scheduledRatio: null, differencePercent: null });
-  assert.equal((html.match(/>—<\/span>/g) || []).length, 2);
-  assert.doesNotMatch(html, /×20|余量|偏紧|与平均一致/);
-  assert.match(html, /暂无有效录音记录/);
-  assert.match(html, /尚未排期或缺少对应曲目时长/);
+  assert.match(html, /×—/);
+  assert.match(html, /bg-gray-400/);
+  assert.doesNotMatch(html, /×20/);
 });
