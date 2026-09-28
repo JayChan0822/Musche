@@ -357,6 +357,29 @@ export function registerAuthFeature(context) {
     return key;
   }
 
+  // Backup failures must not block a network save or escape its error handler.
+  function persistUnsyncedDraft(content, version = localDataVersion.value) {
+    const key = `musche_workflow_unsynced_v11:${user.value.id}`;
+    const write = () => {
+      const prior = storageService.loadData(key);
+      // Do not overwrite an older conflicting draft unless it has been archived.
+      if (prior?.content && prior.version !== version) archiveUnsyncedDraft(prior);
+      storageService.saveData(key, { version, content });
+    };
+    try {
+      write();
+      return true;
+    } catch (error) {
+      if (error?.name === 'QuotaExceededError') {
+        // Only disposable cloud caches may be evicted, never recovery drafts.
+        clearCloudCache();
+        try { write(); return true; } catch { /* Report via the cloud result below. */ }
+      }
+      console.warn('Local recovery backup unavailable:', error);
+      return false;
+    }
+  }
+
   let activeSave = null;
   let saveQueued = false;
   let lastSaveError = null;
@@ -387,11 +410,9 @@ export function registerAuthFeature(context) {
     setSaveStatus('saving');
 
     try {
-      const prior = storageService.loadData(`musche_workflow_unsynced_v11:${user.value.id}`);
-      if (prior?.content && prior.version !== localDataVersion.value) archiveUnsyncedDraft(prior);
       // Keep a recoverable local draft even while server deployment/network blocks writes.
       const dataToSave = createCloudContent();
-      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: dataToSave });
+      const draftWritten = persistUnsyncedDraft(dataToSave);
       const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
@@ -422,9 +443,9 @@ export function registerAuthFeature(context) {
       const latest = createCloudContent();
       if (JSON.stringify(latest) !== JSON.stringify(dataToSave)) {
         saveQueued = true;
-        storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: newVersion, content: latest });
-      } else {
-        storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`);
+        persistUnsyncedDraft(latest, newVersion);
+      } else if (draftWritten) {
+        try { storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`); } catch (error) { console.warn('Draft cleanup failed:', error); }
       }
       persistCloudCache();
       lastSaveError = null;
@@ -433,11 +454,26 @@ export function registerAuthFeature(context) {
     } catch (error) {
       console.error('保存失败', error);
       // Include edits made while the failed request was in flight in the recovery draft.
-      storageService.saveData(`musche_workflow_unsynced_v11:${user.value.id}`, { version: localDataVersion.value, content: createCloudContent() });
+      let recoveryContent;
+      let backedUp = false;
+      try {
+        recoveryContent = createCloudContent();
+        backedUp = persistUnsyncedDraft(recoveryContent);
+      } catch (backupError) {
+        console.warn('Recovery snapshot unavailable:', backupError);
+      }
       setSaveStatus('error');
-      const errorKey = `${error.code || ''}:${error.message || ''}`;
+      const errorKey = `${error.code || ''}:${error.message || ''}:${backedUp}`;
       if (force || lastSaveError !== errorKey) {
-        openAlertModal('云端未保存', `${error.message || '请稍后重试'}\n修改已保留为本地未同步备份。`);
+        if (backedUp) {
+          openAlertModal('云端未保存', `${error.message || '请稍后重试'}\n修改已保留为本地未同步备份。`);
+        } else if (recoveryContent) {
+          openConfirmModal('云端与本地备份均未保存',
+            `${error.message || '云端保存失败'}\n本地备份写入也失败，修改目前仅保留在此页面内存中。请先导出备份，暂勿刷新或关闭页面。`,
+            () => exportUnsyncedBackup(recoveryContent, localDataVersion.value), false, '导出备份', '暂不关闭页面');
+        } else {
+          openAlertModal('未保存', '云端保存与本地备份均失败，请勿刷新或关闭页面。');
+        }
       }
       lastSaveError = errorKey;
       return false;

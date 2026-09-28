@@ -399,3 +399,26 @@ test('repeated automatic save errors retain a draft but alert only once', async 
   assert.equal(h.alerts.length, 1);
   assert.ok(h.savedData.some(([key]) => key.includes('unsynced_v11')));
 });
+
+test('local quota failure cannot prevent a successful cloud save', async () => {
+  let writes = 0;
+  const h = createAuthHarness({ version: 0, storageOverrides: {
+    saveData() { throw new DOMException('quota full', 'QuotaExceededError'); },
+  }, serviceOverrides: { saveUserData: async () => { writes++; return { error: null }; } } });
+  await assert.doesNotReject(h.feature.saveToCloud(() => {}));
+  assert.equal(writes, 1);
+  assert.equal(h.refs.localDataVersion.value, 1);
+});
+
+test('local quota plus cloud failure offers export without claiming a local backup exists', async () => {
+  let exported;
+  const h = createAuthHarness({ version: 0, storageOverrides: {
+    saveData() { throw new DOMException('quota full', 'QuotaExceededError'); },
+  }, serviceOverrides: { saveUserData: async () => ({ error: { message: 'upstream request timeout' } }) },
+  actionOverrides: { exportUnsyncedBackup: async content => { exported = content; } } });
+  await assert.doesNotReject(h.feature.saveToCloud(() => {}));
+  assert.equal(h.alerts.some(args => args.join('').includes('修改已保留为本地未同步备份')), false);
+  assert.equal(typeof h.getConfirmAction(), 'function');
+  await h.getConfirmAction()();
+  assert.equal(exported.schemaVersion, 11);
+});
