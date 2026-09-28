@@ -27,7 +27,7 @@ export const AppRootShell = {
     const closeLibrary = async () => {
       libraryOpen.value = false;
       await nextTick();
-      document.getElementById('library-toggle')?.focus();
+      document.getElementById('library-toggle')?.focus({ preventScroll: true });
     };
     return { libraryOpen, libraryOverlay, closeLibrary };
   },
@@ -35,7 +35,7 @@ export const AppRootShell = {
     <div class="liquid-window flex-1 flex flex-col overflow-hidden relative">
         <app-header :ctx="ctx.appHeader" :library-open="libraryOpen" @toggle-library="libraryOpen = !libraryOpen"></app-header>
 
-        <div class="flex-1 flex overflow-hidden relative">
+        <div class="flex-1 min-w-0 flex overflow-hidden relative">
             <app-sidebar :ctx="ctx.appSidebar"></app-sidebar>
 
             <app-main-content :ctx="ctx.appMainContent"></app-main-content>

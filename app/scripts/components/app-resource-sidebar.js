@@ -19,7 +19,7 @@ export const AppResourceSidebar = {
     watch(() => props.open && props.overlay, async (open) => {
       if (open) {
         await nextTick();
-        panel.value?.querySelector('button')?.focus();
+        panel.value?.querySelector('button')?.focus({ preventScroll: true });
       }
     });
     const trapFocus = (event) => {
@@ -27,8 +27,8 @@ export const AppResourceSidebar = {
       const controls = [...panel.value.querySelectorAll('button:not(:disabled), input, [tabindex="0"]')]
         .filter((element) => element.getClientRects().length);
       const first = controls[0], last = controls.at(-1);
-      if (event.shiftKey && event.target === first) { event.preventDefault(); last?.focus(); }
-      else if (!event.shiftKey && event.target === last) { event.preventDefault(); first?.focus(); }
+      if (event.shiftKey && event.target === first) { event.preventDefault(); last?.focus({ preventScroll: true }); }
+      else if (!event.shiftKey && event.target === last) { event.preventDefault(); first?.focus({ preventScroll: true }); }
     };
     const navigateTabs = (event) => {
       if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
@@ -37,12 +37,12 @@ export const AppResourceSidebar = {
       const count = library.resourceTabs.length;
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? count - 1 : (index + (event.key === 'ArrowRight' ? 1 : count - 1)) % count;
       library.selectType(library.resourceTabs[next].type);
-      event.currentTarget.querySelectorAll('[role="tab"]')[next]?.focus();
+      event.currentTarget.querySelectorAll('[role="tab"]')[next]?.focus({ preventScroll: true });
     };
     const startCreate = async () => {
       library.beginCreate();
       await nextTick();
-      nameInput.value?.focus();
+      nameInput.value?.focus({ preventScroll: true });
     };
     return { ...library, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, startCreate, trapFocus, navigateTabs };
   },

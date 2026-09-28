@@ -37,6 +37,7 @@ html.dark #main-content {
 
 .resource-sidebar {
     width: 320px;
+    min-width: 0;
     max-width: 90vw;
     background: rgba(245, 245, 247, 0.96);
     backdrop-filter: blur(30px);
@@ -51,11 +52,11 @@ html.dark .resource-sidebar {
 .resource-sidebar-content { width: min(320px, 90vw); }
 .library-width-enter-active, .library-width-leave-active {
     transition: width 300ms ease-in-out, opacity 300ms ease-in-out;
+    overflow-anchor: none;
 }
 .library-width-enter-from, .library-width-leave-to {
     width: 0;
     opacity: 0;
-    border-left-width: 0;
 }
 .library-drawer-enter-active, .library-drawer-leave-active {
     transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;

@@ -51,6 +51,17 @@ export function registerAuthFeature(context) {
     getUploadTextElement = () => document.getElementById('upload-text'),
     setSaveStatus,
     startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS,
+    exportUnsyncedBackup = (content, version) => {
+            const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Musche-本地未同步备份-v${version ?? 'unknown'}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
   } = actions;
   const {
     storageService,
@@ -282,21 +293,14 @@ export function registerAuthFeature(context) {
         setSaveStatus('unsaved');
         openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
       } else {
-        if (draft?.content) archiveUnsyncedDraft(draft);
+        const archiveKey = draft?.content ? archiveUnsyncedDraft(draft) : null;
         applyCloudContent(data.content, data.version);
-        if (draft?.content) openConfirmModal(
+        if (archiveKey && !storageService.loadData(`${archiveKey}:exported`)) openConfirmModal(
           '有本地未同步备份',
           '当前显示云端数据。本地未同步修改已单独归档，可先导出为 JSON 对照；导出不会覆盖云端。',
-          () => {
-            const blob = new Blob([JSON.stringify(draft.content, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Musche-本地未同步备份-v${draft.version ?? 'unknown'}.json`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          async () => {
+            await exportUnsyncedBackup(draft.content, draft.version);
+            storageService.saveData(`${archiveKey}:exported`, true);
           },
           false,
           '导出本地备份',

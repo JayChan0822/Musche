@@ -17,6 +17,7 @@ function createAuthHarness({
   loadUserData,
   startupTimeoutMs = 20,
   storageOverrides = {},
+  actionOverrides = {},
 } = {}) {
   const settings = createDefaultSettings();
   const ensureCalls = [];
@@ -86,6 +87,7 @@ function createAuthHarness({
       setSaveStatus: (value) => {
         refs.saveStatus.value = value;
       },
+      ...actionOverrides,
     },
   });
 
@@ -129,6 +131,26 @@ test('cloud sync restore normalizes legacy pool items and restores the last vali
   assert.equal(refs.localDataVersion.value, 3, 'cloud restore should retain the server data version');
   assert.equal(settings.startHour, 8, 'cloud restore should merge synced settings');
   assert.equal(refs.currentSessionId.value, 'S_B', 'cloud restore should select the synced last session when it still exists');
+});
+
+test('exporting a conflict backup dismisses only that archived draft across reloads', async () => {
+  const store=new Map();
+  const draftKey='musche_workflow_unsynced_v11:USER_1';
+  const draft={version:1,content:{pool:[{id:'LOCAL'}],tasks:[],settings:{}}};
+  store.set(draftKey,draft);
+  const storageOverrides={loadData:key=>store.get(key),saveData:(key,value)=>store.set(key,JSON.parse(JSON.stringify(value))),setItem:(key,value)=>store.set(key,value)};
+  let prompts=0, exported=null, confirm;
+  const options={version:3,cloudContent:{pool:[],tasks:[],settings:{}},storageOverrides,actionOverrides:{
+    openConfirmModal:(_title,_text,callback)=>{prompts++;confirm=callback;},
+    exportUnsyncedBackup:content=>{exported=content;},
+  }};
+  const h=createAuthHarness(options);
+  await h.feature.loadCloudData();assert.equal(prompts,1);
+  await confirm();assert.deepEqual(exported,draft.content);
+  await createAuthHarness(options).feature.loadCloudData();assert.equal(prompts,1);
+  assert.ok([...store.keys()].some(key=>key.startsWith('musche_workflow_recovery:')));
+  store.set(draftKey,{...draft,content:{...draft.content,pool:[{id:'NEW_LOCAL'}]}});
+  await createAuthHarness(options).feature.loadCloudData();assert.equal(prompts,2);
 });
 
 test('cloud sync restore falls back to the first available session when lastSessionId is stale', async () => {
