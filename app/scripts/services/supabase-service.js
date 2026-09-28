@@ -1,6 +1,8 @@
 export function createSupabaseService({
   url,
   key,
+  reportTiming = (entry) => console.info('[Musche sync timing]', entry),
+  now = () => performance.now(),
   createClientLoader = async () => {
     const module = await import('@supabase/supabase-js');
     return module.createClient;
@@ -52,6 +54,21 @@ export function createSupabaseService({
     return clientPromise;
   };
   const withClient = async (callback) => callback(await getClient());
+  const measured = async (operation, callback) => {
+    const start = now();
+    let code = null;
+    try {
+      const result = await withClient(callback);
+      code = result?.error?.code || (result?.error ? 'request_error' : null);
+      return result;
+    } catch (error) {
+      code = error?.name || 'request_error';
+      throw error;
+    } finally {
+      // No URLs, tokens, user IDs or record contents in diagnostic output.
+      try { reportTiming({ operation, durationMs: Math.round(now() - start), errorCode: code }); } catch { /* Diagnostics cannot break synchronization. */ }
+    }
+  };
   const publicUrlBase = url.replace(/\/+$/, '');
 
   return {
@@ -87,10 +104,10 @@ export function createSupabaseService({
       };
     },
     loadUserData(userId) {
-      return withClient((client) => client.from('user_data').select('content, version').eq('user_id', userId).single());
+      return measured('load-user-data', (client) => client.from('user_data').select('content, version').eq('user_id', userId).single());
     },
     fetchUserDataVersion(userId) {
-      return withClient((client) => client.from('user_data').select('version').eq('user_id', userId).single());
+      return measured('read-version', (client) => client.from('user_data').select('version').eq('user_id', userId).single());
     },
     saveUserData(userId, content, version) {
       return withClient(async (client) => {

@@ -89,6 +89,7 @@ function createAuthHarness({
       setSaveStatus: (value) => {
         refs.saveStatus.value = value;
       },
+      cloudReadTimeoutMs: startupTimeoutMs,
       ...actionOverrides,
     },
   });
@@ -534,4 +535,13 @@ test('export acknowledgement survives restart and a failed export never acknowle
  const restarted=createAuthHarness(options);
  await restarted.feature.loadCloudData();assert.equal(count,2);
  assert.equal(restarted.refs.itemPool.value.length,0);
+});
+
+
+test('cloud data uses a separate deadline from authentication recovery', async () => {
+ const h=createAuthHarness({startupTimeoutMs:5, actionOverrides:{cloudReadTimeoutMs:100},
+ loadUserData:async()=>{await new Promise(resolve=>setTimeout(resolve,20));return {data:{version:4,content:{pool:[{id:'loaded'}],tasks:[],settings:{}}},error:null};}});
+ await h.feature.bootSessionData();
+ assert.equal(h.refs.itemPool.value[0].id,'loaded');
+ assert.equal(h.alerts.some(args=>args.join(' ').includes('数据尚未加载')),false);
 });

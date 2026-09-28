@@ -52,6 +52,7 @@ export function registerAuthFeature(context) {
     getUploadTextElement = () => document.getElementById('upload-text'),
     setSaveStatus,
     startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS,
+    cloudReadTimeoutMs = 30000,
     exportUnsyncedBackup = (content, version) => {
             const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -194,13 +195,13 @@ export function registerAuthFeature(context) {
     }
   }
 
-  async function withStartupTimeout(request, label) {
+  async function withStartupTimeout(request, label, timeoutMs = startupTimeoutMs) {
     let timer;
     try {
       return await Promise.race([
         Promise.resolve(request),
         new Promise((resolve, reject) => {
-          timer = setTimeout(() => reject(createStartupTimeoutError(label)), startupTimeoutMs);
+          timer = setTimeout(() => reject(createStartupTimeoutError(label)), timeoutMs);
         }),
       ]);
     } finally {
@@ -315,7 +316,7 @@ export function registerAuthFeature(context) {
 
     const request = supabaseService.loadUserData(user.value.id);
     const { data, error } = withStartupDeadline
-      ? await withStartupTimeout(request, 'Cloud data request')
+      ? await withStartupTimeout(request, 'Cloud data request', cloudReadTimeoutMs)
       : await request;
     if (error) throw error;
 

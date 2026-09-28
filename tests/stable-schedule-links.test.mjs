@@ -109,3 +109,11 @@ test('automatic cleanup and prune preserve unallocated blocks referenced by hist
   assert.equal(getPartAllocation(settings,pool[0],'rec').scheduleId,null);
   assert.equal(getPartAllocation(settings,pool[1],'rec').scheduleId,'B');
 });
+
+test('indexed cleanup preserves other sessions and historical empty blocks', () => {
+ const {settings,pool,blocks}=fixture();
+ appendWorkLog(settings,pool[0],'rec',{recStart:'10:00'},{scheduleId:'A',date:blocks[0].date});
+ const refs={itemPool:ref([]),scheduledTasks:ref([...blocks,{...blocks[0],scheduleId:'OTHER',sessionId:'OTHER'}]),currentSessionId:ref('S')};
+ registerScheduleFeature({refs,state:{settings},utils:{},actions:{}}).cleanupEmptySchedules();
+ assert.deepEqual(refs.scheduledTasks.value.map(block=>block.scheduleId),['A','OTHER']);
+});

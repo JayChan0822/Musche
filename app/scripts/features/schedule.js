@@ -1,3 +1,4 @@
+import { getWorkPartId } from '../utils/workflow-ledger.js';
 import { hasStableScheduleLinks, resolveItemSchedule, projectItemSection, assignItemSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { getScheduleStage, viewFromStage, stageFromView } from '../utils/workflow.js';
 import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
@@ -89,6 +90,24 @@ export function registerScheduleFeature(context) {
     (log.sessionId || 'S_DEFAULT') === (block.sessionId || 'S_DEFAULT') && log.stage === getScheduleStage(block));
 
   function cleanupEmptySchedules() {
+    if (hasStableScheduleLinks(settings)) {
+      const links = new Map(settings.workflow.allocations.map(link => [link.partId, link.scheduleId]));
+      const occupied = new Set();
+      const key = (session, stage, id) => JSON.stringify([session || 'S_DEFAULT', stage, id]);
+      for (const item of itemPool.value) {
+        for (const stage of ['rec', 'edit']) {
+          if (!peekItemSplitState(item, viewFromStage(stage)).active) continue;
+          const id = links.get(getWorkPartId(item, stage));
+          if (id != null) occupied.add(key(item.sessionId, stage, id));
+        }
+      }
+      const historical = new Set(settings.workflow.workLogs.map(log => key(log.sessionId, log.stage, String(log.scheduleId))));
+      scheduledTasks.value = scheduledTasks.value.filter(block =>
+        (block.sessionId || 'S_DEFAULT') !== currentSessionId.value ||
+        occupied.has(key(block.sessionId, getScheduleStage(block), block.scheduleId)) ||
+        historical.has(key(block.sessionId, getScheduleStage(block), String(block.scheduleId))));
+      return;
+    }
     const activePoolIds = new Set(itemPool.value.map((item) => item.id));
     const groups = {};
 
