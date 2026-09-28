@@ -5,7 +5,7 @@ import { AppMetadataLibrary } from './app-metadata-library.js';
 export const AppResourceSidebar = {
   name: 'AppResourceSidebar',
   components: { AppMetadataLibrary, AppResourceInfoModal: defineAsyncComponent(() => import('./app-resource-info-modal.js').then((module) => module.AppResourceInfoModal)) },
-  props: { ctx: { type: Object, required: true }, open: Boolean, overlay: Boolean },
+  props: { ctx: { type: Object, required: true }, open: Boolean },
   emits: ['close'],
   setup(props) {
     const library = createResourceLibrary(props.ctx);
@@ -16,14 +16,11 @@ export const AppResourceSidebar = {
     const openResourceInfo = (selection) => { infoSelection.value = selection; };
     watch(library.activeType, () => { editingGroupId.value = null; });
     const panel = ref(null);
-    watch(() => props.open && props.overlay, async (open) => {
-      if (open) {
-        await nextTick();
-        panel.value?.querySelector('button')?.focus({ preventScroll: true });
-      }
-    });
+    const focusPanel = () => {
+      if (props.open) panel.value?.querySelector('button')?.focus({ preventScroll: true });
+    };
     const trapFocus = (event) => {
-      if (!props.overlay || event.key !== 'Tab') return;
+      if (event.key !== 'Tab') return;
       const controls = [...panel.value.querySelectorAll('button:not(:disabled), input, [tabindex="0"]')]
         .filter((element) => element.getClientRects().length);
       const first = controls[0], last = controls.at(-1);
@@ -44,16 +41,16 @@ export const AppResourceSidebar = {
       await nextTick();
       nameInput.value?.focus({ preventScroll: true });
     };
-    return { ...library, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, startCreate, trapFocus, navigateTabs };
+    return { ...library, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, focusPanel, startCreate, trapFocus, navigateTabs };
   },
   template: `
-    <Transition name="library-backdrop"><button v-if="open && overlay" class="absolute inset-0 z-[60] bg-black/25 backdrop-blur-sm" aria-label="关闭资料库遮罩" @click="$emit('close')"></button></Transition>
-    <Transition :name="overlay ? 'library-drawer' : 'library-width'">
-    <aside v-if="open" ref="panel" id="resource-library" aria-label="资料库" :role="overlay ? 'dialog' : 'complementary'" :aria-modal="overlay ? true : undefined"
-           :inert="!open" :aria-hidden="!open"
-           class="resource-sidebar flex flex-col min-h-0 shrink-0 overflow-hidden border-l border-black/10 dark:border-white/10"
-           :class="overlay ? 'absolute inset-y-0 right-0 z-[70] shadow-2xl' : 'relative z-20'"
-           @keydown="trapFocus" @keydown.esc.stop="$emit('close')">
+    <Teleport to="body">
+    <div class="library-overlay-root" :class="{'library-overlay-open': open}" :inert="!open" :aria-hidden="!open">
+    <Transition name="library-backdrop"><button v-if="open" tabindex="-1" class="absolute inset-0 bg-black/25 backdrop-blur-sm" aria-label="关闭资料库遮罩" @click="$emit('close')"></button></Transition>
+    <Transition name="library-drawer" @after-enter="focusPanel">
+    <aside v-if="open" ref="panel" id="resource-library" aria-label="资料库" role="dialog" aria-modal="true"
+           class="resource-sidebar absolute inset-y-0 right-0 shadow-2xl flex flex-col min-h-0 overflow-hidden border-l border-black/10 dark:border-white/10"
+           @keydown.stop="trapFocus" @keydown.esc.stop="$emit('close')">
       <div class="resource-sidebar-content flex flex-col flex-1 min-h-0">
       <div class="p-3 border-b border-black/5 dark:border-white/10 shrink-0 space-y-3">
         <div class="flex items-center justify-between h-9">
@@ -138,6 +135,8 @@ export const AppResourceSidebar = {
       </div>
     </aside>
     </Transition>
+    </div>
+    </Teleport>
     <AppResourceInfoModal v-if="infoSelection" :ctx="ctx" :selection="infoSelection" @close="infoSelection = null" />
   `,
 };

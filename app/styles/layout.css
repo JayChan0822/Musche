@@ -50,14 +50,18 @@ html.dark .resource-sidebar {
 }
 
 .resource-sidebar-content { width: min(320px, 90vw); }
-.library-width-enter-active, .library-width-leave-active {
-    transition: width 300ms ease-in-out, opacity 300ms ease-in-out;
-    overflow-anchor: none;
+/* Keep the offscreen animation out of both layout and scrollable overflow. */
+.library-overlay-root {
+    position: fixed;
+    inset: 0;
+    overflow: clip;
+    z-index: 4000;
+    pointer-events: none;
+    isolation: isolate;
+    contain: layout paint;
+    overscroll-behavior: none;
 }
-.library-width-enter-from, .library-width-leave-to {
-    width: 0;
-    opacity: 0;
-}
+.library-overlay-open { pointer-events: auto; }
 .library-drawer-enter-active, .library-drawer-leave-active {
     transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
 }
@@ -65,7 +69,6 @@ html.dark .resource-sidebar {
 .library-backdrop-enter-active, .library-backdrop-leave-active { transition: opacity 300ms ease-in-out; }
 .library-backdrop-enter-from, .library-backdrop-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
-    .library-width-enter-active, .library-width-leave-active,
     .library-drawer-enter-active, .library-drawer-leave-active,
     .library-backdrop-enter-active, .library-backdrop-leave-active { transition: none; }
 }

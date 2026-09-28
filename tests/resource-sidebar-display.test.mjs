@@ -4,7 +4,15 @@ import { createSSRApp, h, reactive } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import { AppResourceSidebar } from '../app/scripts/components/app-resource-sidebar.js';
 import { AppSettingsModal } from '../app/scripts/components/app-settings-modal.js';
+import { AppRootShell } from '../app/scripts/components/app-root-shell.js';
+import { readFileSync } from 'node:fs';
 import { createRootShellState } from '../app/scripts/state/root-shell-state.js';
+
+async function renderLibrary(app) {
+  const context = {};
+  const html = await renderToString(app, context);
+  return html + (context.teleports?.body || '');
+}
 
 const ctx = () => reactive({
   settings: { instruments: [{ id: 'I', name: 'Guzheng', group: 'Plucks', color: '#123456' }], musicians: [], projects: [] },
@@ -12,8 +20,8 @@ const ctx = () => reactive({
 });
 
 test('right library renders three primary tabs and a secondary Metadata entry', async () => {
-  const html = await renderToString(createSSRApp({ render: () => h(AppResourceSidebar, { ctx: ctx(), open: true }) }));
-  assert.match(html, /role="complementary"/);
+  const html = await renderLibrary(createSSRApp({ render: () => h(AppResourceSidebar, { ctx: ctx(), open: true }) }));
+  assert.match(html, /role="dialog" aria-modal="true"/);
   assert.equal((html.match(/role="tab"/g) || []).length, 3);
   assert.match(html, /Metadata/);
   assert.match(html, /搜索乐器/);
@@ -28,10 +36,10 @@ test('right library renders three primary tabs and a secondary Metadata entry', 
 });
 
 test('small-screen library exposes a dismissible dialog and hidden library renders no controls', async () => {
-  const html = await renderToString(createSSRApp(AppResourceSidebar, { ctx: ctx(), open: true, overlay: true }));
+  const html = await renderLibrary(createSSRApp(AppResourceSidebar, { ctx: ctx(), open: true, overlay: true }));
   assert.match(html, /role="dialog" aria-modal="true"/);
   assert.match(html, /关闭资料库遮罩/);
-  const closed = await renderToString(createSSRApp(AppResourceSidebar, { ctx: ctx(), open: false }));
+  const closed = await renderLibrary(createSSRApp(AppResourceSidebar, { ctx: ctx(), open: false }));
   assert.doesNotMatch(closed, /<aside|<input|<button/);
 });
 
@@ -56,7 +64,7 @@ test('metadata tab displays shared studio and personnel collections with edit ac
     result.selectType('metadata');
     return result;
   } };
-  const html = await renderToString(createSSRApp(component, { ctx: context, open: true }));
+  const html = await renderLibrary(createSSRApp(component, { ctx: context, open: true }));
   for (const text of ['录音棚', '工程师', '操作员', '助理', 'Studio A', 'Engineer B']) assert.ok(html.includes(text));
   assert.match(html, /返回资料库/);
   assert.doesNotMatch(html, /role="tablist"/);
@@ -74,7 +82,7 @@ for (const type of ['musician', 'project']) {
       result.selectType(type);
       return result;
     } };
-    const html = await renderToString(createSSRApp(component, { ctx: context, open: true }));
+    const html = await renderLibrary(createSSRApp(component, { ctx: context, open: true }));
     assert.match(html, /Test entry/);
     assert.doesNotMatch(html, /Guzheng/);
     if (type === 'project') {
@@ -87,3 +95,11 @@ for (const type of ['musician', 'project']) {
     }
   });
 }
+
+ test('library is always a viewport overlay with clipped sliding motion and no responsive width switch', () => {
+   assert.doesNotMatch(AppRootShell.setup.toString(), /matchMedia|1200/);
+   assert.match(AppResourceSidebar.template, /<Teleport to="body">/);
+   assert.match(AppResourceSidebar.template, /@after-enter="focusPanel"/);
+   const css=readFileSync(new URL('../app/styles/layout.css', import.meta.url),'utf8');
+   assert.match(css, /\.library-overlay-root\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;[^}]*overflow:\s*clip;/);
+ });
