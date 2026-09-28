@@ -366,9 +366,11 @@ export function registerSidebarStatsFeature(context) {
         statusKey = 'completed';
       } else if (effectiveCount > 0 && completedCount === effectiveCount) {
         statusKey = 'completed';
+      } else if (poolItems.some(item => item.workflowStatus?.[stage] === 'in-progress')) {
+        statusKey = 'in-progress';
       } else if (hasMeasuredBaseline && scheduledSecs > 0 && scheduledSecs < totalSecs) {
         statusKey = 'insufficient';
-      } else if (recordedCount > 0 || poolItems.some(item => item.workflowStatus?.[stage] === 'in-progress')) {
+      } else if (recordedCount > 0) {
         statusKey = 'in-progress';
       } else if (!hasMeasuredBaseline && scheduleCount > 0) {
         statusKey = 'scheduled';

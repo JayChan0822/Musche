@@ -28,8 +28,23 @@ export function createTrackListRecords(deps) {
   const ensureLedger = () => settings && ensureWorkflowLedger(settings, itemPool.value, scheduledTasks.value, { bootstrap: !settings.workflow });
   const workAttempts = (item) => settings ? getWorkLogs(settings, item, stageFromView(getViewType())) : [];
 
+  const syncRecordStatus = (item, viewType = getViewType()) => {
+    const stage = stageFromView(viewType);
+    if (item.isSkipped || item.workflowStatus?.[stage] === 'not-required') return;
+    const logs = settings ? getWorkLogs(settings, item, stage) : [];
+    const record = settings ? logs.at(-1) : item.records?.[viewType];
+    const validTime = value => /^([01]?\d|2[0-3]):[0-5]\d$/.test(value || '');
+    const hasDuration = /^\d{1,3}:[0-5]\d(?::[0-5]\d)?$/.test(record?.actualDuration || '') &&
+      record.actualDuration.split(':').some(value => Number(value) > 0);
+    const complete = (validTime(record?.recStart) && validTime(record?.recEnd)) || hasDuration;
+    const status = complete ? 'completed' : validTime(record?.recStart) || validTime(record?.recEnd) || logs.length > 0 ? 'in-progress' : 'not-started';
+    item.workflowStatus = { ...(item.workflowStatus || {}), [stage]: status };
+    const part = settings?.workflow?.workParts.find(part => part.poolItemId === item.id && part.sessionId === (item.sessionId || 'S_DEFAULT') && part.stage === stage);
+    if (part) part.status = status;
+  };
+
   const writeCurrentAttempt = (item, viewType = getViewType()) => {
-    if (!settings) return;
+    if (!settings) { syncRecordStatus(item, viewType); return; }
     ensureLedger();
     const stage = stageFromView(viewType);
     const record = item.records?.[viewType];
@@ -40,6 +55,7 @@ export function createTrackListRecords(deps) {
     } else if (record.recStart || record.recEnd || record.actualDuration || record.date) {
       appendWorkLog(settings, item, stage, record);
     }
+    syncRecordStatus(item, viewType);
   };
 
   const startNewWorkAttempt = (item) => {
@@ -57,7 +73,7 @@ export function createTrackListRecords(deps) {
       date: schedule?.date || '', recordingInfo: item.recordingInfo || schedule?.recordingInfo || {}, editInfo: item.editInfo || schedule?.editInfo || {},
     });
     hydrateWorkRecord(settings, item, stage);
-    item.workflowStatus = { ...(item.workflowStatus || {}), [stage]: 'in-progress' };
+    syncRecordStatus(item);
     pushHistory();
   };
 
@@ -139,7 +155,7 @@ export function createTrackListRecords(deps) {
       record.actualDuration = formatSecs(diffSecs);
 
       saveTrackRecord(item);
-    } else if (settings) {
+    } else {
       record.actualDuration = '';
       saveTrackRecord(item);
     }
@@ -306,6 +322,7 @@ export function createTrackListRecords(deps) {
       const active = getActiveWorkLog(settings, item, stageFromView(viewType));
       if (active) invalidateWorkLog(settings, active.id);
       setActiveWorkLog(settings, item, stageFromView(viewType), null);
+      syncRecordStatus(item, viewType);
       pushHistory();
       return;
     }
@@ -318,6 +335,7 @@ export function createTrackListRecords(deps) {
     delete record.assigneeName;
     delete record.musicDuration;
     delete record.date;
+    syncRecordStatus(item, viewType);
 
 
     const targetId = getTargetId(item, viewType);

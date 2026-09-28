@@ -156,3 +156,38 @@ test('recording times immediately updates the linked schedule through layout', (
   records.cancelPendingTrackSave();
   assert.equal(calls.resize, 1);
 });
+
+for (const [view, stage, other] of [['musician', 'rec', 'edit'], ['project', 'edit', 'rec']]) {
+  test(`${stage} recording times update only its own workflow status`, () => {
+    const { records } = createRecords({ getViewType: () => view });
+    const item = { workflowStatus: { [stage]: 'not-started', [other]: 'completed' }, records: { [view]: { recStart: '10:00' } } };
+    records.calcTrackDiff(item);
+    assert.equal(item.workflowStatus[stage], 'in-progress');
+    item.records[view].recEnd = '10:15';
+    records.calcTrackDiff(item);
+    assert.equal(item.workflowStatus[stage], 'completed');
+    records.clearTrackTime(item);
+    records.cancelPendingTrackSave();
+    assert.equal(item.workflowStatus[stage], 'not-started');
+    assert.equal(item.workflowStatus[other], 'completed');
+  });
+}
+
+test('latest rework controls status even when an older attempt is edited', async () => {
+  const { ensureWorkflowLedger, appendWorkLog, setActiveWorkLog } = await import('../app/scripts/utils/workflow-ledger.js');
+  const settings = {};
+  const item = { id: 'rework', records: { musician: {} } };
+  ensureWorkflowLedger(settings, [item], [], { bootstrap: true });
+  const old = appendWorkLog(settings, item, 'rec', { recStart: '09:00', recEnd: '10:00', actualDuration: '01:00:00' });
+  const latest = appendWorkLog(settings, item, 'rec', { recStart: '11:00' });
+  setActiveWorkLog(settings, item, 'rec', old.id);
+  const { records } = createRecords({ settings, itemPool: ref([item]) });
+  records.saveWorkAttempt(item);
+  assert.equal(item.workflowStatus.rec, 'in-progress');
+  setActiveWorkLog(settings, item, 'rec', latest.id);
+  item.records.musician.recEnd = '11:20';
+  records.calcTrackDiff(item);
+  records.cancelPendingTrackSave();
+  assert.equal(item.workflowStatus.rec, 'completed');
+  assert.equal(settings.workflow.workParts.find(part => part.stage === 'rec').status, 'completed');
+});
