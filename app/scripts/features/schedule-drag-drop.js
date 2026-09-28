@@ -1,4 +1,4 @@
-import { reassignPoolTask } from '../utils/pool-reassignment.js';
+import { reassignPoolTask, reassignmentSchedules } from '../utils/pool-reassignment.js';
 import { allocateNewSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { scheduleIdentity } from '../utils/schedule-context.js';
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
@@ -20,6 +20,7 @@ export function registerScheduleDragDropFeature(context) {
     isResourceCompleted = () => false,
     clearPoolRecord = () => {},
     clearAggregateRecords = null,
+    chooseSchedule = async schedules => (await import('../components/choose-assignment-schedule.js')).chooseAssignmentSchedule(schedules),
     consoleError = (...args) => console.error(...args),
   } = actions;
 
@@ -110,11 +111,23 @@ export function registerScheduleDragDropFeature(context) {
     if (draggedData.source === 'pool') {
       clearDragOver('.assignment-drop-target');
       const target = event.target.closest?.('[data-stat-id]');
-      if (target && draggedData.view === sidebarTab.value) {
-        pushHistory();
-        if (reassignPoolTask(settings, itemPool.value, scheduledTasks.value, draggedData.item.id, draggedData.view, target.dataset.statId)) pushHistory();
-      }
+      const drag = draggedData;
       draggedData = null;
+      if (target && drag.view === sidebarTab.value) {
+        const targetId = target.dataset.statId;
+        const item = itemPool.value.find(item => item.id === drag.item.id);
+        if (!item || (item[drag.view === 'project' ? 'editorId' : 'musicianId'] || '__UNASSIGNED__') === targetId) return;
+        const candidates = reassignmentSchedules(scheduledTasks.value, item, drag.view, targetId);
+        let scheduleId;
+        if (candidates.length > 1) {
+          scheduleId = await chooseSchedule(candidates);
+          if (scheduleId == null) return;
+        }
+        // The selection can outlive a view/session change; never commit across it.
+        if (sidebarTab.value !== drag.view || (item.sessionId || 'S_DEFAULT') !== (currentSessionId.value || 'S_DEFAULT')) return;
+        pushHistory();
+        if (reassignPoolTask(settings, itemPool.value, scheduledTasks.value, item.id, drag.view, targetId, scheduleId)) pushHistory();
+      }
       return;
     }
 

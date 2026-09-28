@@ -1044,3 +1044,60 @@ input[type=range].custom-slider::-webkit-slider-thumb {
     outline-offset: -2px;
     background-color: rgb(59 130 246 / 12%);
 }
+
+/* Resource detail: quiet identity accents and a single shared metric surface. */
+.resource-info-modal .insight-header {
+    border-top: 3px solid var(--insight-accent, #64748b);
+    background: color-mix(in srgb, var(--insight-accent, #64748b) 7%, transparent);
+}
+.resource-info-modal .insight-avatar {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--insight-accent, #64748b) 12%, transparent);
+}
+.resource-info-modal .insight-toolbar { background: rgb(0 0 0 / 2%); }
+.resource-info-modal .insight-metrics {
+    padding: 18px 16px;
+    border: 1px solid rgb(0 0 0 / 6%);
+    border-radius: 14px;
+    background: rgb(0 0 0 / 3%);
+    gap: 0;
+}
+.resource-info-modal .insight-metrics > div { padding: 0 16px; min-width: 0; }
+.resource-info-modal .insight-metrics > div:first-child { padding-left: 0; }
+.resource-info-modal .insight-metrics > div:last-child { padding-right: 0; }
+.resource-info-modal .insight-metrics > div + div { border-left: 1px solid rgb(0 0 0 / 8%); }
+.resource-info-modal .insight-metrics > div:first-child > .font-mono {
+    color: color-mix(in srgb, var(--insight-accent, #64748b) 65%, #111827);
+}
+.resource-info-modal .insight-summary h3,
+.resource-info-modal .insight-recent h3 { display: flex; align-items: center; gap: 8px; }
+.resource-info-modal .insight-summary h3::before,
+.resource-info-modal .insight-recent h3::before {
+    content: ''; width: 3px; height: 12px; border-radius: 2px;
+    background: var(--insight-accent, #64748b);
+}
+.resource-info-modal .insight-summary dl > div {
+    padding-bottom: 7px; border-bottom: 1px solid rgb(0 0 0 / 4%);
+}
+.resource-info-modal .insight-recent-row {
+    padding-left: 10px; padding-right: 10px; border-radius: 8px;
+}
+.resource-info-modal .insight-recent-row:nth-child(even) { background: rgb(0 0 0 / 2%); }
+.resource-info-modal .insight-recent-row:hover,
+.resource-info-modal tbody tr:hover { background: rgb(0 0 0 / 4%); }
+.resource-info-modal .insight-notes { padding: 10px 12px; border: 0; border-radius: 8px; background: rgb(0 0 0 / 2%); }
+.dark .resource-info-modal .insight-toolbar { background: rgb(0 0 0 / 8%); }
+.dark .resource-info-modal .insight-metrics { background: rgb(255 255 255 / 4%); border-color: rgb(255 255 255 / 7%); }
+.dark .resource-info-modal .insight-metrics > div + div { border-color: rgb(255 255 255 / 9%); }
+.dark .resource-info-modal .insight-metrics > div:first-child > .font-mono {
+    color: color-mix(in srgb, var(--insight-accent, #64748b) 45%, white);
+}
+.dark .resource-info-modal .insight-summary dl > div { border-color: rgb(255 255 255 / 5%); }
+.dark .resource-info-modal .insight-recent-row:nth-child(even),
+.dark .resource-info-modal .insight-notes { background: rgb(255 255 255 / 2%); }
+.dark .resource-info-modal .insight-recent-row:hover,
+.dark .resource-info-modal tbody tr:hover { background: rgb(255 255 255 / 5%); }
+@media (max-width: 480px) {
+    .resource-info-modal .insight-metrics { padding: 14px 12px; grid-template-columns: 1fr 1fr; row-gap: 16px; }
+    .resource-info-modal .insight-metrics > div { padding: 0 10px; }
+    .resource-info-modal .insight-metrics > div:last-child { grid-column: 1 / -1; border-left: 0; border-top: 1px solid rgb(128 128 128 / 15%); padding: 12px 0 0; }
+}

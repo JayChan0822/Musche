@@ -34,3 +34,38 @@ test('reassignment removes an empty unrecorded booking but never a recorded one'
   assert.equal(schedules.length,recorded?1:0);
  }
 });
+
+test('joins the only matching schedule and rejects ambiguous or invalid destinations', () => {
+ const settings={musicians:[{id:'new',roles:['editor']}]};
+ const item={id:'a',sessionId:'S',editorId:'old'};
+ const tasks=[{scheduleId:'B',sessionId:'S',stage:'edit',editorId:'new',date:'2026-09-28',startTime:'10:00'},
+ {scheduleId:'other-stage',sessionId:'S',stage:'rec',musicianId:'new'},
+ {scheduleId:'other-session',sessionId:'X',stage:'edit',editorId:'new'}];
+ assert.equal(reassignPoolTask(settings,[item],tasks,'a','project','new'),true);
+ assert.equal(getPartAllocation(settings,item,'edit').scheduleId,'B');
+ item.editorId='old';tasks.push({...tasks[0],scheduleId:'C'});
+ assert.equal(reassignPoolTask(settings,[item],tasks,'a','project','new'),false);
+ assert.equal(item.editorId,'old');
+ assert.equal(reassignPoolTask(settings,[item],tasks,'a','project','new','other-session'),false);
+ assert.equal(reassignPoolTask(settings,[item],tasks,'a','project','new','C'),true);
+ assert.equal(getPartAllocation(settings,item,'edit').scheduleId,'C');
+});
+
+test('multi-schedule drop waits for selection and cancellation leaves source untouched', async () => {
+ const { registerScheduleDragDropFeature }=await import('../app/scripts/features/schedule-drag-drop.js');
+ for(const chosen of [null,'B2']) {
+  const item={id:'a',sessionId:'S',editorId:'old'};
+  const settings={musicians:[{id:'new',roles:['editor']}]};
+  const tasks=['B1','B2'].map(scheduleId=>({scheduleId,stage:'edit',sessionId:'S',editorId:'new'}));
+  let choose,history=0;
+  const feature=registerScheduleDragDropFeature({refs:{itemPool:{value:[item]},scheduledTasks:{value:tasks},sidebarTab:{value:'project'},currentSessionId:{value:'S'},pxPerMin:{value:1}},state:{settings},utils:{formatSecs:String},actions:{getDocument:()=>({querySelectorAll:()=>[]}),pushHistory:()=>history++,chooseSchedule:()=>new Promise(resolve=>choose=resolve)}});
+  feature.dragStart({dataTransfer:{},target:null},item,'pool');
+  const pending=feature.dropToPool({currentTarget:{classList:{remove(){}}},target:{closest:()=>({dataset:{statId:'new'}})}});
+  assert.equal(item.editorId,'old');
+  feature.handleDragEnd({target:null});
+  choose(chosen);await pending;
+  assert.equal(item.editorId,chosen?'new':'old');
+  assert.equal(history,chosen?2:0);
+  if(chosen)assert.equal(getPartAllocation(settings,item,'edit').scheduleId,'B2');
+ }
+});

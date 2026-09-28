@@ -10,3 +10,6 @@ Steps:
 2. Implement helper and native drag/drop wiring with target highlight and cleanup.
 3. Remove Take List completion checkbox; retain automatic status logic.
 4. Run focused tests, full tests and build.
+
+## Updated approved behavior
+Reassignment joins the new owner's schedule in the same session and stage. One candidate is automatic; multiple candidates require a date/time choice before mutation; cancel is a no-op. No candidates remains unscheduled. Preserve historical ownership and other stage links. Validate again on commit.
