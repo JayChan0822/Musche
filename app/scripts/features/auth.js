@@ -1,3 +1,4 @@
+import { withLoadingDialog } from '../services/loading-dialog.js';
 import { migrateWorkflowContent, preserveWorkflowBackup, rememberWorkflowContent, serializeWorkflowContent, setWorkflowWriteBlocked } from '../utils/workflow-migration.js';
 import { computed } from 'vue';
 
@@ -547,13 +548,23 @@ export function registerAuthFeature(context) {
   };
 
   async function handleLogin() {
+    if (authLoading.value) return;
+    if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
+    try {
+      return await withLoadingDialog('正在登录', '正在验证账号并加载日程…', performLogin);
+    } catch (error) {
+      openAlertModal('登录未完成', describeSyncError(error));
+    } finally { authLoading.value = false; }
+  }
+
+  async function performLogin() {
     if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
     authLoading.value = true;
 
-    const { data, error } = await supabaseService.signInWithPassword({
+    const { data, error } = await withStartupTimeout(supabaseService.signInWithPassword({
       email: authForm.email,
       password: authForm.password,
-    });
+    }), 'Login');
 
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
@@ -564,7 +575,7 @@ export function registerAuthFeature(context) {
     } else {
       user.value = data.user;
       showAuthModal.value = false;
-      await loadCloudData();
+      await loadCloudData({ withStartupDeadline: true });
     }
 
     authLoading.value = false;
@@ -757,7 +768,7 @@ export function registerAuthFeature(context) {
 
     try {
       if (activeSave) await activeSave;
-      await loadCloudData();
+      await withLoadingDialog('正在同步日程', '正在读取云端数据与核对本地备份…', () => loadCloudData({ withStartupDeadline: true }));
       setTimeout(() => {
         if (isSyncing) isSyncing.value = false;
 

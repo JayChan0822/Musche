@@ -1,4 +1,4 @@
-import { getWorkLogs, getPartAllocation } from '../utils/workflow-ledger.js';
+import { getWorkPartId } from '../utils/workflow-ledger.js';
 import { getScheduleStage, getAssigneeId, stageFromView, UNASSIGNED_ID } from '../utils/workflow.js';
 import { computed, reactive } from 'vue';
 
@@ -68,10 +68,21 @@ export function registerSidebarStatsFeature(context) {
     const currentRecordType = recordTypeMap[filterKey] || 'musician';
     const stage = stageFromView(currentRecordType);
     const canonical = settings.workflow?.version >= 11;
-    const logsOf = item => getWorkLogs(settings, item, stage);
+    // Build once per computed pass instead of scanning every work log for every
+    // item in every schedule. Rebuilt on reactive changes, so no stale cache.
+    const logsByPart = new Map();
+    for (const log of settings.workflow?.workLogs || []) {
+      if (log.voided) continue;
+      if (!logsByPart.has(log.partId)) logsByPart.set(log.partId, []);
+      logsByPart.get(log.partId).push(log);
+    }
+    for (const logs of logsByPart.values()) logs.sort((a, b) => a.attemptNumber - b.attemptNumber);
+    const allocations = new Map((settings.workflow?.allocations || []).map(link => [link.partId, link.scheduleId]));
+    const logsOf = item => logsByPart.get(getWorkPartId(item, stage)) || [];
     const belongsToBlock = (item, block, index) => canonical
-      ? getPartAllocation(settings, item, stage)?.scheduleId === block.scheduleId
+      ? allocations.get(getWorkPartId(item, stage)) === block.scheduleId
       : block.templateId ? block.templateId === item.id : (item.sectionIndex || 0) === index;
+    const blockLogs = new Map();
     const ownerGrouping = filterKey === 'musicianId' || filterKey === 'editorId';
     const groupId = (item) => ownerGrouping ? getAssigneeId(item, stage) || UNASSIGNED_ID : item[filterKey];
     const currentSessionItems = itemPool.value
@@ -90,6 +101,11 @@ export function registerSidebarStatsFeature(context) {
           sectionIndex: splitState.sectionIndex,
         };
       });
+
+    for (const item of currentSessionItems) for (const log of logsOf(item)) {
+      if (!blockLogs.has(log.scheduleId)) blockLogs.set(log.scheduleId, []);
+      blockLogs.get(log.scheduleId).push(log);
+    }
 
     const rawQuery = globalSearchQuery.value.trim().toLowerCase();
     const statusDefinitions = {
@@ -335,7 +351,7 @@ export function registerSidebarStatsFeature(context) {
             return belongsToBlock(item, block, blockIndex);
           });
           const blockRecords = canonical
-            ? currentSessionItems.flatMap(item => logsOf(item)).filter(log => log.scheduleId === block.scheduleId && (!ownerGrouping || log.assigneeId === group.id))
+            ? (blockLogs.get(block.scheduleId) || []).filter(log => !ownerGrouping || log.assigneeId === group.id)
             : itemsInBlock.map(item => item.records?.[currentRecordType]).filter(Boolean);
           const totalBreakSecs = blockRecords.reduce((sum, record) => sum + Math.max(0, Number(record.breakMinutes) || 0) * 60, 0);
           let totalGapSecs = 0;

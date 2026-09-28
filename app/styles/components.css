@@ -1113,3 +1113,8 @@ input[type=range].custom-slider::-webkit-slider-thumb {
 }
 .dark .ratio-detail-popover { background: #303033; color: #f3f4f6; }
 html .mobile-stat-card.compact-stat-card { padding: 12px 14px !important; border-radius: 18px !important; }
+
+.loading-dialog-track { height: 4px; border-radius: 999px; overflow: hidden; background: rgb(59 130 246 / 12%); }
+.loading-dialog-bar { height: 100%; width: 36%; border-radius: inherit; background: #3b82f6; animation: loading-dialog-progress 1.2s ease-in-out infinite; }
+@keyframes loading-dialog-progress { from { transform: translateX(-110%); } to { transform: translateX(380%); } }
+@media (prefers-reduced-motion: reduce) { .loading-dialog-bar { animation: none; width: 100%; opacity: .55; } }

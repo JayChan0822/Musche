@@ -1,3 +1,4 @@
+import { withLoadingDialog } from '../services/loading-dialog.js';
 import { computed } from 'vue';
 
 export function registerSessionFeature(context) {
@@ -19,10 +20,17 @@ export function registerSessionFeature(context) {
     return session ? session.name : '未命名日程';
   });
 
-  const switchSession = (id) => {
-    cancelPendingTrackSave();
-    currentSessionId.value = id;
+  let switching = false;
+  const switchSession = async (id) => {
+    if (switching || id === currentSessionId.value || !settings.sessions.some(session => session.id === id)) return;
+    switching = true;
     activeDropdown.value = null;
+    try {
+      await withLoadingDialog('正在切换日程', '正在整理任务与日程视图…', () => {
+        cancelPendingTrackSave();
+        currentSessionId.value = id;
+      });
+    } finally { switching = false; }
   };
 
   const handleSessionAction = (action) => {
