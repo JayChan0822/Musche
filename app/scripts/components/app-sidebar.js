@@ -209,6 +209,9 @@ export const AppSidebar = {
                                 <div v-if="expandedStatsIds.has(stat.id)"
                                      class="mt-2 pt-2 border-t border-black/5 dark:border-white/5 space-y-1" @click.stop>
                                     <div v-for="item in stat.items" :key="item.id"
+                                         draggable="true"
+                                         @dragstart.stop="dragStart($event, item, 'pool')"
+                                         @dragend="handleDragEnd"
                                          @click.stop="selectTask(item.id, 'pool', $event)"
                                          @dblclick.stop="openEditModal(item, 'pool')"
                                          @touchstart="handlePoolTouchStart($event, item)"

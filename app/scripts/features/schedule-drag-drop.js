@@ -1,3 +1,4 @@
+import { reassignPoolTask } from '../utils/pool-reassignment.js';
 import { allocateNewSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
 import { scheduleIdentity } from '../utils/schedule-context.js';
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
@@ -25,7 +26,7 @@ export function registerScheduleDragDropFeature(context) {
   let draggedData = null;
 
   const clearDragOver = (selector) => {
-    getDocument().querySelectorAll(selector).forEach((element) => element.classList.remove('drag-over'));
+    getDocument().querySelectorAll(selector).forEach((element) => element.classList.remove(selector === '.assignment-drop-target' ? 'assignment-drop-target' : 'drag-over'));
   };
 
   const getTaskType = (task) => {
@@ -50,8 +51,9 @@ export function registerScheduleDragDropFeature(context) {
       offsetMinutes = offsetY / pxPerMin.value;
     }
 
-    draggedData = { item, source, isCopy: event.altKey, offsetMinutes, precise: !!event.metaKey };
+    draggedData = { item, source, view: sidebarTab.value, isCopy: event.altKey, offsetMinutes, precise: !!event.metaKey };
     event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData?.('text/plain', String(item.id || 'task'));
 
     if (source === 'schedule' && sourceElement) {
       const clone = sourceElement.cloneNode(true);
@@ -84,15 +86,37 @@ export function registerScheduleDragDropFeature(context) {
       sourceElement.style.opacity = '';
       sourceElement.style.transition = '';
     }
+    if (draggedData?.source === 'pool') clearDragOver('.assignment-drop-target');
     draggedData = null;
   };
 
-  const dragEnterPool = (event) => event.currentTarget.classList.add('drag-over');
-  const dragLeavePool = (event) => event.currentTarget.classList.remove('drag-over');
+  const dragEnterPool = (event) => {
+    if (draggedData?.source === 'pool') {
+      clearDragOver('.assignment-drop-target');
+      if (['musician', 'project'].includes(sidebarTab.value)) event.target.closest?.('[data-stat-id]')?.classList.add('assignment-drop-target');
+      return;
+    }
+    event.currentTarget.classList.add('drag-over');
+  };
+  const dragLeavePool = (event) => {
+    event.currentTarget.classList.remove('drag-over');
+    const card = event.target.closest?.('[data-stat-id]');
+    if (card && !card.contains(event.relatedTarget)) card.classList.remove('assignment-drop-target');
+  };
 
   const dropToPool = async (event) => {
     event.currentTarget.classList.remove('drag-over');
     if (!draggedData) return;
+    if (draggedData.source === 'pool') {
+      clearDragOver('.assignment-drop-target');
+      const target = event.target.closest?.('[data-stat-id]');
+      if (target && draggedData.view === sidebarTab.value) {
+        pushHistory();
+        if (reassignPoolTask(settings, itemPool.value, scheduledTasks.value, draggedData.item.id, draggedData.view, target.dataset.statId)) pushHistory();
+      }
+      draggedData = null;
+      return;
+    }
 
     if (draggedData.source === 'schedule') {
       const taskToDelete = draggedData.item;

@@ -1038,3 +1038,9 @@ input[type=range].custom-slider::-webkit-slider-thumb {
     margin-top: -9px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
+
+.mobile-stat-card.assignment-drop-target {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    background-color: rgb(59 130 246 / 12%);
+}

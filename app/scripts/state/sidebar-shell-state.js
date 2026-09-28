@@ -34,6 +34,7 @@ export const createSidebarShellState = defineShellState('createSidebarShellState
         'helpers.toggleSort',
         'helpers.getSortIcon',
         'helpers.dragStart',
+        'helpers.handleDragEnd',
         'helpers.handleStatCardClick',
         'helpers.mobileTouchHandlers.handlePoolTouchStart',
         'helpers.mobileTouchHandlers.handleTouchMove',

@@ -376,8 +376,10 @@ test('offline bootstrap restores the unsynced local draft over older cache', asy
 test('cloud saves serialize overlapping requests and save the newest pending edit', async () => {
   let release;
   let calls = 0;
+  let serverVersion = 0;
   const h = createAuthHarness({ version: 0, serviceOverrides: {
-    saveUserData: async () => { calls++; if (calls === 1) await new Promise(resolve => { release = resolve; }); return { error: null }; },
+    fetchUserDataVersion: async () => ({data:{version:serverVersion},error:null}),
+    saveUserData: async (_id,_content,version) => { calls++; if (calls === 1) await new Promise(resolve => { release = resolve; }); serverVersion=version; return { error: null }; },
   } });
   const first = h.feature.saveToCloud(() => {});
   await new Promise(resolve => setImmediate(resolve));
@@ -440,4 +442,26 @@ test('a standalone unsynced draft is restored when cloud load fails without cach
   } });
   await h.feature.bootSessionData();
   assert.equal(h.refs.scheduledTasks.value[0].scheduleId, 'retained');
+});
+
+test('database revision conflicts suspend repeated writes until cloud data is loaded', async () => {
+ let writes=0;
+ const h=createAuthHarness({version:0,cloudContent:{pool:[],tasks:[],settings:{}},serviceOverrides:{saveUserData:async()=>{writes++;return {error:{code:'40001',message:'Musche revision conflict'}};}}});
+ await h.feature.saveToCloud(()=>{});
+ await h.feature.saveToCloud(()=>{});
+ assert.equal(writes,1);
+ await h.feature.loadCloudData();
+ await h.feature.saveToCloud(()=>{});
+ assert.equal(writes,2);
+});
+
+test('manual sync reports storage failure accurately without replacing live data', async()=>{
+ const h=createAuthHarness({version:3,cloudContent:{pool:[{id:'cloud'}],tasks:[],settings:{}},storageOverrides:{
+ loadData:key=>key==='musche_workflow_unsynced_v11:USER_1'?{version:1,content:{pool:[{id:'draft'}],tasks:[],settings:{}}}:null,
+ saveData:()=>{throw new DOMException('full','QuotaExceededError');}
+ }});
+ h.refs.itemPool.value=[{id:'current'}];
+ await h.feature.handleManualSync();
+ assert.equal(h.refs.itemPool.value[0].id,'current');
+ assert.ok(h.alerts.some(args=>args.join(' ').includes('本地存储空间不足')));
 });

@@ -100,6 +100,7 @@ export function registerAuthFeature(context) {
   }
 
   let dataProtectionError = null;
+  let revisionConflict = false;
   function createCloudContent() {
     return serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value });
   }
@@ -119,6 +120,7 @@ export function registerAuthFeature(context) {
       throw error;
     }
     content = migrated;
+    revisionConflict = false;
     dataProtectionError = null;
     setWorkflowWriteBlocked(settings, false);
     rememberWorkflowContent(settings, content);
@@ -385,6 +387,7 @@ export function registerAuthFeature(context) {
   let lastSaveError = null;
 
   function saveToCloud(handleManualSync, force = false) {
+    if (revisionConflict || isSyncing?.value) return Promise.resolve(false);
     if (activeSave) {
       saveQueued = true;
       return activeSave;
@@ -417,7 +420,8 @@ export function registerAuthFeature(context) {
       if (checkError && checkError.code !== 'PGRST116') throw checkError;
 
       const serverVersion = serverRecord ? serverRecord.version : 0;
-      if (serverVersion > localDataVersion.value) {
+      if (serverVersion !== localDataVersion.value) {
+        revisionConflict = true;
         setSaveStatus('error');
 
 
@@ -453,6 +457,7 @@ export function registerAuthFeature(context) {
       return true;
     } catch (error) {
       console.error('保存失败', error);
+      if (error?.code === '40001') revisionConflict = true;
       // Include edits made while the failed request was in flight in the recovery draft.
       let recoveryContent;
       let backedUp = false;
@@ -466,7 +471,7 @@ export function registerAuthFeature(context) {
       const errorKey = `${error.code || ''}:${error.message || ''}:${backedUp}`;
       if (force || lastSaveError !== errorKey) {
         if (backedUp) {
-          openAlertModal('云端未保存', `${error.message || '请稍后重试'}\n修改已保留为本地未同步备份。`);
+          openAlertModal('云端未保存', `${describeSyncError(error)}\n修改已保留为本地未同步备份。`);
         } else if (recoveryContent) {
           openConfirmModal('云端与本地备份均未保存',
             `${error.message || '云端保存失败'}\n本地备份写入也失败，修改目前仅保留在此页面内存中。请先导出备份，暂勿刷新或关闭页面。`,
@@ -680,6 +685,13 @@ export function registerAuthFeature(context) {
     );
   }
 
+  function describeSyncError(error) {
+    if (error?.name === 'QuotaExceededError') return '本地存储空间不足，无法归档未同步备份，已停止替换当前数据。请先导出备份；这不是网络连接错误。';
+    if (error?.code === '40001') return '云端版本冲突（40001）：已暂停自动保存。请先导出当前数据，再同步核对云端版本；若持续冲突，需要检查数据库触发器。';
+    if (error?.code === '57014') return '数据库执行超时（57014）。请求已到达数据库，但未在限制时间内完成。';
+    return `${error?.code ? `[${error.code}] ` : ''}${error?.message || '无法完成同步，请检查连接后重试。'}`;
+  }
+
   async function handleManualSync() {
     if (!user.value) {
       return openAlertModal('请先登录', '只有登录后才能同步云端数据。');
@@ -689,6 +701,7 @@ export function registerAuthFeature(context) {
     if (isSyncing) isSyncing.value = true;
 
     try {
+      if (activeSave) await activeSave;
       await loadCloudData();
       setTimeout(() => {
         if (isSyncing) isSyncing.value = false;
@@ -697,7 +710,8 @@ export function registerAuthFeature(context) {
     } catch (error) {
       if (isSyncing) isSyncing.value = false;
 
-      openAlertModal('同步失败', '网络连接异常或服务不可用。');
+      console.error('同步失败', error);
+      openAlertModal('同步失败', describeSyncError(error));
     }
   }
 
