@@ -39,6 +39,7 @@ export function wireViewNavigationFeature(assembly) {
             weekContainer,
             pxPerMin,
             slotHeight: assembly.refs.slotHeight,
+            resizing: assembly.refs.resizing,
             isMobile,
             flashingTaskId,
             mobileTab,

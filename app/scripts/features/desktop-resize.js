@@ -1,7 +1,7 @@
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 export function registerDesktopResizeFeature(context) {
   const { refs, utils, actions = {} } = context;
-  const { resizing, pxPerMin } = refs;
+  const { resizing, pxPerMin, weekContainer } = refs;
   const { timeToMinutes, formatSecs, parseTime } = utils;
   const {
     getDocumentBody = () => document.body,
@@ -20,6 +20,9 @@ export function registerDesktopResizeFeature(context) {
       startY: event.clientY,
       startH: taskEl.offsetHeight,
       originalDuration: task.estDuration,
+      container: weekContainer?.value || null,
+      startScrollTop: weekContainer?.value?.scrollTop || 0,
+      pixelsPerMinute: pxPerMin.value,
     };
 
     getDocumentBody().style.cursor = 'ns-resize';
@@ -28,9 +31,9 @@ export function registerDesktopResizeFeature(context) {
   const handleResizeMove = (event) => {
     if (!resizing.value) return;
 
-    const { task, startY, originalDuration } = resizing.value;
-    const delta = event.clientY - startY;
-    const rawDurationMins = parseTime(originalDuration) / 60 + delta / pxPerMin.value;
+    const { task, startY, originalDuration, container, startScrollTop, pixelsPerMinute } = resizing.value;
+    const delta = event.clientY - startY + (container?.scrollTop || 0) - startScrollTop;
+    const rawDurationMins = parseTime(originalDuration) / 60 + delta / pixelsPerMinute;
     const startMins = timeToMinutes(task.startTime);
     const rawEndMins = startMins + rawDurationMins;
     const snapMinutes = event.metaKey ? 1 : 15;

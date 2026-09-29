@@ -158,7 +158,8 @@ html.dark .stat-card:hover {
     cursor: grab;
     z-index: 10;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    /* 时间位置和尺寸实时跟随网格，仅装饰属性参与过渡。 */
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
     padding: 4px 6px;
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     border-right: 1px solid rgba(0, 0, 0, 0.05);
@@ -186,13 +187,11 @@ html.dark .task-block .secondary-text {
 .task-block.is-selected {
     box-shadow: 0 0 0 2px #0A84FF, 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 100 !important;
-    transform: scale(1.02);
 }
 
 html.dark .task-block.is-selected {
     box-shadow: 0 0 0 2px #ffffff, 0 8px 16px rgba(0, 0, 0, 0.5);
     z-index: 100 !important;
-    transform: scale(1.02);
 }
 
 .resize-handle {

@@ -11,7 +11,22 @@ test('command wheel scales week time axis and preserves pointer time',async()=>{
  f.onMainWheel(event);await nextTick();
  assert.ok(refs.slotHeight.value>40);assert.equal(prevented,1);
  assert.ok(Math.abs((refs.weekContainer.value.scrollTop+200-56)/refs.slotHeight.value-anchor)<0.001);
+ // Trackpads may deliver another event before Vue applies the previous layout.
+ f.onMainWheel(event);
+ f.onMainWheel(event);
+ await nextTick();
+ assert.ok(Math.abs((refs.weekContainer.value.scrollTop+200-56)/refs.slotHeight.value-anchor)<0.001, 'batched wheel events must preserve the original pointer time');
  const height=refs.slotHeight.value;
  f.onMainWheel({...event,metaKey:false});assert.equal(refs.slotHeight.value,height);
  refs.currentView.value='month';f.onMainWheel(event);assert.equal(refs.slotHeight.value,height);
+});
+
+test('Command wheel does not change the time scale during a task resize', async () => {
+ const container={scrollTop:100,clientHeight:600,firstElementChild:{offsetHeight:56},contains:()=>true,getBoundingClientRect:()=>({top:0})};
+ const refs={currentView:ref('week'),monthViewMode:ref('grid'),viewDate:ref(new Date()),slotHeight:ref(40),weekContainer:ref(container),isMobile:ref(false),isResizingMobile:ref(false),resizing:ref({task:{}})};
+ const f=registerMainViewNavigationFeature({refs});
+ f.onMainWheel({metaKey:true,deltaY:-100,deltaX:0,deltaMode:0,clientY:200,target:{},preventDefault(){}});
+ await nextTick();
+ assert.equal(refs.slotHeight.value,40);
+ assert.equal(refs.weekContainer.value.scrollTop,100);
 });

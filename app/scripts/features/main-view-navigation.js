@@ -14,6 +14,7 @@ export function registerMainViewNavigationFeature(context) {
     weekContainer,
     isMobile,
     isResizingMobile,
+    resizing,
     currentSessionId,
     sidebarTab,
     flashingTaskId,
@@ -88,25 +89,30 @@ export function registerMainViewNavigationFeature(context) {
   };
 
   let zoomRevision = 0;
+  let pendingZoom = null;
   const onMainWheel = (event) => {
     if (event.metaKey && currentView.value === 'week' && slotHeight && weekContainer?.value) {
       const container = weekContainer.value;
       if (!container.contains(event.target)) return;
       event.preventDefault();
-      if (isDragActive() || isResizingMobile.value || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      if (isDragActive() || isResizingMobile.value || resizing?.value || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       const header = container.firstElementChild?.offsetHeight || 0;
       const offset = Math.max(header, event.clientY - container.getBoundingClientRect().top);
       const oldHeight = slotHeight.value;
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
       const height = Math.max(16, Math.min(120, oldHeight * Math.exp(-Math.max(-240, Math.min(240, delta)) * 0.003)));
       if (height === oldHeight) return;
-      const anchor = (container.scrollTop + offset - header) / oldHeight;
-      // Apply scroll synchronously with the new layout before the next wheel event.
+      // 同一轮渲染前可能收到多个滚轮事件：新高度必须搭配待应用的滚动位置。
+      const scrollTop = pendingZoom?.container === container ? pendingZoom.top : container.scrollTop;
+      const anchor = (scrollTop + offset - header) / oldHeight;
+      const top = Math.max(0, header + anchor * height - offset);
+      pendingZoom = { container, top };
       slotHeight.value = height;
       const revision = ++zoomRevision;
       nextTick(() => {
-        if (revision === zoomRevision && currentView.value === 'week' && weekContainer.value === container)
-          container.scrollTop = Math.max(0, header + anchor * height - offset);
+        if (revision !== zoomRevision) return;
+        if (currentView.value === 'week' && weekContainer.value === container) container.scrollTop = top;
+        pendingZoom = null;
       });
       return;
     }

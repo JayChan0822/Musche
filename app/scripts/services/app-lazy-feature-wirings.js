@@ -34,6 +34,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                         refs: {
                             resizing,
                             pxPerMin,
+                            weekContainer: assembly.refs.weekContainer,
                         },
                         utils: {
                             timeToMinutes: timeUtils.timeToMinutes,

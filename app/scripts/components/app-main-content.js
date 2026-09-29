@@ -76,7 +76,7 @@ export const AppMainContent = {
                              :class="{ 'touch-pan-y': dayColWidth < 60, 'is-zooming-now': isZooming }"
 
                              :ref="(el) => { weekContainer = el; }"
-                             :style="{ '--slot-height': slotHeight + 'px' }"
+                             :style="{ '--slot-height': slotHeight + 'px', overflowAnchor: 'none' }"
                              @click="clearSelection">
                             <!-- 星期头行：sticky top-0，切周 slide 动画时不随内容位移；z 高于时间列，重叠处盖住时间列 -->
                             <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
@@ -115,7 +115,7 @@ export const AppMainContent = {
                                                 @after-leave="onAfterLeave">
                                         <div :key="currentWeekDays[0].dateStr" class="flex">
                                             <div v-for="day in currentWeekDays" :key="day.dateStr"
-                                                 class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-all duration-300 ease-in-out"
+                                                 class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-[min-width] duration-300 ease-in-out"
                                                  :style="{ minWidth: dayColWidth + 'px' }"
                                                  :data-date-str="day.dateStr">
                                                 <div class="relative" style="min-height: 1000px;">

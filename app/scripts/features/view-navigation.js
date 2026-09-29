@@ -48,6 +48,7 @@ export function registerViewNavigationFeature(context) {
       viewDate: refs.viewDate,
       dayColWidth: refs.dayColWidth,
       slotHeight: refs.slotHeight,
+      resizing: refs.resizing,
       weekContainer: refs.weekContainer,
       isMobile: refs.isMobile,
       isResizingMobile: refs.isResizingMobile,

@@ -29,8 +29,8 @@ function createStats() {
   return { refs, settings, feature, ratio: () => feature.musicianStats.value[0].scheduleRatio };
 }
 
-function createResize(task, { overlap = false, height = 120, pushHistory = () => {} } = {}) {
-  const refs = { resizing: ref(null), pxPerMin: ref(2) };
+function createResize(task, { overlap = false, height = 120, pushHistory = () => {}, container = null } = {}) {
+  const refs = { resizing: ref(null), pxPerMin: ref(2), weekContainer: ref(container) };
   const alerts = [];
   const feature = registerDesktopResizeFeature({ refs, utils: { parseTime, timeToMinutes, formatSecs }, actions: {
     getDocumentBody: () => ({ style: {} }), checkOverlap: () => overlap,
@@ -172,6 +172,18 @@ test('resize uses stored duration, not minimum visual block height', () => {
   assert.equal(task.estDuration, '00:06:00');
   resize.feature.handleResizeMove({ clientY: -100, metaKey: true });
   assert.equal(task.estDuration, '00:05:00');
+});
+
+test('resize accounts for calendar scroll while keeping its original time scale', () => {
+  const task = { startTime: '10:00', estDuration: '01:00:00' };
+  const resize = createResize(task, { container: { scrollTop: 100 } });
+  resize.refs.weekContainer.value.scrollTop = 120;
+  resize.feature.handleResizeMove({ clientY: 100, metaKey: true });
+  assert.equal(task.estDuration, '01:10:00');
+  resize.refs.pxPerMin.value = 4;
+  resize.feature.handleResizeMove({ clientY: 110, metaKey: true });
+  assert.equal(task.estDuration, '01:15:00');
+  assert.equal(task.startTime, '10:00');
 });
 
 test('conflict rolls back duration and derived ratio without a history entry', () => {
