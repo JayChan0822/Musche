@@ -126,6 +126,7 @@ export function registerViewNavigationFeature(context) {
     onMainMouseDown: mainViewNavigationFeature.onMainMouseDown,
     onMainMouseUp: mainViewNavigationFeature.onMainMouseUp,
     onMainWheel: mainViewNavigationFeature.onMainWheel,
+    setWeekZoom: mainViewNavigationFeature.setWeekZoom,
     onMainTouchStart: mainViewNavigationFeature.onMainTouchStart,
     onMainTouchEnd: mainViewNavigationFeature.onMainTouchEnd,
     isMouseViewDrag: mainViewNavigationFeature.isMouseViewDrag,

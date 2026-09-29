@@ -2,6 +2,33 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {ref,nextTick} from 'vue';
 import {registerMainViewNavigationFeature} from '../app/scripts/features/main-view-navigation.js';
+
+test('slider zoom preserves the visible center time across rapid updates and shares wheel scale', async () => {
+ const container={scrollTop:300,clientHeight:600,firstElementChild:{offsetHeight:56},contains:()=>true,getBoundingClientRect:()=>({top:0})};
+ const refs={currentView:ref('week'),slotHeight:ref(40),weekContainer:ref(container),isMobile:ref(false),isResizingMobile:ref(false),resizing:ref(null)};
+ const f=registerMainViewNavigationFeature({refs});
+ const offset=56+(600-56)/2;
+ const anchor=(300+offset-56)/40;
+ f.setWeekZoom('60'); f.setWeekZoom('80');
+ await nextTick();
+ assert.equal(refs.slotHeight.value,80);
+ assert.ok(Math.abs((refs.weekContainer.value.scrollTop+offset-56)/80-anchor)<0.001);
+ f.onMainWheel({metaKey:true,deltaY:-20,deltaX:0,deltaMode:0,clientY:offset,target:{},preventDefault(){}});
+ await nextTick();
+ assert.ok(refs.slotHeight.value>80);
+ assert.ok(Math.abs((refs.weekContainer.value.scrollTop+offset-56)/refs.slotHeight.value-anchor)<0.001);
+});
+
+test('slider clamps scale and ignores invalid input, other views, and resizing', async () => {
+ const refs={currentView:ref('week'),slotHeight:ref(40),weekContainer:ref({scrollTop:300,clientHeight:600,firstElementChild:{offsetHeight:56}}),isMobile:ref(false),isResizingMobile:ref(false),resizing:ref(null)};
+ const f=registerMainViewNavigationFeature({refs});
+ f.setWeekZoom(999); assert.equal(refs.slotHeight.value,120);
+ f.setWeekZoom(0); assert.equal(refs.slotHeight.value,16);
+ f.setWeekZoom('bad'); assert.equal(refs.slotHeight.value,16);
+ refs.resizing.value={}; f.setWeekZoom(80); assert.equal(refs.slotHeight.value,16);
+ refs.resizing.value=null; refs.currentView.value='month'; f.setWeekZoom(80); assert.equal(refs.slotHeight.value,16);
+ await nextTick();
+});
 test('command wheel scales week time axis and preserves pointer time',async()=>{
  const container={scrollTop:300,clientHeight:600,firstElementChild:{offsetHeight:56},contains:()=>true,getBoundingClientRect:()=>({top:0})};
  const refs={currentView:ref('week'),monthViewMode:ref('grid'),viewDate:ref(new Date()),dayColWidth:ref(80),slotHeight:ref(40),weekContainer:ref(container),isMobile:ref(false),isResizingMobile:ref(false),currentSessionId:ref('S'),sidebarTab:ref('musician'),flashingTaskId:ref(null),isContextSwitching:ref(false)};

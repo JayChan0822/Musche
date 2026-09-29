@@ -32,7 +32,7 @@ export function registerPreciseScheduleMoveFeature({ refs, state, actions = {} }
   const updatePreview = (event) => {
     const g = gesture;
     const column = g.doc.elementFromPoint(event.clientX, event.clientY)?.closest('[data-date-str]');
-    const grid = column?.querySelector('.relative[style*="min-height"]');
+    const grid = column?.querySelector('[data-week-grid]');
     g.candidate = null;
     if (!grid) {
       g.ghost.style.opacity = '0.3';

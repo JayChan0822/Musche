@@ -90,6 +90,29 @@ export function registerMainViewNavigationFeature(context) {
 
   let zoomRevision = 0;
   let pendingZoom = null;
+  const setWeekZoom = (value, pointerOffset) => {
+    const container = weekContainer?.value;
+    const requested = Number(value);
+    if (currentView.value !== 'week' || !slotHeight || !container || !Number.isFinite(requested)) return;
+    if (isDragActive() || isResizingMobile?.value || resizing?.value) return;
+    const header = container.firstElementChild?.offsetHeight || 0;
+    const offset = pointerOffset ?? (header + (container.clientHeight - header) / 2);
+    const oldHeight = slotHeight.value;
+    const height = Math.max(16, Math.min(120, requested));
+    if (height === oldHeight) return;
+    // 连续输入共用待应用的滚动位置，避免新比例搭配旧位置而漂移。
+    const scrollTop = pendingZoom?.container === container ? pendingZoom.top : container.scrollTop;
+    const anchor = (scrollTop + offset - header) / oldHeight;
+    const top = Math.max(0, header + anchor * height - offset);
+    pendingZoom = { container, top };
+    slotHeight.value = height;
+    const revision = ++zoomRevision;
+    nextTick(() => {
+      if (revision !== zoomRevision) return;
+      if (currentView.value === 'week' && weekContainer.value === container) container.scrollTop = top;
+      pendingZoom = null;
+    });
+  };
   const onMainWheel = (event) => {
     if (event.metaKey && currentView.value === 'week' && slotHeight && weekContainer?.value) {
       const container = weekContainer.value;
@@ -101,19 +124,7 @@ export function registerMainViewNavigationFeature(context) {
       const oldHeight = slotHeight.value;
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
       const height = Math.max(16, Math.min(120, oldHeight * Math.exp(-Math.max(-240, Math.min(240, delta)) * 0.003)));
-      if (height === oldHeight) return;
-      // 同一轮渲染前可能收到多个滚轮事件：新高度必须搭配待应用的滚动位置。
-      const scrollTop = pendingZoom?.container === container ? pendingZoom.top : container.scrollTop;
-      const anchor = (scrollTop + offset - header) / oldHeight;
-      const top = Math.max(0, header + anchor * height - offset);
-      pendingZoom = { container, top };
-      slotHeight.value = height;
-      const revision = ++zoomRevision;
-      nextTick(() => {
-        if (revision !== zoomRevision) return;
-        if (currentView.value === 'week' && weekContainer.value === container) container.scrollTop = top;
-        pendingZoom = null;
-      });
+      setWeekZoom(height, offset);
       return;
     }
     if (isWheelLocked || event.ctrlKey || event.metaKey) return;
@@ -237,6 +248,7 @@ export function registerMainViewNavigationFeature(context) {
     onMainMouseDown,
     onMainMouseUp,
     onMainWheel,
+    setWeekZoom,
     onMainTouchStart,
     onMainTouchEnd,
     widthIcon,

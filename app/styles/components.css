@@ -673,6 +673,43 @@ html.dark .custom-dropdown-menu .sticky {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.week-zoom-control {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    z-index: 950;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 5px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 22px;
+    background: rgba(250, 250, 250, 0.94);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+    color: #65656b;
+    user-select: none;
+}
+html.dark .week-zoom-control {
+    background: rgba(40, 40, 43, 0.96);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #c7c7cc;
+}
+.week-zoom-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 34px;
+    height: clamp(72px, 16vh, 128px);
+    margin: 0;
+    accent-color: #007aff;
+    cursor: ns-resize;
+    touch-action: none;
+}
+.week-zoom-slider:focus-visible { outline: 2px solid #007aff; outline-offset: 2px; border-radius: 10px; }
+.week-zoom-slider:disabled { opacity: 0.45; cursor: default; }
+.week-zoom-symbol { font-size: 18px; line-height: 18px; }
+.week-zoom-value { font-size: 10px; line-height: 14px; font-variant-numeric: tabular-nums; }
+
 /* 通用周/月切换：先退出再进入，避免两套网格同时叠加。 */
 .calendar-zoom-enter-active,
 .calendar-zoom-leave-active {

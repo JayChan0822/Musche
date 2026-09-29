@@ -103,14 +103,14 @@ export const AppMainContent = {
                             </div>
 
                             <!-- 时间列 + 任务格区 -->
-                            <div class="flex min-w-full" :ref="(el) => { weekGridWrapper = el; }">
+                            <div class="flex min-w-full shrink-0" :ref="(el) => { weekGridWrapper = el; }">
                                 <!-- 时间列：sticky left-0，切周 slide 动画时不随内容位移 -->
                                 <div class="shrink-0 sticky left-0 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
                                      style="width: var(--time-col-width)">
                                     <div v-for="t in timeSlots" :key="t" class="time-label-slot">
                                         {{ t.endsWith('00') ? t : '' }}
                                     </div>
-                                    <div class="time-label-slot">
+                                    <div class="time-label-slot absolute top-full left-0 right-0">
                                         {{ settings.endHour === 24 ? '00:00' : settings.endHour + ':00' }}
                                     </div>
                                 </div>
@@ -125,7 +125,7 @@ export const AppMainContent = {
                                                  class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative transition-[min-width] duration-300 ease-in-out"
                                                  :style="{ minWidth: dayColWidth + 'px' }"
                                                  :data-date-str="day.dateStr">
-                                                <div class="relative" style="min-height: 1000px;">
+                                                <div class="relative" data-week-grid>
                                                 <div v-for="t in timeSlots" :key="t"
                                                      class="grid-slot droppable-slot"
                                                      :data-time="t"
@@ -329,6 +329,21 @@ export const AppMainContent = {
                             </div>
                         </div>
                     </Transition>
+                    <div v-if="currentView === 'week' && !isMobile"
+                         class="week-zoom-control"
+                         @mousedown.stop @mouseup.stop @touchstart.stop @touchend.stop
+                         @click.stop @wheel.stop @keydown.stop>
+                        <span aria-hidden="true" class="week-zoom-symbol">+</span>
+                        <input type="range" class="week-zoom-slider"
+                               min="16" max="120" step="1"
+                               :value="slotHeight"
+                               :disabled="!!resizing || isResizingMobile"
+                               aria-label="周视图纵向缩放" aria-orientation="vertical"
+                               :aria-valuetext="Math.round(slotHeight * 2.5) + '%'"
+                               @input="setWeekZoom($event.target.value)">
+                        <span aria-hidden="true" class="week-zoom-symbol">−</span>
+                        <span class="week-zoom-value" aria-hidden="true">{{ Math.round(slotHeight * 2.5) }}%</span>
+                    </div>
                 </div>
 
                 <!-- 手机端日视图：点月视图里的某天后从下往上滑入 -->
