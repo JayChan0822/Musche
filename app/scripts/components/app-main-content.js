@@ -1,6 +1,5 @@
 import { AppMobileDayView } from './app-mobile-day-view.js';
-import { nextTick, onBeforeUnmount, toRefs } from 'vue';
-import { createCalendarMorph } from '../features/calendar-morph.js';
+import { nextTick, toRefs } from 'vue';
 
 export const AppMainContent = {
   name: 'AppMainContent',
@@ -12,14 +11,12 @@ export const AppMainContent = {
     },
   },
   setup(props) {
-    const calendarMorph = createCalendarMorph({
-      getDate: () => props.ctx.viewDate,
-      afterRender: nextTick,
-      prepareMonth: () => props.ctx.monthViewMode === 'scrolled'
-        ? props.ctx.scrollToMonthDate(props.ctx.viewDate) : undefined,
-    });
-    onBeforeUnmount(calendarMorph.cancel);
-    return { ...toRefs(props.ctx), calendarMorph };
+    const prepareCalendarView = () => {
+      if (props.ctx.currentView === 'month' && props.ctx.monthViewMode === 'scrolled') {
+        nextTick(() => props.ctx.scrollToMonthDate(props.ctx.viewDate));
+      }
+    };
+    return { ...toRefs(props.ctx), prepareCalendarView };
   },
   template: `
             <main id="main-content"
@@ -76,16 +73,11 @@ export const AppMainContent = {
 
                 <div class="flex-1 relative w-full overflow-hidden flex flex-col">
 
-                    <Transition :css="false"
-                                @before-enter="calendarMorph.beforeEnter"
-                                @enter="calendarMorph.enter"
-                                @leave="calendarMorph.leave"
-                                @enter-cancelled="calendarMorph.cancel"
-                                @leave-cancelled="calendarMorph.cancel">
+                    <Transition name="calendar-zoom" mode="out-in"
+                                @before-enter="prepareCalendarView">
 
                         <div v-if="currentView === 'week'"
                              key="view-week"
-                             data-calendar-view="week"
                              class="w-full h-full flex flex-col overflow-y-auto relative no-scrollbar overscroll-none"
 
                              :class="{ 'touch-pan-y': dayColWidth < 60, 'is-zooming-now': isZooming }"
@@ -97,14 +89,13 @@ export const AppMainContent = {
                             <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
                                 <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
                                 <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr"
-                                     :data-week-day="day.dateStr"
                                      class="h-14 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
                                      :style="{ minWidth: dayColWidth + 'px' }"
                                      @dblclick="switchView('month')"
                                      @touchend="handleHeaderDoubleTap($event)"
                                      title="双击返回月视图">
                                     <span class="text-xs uppercase font-bold opacity-60 mb-0.5">{{ day.weekday }}</span>
-                                    <div data-calendar-day-label class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
+                                    <div class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
                                          :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">
                                         {{ day.dateShort.split('/')[1] }}
                                     </div>
@@ -144,7 +135,6 @@ export const AppMainContent = {
 
                                                 <div v-for="task in (tasksByDateMap[day.dateStr] || [])"
                                                      :key="task.scheduleId"
-                                                     :data-calendar-task="task.scheduleId"
                                                      class="task-block group"
                                                      @mousedown="initPreciseScheduleMove($event, task)"
                                                      title="格内拖动：15 分钟吸附；按住 ⌘ Command 可按 1 分钟微调"
@@ -206,7 +196,6 @@ export const AppMainContent = {
 
                         <div v-else-if="currentView === 'month'"
                              key="view-month"
-                             data-calendar-view="month"
                              data-calendar-scroller
                              class="w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
                              @scroll="handleInfiniteScroll"
@@ -235,7 +224,7 @@ export const AppMainContent = {
                                              @dragover.prevent @drop="dropToMonth($event, day.fullDate)">
 
                                             <div class="text-right mb-1 shrink-0">
-                                                <span data-calendar-day-label class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
+                                                <span class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                       :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.isCurrentMonth ? 'opacity-80' : 'opacity-30')]">
                                                     {{ day.dayNum }}
                                                 </span>
@@ -244,7 +233,6 @@ export const AppMainContent = {
                                             <div class="space-y-1 overflow-y-auto max-h-[90px] no-scrollbar flex-1">
                                                 <div v-for="task in (tasksByDateMap[day.fullDate] || [])"
                                                      :key="task.scheduleId"
-                                                     :data-calendar-task="task.scheduleId"
                                                      class="text-[11px] px-2 py-1 rounded-md truncate flex items-center gap-1.5 cursor-grab hover:brightness-110 shadow-sm"
                                                      :class="{
                                                                  'ring-1 ring-white': selectedTaskId === task.scheduleId,
@@ -303,7 +291,7 @@ export const AppMainContent = {
                     {{ day.dateObj.getMonth() + 1 }}月
                 </span>
 
-                                                <span data-calendar-day-label class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
+                                                <span class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                   :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.monthKey === activeMonthKey ? 'opacity-80' : 'opacity-30')]">
                     {{ day.dayNum }}
                 </span>
@@ -312,7 +300,6 @@ export const AppMainContent = {
                                         <div class="space-y-1 overflow-y-auto no-scrollbar flex-1">
                                             <div v-for="task in (tasksByDateMap[day.fullDate] || [])"
                                                  :key="task.scheduleId"
-                                                 :data-calendar-task="task.scheduleId"
                                                  class="text-[11px] px-2 py-1 rounded-md truncate flex items-center gap-1.5 cursor-grab hover:brightness-110 shadow-sm"
                                                  :class="{
                          'ring-1 ring-white': selectedTaskId === task.scheduleId,
