@@ -42,6 +42,7 @@ export const createMainContentShellState = defineShellState('createMainContentSh
     values: [
         'state.settings',
         'helpers.handleInfiniteScroll',
+        'helpers.scrollToMonthDate',
         'helpers.onMainTouchStart',
         'helpers.onMainTouchEnd',
         'helpers.onMainMouseDown',

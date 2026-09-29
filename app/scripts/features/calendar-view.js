@@ -321,7 +321,7 @@ export function registerCalendarViewFeature(context) {
     const targetDateStr = formatDate(targetDate);
     const behavior = smooth ? 'smooth' : 'auto';
 
-    nextTick(async () => {
+    return nextTick(async () => {
       const doc = getDocument();
       if (doc.fonts?.status === 'loading') await doc.fonts.ready;
       if (revision !== monthScrollRevision) return;

@@ -673,6 +673,48 @@ html.dark .custom-dropdown-menu .sticky {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 裁剪真实周视图的可见区域，月历始终在下层，避免临时方块和整屏淡入闪烁。 */
+.calendar-morph-panel {
+    position: absolute !important;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    will-change: clip-path;
+}
+.calendar-morph-month { z-index: 1; }
+.calendar-morph-week { z-index: 2; }
+.calendar-morph-week, .calendar-morph-month { background: #fafafa; }
+html.dark .calendar-morph-week, html.dark .calendar-morph-month { background: #1e1e1e; }
+.calendar-morph-panel > [data-month-body] { animation: none; }
+.calendar-morph-shared {
+    position: absolute;
+    inset: 0;
+    z-index: 1000;
+    overflow: hidden;
+    pointer-events: none;
+    contain: layout paint;
+}
+.calendar-morph-item {
+    position: absolute;
+    overflow: hidden;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+.calendar-morph-item > * {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
 .view-slide-up-enter-active,
 .view-slide-up-leave-active,
 .view-slide-down-enter-active,

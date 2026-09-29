@@ -784,6 +784,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 currentMonthDays,
                 flatScrolledDays,
                 handleInfiniteScroll,
+                scrollToMonthDate,
                 currentDateLabel,
                 tasksByDateMap,
                 switchToWeek,
@@ -819,6 +820,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
             assembly.refs.currentWeekDays = currentWeekDays;
             Object.assign(assembly.helpers, {
                 currentDateLabel, dateTransitionName, weekTransitionName, currentMonthDays, flatScrolledDays, handleInfiniteScroll,
+                scrollToMonthDate,
                 tasksByDateMap, switchToWeek, handleHeaderDoubleTap, handleMonthCellDoubleTap, jumpToToday,
                 isToday, activeMonthKey, viewTransitionName, onMainMouseDown, onMainMouseUp, onMainWheel,
                 onMainTouchStart, onMainTouchEnd, isMouseViewDrag, widthIcon, cycleDayWidth,
