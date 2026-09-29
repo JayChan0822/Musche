@@ -12200,7 +12200,7 @@ for (const relativePath of requiredFiles) {
     const dropColumn = {
         dataset: { dateStr: '2026-06-02' },
         querySelector: (selector) => {
-            assert.equal(selector, '.relative[style*="min-height"]', 'week touch drop should use the time-grid container');
+            assert.equal(selector, '[data-week-grid]', 'week touch drop should use the time-grid container');
             return container;
         },
     };
@@ -12869,7 +12869,7 @@ for (const relativePath of requiredFiles) {
     assert.equal(targetEl.style.opacity, '0', 'drag start should preserve inline opacity hiding for the source element');
 
     const container = { getBoundingClientRect: () => ({ top: 100 }) };
-    const column = { querySelector: (selector) => selector === '.relative[style*="min-height"]' ? container : null };
+    const column = { querySelector: (selector) => selector === '[data-week-grid]' ? container : null };
     feature.dropToSchedule({
         clientY: 200,
         target: { closest: (selector) => selector === '[data-date-str]' ? column : null },

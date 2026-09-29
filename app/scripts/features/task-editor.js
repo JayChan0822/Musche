@@ -31,6 +31,7 @@ export function registerTaskEditorFeature(context) {
     clearAggregateRecords = () => {},
     cleanupEmptySchedules,
     openAlertModal,
+    checkOverlap = () => false,
     autoUpdateEfficiency,
     pushHistory,
   } = actions;
@@ -153,6 +154,11 @@ export function registerTaskEditorFeature(context) {
   };
 
   const saveScheduleEdit = (editViewType) => {
+    const task = editingItem.value;
+    if (checkOverlap(task.date, task.startTime, task.estDuration, task.scheduleId, editViewType, task)) {
+      openAlertModal('时间冲突', '该时间段已有同类型或同人员、同场地的其他安排。');
+      return false;
+    }
     const idx = scheduledTasks.value.findIndex(
       (task) => task.scheduleId === editingItem.value.scheduleId,
     );

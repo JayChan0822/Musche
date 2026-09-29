@@ -142,7 +142,7 @@ export function registerMobileTouchEndFeature(context) {
 
   const dropInWeek = (dropColumn, touch, metaKey) => {
     const dateStr = dropColumn.dataset.dateStr;
-    const timeGridContainer = dropColumn.querySelector('.relative[style*="min-height"]');
+    const timeGridContainer = dropColumn.querySelector('[data-week-grid]');
 
     if (!timeGridContainer || !state.dragSourceTask) return;
 

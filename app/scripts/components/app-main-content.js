@@ -66,6 +66,8 @@ export const AppMainContent = {
 
                     <button v-if="!isMobile"
                             @click="cycleDayWidth"
+                            :aria-label="currentView === 'week' ? (dayColWidth >= 100 ? '收起日列' : '展开日列') : '切换月历排布'"
+                            :title="currentView === 'week' ? (dayColWidth >= 100 ? '收起日列' : '展开日列') : '切换月历排布'"
                             class="ml-4 w-14 h-14 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center active:bg-[#007aff] active:text-white transition shrink-0">
                         <i class="fa-solid" :class="widthIcon"></i>
                     </button>

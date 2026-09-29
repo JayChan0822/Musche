@@ -388,6 +388,7 @@ export function createAppLazyFeatureWirings({ loaders } = {}) {
                             clearPoolRecord: (...args) => helpers.clearPoolRecord(...args),
                             clearAggregateRecords: (...args) => helpers.clearAggregateRecords(...args),
                             cleanupEmptySchedules: (...args) => assembly.features.schedule.cleanupEmptySchedules(...args),
+                            checkOverlap: (...args) => helpers.checkOverlap(...args),
                             openAlertModal: (...args) => helpers.openAlertModal(...args),
                             autoUpdateEfficiency: (...args) => assembly.features.ratio.autoUpdateEfficiency(...args),
                             pushHistory: (...args) => helpers.pushHistory(...args),

@@ -62,22 +62,24 @@ export function registerScheduleFeature(context) {
   function checkOverlap(date, startTime, durationStr, excludeId, checkType, resource) {
     const newStart = timeToMinutes(startTime);
     const newEnd = newStart + parseTime(durationStr) / 60;
+    const candidate = resource || scheduledTasks.value.find((entry) => entry.scheduleId === excludeId);
+    const candidateStage = candidate ? getScheduleStage(candidate) : stageFromView(checkType);
 
     return scheduledTasks.value.some((task) => {
       if (task.scheduleId === excludeId) return false;
       if (task.date !== date) return false;
       if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
 
-      const candidate = resource || scheduledTasks.value.find((entry) => entry.scheduleId === excludeId);
+      const sameStage = getScheduleStage(task) === candidateStage;
       if (candidate) {
         const candidateOwner = candidate.assigneeId || (getScheduleStage(candidate) === 'edit' ? candidate.editorId : candidate.musicianId);
-        const taskOwner = getScheduleStage(task) === 'edit' ? task.editorId : task.musicianId;
+        const taskOwner = task.assigneeId || (getScheduleStage(task) === 'edit' ? task.editorId : task.musicianId);
         const candidateStudio = candidate.studioId || candidate.recordingInfo?.studio;
         const taskStudio = task.studioId || task.recordingInfo?.studio;
         const samePerson = candidateOwner && candidateOwner !== '__UNASSIGNED__' && candidateOwner === taskOwner;
         const sameStudio = candidateStudio && candidateStudio === taskStudio;
-        if (!samePerson && !sameStudio) return false;
-      } else if (viewFromStage(getScheduleStage(task)) !== checkType) return false;
+        if (!sameStage && !samePerson && !sameStudio) return false;
+      } else if (!sameStage) return false;
 
       const taskStart = timeToMinutes(task.startTime);
       const taskEnd = taskStart + parseTime(task.estDuration) / 60;

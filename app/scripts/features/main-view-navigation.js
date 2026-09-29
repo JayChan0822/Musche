@@ -203,7 +203,10 @@ export function registerMainViewNavigationFeature(context) {
     if (dayColWidth.value >= 100) {
       dayColWidth.value = getWindow().innerWidth < 400 ? 45 : 52;
     } else {
-      dayColWidth.value = 100;
+      const container = weekContainer?.value;
+      const timeColumnWidth = container?.firstElementChild?.firstElementChild?.offsetWidth || 70;
+      const fittedWidth = container ? Math.max(0, container.clientWidth - timeColumnWidth) / 7 : 0;
+      dayColWidth.value = Math.max(100, Math.ceil(fittedWidth * 1.6));
     }
 
     storageService?.setItem('musche_day_width', dayColWidth.value);

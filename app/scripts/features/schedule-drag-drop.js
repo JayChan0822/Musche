@@ -174,7 +174,7 @@ export function registerScheduleDragDropFeature(context) {
     const colEl = event.target.closest('[data-date-str]');
     if (!colEl) return;
 
-    const container = colEl.querySelector('.relative[style*="min-height"]');
+    const container = colEl.querySelector('[data-week-grid]');
     if (!container) return;
 
     const { item, source, offsetMinutes } = draggedData;

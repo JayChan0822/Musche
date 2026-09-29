@@ -3,6 +3,20 @@ import assert from 'node:assert/strict';
 import {ref,nextTick} from 'vue';
 import {registerMainViewNavigationFeature} from '../app/scripts/features/main-view-navigation.js';
 
+test('wide-screen column expansion exceeds the fitted day width and toggles back', () => {
+ const writes=[];
+ const container={clientWidth:1890,firstElementChild:{firstElementChild:{offsetWidth:70}}};
+ const refs={currentView:ref('week'),monthViewMode:ref('scrolled'),viewDate:ref(new Date()),dayColWidth:ref(52),weekContainer:ref(container),isMobile:ref(false)};
+ const f=registerMainViewNavigationFeature({refs,services:{storageService:{setItem:(...args)=>writes.push(args)}},actions:{getWindow:()=>({innerWidth:1920})}});
+ f.cycleDayWidth();
+ assert.ok(refs.dayColWidth.value>260,'expanded columns must be wider than their current fitted width');
+ assert.equal(f.widthIcon.value,'fa-compress');
+ f.cycleDayWidth();
+ assert.equal(refs.dayColWidth.value,52);
+ assert.equal(f.widthIcon.value,'fa-expand');
+ assert.equal(writes.length,2);
+});
+
 test('slider zoom preserves the visible center time across rapid updates and shares wheel scale', async () => {
  const container={scrollTop:300,clientHeight:600,firstElementChild:{offsetHeight:56},contains:()=>true,getBoundingClientRect:()=>({top:0})};
  const refs={currentView:ref('week'),slotHeight:ref(40),weekContainer:ref(container),isMobile:ref(false),isResizingMobile:ref(false),resizing:ref(null)};

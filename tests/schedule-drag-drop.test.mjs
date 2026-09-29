@@ -34,7 +34,7 @@ function createDropHarness({ overlap = false } = {}) {
     },
   };
   const container = { getBoundingClientRect: () => ({ top: 100 }) };
-  const column = { querySelector: (selector) => selector === '.relative[style*="min-height"]' ? container : null };
+  const column = { querySelector: (selector) => selector === '[data-week-grid]' ? container : null };
   const feature = registerScheduleDragDropFeature({
     refs,
     state: {

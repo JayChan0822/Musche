@@ -17,15 +17,22 @@ test('explicit stage beats task project membership and EDIT aggregates belong to
   assert.equal(scheduleContext({projectId:'P'}).legacyProject,true);
 });
 
-test('conflicts check person across stages and allow different people simultaneously', () => {
+test('conflicts block simultaneous schedules in the same stage and shared resources across stages', () => {
   const task = { scheduleId:'A', stage:'rec', musicianId:'M', projectId:'P', date:'2026-09-28', startTime:'10:00', estDuration:'01:00:00' };
   const refs = { scheduledTasks: ref([task]), itemPool:ref([]), currentSessionId:ref('S_DEFAULT'), sidebarTab:ref('musician') };
   const f = registerScheduleFeature({refs,state:{settings:{}},utils:{parseTime,timeToMinutes:mins},actions:{}});
   assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'project',{stage:'edit',editorId:'M'}),true);
-  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'musician',{stage:'rec',musicianId:'N'}),false);
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'musician',{stage:'rec',musicianId:'N'}),true);
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'musician',{stage:'rec'}),true);
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'project',{stage:'edit',editorId:'N'}),false);
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00','A','musician',task),false);
+  assert.equal(f.checkOverlap('2026-09-29','10:15','00:30:00',null,'musician',{stage:'rec',musicianId:'N'}),false);
   assert.equal(f.checkOverlap(task.date,'11:00','00:30:00',null,'project',{stage:'edit',editorId:'M'}),false);
   task.studioId='Studio'; refs.scheduledTasks.value=[task];
   assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'musician',{stage:'rec',musicianId:'N',studioId:'Studio'}),true);
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'project',{stage:'edit',editorId:'N',studioId:'Studio'}),true);
+  refs.currentSessionId.value='OTHER';
+  assert.equal(f.checkOverlap(task.date,'10:15','00:30:00',null,'musician',{stage:'rec',musicianId:'N'}),false);
 });
 
 test('deleting EDIT individual allocation clears only EDIT recording', () => {
