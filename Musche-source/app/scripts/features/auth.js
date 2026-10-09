@@ -1,0 +1,865 @@
+import { withLoadingDialog } from '../services/loading-dialog.js';
+import { migrateWorkflowContent, preserveWorkflowBackup, rememberWorkflowContent, serializeWorkflowContent, setWorkflowWriteBlocked } from '../utils/workflow-migration.js';
+import { computed } from 'vue';
+
+import { createDefaultSettings } from '../state/defaults.js';
+
+const CLOUD_CACHE_KEY = 'musche_cloud_cache_v11';
+const PREVIOUS_CLOUD_CACHE_KEY = 'musche_cloud_cache_v10';
+const LEGACY_CLOUD_CACHE_KEY = 'musche_cloud_cache_v1';
+const DEFAULT_STARTUP_TIMEOUT_MS = 8000;
+
+function createStartupTimeoutError(label) {
+  const error = new Error(`${label} timed out during startup`);
+  error.code = 'MUSCHE_STARTUP_TIMEOUT';
+  return error;
+}
+
+export function registerAuthFeature(context) {
+  const { refs, state, utils, services, actions } = context;
+  const {
+    user,
+    showAuthModal,
+    authLoading,
+    authForm,
+    activeDropdown,
+    showProfileMenu,
+    showMobileMenu,
+    tempAvatarUrl,
+    tempNickname,
+    localDataVersion,
+    saveStatus,
+    isSyncing,
+    itemPool,
+    scheduledTasks,
+    currentSessionId,
+  } = refs;
+  const { settings } = state;
+  const {
+    formatDate,
+    ensureItemRecords,
+    calculateEstTime,
+    generateUniqueId,
+  } = utils;
+  const {
+    pushHistory,
+    openAlertModal,
+    openConfirmModal,
+    cancelPendingTrackSave = () => {},
+
+    reloadPage = () => window.location.reload(),
+    getLocationOrigin = () => window.location.origin,
+    getUploadTextElement = () => document.getElementById('upload-text'),
+    setSaveStatus,
+    startupTimeoutMs = DEFAULT_STARTUP_TIMEOUT_MS,
+    cloudReadTimeoutMs = 30000,
+    exportUnsyncedBackup = (content, version) => {
+            const blob = new Blob([JSON.stringify(content, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Musche-本地未同步备份-v${version ?? 'unknown'}.json`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+  } = actions;
+  const {
+    storageService,
+    supabaseService,
+  } = services;
+
+  const userAvatar = computed(() => {
+    if (user.value && user.value.user_metadata && user.value.user_metadata.avatar_url) {
+      return user.value.user_metadata.avatar_url;
+    }
+    return null;
+  });
+
+  const userDisplayName = computed(() => {
+    if (user.value && user.value.user_metadata && user.value.user_metadata.full_name) {
+      return user.value.user_metadata.full_name;
+    }
+    return user.value ? user.value.email.split('@')[0] : 'Guest';
+  });
+
+  function ensureDefaultSession() {
+    if (!Array.isArray(settings.sessions) || settings.sessions.length === 0) {
+      settings.sessions = [{ id: 'S_DEFAULT', name: '默认录音日程' }];
+    }
+    return settings.sessions[0];
+  }
+
+  function restoreCurrentSession(lastSessionId) {
+    const fallbackSession = ensureDefaultSession();
+    if (!lastSessionId) {
+      currentSessionId.value = fallbackSession.id;
+      return;
+    }
+    const exists = settings.sessions.find((session) => session.id === lastSessionId);
+    currentSessionId.value = exists ? exists.id : fallbackSession.id;
+  }
+
+  let dataProtectionError = null;
+  let revisionConflict = false;
+  function createCloudContent() {
+    return serializeWorkflowContent(settings, itemPool.value, scheduledTasks.value, { lastSessionId: currentSessionId.value });
+  }
+
+  function applyCloudContent(content, version = 0) {
+    if (!content || typeof content !== 'object') return false;
+
+    let migrated;
+    try {
+      migrated = migrateWorkflowContent(content);
+      if (Number(content.schemaVersion || 0) < 11) preserveWorkflowBackup(storageService, content, `${user.value?.id || 'guest'}:${version}`);
+    } catch (error) {
+      dataProtectionError = error;
+      setWorkflowWriteBlocked(settings, true);
+      setSaveStatus('error');
+      openAlertModal('数据保护', error.message);
+      throw error;
+    }
+    content = migrated;
+    revisionConflict = false;
+    dataProtectionError = null;
+    setWorkflowWriteBlocked(settings, false);
+    rememberWorkflowContent(settings, content);
+    cancelPendingTrackSave();
+    localDataVersion.value = version || 0;
+    if (Array.isArray(content.pool)) {
+      itemPool.value = content.pool.map((item) => ensureItemRecords(item));
+    }
+    if (Array.isArray(content.tasks)) {
+      scheduledTasks.value = content.tasks;
+    }
+
+    if (content.settings && typeof content.settings === 'object') {
+      Object.assign(settings, content.settings);
+
+      restoreCurrentSession(content.settings.lastSessionId);
+    }
+    return true;
+  }
+
+  function getCacheableUser(account = user.value) {
+    if (!account?.id) return null;
+    return {
+      id: account.id,
+      email: account.email || '',
+      user_metadata: account.user_metadata || {},
+    };
+  }
+
+  function clearCloudCache() {
+    if (typeof storageService.removeItem !== 'function') return;
+    try {
+      storageService.removeItem(CLOUD_CACHE_KEY);
+      storageService.removeItem(PREVIOUS_CLOUD_CACHE_KEY);
+      storageService.removeItem(LEGACY_CLOUD_CACHE_KEY);
+    } catch (error) {
+      console.warn('Cloud cache cleanup failed:', error);
+    }
+  }
+
+  function persistCloudCache() {
+    const cachedUser = getCacheableUser();
+    if (!cachedUser || typeof storageService.saveData !== 'function') return;
+
+    try {
+      storageService.saveData(CLOUD_CACHE_KEY, {
+        user: cachedUser,
+        version: localDataVersion.value,
+        content: createCloudContent(),
+      });
+    } catch (error) {
+      console.warn('Cloud cache save failed:', error);
+    }
+  }
+
+  function restoreCloudCache() {
+    if (typeof storageService.loadData !== 'function') return null;
+    try {
+      const cache = storageService.loadData(CLOUD_CACHE_KEY) || storageService.loadData(PREVIOUS_CLOUD_CACHE_KEY) || storageService.loadData(LEGACY_CLOUD_CACHE_KEY);
+      if (!cache?.user?.id || !cache.content || typeof cache.content !== 'object') return null;
+
+      user.value = cache.user;
+      const draft = storageService.loadData(`musche_workflow_unsynced_v11:${cache.user.id}`) || storageService.loadData(`musche_workflow_unsynced:${cache.user.id}`);
+      applyCloudContent(draft?.version === cache.version && draft.content ? draft.content : cache.content, cache.version);
+      if (draft?.version === cache.version && draft.content) setSaveStatus('unsaved');
+      return cache;
+    } catch (error) {
+      if (!dataProtectionError) clearCloudCache();
+      return null;
+    }
+  }
+
+  async function withStartupTimeout(request, label, timeoutMs = startupTimeoutMs) {
+    let timer;
+    try {
+      return await Promise.race([
+        Promise.resolve(request),
+        new Promise((resolve, reject) => {
+          timer = setTimeout(() => reject(createStartupTimeoutError(label)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function resetWorkingData() {
+    cancelPendingTrackSave();
+    dataProtectionError = null;
+    setWorkflowWriteBlocked(settings, false);
+    rememberWorkflowContent(settings, {});
+    const defaults = createDefaultSettings();
+    Object.keys(settings).forEach((key) => {
+      delete settings[key];
+    });
+    Object.assign(settings, defaults);
+    itemPool.value = [];
+    scheduledTasks.value = [];
+    localDataVersion.value = 0;
+    currentSessionId.value = defaults.sessions[0].id;
+  }
+
+  function restoreGuestData(isSidebarOpen) {
+    cancelPendingTrackSave();
+    const localData = storageService.loadData('v11_data') || storageService.loadData('v10_data') || storageService.loadData('v9_data');
+    if (localData) applyCloudContent(localData, 0);
+    else initDefaultData(isSidebarOpen);
+  }
+
+  function initDefaultData(isSidebarOpen) {
+    cancelPendingTrackSave();
+    const demoMusicianId = 'M_DEMO_A';
+    const demoProjectId = 'P_DEMO_A';
+    const demoInstrumentId = 'I_DEMO_A';
+
+    settings.musicians = [{ id: demoMusicianId, name: 'Musician A', defaultRatio: 20, color: '#a855f7', group: '' }];
+    settings.projects = [{ id: demoProjectId, name: 'Project A', color: '#eab308', group: '' }];
+    settings.instruments = [{ id: demoInstrumentId, name: 'Instrument A', color: '#3b82f6', group: '' }];
+
+    currentSessionId.value = ensureDefaultSession().id;
+
+    const demoTaskId = 'T_DEMO_001';
+    itemPool.value = [{
+      id: demoTaskId,
+      name: '演示曲目',
+      sessionId: 'S_DEFAULT',
+      musicianId: demoMusicianId,
+      projectId: demoProjectId,
+      instrumentId: demoInstrumentId,
+      musicDuration: '03:00',
+      estDuration: '01:00:00',
+      ratio: 20,
+      trackCount: 1,
+      records: { musician: {}, project: {}, instrument: {} },
+    }];
+
+    const todayStr = formatDate(new Date());
+    scheduledTasks.value = [{
+      scheduleId: Date.now(),
+      templateId: demoTaskId,
+      sessionId: 'S_DEFAULT',
+      musicianId: demoMusicianId,
+      projectId: demoProjectId,
+      instrumentId: demoInstrumentId,
+      date: todayStr,
+      startTime: '10:00',
+      estDuration: '01:00:00',
+      trackCount: 1,
+      ratio: 20,
+      musicDuration: '03:00',
+    }];
+
+    if (isSidebarOpen) {
+      isSidebarOpen.value = true;
+      storageService.setItem('musche_sidebar_open', 'true');
+    }
+  }
+
+  const exportedDrafts = new Map();
+  const draftExportKey = (accountId) => `musche_workflow_exported_draft_v11:${accountId}`;
+  async function draftFingerprint(serialized) {
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+  async function wasDraftExported(draft, accountId) {
+    const serialized = JSON.stringify(draft);
+    if (exportedDrafts.get(accountId) === serialized) return true;
+    try {
+      const marker = storageService.loadData(draftExportKey(accountId));
+      return !!marker && marker === await draftFingerprint(serialized);
+    } catch { return false; }
+  }
+  async function markDraftExported(draft, accountId) {
+    const serialized = JSON.stringify(draft);
+    exportedDrafts.set(accountId, serialized);
+    try {
+      const marker = await draftFingerprint(serialized);
+      try { storageService.saveData(draftExportKey(accountId), marker); }
+      catch (error) {
+        if (error?.name !== 'QuotaExceededError') throw error;
+        clearCloudCache();
+        storageService.saveData(draftExportKey(accountId), marker);
+      }
+    } catch (error) {
+      console.warn('Export acknowledgement is retained for this page only:', error);
+    }
+  }
+
+  async function loadCloudData({ withStartupDeadline = false } = {}) {
+    if (!user.value) return;
+
+    const request = supabaseService.loadUserData(user.value.id);
+    const { data, error } = withStartupDeadline
+      ? await withStartupTimeout(request, 'Cloud data request', cloudReadTimeoutMs)
+      : await request;
+    if (error) throw error;
+
+    if (data && data.content) {
+      const draft = storageService.loadData(`musche_workflow_unsynced_v11:${user.value.id}`) || storageService.loadData(`musche_workflow_unsynced:${user.value.id}`);
+      if (draft?.content && draft.version === data.version) {
+        applyCloudContent(draft.content, data.version);
+        setSaveStatus('unsaved');
+        openAlertModal('已恢复本地未同步修改', '上次修改尚未上传云端，已从此设备恢复。请在云端数据保护迁移部署完成后同步。');
+      } else {
+        let archiveKey = null;
+        if (draft?.content && !await wasDraftExported(draft, user.value.id)) {
+          try { archiveKey = archiveUnsyncedDraft(draft); }
+          catch (error) {
+            if (error?.name !== 'QuotaExceededError') throw error;
+            // The existing draft is already durable. Do not require a duplicate
+            // localStorage copy just to display the independently loaded cloud data.
+            applyCloudContent(data.content, data.version);
+            dataProtectionError = new Error('本地存储空间不足，旧的未同步备份仍保留。当前显示云端数据，保存已暂停；请先导出旧备份。');
+            setWorkflowWriteBlocked(settings, true);
+            setSaveStatus('error');
+            const exportAccountId = user.value.id;
+            const exportDraft = JSON.parse(JSON.stringify(draft));
+            openConfirmModal('云端已加载，本地备份待导出', dataProtectionError.message,
+              async () => {
+                await exportUnsyncedBackup(exportDraft.content, exportDraft.version);
+                await markDraftExported(exportDraft, exportAccountId);
+                if (user.value?.id !== exportAccountId) return;
+                dataProtectionError = null;
+                setWorkflowWriteBlocked(settings, false);
+                setSaveStatus('unsaved');
+              }, false, '导出旧备份', '暂不处理');
+            return true;
+          }
+        }
+        applyCloudContent(data.content, data.version);
+        if (archiveKey && !storageService.loadData(`${archiveKey}:exported`)) openConfirmModal(
+          '有本地未同步备份',
+          '当前显示云端数据。本地未同步修改已单独归档，可先导出为 JSON 对照；导出不会覆盖云端。',
+          async () => {
+            await exportUnsyncedBackup(draft.content, draft.version);
+            storageService.saveData(`${archiveKey}:exported`, true);
+          },
+          false,
+          '导出本地备份',
+          '暂用云端数据',
+        );
+      }
+      persistCloudCache();
+      return true;
+    }
+
+    clearCloudCache();
+    resetWorkingData();
+    const localData = storageService.loadData('v11_data') || storageService.loadData('v10_data') || storageService.loadData('v9_data');
+    if (!localData) return false;
+
+    const hasRealData = (localData.pool && localData.pool.length > 0) || (localData.tasks && localData.tasks.length > 0);
+    if (!hasRealData) return false;
+
+    openConfirmModal(
+      '数据冲突',
+      '检测到您本地有旧数据，而云端是空的。\n\n您希望如何处理？',
+      async () => {
+        const dataToUpload = migrateWorkflowContent({ ...localData, pool: localData.pool || [], tasks: localData.tasks || [], settings: localData.settings || settings });
+        preserveWorkflowBackup(storageService, localData, 'guest-before-cloud-upload');
+        const { error: uploadError } = await supabaseService.saveUserData(user.value.id, dataToUpload, 1);
+
+        if (!uploadError) {
+          applyCloudContent(dataToUpload, 1);
+          persistCloudCache();
+          openAlertModal('成功', '✅ 本地数据已成功上传！');
+        } else {
+          openAlertModal('上传失败', uploadError.message);
+        }
+      },
+      false,
+      '上传本地数据',
+      '放弃本地数据',
+    );
+    return false;
+  }
+
+  function archiveUnsyncedDraft(draft) {
+    const prefix = `musche_workflow_recovery:${user.value.id}:${draft.version ?? 'unknown'}`;
+    const serialized = JSON.stringify(draft);
+    let index = 0;
+    let key = prefix;
+    let existing = storageService.loadData(key);
+    while (existing) {
+      if (JSON.stringify(existing) === serialized) return key;
+      key = `${prefix}:${++index}`;
+      existing = storageService.loadData(key);
+    }
+    storageService.saveData(key, draft);
+    return key;
+  }
+
+  // Backup failures must not block a network save or escape its error handler.
+  function persistUnsyncedDraft(content, version = localDataVersion.value) {
+    const key = `musche_workflow_unsynced_v11:${user.value.id}`;
+    const write = () => {
+      const prior = storageService.loadData(key);
+      // Do not overwrite an older conflicting draft unless it has been archived.
+      if (prior?.content && prior.version !== version) archiveUnsyncedDraft(prior);
+      storageService.saveData(key, { version, content });
+    };
+    try {
+      write();
+      return true;
+    } catch (error) {
+      if (error?.name === 'QuotaExceededError') {
+        // Only disposable cloud caches may be evicted, never recovery drafts.
+        clearCloudCache();
+        try { write(); return true; } catch { /* Report via the cloud result below. */ }
+      }
+      console.warn('Local recovery backup unavailable:', error);
+      return false;
+    }
+  }
+
+  let activeSave = null;
+  let saveQueued = false;
+  let lastSaveError = null;
+
+  function saveToCloud(handleManualSync, force = false) {
+    if (revisionConflict || isSyncing?.value) return Promise.resolve(false);
+    if (activeSave) {
+      saveQueued = true;
+      return activeSave;
+    }
+    activeSave = (async () => {
+      do {
+        saveQueued = false;
+        const saved = await performCloudSave(handleManualSync, force);
+        if (!saved) break;
+      } while (saveQueued);
+    })().finally(() => { activeSave = null; });
+    return activeSave;
+  }
+
+  async function performCloudSave(handleManualSync, force = false) {
+    if (!user.value) return;
+    if (dataProtectionError) {
+      setSaveStatus('error');
+      openAlertModal('数据保护：未保存', dataProtectionError.message);
+      return;
+    }
+
+    setSaveStatus('saving');
+
+    try {
+      // Keep a recoverable local draft even while server deployment/network blocks writes.
+      const dataToSave = createCloudContent();
+      const draftWritten = persistUnsyncedDraft(dataToSave);
+      const { data: serverRecord, error: checkError } = await supabaseService.fetchUserDataVersion(user.value.id);
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+      const serverVersion = serverRecord ? serverRecord.version : 0;
+      if (serverVersion !== localDataVersion.value) {
+        revisionConflict = true;
+        setSaveStatus('error');
+
+
+        openConfirmModal(
+          '⚠ 数据同步冲突',
+          '检测到云端有更新的数据（可能您在其他设备进行了操作）。\n\n为了防止数据覆盖，请先同步最新数据。',
+          async () => {
+            await handleManualSync();
+          },
+          false,
+          '立即同步 (推荐)',
+          '暂不处理',
+        );
+        return;
+      }
+
+      const newVersion = serverVersion + 1;
+
+      const { error: saveError } = await supabaseService.saveUserData(user.value.id, dataToSave, newVersion);
+      if (saveError) throw saveError;
+
+      localDataVersion.value = newVersion;
+      const latest = createCloudContent();
+      if (JSON.stringify(latest) !== JSON.stringify(dataToSave)) {
+        saveQueued = true;
+        persistUnsyncedDraft(latest, newVersion);
+      } else if (draftWritten) {
+        try { storageService.removeItem?.(`musche_workflow_unsynced_v11:${user.value.id}`); } catch (error) { console.warn('Draft cleanup failed:', error); }
+      }
+      persistCloudCache();
+      lastSaveError = null;
+      setSaveStatus(saveQueued ? 'unsaved' : 'saved');
+      return true;
+    } catch (error) {
+      console.error('保存失败', error);
+      if (error?.code === 'PT409' || error?.code === '40001') revisionConflict = true;
+      // Include edits made while the failed request was in flight in the recovery draft.
+      let recoveryContent;
+      let backedUp = false;
+      try {
+        recoveryContent = createCloudContent();
+        backedUp = persistUnsyncedDraft(recoveryContent);
+      } catch (backupError) {
+        console.warn('Recovery snapshot unavailable:', backupError);
+      }
+      setSaveStatus('error');
+      const errorKey = `${error.code || ''}:${error.message || ''}:${backedUp}`;
+      if (force || lastSaveError !== errorKey) {
+        if (backedUp) {
+          openAlertModal('云端未保存', `${describeSyncError(error)}\n修改已保留为本地未同步备份。`);
+        } else if (recoveryContent) {
+          openConfirmModal('云端与本地备份均未保存',
+            `${error.message || '云端保存失败'}\n本地备份写入也失败，修改目前仅保留在此页面内存中。请先导出备份，暂勿刷新或关闭页面。`,
+            () => exportUnsyncedBackup(recoveryContent, localDataVersion.value), false, '导出备份', '暂不关闭页面');
+        } else {
+          openAlertModal('未保存', '云端保存与本地备份均失败，请勿刷新或关闭页面。');
+        }
+      }
+      lastSaveError = errorKey;
+      return false;
+    }
+  }
+
+  const handlePageUnload = () => {
+    if (saveStatus.value === 'unsaved') {
+      return saveToCloud(handleManualSync, true);
+    }
+    return undefined;
+  };
+
+  async function handleLogin() {
+    if (authLoading.value) return;
+    if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
+    try {
+      return await withLoadingDialog('正在登录', '正在验证账号并加载日程…', performLogin);
+    } catch (error) {
+      openAlertModal('登录未完成', describeSyncError(error));
+    } finally { authLoading.value = false; }
+  }
+
+  async function performLogin() {
+    if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
+    authLoading.value = true;
+
+    const { data, error } = await withStartupTimeout(supabaseService.signInWithPassword({
+      email: authForm.email,
+      password: authForm.password,
+    }), 'Login');
+
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        openAlertModal('登录失败：账号或密码错误');
+      } else {
+        openAlertModal(`登录失败: ${error.message}`);
+      }
+    } else {
+      user.value = data.user;
+      showAuthModal.value = false;
+      await loadCloudData({ withStartupDeadline: true });
+    }
+
+    authLoading.value = false;
+  }
+
+  async function handleRegister() {
+    if (!authForm.email || !authForm.password) return openAlertModal('请输入邮箱和密码');
+    authLoading.value = true;
+
+    const { data, error } = await supabaseService.signUp({
+      email: authForm.email,
+      password: authForm.password,
+    });
+
+    if (error) {
+      openAlertModal(`注册失败: ${error.message}`);
+    } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+      openAlertModal('该邮箱已被注册，请直接登录 (若忘记密码请点击找回)。');
+    } else {
+      openAlertModal('注册成功！\n请检查您的邮箱进行验证，验证后即可登录。');
+    }
+
+    authLoading.value = false;
+  }
+
+  async function handleResetPwd() {
+    if (!authForm.email) return openAlertModal('请先在上方输入您的邮箱地址');
+
+    authLoading.value = true;
+    const { error } = await supabaseService.resetPasswordForEmail(authForm.email, {
+      redirectTo: getLocationOrigin(),
+    });
+
+    if (error) {
+      openAlertModal(`发送失败: ${error.message}`);
+    } else {
+      openAlertModal(`重置邮件已发送至 ${authForm.email}\n请查收邮件并点击链接重设密码。`);
+    }
+    authLoading.value = false;
+  }
+
+  async function updateNickname() {
+    if (!user.value) return;
+    if (!tempNickname.value.trim()) return openAlertModal('昵称不能为空');
+
+    authLoading.value = true;
+    try {
+      const { data, error } = await supabaseService.updateUser({
+        data: { full_name: tempNickname.value.trim() },
+      });
+      if (error) throw error;
+      user.value = data.user;
+      persistCloudCache();
+    } catch (error) {
+      openAlertModal(`更新失败: ${error.message}`);
+    } finally {
+      authLoading.value = false;
+    }
+  }
+
+  function handleUserBtnClick() {
+    if (user.value) {
+      const wasOpen = showProfileMenu.value;
+      if (activeDropdown) activeDropdown.value = null;
+      showMobileMenu.value = false;
+      showProfileMenu.value = !wasOpen;
+
+      if (showProfileMenu.value) {
+        tempAvatarUrl.value = userAvatar.value || '';
+        tempNickname.value = userDisplayName.value;
+      }
+    } else {
+      showAuthModal.value = true;
+    }
+  }
+
+  async function updateAvatar() {
+    if (!user.value) return;
+
+    const url = tempAvatarUrl.value.trim();
+    const { data, error } = await supabaseService.updateUser({
+      data: { avatar_url: url },
+    });
+
+    if (error) {
+      openAlertModal(`更新失败: ${error.message}`);
+    } else {
+      user.value = data.user;
+      persistCloudCache();
+      openAlertModal('头像已更新！');
+    }
+  }
+
+  async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      return openAlertModal('图片太大了，请选择 2MB 以下的图片');
+    }
+
+    const btnText = getUploadTextElement();
+    if (btnText) btnText.innerText = '上传中...';
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.value.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabaseService.uploadAvatar(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabaseService.getAvatarPublicUrl(filePath);
+      const publicUrl = data.publicUrl;
+      const { data: userData, error: updateError } = await supabaseService.updateUser({
+        data: { avatar_url: publicUrl },
+      });
+      if (updateError) throw updateError;
+
+      user.value = userData.user;
+      persistCloudCache();
+      openAlertModal('头像上传成功！');
+    } catch (error) {
+      openAlertModal(`上传失败: ${error.message}`);
+      console.error(error);
+    } finally {
+      if (btnText) btnText.innerText = '选择图片...';
+      event.target.value = '';
+    }
+  }
+
+  async function handleLogout() {
+    user.value = null;
+    clearCloudCache();
+    try {
+      await supabaseService.signOut();
+    } catch (error) {
+      console.error('Cloud signout failed:', error);
+    }
+
+    openAlertModal('已退出账号连接。');
+    localDataVersion.value = 0;
+    reloadPage();
+  }
+
+  function factoryReset() {
+    openConfirmModal(
+      '恢复出厂设置',
+      '⚠确定要清空所有数据吗？\n\n如果当前为登录状态，云端数据也将被永久清除。此操作不可逆！',
+      async () => {
+        if (user.value) {
+          const { error } = await supabaseService.deleteUserData(user.value.id);
+          if (error) {
+            console.error('Cloud data deletion failed:', error);
+            openAlertModal('云端清理失败', '无法删除云端数据，请检查网络或稍后重试。');
+          } else {
+            openAlertModal('云端数据已清除', '您的所有数据已从云端永久清除。');
+          }
+        }
+
+        storageService.removeItem('v9_data');
+        storageService.removeItem('v11_data');
+        storageService.removeItem('v10_data');
+        clearCloudCache();
+        storageService.removeItem('musche_tour_seen');
+        localDataVersion.value = 0;
+        reloadPage();
+      },
+      true,
+      '彻底清空',
+      '再想想',
+    );
+  }
+
+  function describeSyncError(error) {
+    if (error?.code === 'MUSCHE_STARTUP_TIMEOUT') return '云端启动读取超过等待时间，尚未确认加载完成。可手动同步重试；当前数据不会自动上传。';
+    if (error?.name === 'QuotaExceededError') return '本地存储空间不足，无法归档未同步备份，已停止替换当前数据。请先导出备份；这不是网络连接错误。';
+    if (error?.code === 'PT409' || error?.code === '40001') return '云端版本冲突：已暂停自动保存。请先导出当前数据，再同步核对云端版本。';
+    if (error?.code === '57014') return '数据库执行超时（57014）。请求已到达数据库，但未在限制时间内完成。';
+    return `${error?.code ? `[${error.code}] ` : ''}${error?.message || '无法完成同步，请检查连接后重试。'}`;
+  }
+
+  async function handleManualSync() {
+    if (!user.value) {
+      return openAlertModal('请先登录', '只有登录后才能同步云端数据。');
+    }
+
+    if (isSyncing && isSyncing.value) return;
+    if (isSyncing) isSyncing.value = true;
+
+    try {
+      if (activeSave) await activeSave;
+      await withLoadingDialog('正在同步日程', '正在读取云端数据与核对本地备份…', () => loadCloudData({ withStartupDeadline: true }));
+      setTimeout(() => {
+        if (isSyncing) isSyncing.value = false;
+
+      }, 500);
+    } catch (error) {
+      if (isSyncing) isSyncing.value = false;
+
+      console.error('同步失败', error);
+      openAlertModal('同步失败', describeSyncError(error));
+    }
+  }
+
+  async function bootSessionData(options = {}) {
+    const {
+      isSidebarOpen,
+      skipHistory = false,
+    } = options;
+
+    const cachedData = restoreCloudCache();
+    let session;
+    try {
+      const { data } = await withStartupTimeout(supabaseService.getSession(), 'Session recovery');
+      session = data?.session || null;
+    } catch (error) {
+      dataProtectionError = new Error('账号状态加载失败，已暂停保存以保护原数据。请恢复连接后重试。');
+      setWorkflowWriteBlocked(settings, true);
+      setSaveStatus('error');
+      openAlertModal('数据尚未加载', dataProtectionError.message);
+      if (!skipHistory) pushHistory();
+      return;
+    }
+
+    if (!session) {
+      user.value = null;
+      clearCloudCache();
+      resetWorkingData();
+      restoreGuestData(isSidebarOpen);
+    } else {
+      const cacheMatchesSession = cachedData?.user?.id === session.user.id;
+      user.value = session.user;
+
+      if (cachedData && !cacheMatchesSession) {
+        clearCloudCache();
+        resetWorkingData();
+      }
+
+      try {
+        await loadCloudData({ withStartupDeadline: true });
+      } catch (error) {
+        if (!cacheMatchesSession) {
+          // Recovery drafts remain useful even if disposable cloud caches are absent.
+          const draft = storageService.loadData(`musche_workflow_unsynced_v11:${session.user.id}`) || storageService.loadData(`musche_workflow_unsynced:${session.user.id}`);
+          if (draft?.content) {
+            try { applyCloudContent(draft.content, draft.version); } catch { /* Keep protection active. */ }
+          }
+        }
+        console.error('启动数据加载失败', error);
+        dataProtectionError = new Error(`${describeSyncError(error)}\n已暂停保存，防止空白或演示数据覆盖原日程。现有备份未删除。`);
+        setWorkflowWriteBlocked(settings, true);
+        setSaveStatus('error');
+        openAlertModal('数据尚未加载', dataProtectionError.message);
+      }
+
+      if (!dataProtectionError && itemPool.value.length === 0 && scheduledTasks.value.length === 0) {
+        initDefaultData(isSidebarOpen);
+      }
+    }
+
+    if (!skipHistory) {
+      pushHistory();
+    }
+  }
+
+  return {
+    userAvatar,
+    userDisplayName,
+    initDefaultData,
+    loadCloudData,
+    saveToCloud,
+    handleLogin,
+    handleRegister,
+    handleResetPwd,
+    updateNickname,
+    handleUserBtnClick,
+    updateAvatar,
+    handleAvatarUpload,
+    handleLogout,
+    factoryReset,
+    handleManualSync,
+    handlePageUnload,
+    bootSessionData,
+  };
+}

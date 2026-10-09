@@ -1,0 +1,41 @@
+import { defineShellState } from './shell-state-factory.js';
+
+export const createEditModalShellState = defineShellState('createEditModalShellState', {
+    reads: [
+        'refs.editingItem',
+        'refs.editingSource',
+        'refs.activeDropdown',
+        'helpers.filteredOptions',
+        'refs.isMobile',
+        'helpers.showOrchestrationField',
+        'helpers.parsedRoster',
+        'helpers.activeOrchPresets',
+        'helpers.isPercussionMode',
+        'helpers.timeSlots',
+    ],
+    models: [
+        'refs.showEditor',
+        'helpers.dropdownSearch',
+    ],
+    values: [
+        'helpers.dropdownExpandedGroups',
+        'helpers.percState',
+        'helpers.toggleDropdown',
+        'helpers.getNameById',
+        'helpers.getGroupedOptions',
+        'helpers.toggleDropdownGroup',
+        'helpers.selectOption',
+        'helpers.openDurationPicker',
+        'helpers.getRosterName',
+        'helpers.updateRosterName',
+        'helpers.scanPercussionTags',
+        'helpers.addPercPlayer',
+        'helpers.removePercPlayer',
+        'helpers.togglePercTagSelect',
+        'helpers.assignTagsToPlayer',
+        'helpers.updatePercOrchestration',
+        'helpers.deleteEditingItem',
+        'helpers.saveEdit',
+        'helpers.pushHistory',
+    ],
+});

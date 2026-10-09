@@ -1,0 +1,1114 @@
+{
+  "source": "Real local Musche application at http://127.0.0.1:5173; original DOM, CSS, icons and wordmark. Fictional sample recording data only.",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "pixelRatio": 2,
+  "assets": [
+    {
+      "name": "light-month-full",
+      "file": "light-month-full.png",
+      "theme": "light",
+      "sourceSelector": "#app",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "light-month-calendar",
+      "file": "light-month-calendar.png",
+      "theme": "light",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "light-wordmark",
+      "file": "light-wordmark.png",
+      "theme": "light",
+      "sourceSelector": "header h1",
+      "transparent": true,
+      "bounds": {
+        "x": 100,
+        "y": 17.5,
+        "width": 123.40625,
+        "height": 28
+      },
+      "pixels": {
+        "width": 248,
+        "height": 56
+      }
+    },
+    {
+      "name": "light-header",
+      "file": "light-header.png",
+      "theme": "light",
+      "sourceSelector": "header",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 64
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 128
+      }
+    },
+    {
+      "name": "light-week-full",
+      "file": "light-week-full.png",
+      "theme": "light",
+      "sourceSelector": "#app",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "light-week-calendar",
+      "file": "light-week-calendar.png",
+      "theme": "light",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "light-week-background",
+      "file": "light-week-background.png",
+      "theme": "light",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "light-week-grid",
+      "file": "light-week-grid.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 152,
+        "width": 1570,
+        "height": 928
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 1856
+      }
+    },
+    {
+      "name": "light-toolbar",
+      "file": "light-toolbar.png",
+      "theme": "light",
+      "sourceSelector": "#main-content > div:first-child",
+      "transparent": true,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 88
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 176
+      }
+    },
+    {
+      "name": "light-sidebar",
+      "file": "light-sidebar.png",
+      "theme": "light",
+      "sourceSelector": "#sidebar",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 64,
+        "width": 350,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 700,
+        "height": 2032
+      }
+    },
+    {
+      "name": "light-task-0",
+      "file": "light-task-0.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=0",
+      "transparent": true,
+      "bounds": {
+        "x": 638.28125,
+        "y": 369,
+        "width": 207.296875,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "light-task-1",
+      "file": "light-task-1.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=1",
+      "transparent": true,
+      "bounds": {
+        "x": 852.578125,
+        "y": 489,
+        "width": 207.28125,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "light-task-2",
+      "file": "light-task-2.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=2",
+      "transparent": true,
+      "bounds": {
+        "x": 1066.859375,
+        "y": 289,
+        "width": 207.296875,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "light-task-3",
+      "file": "light-task-3.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=3",
+      "transparent": true,
+      "bounds": {
+        "x": 1066.859375,
+        "y": 689,
+        "width": 207.296875,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "light-task-4",
+      "file": "light-task-4.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=4",
+      "transparent": true,
+      "bounds": {
+        "x": 1281.15625,
+        "y": 609,
+        "width": 207.28125,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "light-task-5",
+      "file": "light-task-5.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=5",
+      "transparent": true,
+      "bounds": {
+        "x": 1495.4375,
+        "y": 409,
+        "width": 207.28125,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "light-task-6",
+      "file": "light-task-6.png",
+      "theme": "light",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=6",
+      "transparent": true,
+      "bounds": {
+        "x": 1709.71875,
+        "y": 689,
+        "width": 207.28125,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "light-stat-M_STR",
+      "file": "light-stat-M_STR.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_STR\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 798,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-stat-M_PNO",
+      "file": "light-stat-M_PNO.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_PNO\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 468,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-stat-M_WND",
+      "file": "light-stat-M_WND.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_WND\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 578,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-stat-M_ENS",
+      "file": "light-stat-M_ENS.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_ENS\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 688,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-stat-M_CEL",
+      "file": "light-stat-M_CEL.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_CEL\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-stat-M_VLN",
+      "file": "light-stat-M_VLN.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_VLN\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 358,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "light-pool-expanded",
+      "file": "light-pool-expanded.png",
+      "theme": "light",
+      "sourceSelector": "[data-stat-id=\"M_STR\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 798,
+        "width": 325,
+        "height": 346.25
+      },
+      "pixels": {
+        "width": 650,
+        "height": 694
+      }
+    },
+    {
+      "name": "light-pool-card",
+      "file": "light-pool-card.png",
+      "theme": "light",
+      "sourceSelector": "[data-capture-pool]",
+      "transparent": true,
+      "bounds": {
+        "x": 43,
+        "y": 996.5,
+        "width": 279,
+        "height": 42.25
+      },
+      "pixels": {
+        "width": 558,
+        "height": 86
+      }
+    },
+    {
+      "name": "light-tracks-modal",
+      "file": "light-tracks-modal.png",
+      "theme": "light",
+      "sourceSelector": ".modal-window",
+      "transparent": true,
+      "bounds": {
+        "x": 735,
+        "y": 252,
+        "width": 450,
+        "height": 576
+      },
+      "pixels": {
+        "width": 900,
+        "height": 1152
+      }
+    },
+    {
+      "name": "light-track-0",
+      "file": "light-track-0.png",
+      "theme": "light",
+      "sourceSelector": ".track-card >> nth=0",
+      "transparent": true,
+      "bounds": {
+        "x": 748,
+        "y": 395,
+        "width": 424,
+        "height": 146
+      },
+      "pixels": {
+        "width": 848,
+        "height": 292
+      }
+    },
+    {
+      "name": "light-track-1",
+      "file": "light-track-1.png",
+      "theme": "light",
+      "sourceSelector": ".track-card >> nth=1",
+      "transparent": true,
+      "bounds": {
+        "x": 748,
+        "y": 602,
+        "width": 424,
+        "height": 146
+      },
+      "pixels": {
+        "width": 848,
+        "height": 292
+      }
+    },
+    {
+      "name": "dark-month-full",
+      "file": "dark-month-full.png",
+      "theme": "dark",
+      "sourceSelector": "#app",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "dark-month-calendar",
+      "file": "dark-month-calendar.png",
+      "theme": "dark",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "dark-wordmark",
+      "file": "dark-wordmark.png",
+      "theme": "dark",
+      "sourceSelector": "header h1",
+      "transparent": true,
+      "bounds": {
+        "x": 100,
+        "y": 17.5,
+        "width": 123.40625,
+        "height": 28
+      },
+      "pixels": {
+        "width": 248,
+        "height": 56
+      }
+    },
+    {
+      "name": "dark-header",
+      "file": "dark-header.png",
+      "theme": "dark",
+      "sourceSelector": "header",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 64
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 128
+      }
+    },
+    {
+      "name": "dark-week-full",
+      "file": "dark-week-full.png",
+      "theme": "dark",
+      "sourceSelector": "#app",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "dark-week-calendar",
+      "file": "dark-week-calendar.png",
+      "theme": "dark",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "dark-week-background",
+      "file": "dark-week-background.png",
+      "theme": "dark",
+      "sourceSelector": "#main-content",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "dark-week-grid",
+      "file": "dark-week-grid.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 152,
+        "width": 1570,
+        "height": 928
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 1856
+      }
+    },
+    {
+      "name": "dark-toolbar",
+      "file": "dark-toolbar.png",
+      "theme": "dark",
+      "sourceSelector": "#main-content > div:first-child",
+      "transparent": true,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 88
+      },
+      "pixels": {
+        "width": 3140,
+        "height": 176
+      }
+    },
+    {
+      "name": "dark-sidebar",
+      "file": "dark-sidebar.png",
+      "theme": "dark",
+      "sourceSelector": "#sidebar",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 64,
+        "width": 350,
+        "height": 1016
+      },
+      "pixels": {
+        "width": 700,
+        "height": 2032
+      }
+    },
+    {
+      "name": "dark-task-0",
+      "file": "dark-task-0.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=0",
+      "transparent": true,
+      "bounds": {
+        "x": 638.28125,
+        "y": 369,
+        "width": 207.296875,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "dark-task-1",
+      "file": "dark-task-1.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=1",
+      "transparent": true,
+      "bounds": {
+        "x": 852.578125,
+        "y": 489,
+        "width": 207.28125,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "dark-task-2",
+      "file": "dark-task-2.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=2",
+      "transparent": true,
+      "bounds": {
+        "x": 1066.859375,
+        "y": 289,
+        "width": 207.296875,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "dark-task-3",
+      "file": "dark-task-3.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=3",
+      "transparent": true,
+      "bounds": {
+        "x": 1066.859375,
+        "y": 689,
+        "width": 207.296875,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "dark-task-4",
+      "file": "dark-task-4.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=4",
+      "transparent": true,
+      "bounds": {
+        "x": 1281.15625,
+        "y": 609,
+        "width": 207.28125,
+        "height": 160
+      },
+      "pixels": {
+        "width": 416,
+        "height": 320
+      }
+    },
+    {
+      "name": "dark-task-5",
+      "file": "dark-task-5.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=5",
+      "transparent": true,
+      "bounds": {
+        "x": 1495.4375,
+        "y": 409,
+        "width": 207.28125,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "dark-task-6",
+      "file": "dark-task-6.png",
+      "theme": "dark",
+      "sourceSelector": ".calendar-week-view .task-block >> nth=6",
+      "transparent": true,
+      "bounds": {
+        "x": 1709.71875,
+        "y": 689,
+        "width": 207.28125,
+        "height": 120
+      },
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "dark-stat-M_STR",
+      "file": "dark-stat-M_STR.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_STR\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 798,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-stat-M_PNO",
+      "file": "dark-stat-M_PNO.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_PNO\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 468,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-stat-M_WND",
+      "file": "dark-stat-M_WND.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_WND\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 578,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-stat-M_ENS",
+      "file": "dark-stat-M_ENS.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_ENS\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 688,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-stat-M_CEL",
+      "file": "dark-stat-M_CEL.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_CEL\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-stat-M_VLN",
+      "file": "dark-stat-M_VLN.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_VLN\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 358,
+        "width": 325,
+        "height": 102
+      },
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "dark-pool-expanded",
+      "file": "dark-pool-expanded.png",
+      "theme": "dark",
+      "sourceSelector": "[data-stat-id=\"M_STR\"]",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 798,
+        "width": 325,
+        "height": 346.25
+      },
+      "pixels": {
+        "width": 650,
+        "height": 694
+      }
+    },
+    {
+      "name": "dark-pool-card",
+      "file": "dark-pool-card.png",
+      "theme": "dark",
+      "sourceSelector": "[data-capture-pool]",
+      "transparent": true,
+      "bounds": {
+        "x": 43,
+        "y": 996.5,
+        "width": 279,
+        "height": 42.25
+      },
+      "pixels": {
+        "width": 558,
+        "height": 86
+      }
+    },
+    {
+      "name": "dark-tracks-modal",
+      "file": "dark-tracks-modal.png",
+      "theme": "dark",
+      "sourceSelector": ".modal-window",
+      "transparent": true,
+      "bounds": {
+        "x": 735,
+        "y": 252,
+        "width": 450,
+        "height": 576
+      },
+      "pixels": {
+        "width": 900,
+        "height": 1152
+      }
+    },
+    {
+      "name": "dark-track-0",
+      "file": "dark-track-0.png",
+      "theme": "dark",
+      "sourceSelector": ".track-card >> nth=0",
+      "transparent": true,
+      "bounds": {
+        "x": 748,
+        "y": 395,
+        "width": 424,
+        "height": 146
+      },
+      "pixels": {
+        "width": 848,
+        "height": 292
+      }
+    },
+    {
+      "name": "dark-track-1",
+      "file": "dark-track-1.png",
+      "theme": "dark",
+      "sourceSelector": ".track-card >> nth=1",
+      "transparent": true,
+      "bounds": {
+        "x": 748,
+        "y": 602,
+        "width": 424,
+        "height": 146
+      },
+      "pixels": {
+        "width": 848,
+        "height": 292
+      }
+    },
+    {
+      "name": "light-wordmark-large",
+      "file": "light-wordmark-large.png",
+      "theme": "light",
+      "sourceSelector": "header h1",
+      "transparent": true,
+      "bounds": {
+        "x": 100,
+        "y": 17.5,
+        "width": 123.40625,
+        "height": 28
+      },
+      "pixels": {
+        "width": 1482,
+        "height": 336
+      }
+    },
+    {
+      "name": "light-view-switch",
+      "file": "light-view-switch.png",
+      "theme": "light",
+      "sourceSelector": "#tour-view-switch",
+      "transparent": true,
+      "bounds": {
+        "x": 1776,
+        "y": 80,
+        "width": 56,
+        "height": 56
+      },
+      "pixels": {
+        "width": 448,
+        "height": 448
+      }
+    },
+    {
+      "name": "light-new-task",
+      "file": "light-new-task.png",
+      "theme": "light",
+      "sourceSelector": "#sidebar button",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 76,
+        "width": 325,
+        "height": 44
+      },
+      "pixels": {
+        "width": 1300,
+        "height": 176
+      }
+    },
+    {
+      "name": "light-tracks-empty",
+      "file": "light-tracks-empty.png",
+      "theme": "light",
+      "sourceSelector": ".modal-window",
+      "transparent": true,
+      "bounds": {
+        "x": 735,
+        "y": 252,
+        "width": 450,
+        "height": 576
+      },
+      "pixels": {
+        "width": 900,
+        "height": 1152
+      }
+    },
+    {
+      "name": "dark-wordmark-large",
+      "file": "dark-wordmark-large.png",
+      "theme": "dark",
+      "sourceSelector": "header h1",
+      "transparent": true,
+      "bounds": {
+        "x": 100,
+        "y": 17.5,
+        "width": 123.40625,
+        "height": 28
+      },
+      "pixels": {
+        "width": 1482,
+        "height": 336
+      }
+    },
+    {
+      "name": "dark-view-switch",
+      "file": "dark-view-switch.png",
+      "theme": "dark",
+      "sourceSelector": "#tour-view-switch",
+      "transparent": true,
+      "bounds": {
+        "x": 1776,
+        "y": 80,
+        "width": 56,
+        "height": 56
+      },
+      "pixels": {
+        "width": 448,
+        "height": 448
+      }
+    },
+    {
+      "name": "dark-new-task",
+      "file": "dark-new-task.png",
+      "theme": "dark",
+      "sourceSelector": "#sidebar button",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 76,
+        "width": 325,
+        "height": 44
+      },
+      "pixels": {
+        "width": 1300,
+        "height": 176
+      }
+    },
+    {
+      "name": "dark-tracks-empty",
+      "file": "dark-tracks-empty.png",
+      "theme": "dark",
+      "sourceSelector": ".modal-window",
+      "transparent": true,
+      "bounds": {
+        "x": 735,
+        "y": 252,
+        "width": 450,
+        "height": 576
+      },
+      "pixels": {
+        "width": 900,
+        "height": 1152
+      }
+    }
+  ],
+  "features": [
+    "Week and month calendar views",
+    "Drag tasks from pool into time slots",
+    "Drag task edges to adjust duration",
+    "Musician / project / instrument task grouping",
+    "Recording track lists with duration, split and section controls",
+    "MIDI / CSV import controls"
+  ],
+  "icon": {
+    "file": "musche-icon.png",
+    "pixels": {
+      "width": 1024,
+      "height": 1024
+    },
+    "source": "icon/icon.png"
+  }
+}

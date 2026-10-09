@@ -1,0 +1,543 @@
+import { computed, reactive, ref } from 'vue';
+
+export function registerSettingsFeature(context) {
+  const { refs, state, utils, actions } = context;
+  const {
+    itemPool,
+    scheduledTasks,
+    settingsExpandedGroups,
+    newSettingsItem,
+    settingsGroupFocus,
+  } = refs;
+  const { settings } = state;
+  const { generateUniqueId, generateRandomHexColor } = utils;
+  const {
+    pushHistory,
+    openConfirmModal,
+    openAlertModal,
+    cleanupEmptySchedules,
+    autoUpdateEfficiency,
+    getWindowInnerHeight = () => window.innerHeight,
+    querySelectorAll = (selector) => document.querySelectorAll(selector),
+  } = actions;
+
+  const inputRects = reactive({
+    name: { top: 0, left: 0, width: 0, height: 0 },
+    group: { top: 0, left: 0, width: 0, height: 0 },
+  });
+  const settingsNameFocus = ref(null);
+  let settingsDragItem = null;
+
+  function getListForType(type) {
+    if (type === 'instrument') return settings.instruments;
+    if (type === 'musician' || type === 'editor') return settings.musicians;
+    if (type === 'project') return settings.projects;
+    return [];
+  }
+
+  function setListForType(type, nextList) {
+    if (type === 'instrument') settings.instruments = nextList;
+    else if (type === 'musician') settings.musicians = nextList;
+    else if (type === 'project') settings.projects = nextList;
+  }
+
+  function getIdKeyForType(type) {
+    if (type === 'instrument') return 'instrumentId';
+    if (type === 'musician') return 'musicianId';
+    return 'projectId';
+  }
+
+  function toggleSettingsGroup(type, groupName) {
+    const key = `${type}|${groupName}`;
+    if (settingsExpandedGroups.has(key)) settingsExpandedGroups.delete(key);
+    else settingsExpandedGroups.add(key);
+  }
+
+  function getSettingsGroupedList(type) {
+    const groups = {};
+    const defaultKey = '未分组';
+
+    getListForType(type).forEach((item) => {
+      const groupName = item.group && item.group.trim() ? item.group : defaultKey;
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(item);
+    });
+
+    return Object.keys(groups)
+      .sort((a, b) => {
+        if (a === defaultKey) return 1;
+        if (b === defaultKey) return -1;
+        return a.localeCompare(b, 'zh-CN', { numeric: true });
+      })
+      .map((key) => ({
+        name: key === defaultKey ? '' : key,
+        items: groups[key].sort((a, b) => a.name.localeCompare(b.name, 'zh-CN', { numeric: true })),
+      }));
+  }
+
+  const updateInputRect = (event, kind) => {
+    const wrapperClass = kind === 'name' ? '.settings-name-wrapper' : '.settings-group-wrapper';
+    const el = event.target.closest(wrapperClass);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      inputRects[kind] = { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+    }
+  };
+
+  const getFloatingStyle = (kind) => {
+    const rect = inputRects[kind];
+    const windowHeight = getWindowInnerHeight();
+    const inputBottom = rect.top + rect.height;
+    const spaceBelow = windowHeight - inputBottom;
+    const menuHeight = 220;
+    const isDropUp = spaceBelow < menuHeight;
+
+    const style = {
+      position: 'fixed',
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      margin: 0,
+      zIndex: 99999,
+    };
+
+    if (isDropUp) {
+      style.top = 'auto';
+      style.bottom = `${windowHeight - rect.top + 5}px`;
+      style.transformOrigin = 'bottom center';
+    } else {
+      style.top = `${inputBottom + 5}px`;
+      style.bottom = 'auto';
+      style.transformOrigin = 'top center';
+    }
+
+    return style;
+  };
+
+  const onSettingsScroll = () => {
+    if (settingsNameFocus.value || settingsGroupFocus.value) {
+      settingsNameFocus.value = null;
+      settingsGroupFocus.value = null;
+    }
+  };
+
+  const getUngroupedItems = (type) =>
+    getListForType(type)
+      .filter((item) => !item.group || !item.group.trim())
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+  const sortSettingsList = (list) => [...list].sort((a, b) => {
+    const gA = (a.group || '').trim();
+    const gB = (b.group || '').trim();
+
+    if (gA && !gB) return -1;
+    if (!gA && gB) return 1;
+    if (gA !== gB) return gA.localeCompare(gB, 'zh-CN');
+
+    return (a.name || '').localeCompare(b.name || '', 'zh-CN');
+  });
+
+  const findSettingId = (type, name) => {
+    if (!name) return null;
+    const list = settings[`${type}s`];
+    if (!list) return null;
+
+    const targetName = name.trim().toLowerCase();
+    const found = list.find((item) => item.name.trim().toLowerCase() === targetName);
+    return found ? found.id : null;
+  };
+
+  const getOrCreateProjectId = (projectName) => {
+    let project = settings.projects.find((item) => item.name === projectName);
+    if (!project) {
+      project = { id: generateUniqueId('P'), name: projectName, color: generateRandomHexColor() };
+      settings.projects.push(project);
+    }
+    return project.id;
+  };
+
+  const sortedInstruments = computed(() => sortSettingsList(settings.instruments));
+  const sortedMusicians = computed(() => sortSettingsList(settings.musicians));
+  const sortedProjects = computed(() => sortSettingsList(settings.projects));
+
+  const isAllGroupsExpanded = (type) => {
+    const groups = getSettingsGroupedList(type);
+    if (groups.length === 0) return false;
+    return groups.every((group) => settingsExpandedGroups.has(`${type}|${group.name}`));
+  };
+
+  const toggleAllGroups = (type) => {
+    const groups = getSettingsGroupedList(type);
+    const isAllOpen = isAllGroupsExpanded(type);
+
+    if (isAllOpen) {
+      groups.forEach((group) => settingsExpandedGroups.delete(`${type}|${group.name}`));
+    } else {
+      groups.forEach((group) => settingsExpandedGroups.add(`${type}|${group.name}`));
+    }
+  };
+
+  const onSettingsItemDragStart = (item, type, event) => {
+    if (event.target.closest('input, button, select, i')) {
+      event.preventDefault();
+      return;
+    }
+
+    settingsDragItem = { item, type };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', JSON.stringify(item));
+
+    if (event.currentTarget) {
+      event.currentTarget.style.opacity = '0.4';
+    }
+  };
+
+  const onSettingsItemDragEnd = (event) => {
+    const rowEl = event.target.closest('.group\\/item');
+    if (rowEl) {
+      rowEl.style.opacity = '1';
+    }
+
+    querySelectorAll('.settings-group-container').forEach((el) => {
+      el.classList.remove('drag-over');
+    });
+
+    settingsDragItem = null;
+  };
+
+  const disableRowDrag = (event) => {
+    const row = event.target.closest('.group\\/item');
+    if (row) {
+      row.setAttribute('draggable', 'false');
+      row.style.cursor = 'text';
+    }
+  };
+
+  const enableRowDrag = (event) => {
+    const row = event.target.closest('.group\\/item');
+    if (row) {
+      row.setAttribute('draggable', 'true');
+      row.style.cursor = '';
+    }
+  };
+
+  const onSettingsDragOver = (event) => {
+    if (settingsDragItem) {
+      event.preventDefault();
+      event.currentTarget.classList.add('drag-over');
+    }
+  };
+
+  const onSettingsDragLeave = (event) => {
+    event.currentTarget.classList.remove('drag-over');
+  };
+
+  const onSettingsDrop = (targetType, targetGroupName, event) => {
+    event.currentTarget.classList.remove('drag-over');
+    querySelectorAll('[draggable=true]').forEach((el) => {
+      el.style.opacity = '1';
+    });
+
+    if (!settingsDragItem) return;
+    if (settingsDragItem.type !== targetType) return;
+
+    const currentGroup = settingsDragItem.item.group || '';
+    const targetGroup = targetGroupName || '';
+
+    if (currentGroup === targetGroup) {
+      settingsDragItem = null;
+      return;
+    }
+
+    settingsDragItem.item.group = targetGroup;
+    pushHistory();
+    settingsDragItem = null;
+  };
+
+  function getAllSettingsGrouped() {
+    return {
+      project: getSettingsGroupedList('project'),
+      instrument: getSettingsGroupedList('instrument'),
+      musician: getSettingsGroupedList('musician'),
+    };
+  }
+
+  function getExistingGroups(type) {
+    let resolvedType = type;
+    if (typeof type === 'object' && type !== null && 'value' in type) {
+      resolvedType = type.value;
+    }
+    if (!resolvedType) return [];
+
+    const realType = String(resolvedType).replace('mobile_', '');
+    const groups = new Set();
+    getListForType(realType).forEach((item) => {
+      if (item.group && typeof item.group === 'string' && item.group.trim() !== '') {
+        groups.add(item.group.trim());
+      }
+    });
+    return Array.from(groups).sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  }
+
+  function renameGroup(type, oldName, newName) {
+    const finalNewName = newName.trim();
+    if (oldName === finalNewName) return;
+
+    getListForType(type).forEach((item) => {
+      const currentGroup = (item.group || '').trim();
+      if (currentGroup === (oldName || '').trim()) {
+        item.group = finalNewName;
+      }
+    });
+    pushHistory();
+  }
+
+  function addSettingsItem(type) {
+    const form = newSettingsItem[type];
+    const nameStr = form.name.trim();
+    const groupStr = form.group.trim();
+
+    if (!nameStr && !groupStr) {
+      return openAlertModal('无法添加', '请至少输入 名称 或 分组。');
+    }
+
+    const list = getListForType(type);
+    if (nameStr) {
+      const existingItem = list.find((item) => item.name.toLowerCase() === nameStr.toLowerCase());
+      if (existingItem) {
+        if (existingItem.group !== groupStr) {
+          existingItem.group = groupStr;
+          if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
+          pushHistory();
+          form.name = '';
+          return;
+        }
+
+        return openAlertModal('重复添加', '该项目已存在于当前分组中。');
+      }
+    }
+
+    const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
+    const nextItem = {
+      id: generateUniqueId(idPrefix),
+      name: nameStr,
+      group: groupStr,
+      color: generateRandomHexColor(),
+    };
+
+    if (type === 'musician' || type === 'editor') nextItem.roles = [type];
+    list.push(nextItem);
+    if (groupStr) settingsExpandedGroups.add(`${type}|${groupStr}`);
+    form.name = '';
+    pushHistory();
+  }
+
+  function deleteTypeItem(type, id, title) {
+    openConfirmModal(
+      title,
+      type === 'musician' ? '确定删除该人员吗？当前任务与排期将保留，负责人改为待分配。历史工作记录保留原人员信息。' : `确定删除该${title.replace('删除', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
+      () => {
+        setListForType(type, getListForType(type).filter((item) => item.id !== id));
+        const idKey = getIdKeyForType(type);
+        if (type === 'musician') {
+          [...itemPool.value, ...scheduledTasks.value].forEach((item) => {
+            if (item.musicianId === id) item.musicianId = '';
+            if (item.editorId === id) item.editorId = '';
+          });
+        } else {
+          itemPool.value = itemPool.value.filter((item) => item[idKey] !== id);
+          scheduledTasks.value = scheduledTasks.value.filter((task) => task[idKey] !== id);
+          cleanupEmptySchedules();
+        }
+        pushHistory();
+      },
+      true,
+    );
+  }
+
+  function removeInstrument(id) {
+    deleteTypeItem('instrument', id, '删除乐器');
+  }
+
+  function removeMusician(id) {
+    deleteTypeItem('musician', id, '删除人员');
+  }
+
+  function deleteProject(projectId) {
+    deleteTypeItem('project', projectId, '删除项目');
+  }
+
+  function removeSettingsItem(type, id) {
+    if (type === 'instrument') removeInstrument(id);
+    else if (type === 'musician') removeMusician(id);
+    else if (type === 'project') deleteProject(id);
+  }
+
+  function clearTypeList(type, title) {
+    const list = getListForType(type);
+    if (list.length === 0) return;
+
+    openConfirmModal(
+      title,
+      type === 'musician' ? '确定清空人员库吗？保留任务、排期和历史工作记录，当前负责人改为待分配。' : `确定要清空所有${title.replace('清空', '').replace('库', '')}吗？\n⚠ 警告：所有关联的任务（任务池及日程）都将被永久删除！`,
+      () => {
+        const idsToDelete = new Set(list.map((item) => item.id));
+        setListForType(type, []);
+        const idKey = getIdKeyForType(type);
+        if (type === 'musician') {
+          [...itemPool.value, ...scheduledTasks.value].forEach((item) => {
+            if (idsToDelete.has(item.musicianId)) item.musicianId = '';
+            if (idsToDelete.has(item.editorId)) item.editorId = '';
+          });
+        } else {
+          itemPool.value = itemPool.value.filter((item) => !idsToDelete.has(item[idKey]));
+          scheduledTasks.value = scheduledTasks.value.filter((task) => !idsToDelete.has(task[idKey]));
+          cleanupEmptySchedules();
+        }
+        pushHistory();
+      },
+      true,
+    );
+  }
+
+  function clearAllInstruments() {
+    clearTypeList('instrument', '清空乐器库');
+  }
+
+  function clearAllMusicians() {
+    clearTypeList('musician', '清空人员库');
+  }
+
+  function clearAllProjects() {
+    clearTypeList('project', '清空项目库');
+  }
+
+  function clearSettingsList(type) {
+    if (type === 'instrument') clearAllInstruments();
+    else if (type === 'musician') clearAllMusicians();
+    else if (type === 'project') clearAllProjects();
+  }
+
+  function getOrCreateSettingItem(type, name, group = '') {
+    if (!name || !name.trim()) return '';
+
+    const list = getListForType(type);
+    const existing = list.find((item) => item.name.toLowerCase() === name.trim().toLowerCase());
+    if (existing) {
+      if (type === 'editor' || type === 'musician') existing.roles = [...new Set([...(existing.roles || ['musician']), type])];
+      return existing.id;
+    }
+
+    const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
+    const nextItem = {
+      id: generateUniqueId(idPrefix),
+      name: name.trim(),
+      group: group.trim(),
+      color: generateRandomHexColor(),
+    };
+
+    if (type === 'musician' || type === 'editor') nextItem.roles = [type];
+    list.push(nextItem);
+    return nextItem.id;
+  }
+
+  function addProject() {
+    settings.projects.push({
+      id: generateUniqueId('P'),
+      name: `新项目${settings.projects.length + 1}`,
+      group: '',
+    });
+    pushHistory();
+  }
+
+  function handleItemRename(type, item, event) {
+    const newName = event.target.value.trim();
+    const oldName = item.name;
+
+    if (!newName) {
+      event.target.value = oldName;
+      return;
+    }
+    if (newName === oldName) return;
+
+    const list = getListForType(type);
+    const idKey = getIdKeyForType(type);
+    const targetItem = list.find((entry) => entry.name.toLowerCase() === newName.toLowerCase() && entry.id !== item.id);
+
+    if (targetItem) {
+      event.target.value = oldName;
+      openConfirmModal(
+        '合并条目',
+        `检测到 "${targetItem.name}" 已存在。\n确定要将 "${oldName}" 合并归入 "${targetItem.name}" 吗？\n\n⚠ 警告：\n1. "${oldName}" 下的所有任务将转移给 "${targetItem.name}"。\n2. "${oldName}" 将被永久删除。\n3. 此操作不可撤销。`,
+        () => {
+          itemPool.value.forEach((task) => {
+            if (task[idKey] === item.id) task[idKey] = targetItem.id;
+            if (type === 'musician' && task.editorId === item.id) task.editorId = targetItem.id;
+          });
+          scheduledTasks.value.forEach((task) => {
+            if (task[idKey] === item.id) task[idKey] = targetItem.id;
+            if (type === 'musician' && task.editorId === item.id) task.editorId = targetItem.id;
+          });
+
+          const index = list.findIndex((entry) => entry.id === item.id);
+          if (index !== -1) list.splice(index, 1);
+
+          if (type === 'musician') {
+            targetItem.roles = [...new Set([...(targetItem.roles || ['musician']), ...(item.roles || ['musician'])])];
+            autoUpdateEfficiency(targetItem.id, 'musician');
+          }
+
+          pushHistory();
+          openAlertModal('合并成功', `已将相关任务全部转移至 "${targetItem.name}"。`);
+        },
+        true,
+        '确认合并',
+        '取消',
+      );
+      return;
+    }
+
+    item.name = newName;
+    pushHistory();
+  }
+
+  return {
+    inputRects,
+    settingsNameFocus,
+    updateInputRect,
+    getFloatingStyle,
+    onSettingsScroll,
+    getUngroupedItems,
+    sortSettingsList,
+    sortedInstruments,
+    sortedMusicians,
+    sortedProjects,
+    isAllGroupsExpanded,
+    toggleAllGroups,
+    onSettingsItemDragStart,
+    onSettingsItemDragEnd,
+    disableRowDrag,
+    enableRowDrag,
+    onSettingsDragOver,
+    onSettingsDragLeave,
+    onSettingsDrop,
+    toggleSettingsGroup,
+    getSettingsGroupedList,
+    getAllSettingsGrouped,
+    findSettingId,
+    getOrCreateProjectId,
+    getExistingGroups,
+    renameGroup,
+    addSettingsItem,
+    removeInstrument,
+    removeMusician,
+    deleteProject,
+    removeSettingsItem,
+    clearAllInstruments,
+    clearAllMusicians,
+    clearAllProjects,
+    clearSettingsList,
+    getOrCreateSettingItem,
+    addProject,
+    handleItemRename,
+  };
+}

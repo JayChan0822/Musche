@@ -1,0 +1,163 @@
+import { computed } from 'vue';
+
+export function registerQuickAddFeature(context) {
+  const { refs, state, utils, actions } = context;
+  const {
+    quickAddType,
+    quickAddForm,
+    showQuickAddModal,
+    activeDropdown,
+    itemPool,
+    currentSessionId,
+    isMobile,
+    showMobileTaskInput,
+  } = refs;
+  const { settings, newItem } = state;
+  const {
+    getExistingGroups,
+    generateUniqueId,
+    generateRandomHexColor,
+    getDefaultRatio,
+    getNameById,
+    calculateEstTime,
+    ensureItemRecords,
+  } = utils;
+  const {
+    openAlertModal,
+    pushHistory,
+
+    focusElementById = (id) => {
+      const input = document.getElementById(id);
+      if (input) input.focus();
+    },
+  } = actions;
+
+  const currentQuickAddGroups = computed(() => {
+    const type = quickAddType.value;
+    return getExistingGroups(type === 'editor' ? 'musician' : type);
+  });
+
+  const openQuickAdd = (type, initialName = '') => {
+    quickAddType.value = type;
+    quickAddForm.name = initialName.trim();
+    quickAddForm.group = '';
+    showQuickAddModal.value = true;
+
+    setTimeout(() => {
+      focusElementById('quick-add-name');
+    }, 100);
+  };
+
+  const onMusicianSelect = () => {
+    const musician = settings.musicians.find((item) => item.id === newItem.musicianId);
+    if (musician) newItem.ratio = getDefaultRatio(musician.id, 'musician');
+  };
+
+  const confirmQuickAdd = () => {
+    const nameStr = quickAddForm.name.trim();
+    if (!nameStr) return openAlertModal('名称不能为空');
+
+    const type = quickAddType.value;
+
+    let list = [];
+    let label = '';
+    if (type === 'instrument') {
+      list = settings.instruments;
+      label = '乐器';
+    } else if ((type === 'musician' || type === 'editor')) {
+      list = settings.musicians;
+      label = type === 'editor' ? '剪辑员' : '演奏员';
+    } else if (type === 'project') {
+      list = settings.projects;
+      label = '项目';
+    }
+
+    if (list.some((item) => item.name.toLowerCase() === nameStr.toLowerCase())) {
+
+      return openAlertModal('无法添加', `该${label}名称 "${nameStr}" 已存在！`);
+    }
+
+    const idPrefix = type === 'project' ? 'P' : (type === 'instrument' ? 'I' : 'M');
+    const newId = generateUniqueId(idPrefix);
+
+    const newItemObj = {
+      id: newId,
+      name: nameStr,
+      group: quickAddForm.group.trim(),
+      color: generateRandomHexColor(),
+    };
+
+    if (type === 'musician' || type === 'editor') newItemObj.roles = [type];
+
+    if (type === 'project') {
+      settings.projects.push(newItemObj);
+      newItem.projectId = newId;
+    } else if (type === 'instrument') {
+      settings.instruments.push(newItemObj);
+      newItem.instrumentId = newId;
+    } else if ((type === 'musician' || type === 'editor')) {
+      settings.musicians.push(newItemObj);
+      newItem[type === 'editor' ? 'editorId' : 'musicianId'] = newId;
+      if (type === 'musician') onMusicianSelect();
+    }
+
+    pushHistory();
+    showQuickAddModal.value = false;
+    activeDropdown.value = null;
+
+  };
+
+  const addItemToPool = () => {
+    if (!newItem.projectId || !newItem.instrumentId || !newItem.musicDuration) {
+      openAlertModal('信息不完整', '请填写项目、乐器和内容时长；负责人可以稍后分配');
+      return;
+    }
+
+    const rMusician = getDefaultRatio(newItem.musicianId, 'musician');
+    const baseInstName = getNameById(newItem.instrumentId, 'instrument');
+    let finalName = newItem._autoSuggestedName || baseInstName;
+
+    const siblings = itemPool.value.filter((item) =>
+      (item.sessionId || 'S_DEFAULT') === currentSessionId.value &&
+      item.projectId === newItem.projectId &&
+      item.instrumentId === newItem.instrumentId &&
+      item.name === finalName);
+
+    if (siblings.length > 0) {
+      finalName = `${finalName} ${siblings.length + 1}`;
+    }
+
+    const rawItem = {
+      id: generateUniqueId('T'),
+      sessionId: currentSessionId.value,
+      projectId: newItem.projectId,
+      instrumentId: newItem.instrumentId,
+      musicianId: newItem.musicianId || '',
+      editorId: newItem.editorId || '',
+      workflowStatus: { rec: 'not-started', edit: 'not-started' },
+      musicDuration: newItem.musicDuration,
+      orchestration: '',
+      ratios: { musician: null, project: null, instrument: null },
+      ratio: rMusician,
+      estDuration: calculateEstTime(newItem.musicDuration, rMusician),
+      name: finalName,
+    };
+
+    const finalItem = ensureItemRecords(rawItem);
+    itemPool.value.push(finalItem);
+
+    newItem._autoSuggestedName = null;
+
+    pushHistory();
+
+    showMobileTaskInput.value = false;
+  };
+
+  return {
+    currentQuickAddGroups,
+    openQuickAdd,
+    onMusicianSelect,
+    confirmQuickAdd,
+    addItemToPool,
+  };
+}

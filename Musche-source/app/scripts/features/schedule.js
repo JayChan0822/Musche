@@ -1,0 +1,433 @@
+import { getWorkPartId } from '../utils/workflow-ledger.js';
+import { hasStableScheduleLinks, resolveItemSchedule, projectItemSection, assignItemSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
+import { getScheduleStage, viewFromStage, stageFromView } from '../utils/workflow.js';
+import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
+import { peekItemSplitState, setItemSplitState as writeSplitState } from '../utils/split-state.js';
+import { computed } from 'vue';
+
+
+
+export function registerScheduleFeature(context) {
+  const { refs, state, utils, actions } = context;
+  const {
+    itemPool,
+    scheduledTasks,
+    currentSessionId,
+    trackListData,
+    showTrackList,
+    pxPerMin,
+    sidebarTab,
+    currentView,
+    viewDate,
+  } = refs;
+  const { settings } = state;
+  const {
+    parseTime,
+    timeToMinutes,
+    getNameById,
+    addDaysToDate,
+    addMinutesToTimeValue,
+    addMinutesToTime: rawAddMinutesToTime,
+    setItemSplitState,
+  } = utils;
+  const {
+    pushHistory,
+    getCurrentWeekDays = () => refs.currentWeekDays?.value || [],
+  } = actions;
+
+  const scheduledTemplateIds = computed(() => {
+    return new Set(scheduledTasks.value.map((task) => task.templateId).filter((id) => id !== undefined));
+  });
+
+  const isScheduled = (templateId) => scheduledTemplateIds.value.has(templateId);
+
+  const addMinutesToTime = (timeStr, minutes) => (typeof addMinutesToTimeValue === 'function'
+    ? addMinutesToTimeValue(timeStr, minutes, {
+      minMinutes: settings.startHour * 60,
+      maxMinutes: settings.endHour * 60 - 30,
+      stepMinutes: 30,
+    })
+    : rawAddMinutesToTime(timeStr, minutes));
+
+  function autoResizeSchedules(taskIds) {
+    void taskIds;
+  }
+
+  function getMins(timeStr) {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function checkOverlap(date, startTime, durationStr, excludeId, checkType, resource) {
+    const newStart = timeToMinutes(startTime);
+    const newEnd = newStart + parseTime(durationStr) / 60;
+    const candidate = resource || scheduledTasks.value.find((entry) => entry.scheduleId === excludeId);
+    const candidateStage = candidate ? getScheduleStage(candidate) : stageFromView(checkType);
+
+    return scheduledTasks.value.some((task) => {
+      if (task.scheduleId === excludeId) return false;
+      if (task.date !== date) return false;
+      if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return false;
+
+      const sameStage = getScheduleStage(task) === candidateStage;
+      if (candidate) {
+        const candidateOwner = candidate.assigneeId || (getScheduleStage(candidate) === 'edit' ? candidate.editorId : candidate.musicianId);
+        const taskOwner = task.assigneeId || (getScheduleStage(task) === 'edit' ? task.editorId : task.musicianId);
+        const candidateStudio = candidate.studioId || candidate.recordingInfo?.studio;
+        const taskStudio = task.studioId || task.recordingInfo?.studio;
+        const samePerson = candidateOwner && candidateOwner !== '__UNASSIGNED__' && candidateOwner === taskOwner;
+        const sameStudio = candidateStudio && candidateStudio === taskStudio;
+        if (!sameStage && !samePerson && !sameStudio) return false;
+      } else if (!sameStage) return false;
+
+      const taskStart = timeToMinutes(task.startTime);
+      const taskEnd = taskStart + parseTime(task.estDuration) / 60;
+      return newStart < taskEnd && newEnd > taskStart;
+    });
+  }
+
+  const hasHistoricalWork = (block) => hasStableScheduleLinks(settings) && settings.workflow.workLogs.some(log =>
+    String(log.scheduleId) === String(block.scheduleId) &&
+    (log.sessionId || 'S_DEFAULT') === (block.sessionId || 'S_DEFAULT') && log.stage === getScheduleStage(block));
+
+  function cleanupEmptySchedules() {
+    if (hasStableScheduleLinks(settings)) {
+      const links = new Map(settings.workflow.allocations.map(link => [link.partId, link.scheduleId]));
+      const occupied = new Set();
+      const key = (session, stage, id) => JSON.stringify([session || 'S_DEFAULT', stage, id]);
+      for (const item of itemPool.value) {
+        for (const stage of ['rec', 'edit']) {
+          if (!peekItemSplitState(item, viewFromStage(stage)).active) continue;
+          const id = links.get(getWorkPartId(item, stage));
+          if (id != null) occupied.add(key(item.sessionId, stage, id));
+        }
+      }
+      const historical = new Set(settings.workflow.workLogs.map(log => key(log.sessionId, log.stage, String(log.scheduleId))));
+      scheduledTasks.value = scheduledTasks.value.filter(block =>
+        (block.sessionId || 'S_DEFAULT') !== currentSessionId.value ||
+        occupied.has(key(block.sessionId, getScheduleStage(block), block.scheduleId)) ||
+        historical.has(key(block.sessionId, getScheduleStage(block), String(block.scheduleId))));
+      return;
+    }
+    const activePoolIds = new Set(itemPool.value.map((item) => item.id));
+    const groups = {};
+
+    const getGroupKey = (task) => {
+      const ctx = scheduleContext(task);
+      return JSON.stringify([task.sessionId || 'S_DEFAULT', ctx.stage, ctx.field, ctx.id]);
+    };
+
+    scheduledTasks.value.forEach((task) => {
+      if (task.templateId) return;
+      const key = getGroupKey(task);
+      if (!key) return;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(task);
+    });
+
+    const schedulesKeepSet = new Set();
+
+    Object.entries(groups).forEach(([key, scheduleBlocks]) => {
+      scheduleBlocks.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+
+      const [sessionId] = JSON.parse(key);
+      const view = scheduleContext(scheduleBlocks[0]).view;
+      const poolItems = itemPool.value.filter((item) => {
+        if ((item.sessionId || 'S_DEFAULT') !== sessionId) return false;
+        return (hasStableScheduleLinks(settings) ? !!resolveItemSchedule(settings, item, view, scheduleBlocks) : itemMatchesSchedule(item, scheduleBlocks[0])) && peekItemSplitState(item, view).active !== false;
+      });
+
+      const taskMap = new Map();
+      poolItems.forEach((item) => {
+        let index = hasStableScheduleLinks(settings)
+          ? scheduleBlocks.indexOf(resolveItemSchedule(settings, item, view, scheduleBlocks))
+          : parseInt(peekItemSplitState(item, view).sectionIndex, 10);
+        if (Number.isNaN(index)) index = 0;
+        if (!taskMap.has(index)) taskMap.set(index, []);
+        taskMap.get(index).push(item);
+      });
+
+      let newBlockIndex = 0;
+      scheduleBlocks.forEach((block, oldIndex) => {
+        const relatedTasks = taskMap.get(oldIndex);
+        if (!relatedTasks || relatedTasks.length === 0) return;
+
+        schedulesKeepSet.add(block.scheduleId);
+        if (oldIndex !== newBlockIndex) {
+          relatedTasks.forEach((item) => {
+            if (!hasStableScheduleLinks(settings)) writeSplitState(item, view, { sectionIndex: newBlockIndex });
+          });
+        }
+        newBlockIndex++;
+      });
+    });
+
+    scheduledTasks.value = scheduledTasks.value.filter((task) => {
+      if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return true;
+      if (hasHistoricalWork(task)) return true;
+      if (hasStableScheduleLinks(settings)) return itemPool.value.some(item =>
+        (item.sessionId || 'S_DEFAULT') === (task.sessionId || 'S_DEFAULT') &&
+        peekItemSplitState(item, scheduleContext(task).view).active !== false &&
+        !!resolveItemSchedule(settings, item, scheduleContext(task).view, [task]));
+      if (task.templateId) return activePoolIds.has(task.templateId);
+      return schedulesKeepSet.has(task.scheduleId);
+    });
+
+  }
+
+  function pruneEmptySchedules() {
+    const listData = trackListData.value;
+    if (!listData.schedules || listData.schedules.length === 0) return;
+
+    if (hasStableScheduleLinks(settings)) listData.items.forEach((item) => projectItemSection(settings, item, listData.viewType || sidebarTab.value, listData.schedules));
+    for (let index = listData.schedules.length - 1; index >= 0; index--) {
+      const itemsInSection = listData.items.filter((item) => item.sectionIndex === index);
+      if (itemsInSection.length > 0) continue;
+
+      const scheduleToRemove = listData.schedules[index];
+      if (hasHistoricalWork(scheduleToRemove)) continue;
+      unlinkSchedule(settings, itemPool.value, scheduleToRemove);
+      scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== scheduleToRemove.scheduleId);
+      listData.schedules.splice(index, 1);
+
+      listData.items.forEach((item) => {
+        if (item.sectionIndex > index) {
+          item.sectionIndex--;
+          writeSplitState(item, listData.viewType || sidebarTab.value, { sectionIndex: item.sectionIndex });
+        }
+      });
+    }
+
+    listData.totalSections = listData.schedules.length;
+    if (listData.totalSections === 0) {
+      showTrackList.value = false;
+    } else if (listData.currentSectionIndex >= listData.totalSections) {
+      listData.currentSectionIndex = listData.totalSections - 1;
+    }
+  }
+
+  function moveDivider(dividerIndex, direction, shouldSaveHistory = true) {
+    const upperSection = dividerIndex - 1;
+    const lowerSection = dividerIndex;
+    const items = trackListData.value.items;
+    let movedItem = null;
+
+    if (direction === 'up') {
+      for (let index = items.length - 1; index >= 0; index--) {
+        if (items[index].sectionIndex === upperSection) {
+          items[index].sectionIndex = lowerSection;
+          movedItem = items[index];
+          break;
+        }
+      }
+    } else if (direction === 'down') {
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].sectionIndex === lowerSection) {
+          items[index].sectionIndex = upperSection;
+          movedItem = items[index];
+          break;
+        }
+      }
+    }
+
+    if (movedItem) assignItemSchedule(settings, movedItem, trackListData.value.viewType || sidebarTab.value,
+      trackListData.value.schedules?.[movedItem.sectionIndex], movedItem.sectionIndex);
+    if (movedItem && typeof setItemSplitState === 'function') {
+      setItemSplitState(movedItem, trackListData.value.viewType || sidebarTab.value, {
+        sectionIndex: movedItem.sectionIndex,
+      });
+    }
+
+    if (movedItem && shouldSaveHistory) {
+      pushHistory();
+    }
+
+    return !!movedItem;
+  }
+
+  function moveTask(task, direction) {
+    let updated = false;
+    const isMonth = currentView?.value === 'month';
+
+    const checkMonthViewSwitch = (dateStr) => {
+      if (!isMonth || !viewDate) return;
+      const newDate = new Date(dateStr);
+      const currentDate = new Date(viewDate.value);
+      if (newDate.getMonth() !== currentDate.getMonth() || newDate.getFullYear() !== currentDate.getFullYear()) {
+        viewDate.value = newDate;
+      }
+    };
+
+    const type = viewFromStage(getScheduleStage(task));
+
+    if (direction === 'up') {
+      if (isMonth) {
+        const newDate = addDaysToDate(task.date, -7);
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
+          return;
+        }
+        if (newDate !== task.date) {
+          pushHistory();
+          task.date = newDate;
+          updated = true;
+          checkMonthViewSwitch(newDate);
+        }
+      } else {
+        const newTime = addMinutesToTime(task.startTime, -30);
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type, task)) {
+          return;
+        }
+        if (newTime !== task.startTime) {
+          pushHistory();
+          task.startTime = newTime;
+          updated = true;
+        }
+      }
+    } else if (direction === 'down') {
+      if (isMonth) {
+        const newDate = addDaysToDate(task.date, 7);
+        if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
+          return;
+        }
+        if (newDate !== task.date) {
+          pushHistory();
+          task.date = newDate;
+          updated = true;
+          checkMonthViewSwitch(newDate);
+        }
+      } else {
+        const newTime = addMinutesToTime(task.startTime, 30);
+        if (checkOverlap(task.date, newTime, task.estDuration, task.scheduleId, type, task)) {
+          return;
+        }
+        if (newTime !== task.startTime) {
+          pushHistory();
+          task.startTime = newTime;
+          updated = true;
+        }
+      }
+    } else if (direction === 'left') {
+      const newDate = addDaysToDate(task.date, -1);
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
+        return;
+      }
+      if (newDate !== task.date) {
+        pushHistory();
+        task.date = newDate;
+        updated = true;
+        if (isMonth) {
+          checkMonthViewSwitch(newDate);
+        } else if (currentView?.value === 'week') {
+          const weekDays = getCurrentWeekDays();
+          if (weekDays[0] && newDate < weekDays[0].dateStr && viewDate) viewDate.value = new Date(newDate);
+        }
+      }
+    } else if (direction === 'right') {
+      const newDate = addDaysToDate(task.date, 1);
+      if (checkOverlap(newDate, task.startTime, task.estDuration, task.scheduleId, type, task)) {
+        return;
+      }
+      if (newDate !== task.date) {
+        pushHistory();
+        task.date = newDate;
+        updated = true;
+        if (isMonth) {
+          checkMonthViewSwitch(newDate);
+        } else if (currentView?.value === 'week') {
+          const weekDays = getCurrentWeekDays();
+          if (weekDays[6] && newDate > weekDays[6].dateStr && viewDate) viewDate.value = new Date(newDate);
+        }
+      }
+    }
+
+    void updated;
+  }
+
+  function getOverlapCount(targetTask) {
+    const dayTasks = scheduledTasks.value.filter((task) => task.date === targetTask.date);
+    const targetStart = timeToMinutes(targetTask.startTime);
+    const targetEnd = targetStart + parseTime(targetTask.estDuration) / 60;
+
+    let overlapCount = 0;
+    for (const task of dayTasks) {
+      if (task.scheduleId === targetTask.scheduleId) continue;
+
+      const taskStart = timeToMinutes(task.startTime);
+      const taskEnd = taskStart + parseTime(task.estDuration) / 60;
+
+      if (targetStart < taskEnd && targetEnd > taskStart) {
+        overlapCount++;
+      }
+    }
+
+    return overlapCount;
+  }
+
+  function isTaskGhost(task) {
+    const taskSession = task.sessionId || 'S_DEFAULT';
+    if (taskSession !== currentSessionId.value) return true;
+
+    if (!task.stage && !task.musicianId && !task.editorId && !task.projectId) return false;
+    return getScheduleStage(task) !== stageFromView(sidebarTab.value);
+  }
+
+  function getTaskStyle(task) {
+    const [hours, minutes] = task.startTime.split(':').map(Number);
+    const top = ((hours - settings.startHour) * 60 + minutes) * pxPerMin.value;
+    const height = (parseTime(task.estDuration) / 60) * pxPerMin.value;
+
+    let baseColor = '#a855f7';
+    if (getScheduleStage(task) === 'edit') baseColor = '#eab308';
+
+    return {
+      top: `${top}px`,
+      height: `${height}px`,
+      '--task-border': baseColor,
+      zIndex: isTaskGhost(task) ? 1 : 20,
+    };
+  }
+
+  function getBlockTitle(task) {
+    const ctx = scheduleContext(task);
+    if (ctx.stage === 'edit' && task.editorId) return getNameById(task.editorId, 'musician');
+    if (ctx.stage === 'rec' && task.musicianId) return getNameById(task.musicianId, 'musician');
+    if (ctx.legacyProject) return getNameById(task.projectId, 'project');
+    if (task.stage) return '未分配';
+    if (task.instrumentId) return getNameById(task.instrumentId, 'instrument');
+    return '未命名日程';
+  }
+
+  function hasRecordingInfo(task) {
+    const hasPopulatedField = (info) => {
+      if (!info) return false;
+      return !!(
+        (info.studio && info.studio.trim()) ||
+        (info.engineer && info.engineer.trim()) ||
+        (info.operator && info.operator.trim()) ||
+        (info.assistant && info.assistant.trim()) ||
+        (info.notes && info.notes.trim())
+      );
+    };
+
+    return hasPopulatedField(task.recordingInfo) || hasPopulatedField(task.editInfo);
+  }
+
+  return {
+    autoResizeSchedules,
+    scheduledTemplateIds,
+    isScheduled,
+    checkOverlap,
+    addMinutesToTime,
+    getMins,
+    cleanupEmptySchedules,
+    pruneEmptySchedules,
+    moveDivider,
+    moveTask,
+    getOverlapCount,
+    isTaskGhost,
+    getTaskStyle,
+    getBlockTitle,
+    hasRecordingInfo,
+  };
+}

@@ -1,0 +1,22 @@
+import { createAsyncRootComponent } from './async-root-component.js';
+
+export const AppSettingsModal = createAsyncRootComponent(() => import('./app-settings-modal.js'), 'AppSettingsModal');
+export const AppExportModal = createAsyncRootComponent(() => import('./app-export-modal.js'), 'AppExportModal');
+export const AppCreditModal = createAsyncRootComponent(() => import('./app-credit-modal.js'), 'AppCreditModal');
+export const AppAuthModal = createAsyncRootComponent(() => import('./app-auth-modal.js'), 'AppAuthModal');
+export const AppMidiManagerModal = createAsyncRootComponent(() => import('./app-midi-manager-modal.js'), 'AppMidiManagerModal');
+export const AppMidiImportModal = createAsyncRootComponent(() => import('./app-midi-import-modal.js'), 'AppMidiImportModal');
+export const AppCsvImportModal = createAsyncRootComponent(() => import('./app-csv-import-modal.js'), 'AppCsvImportModal');
+export const AppProjectInfoModal = createAsyncRootComponent(() => import('./app-project-info-modal.js'), 'AppProjectInfoModal');
+export const AppCropModal = createAsyncRootComponent(() => import('./app-crop-modal.js'), 'AppCropModal');
+export const AppTrackListModal = createAsyncRootComponent(() => import('./app-track-list-modal.js'), 'AppTrackListModal');
+export const AppQuickAddModal = createAsyncRootComponent(() => import('./app-quick-add-modal.js'), 'AppQuickAddModal');
+export const AppImportModal = createAsyncRootComponent(() => import('./app-import-modal.js'), 'AppImportModal');
+export const AppRecInfoModal = createAsyncRootComponent(() => import('./app-rec-info-modal.js'), 'AppRecInfoModal');
+export const AppColorPickerModal = createAsyncRootComponent(() => import('./app-color-picker-modal.js'), 'AppColorPickerModal');
+export const AppSplitModal = createAsyncRootComponent(() => import('./app-split-modal.js'), 'AppSplitModal');
+export const AppInputModal = createAsyncRootComponent(() => import('./app-input-modal.js'), 'AppInputModal');
+export const AppConfirmModal = createAsyncRootComponent(() => import('./app-confirm-modal.js'), 'AppConfirmModal');
+export const AppDurationPicker = createAsyncRootComponent(() => import('./app-duration-picker.js'), 'AppDurationPicker');
+export const AppEditModal = createAsyncRootComponent(() => import('./app-edit-modal.js'), 'AppEditModal');
+export const AppMobileTaskInput = createAsyncRootComponent(() => import('./app-mobile-task-input.js'), 'AppMobileTaskInput');

@@ -1,0 +1,15 @@
+{
+  "file": "musche-score-master.wav",
+  "durationSeconds": 48,
+  "sampleRate": 48000,
+  "channels": 2,
+  "bitsPerSample": 24,
+  "samplesPerChannel": 2304000,
+  "integratedLoudnessLUFS": -15.04,
+  "truePeakDBTP": -1.20,
+  "loudnessRangeLU": 5.20,
+  "overallRMSdBFS": -16.63,
+  "maxDCOffset": 0.000258,
+  "clipping": false,
+  "verification": "Measured from final WAV with ffprobe and FFmpeg loudnorm/astats."
+}

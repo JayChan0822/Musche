@@ -1,0 +1,374 @@
+import { reassignPoolTask, reassignmentSchedules } from '../utils/pool-reassignment.js';
+import { allocateNewSchedule, unlinkSchedule } from '../utils/stable-schedule.js';
+import { scheduleIdentity } from '../utils/schedule-context.js';
+import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
+import { formatClock } from '../utils/time.js';
+
+export function registerScheduleDragDropFeature(context) {
+  const { refs, state, utils, actions = {} } = context;
+  const { itemPool, scheduledTasks, pxPerMin, sidebarTab, currentSessionId, isMobile } = refs;
+  const { settings } = state;
+  const { formatSecs } = utils;
+  const {
+    getDocument = () => document,
+    getDocumentBody = () => document.body,
+    setTimeout: setTimeoutFn = (callback, delay) => setTimeout(callback, delay),
+    getNow = () => Date.now(),
+    checkOverlap = () => false,
+    openAlertModal = () => {},
+    pushHistory = () => {},
+    isResourceCompleted = () => false,
+    clearPoolRecord = () => {},
+    clearAggregateRecords = null,
+    chooseSchedule = async schedules => (await import('../components/choose-assignment-schedule.js')).chooseAssignmentSchedule(schedules),
+    consoleError = (...args) => console.error(...args),
+  } = actions;
+
+  let draggedData = null;
+
+  const clearDragOver = (selector) => {
+    getDocument().querySelectorAll(selector).forEach((element) => element.classList.remove(selector === '.assignment-drop-target' ? 'assignment-drop-target' : 'drag-over'));
+  };
+
+  const getTaskType = (task) => {
+    return viewFromStage(getScheduleStage(task));
+  };
+
+  const buildAggregateDuration = (item) => {
+    const remainingSecs = item.totalSeconds - item.scheduledSeconds;
+    if (remainingSecs <= 0) return null;
+    let remainingMins = Math.ceil(remainingSecs / 1800) * 30;
+    if (remainingMins === 0) remainingMins = 30;
+    return formatSecs(remainingMins * 60);
+  };
+
+  const dragStart = (event, item, source) => {
+    let offsetMinutes = 0;
+    const sourceElement = event.currentTarget || event.target;
+
+    if (source === 'schedule' && sourceElement) {
+      const rect = sourceElement.getBoundingClientRect();
+      const offsetY = event.clientY - rect.top;
+      offsetMinutes = offsetY / pxPerMin.value;
+    }
+
+    draggedData = { item, source, view: sidebarTab.value, isCopy: event.altKey, offsetMinutes, precise: !!event.metaKey };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData?.('text/plain', String(item.id || 'task'));
+
+    if (source === 'schedule' && sourceElement) {
+      const clone = sourceElement.cloneNode(true);
+      clone.classList.remove('is-selected');
+      clone.style.setProperty('opacity', '0.4', 'important');
+      clone.style.position = 'absolute';
+      clone.style.top = '-9999px';
+      clone.style.zIndex = '9999';
+      clone.style.width = `${sourceElement.offsetWidth}px`;
+      getDocumentBody().appendChild(clone);
+
+      const rect = sourceElement.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+      event.dataTransfer.setDragImage(clone, offsetX, offsetY);
+
+      setTimeoutFn(() => {
+        getDocumentBody().removeChild(clone);
+        sourceElement.classList.add('pointer-events-none');
+        sourceElement.style.transition = 'none';
+        sourceElement.style.opacity = '0';
+      }, 0);
+    }
+  };
+
+  const handleDragEnd = (event) => {
+    const sourceElement = event.currentTarget || event.target;
+    if (sourceElement) {
+      sourceElement.classList.remove('pointer-events-none');
+      sourceElement.style.opacity = '';
+      sourceElement.style.transition = '';
+    }
+    if (draggedData?.source === 'pool') clearDragOver('.assignment-drop-target');
+    draggedData = null;
+  };
+
+  const dragEnterPool = (event) => {
+    if (draggedData?.source === 'pool') {
+      clearDragOver('.assignment-drop-target');
+      if (['musician', 'project'].includes(sidebarTab.value)) event.target.closest?.('[data-stat-id]')?.classList.add('assignment-drop-target');
+      return;
+    }
+    event.currentTarget.classList.add('drag-over');
+  };
+  const dragLeavePool = (event) => {
+    event.currentTarget.classList.remove('drag-over');
+    const card = event.target.closest?.('[data-stat-id]');
+    if (card && !card.contains(event.relatedTarget)) card.classList.remove('assignment-drop-target');
+  };
+
+  const dropToPool = async (event) => {
+    event.currentTarget.classList.remove('drag-over');
+    if (!draggedData) return;
+    if (draggedData.source === 'pool') {
+      clearDragOver('.assignment-drop-target');
+      const target = event.target.closest?.('[data-stat-id]');
+      const drag = draggedData;
+      draggedData = null;
+      if (target && drag.view === sidebarTab.value) {
+        const targetId = target.dataset.statId;
+        const item = itemPool.value.find(item => item.id === drag.item.id);
+        if (!item || (item[drag.view === 'project' ? 'editorId' : 'musicianId'] || '__UNASSIGNED__') === targetId) return;
+        const candidates = reassignmentSchedules(scheduledTasks.value, item, drag.view, targetId);
+        let scheduleId;
+        if (candidates.length > 1) {
+          scheduleId = await chooseSchedule(candidates);
+          if (scheduleId == null) return;
+        }
+        // The selection can outlive a view/session change; never commit across it.
+        if (sidebarTab.value !== drag.view || (item.sessionId || 'S_DEFAULT') !== (currentSessionId.value || 'S_DEFAULT')) return;
+        pushHistory();
+        if (reassignPoolTask(settings, itemPool.value, scheduledTasks.value, item.id, drag.view, targetId, scheduleId)) pushHistory();
+      }
+      return;
+    }
+
+    if (draggedData.source === 'schedule') {
+      const taskToDelete = draggedData.item;
+
+      if (await isResourceCompleted(taskToDelete)) {
+        draggedData = null;
+        return openAlertModal('操作被拒绝', '该任务所属对象已处于【完成】状态，禁止移回任务池。');
+      }
+
+      if (taskToDelete.templateId) {
+        await clearPoolRecord(taskToDelete.templateId, taskToDelete, true);
+      } else if (typeof clearAggregateRecords === 'function') {
+        await clearAggregateRecords(taskToDelete, true);
+      } else {
+        consoleError('找不到 clearAggregateRecords 函数，无法清理聚合数据');
+      }
+
+      unlinkSchedule(settings, itemPool?.value || [], taskToDelete);
+      scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== taskToDelete.scheduleId);
+
+      pushHistory();
+    }
+
+    draggedData = null;
+  };
+
+  const dragEnterSlot = (event) => {
+    const slot = event.target.closest('.droppable-slot');
+    if (slot) slot.classList.add('drag-over');
+  };
+
+  const dragLeaveSlot = (event) => {
+    const slot = event.target.closest('.droppable-slot');
+    if (slot) slot.classList.remove('drag-over');
+  };
+
+  const dropToSchedule = (event, dateStr) => {
+    clearDragOver('.grid-slot.drag-over');
+
+    if (!draggedData) return;
+
+    const colEl = event.target.closest('[data-date-str]');
+    if (!colEl) return;
+
+    const container = colEl.querySelector('[data-week-grid]');
+    if (!container) return;
+
+    const { item, source, offsetMinutes } = draggedData;
+    const rect = container.getBoundingClientRect();
+    const relativeY = event.clientY - rect.top;
+
+    let adjustY = relativeY;
+    if (source === 'schedule' && offsetMinutes) {
+      adjustY -= offsetMinutes * pxPerMin.value;
+    }
+
+    const rawMins = adjustY / pxPerMin.value;
+    const totalMins = settings.startHour * 60 + rawMins;
+    // Preserve precision for this gesture if the native drop loses modifier state.
+    const snapMinutes = draggedData.precise || event.metaKey ? 1 : 15;
+    let snappedMins = Math.round(totalMins / snapMinutes) * snapMinutes;
+
+    const minStart = settings.startHour * 60;
+    const maxStart = settings.endHour * 60 - snapMinutes;
+    snappedMins = Math.max(minStart, Math.min(maxStart, snappedMins));
+
+    const newStartTime = formatClock(Math.floor(snappedMins / 60), snappedMins % 60);
+
+    let checkType = 'musician';
+    let newDuration = '';
+    let excludeId = null;
+
+    if (source === 'aggregate') {
+      checkType = sidebarTab.value;
+      newDuration = buildAggregateDuration(item);
+      if (!newDuration) {
+        pushHistory();
+        draggedData = null;
+        return;
+      }
+    } else if (source === 'schedule') {
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
+      newDuration = item.estDuration;
+      excludeId = item.scheduleId;
+    } else if (source === 'pool') {
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
+      newDuration = item.estDuration;
+    }
+
+    if (checkOverlap(dateStr, newStartTime, newDuration, excludeId, checkType, scheduleIdentity(item, source, sidebarTab.value))) {
+      openAlertModal('时间冲突', '该时间段已有同类型的其他安排。');
+      draggedData = null;
+      return;
+    }
+
+    if (source === 'aggregate') {
+      const newTask = {
+        scheduleId: getNow(),
+        sessionId: currentSessionId.value,
+        musicianId: sidebarTab.value === 'musician' ? item.id : '',
+        projectId: sidebarTab.value === 'project' ? item.id : '',
+        instrumentId: sidebarTab.value === 'instrument' ? item.id : '',
+        date: dateStr,
+        startTime: newStartTime,
+        estDuration: newDuration,
+        trackCount: item.trackCount,
+        ratio: item.defaultRatio || 20,
+      };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
+      scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
+    } else if (source === 'schedule') {
+      const index = scheduledTasks.value.findIndex((task) => task.scheduleId === item.scheduleId);
+      if (index !== -1) {
+        const newTask = JSON.parse(JSON.stringify(item));
+        newTask.date = dateStr;
+        newTask.startTime = newStartTime;
+        scheduledTasks.value[index] = newTask;
+      }
+    } else if (source === 'pool') {
+      const newTask = {
+        scheduleId: getNow(),
+        templateId: item.id,
+        sessionId: currentSessionId.value,
+        projectId: item.projectId,
+        instrumentId: item.instrumentId,
+        musicianId: item.musicianId,
+        musicDuration: item.musicDuration,
+        ratio: item.ratio,
+        estDuration: item.estDuration,
+        date: dateStr,
+        startTime: newStartTime,
+      };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
+      scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
+    }
+
+    pushHistory();
+    draggedData = null;
+  };
+
+  const dropToMonth = (event, dateStr) => {
+    clearDragOver('.droppable-slot.drag-over');
+    if (!draggedData) return;
+
+    const { item, source } = draggedData;
+
+    let targetStartTime = formatClock(settings.startHour);
+    let targetDuration = '';
+    let excludeId = null;
+    let checkType = 'musician';
+
+    if (source === 'aggregate') {
+      checkType = sidebarTab.value;
+    } else {
+      checkType = getTaskType(scheduleIdentity(item, source, sidebarTab.value));
+    }
+
+    if (source === 'schedule') {
+      targetStartTime = item.startTime;
+      targetDuration = item.estDuration;
+      excludeId = item.scheduleId;
+    } else {
+      targetDuration = item.estDuration || '00:30';
+    }
+
+    if (checkOverlap(dateStr, targetStartTime, targetDuration, excludeId, checkType, scheduleIdentity(item, source, sidebarTab.value))) {
+      openAlertModal('时间冲突', '该日期已有同类型的其他安排。');
+      draggedData = null;
+      return;
+    }
+
+    if (source === 'schedule') {
+      const index = scheduledTasks.value.findIndex((scheduledTask) => scheduledTask.scheduleId === item.scheduleId);
+      if (index !== -1) {
+        const newTask = JSON.parse(JSON.stringify(item));
+        newTask.date = dateStr;
+        scheduledTasks.value[index] = newTask;
+        pushHistory();
+      }
+    } else if (source === 'aggregate' || source === 'pool') {
+      let musicianId = '';
+      let projectId = '';
+      let instrumentId = '';
+      let ratio = 20;
+      let estDuration = '00:30';
+      let trackCount = 0;
+      let musicDuration = '';
+
+      if (source === 'pool') {
+        musicianId = item.musicianId;
+        projectId = item.projectId;
+        instrumentId = item.instrumentId;
+        ratio = item.ratio;
+        estDuration = item.estDuration;
+        musicDuration = item.musicDuration;
+      } else {
+        if (sidebarTab.value === 'musician') musicianId = item.id;
+        else if (sidebarTab.value === 'project') projectId = item.id;
+        else if (sidebarTab.value === 'instrument') instrumentId = item.id;
+        ratio = item.defaultRatio || 20;
+        estDuration = item.estDuration || '00:30';
+        trackCount = item.trackCount || 0;
+      }
+
+      const templateId = source === 'pool' ? item.id : undefined;
+      const newTask = {
+        scheduleId: getNow(),
+        templateId,
+        sessionId: currentSessionId.value,
+        musicianId,
+        projectId,
+        instrumentId,
+        date: dateStr,
+        startTime: targetStartTime,
+        estDuration,
+        trackCount,
+        ratio,
+        musicDuration,
+      };
+      Object.assign(newTask, scheduleIdentity(item, source, sidebarTab.value));
+      scheduledTasks.value.push(newTask);
+      allocateNewSchedule(settings, itemPool?.value || (source === 'pool' ? [item] : []), newTask);
+      pushHistory();
+    }
+
+    draggedData = null;
+  };
+
+  return {
+    dragStart,
+    handleDragEnd,
+    dragEnterPool,
+    dragLeavePool,
+    dropToPool,
+    dragEnterSlot,
+    dragLeaveSlot,
+    dropToSchedule,
+    dropToMonth,
+  };
+}

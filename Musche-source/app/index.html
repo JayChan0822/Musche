@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=overlays-content">
+    <title>Musche</title>
+    <link rel="icon" href="/icon/icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chango&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Noto+Serif+SC:wght@200..900&family=Noto+Serif:ital,wght@0,100..900;1,100..900&family=Outfit:wght@100..900&display=swap"
+          rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./styles/tailwind.css">
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components.css">
+    <link rel="stylesheet" href="./styles/mobile.css">
+</head>
+<body>
+<div id="global-loader">
+    <div class="loader-glass-box">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Loading</div>
+    </div>
+</div>
+<div id="app" class="flex flex-col h-full w-full select-none">
+
+    <app-root-shell :ctx="appRootShell"></app-root-shell>
+
+    <app-root-overlays-shell :ctx="appRootOverlaysShell"></app-root-overlays-shell>
+
+</div>
+
+
+<script type="module" src="./scripts/app.js"></script>
+</body>
+</html>

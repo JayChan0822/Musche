@@ -1,0 +1,24 @@
+{
+  "title": "Musche — Your music. Your time.",
+  "composer": "Original score created for the Musche launch film",
+  "duration": 48,
+  "bpm": 100,
+  "meter": "4/4",
+  "beatSeconds": 0.6,
+  "barSeconds": 2.4,
+  "totalBars": 20,
+  "key": "B minor opening, D major resolution",
+  "master": "musche-score-master.wav",
+  "sections": [
+    {"start": 0, "end": 9.6, "bar": 1, "feel": "Intimate piano identity, warm pad, gradual rhythmic pickup", "motion": "One deliberate hero gesture at zero. Answer on 1.2 and 1.8. Open wider at 4.8; anticipatory swell 8.45–9.6."},
+    {"start": 9.6, "end": 19.2, "bar": 5, "feel": "First rhythmic lift: bass, crisp kick, restrained clap, flowing arpeggio", "motion": "Task pool assembly lands 9.6; secondary transforms 12.0, 14.4, 16.8. Small gestures every 0.6, staggered details every 0.3."},
+    {"start": 19.2, "end": 28.8, "bar": 9, "feel": "Full groove and melodic return, stereo plucks provide detail", "motion": "Calendar reveal lands 19.2; drag and resize landings at 21.6, 24.0 and 26.4. Choreograph the movement before each landing."},
+    {"start": 28.8, "end": 38.4, "bar": 13, "feel": "Peak: melody lifts an octave, percussion becomes more animated", "motion": "Broadest camera move lands 28.8. Track/feature reveals 31.2, 33.6, 36.0; stereo detail can drive micro motion."},
+    {"start": 38.4, "end": 43.2, "bar": 17, "feel": "Percussion withdraws, room to breathe and reveal the whole product", "motion": "Full workspace lockup at 38.4; gentle pullback and heading at 40.8; anticipate brand landing from 42.3."},
+    {"start": 43.2, "end": 48, "bar": 19, "feel": "Resolved D major-nine piano cadence, final two melodic answers and a soft tail", "motion": "Brand/logo must land at 43.2. Tagline appears on 44.4; URL may settle on 45.0. Hold, then let the ending breathe."}
+  ],
+  "primaryAccents": [0, 4.8, 9.6, 19.2, 28.8, 38.4, 43.2],
+  "secondaryAccents": [1.2, 1.8, 3, 6, 6.6, 7.8, 8.4, 9, 12, 14.4, 16.8, 21.6, 24, 26.4, 31.2, 33.6, 36, 40.8, 44.4, 45],
+  "transitionSwellRanges": [[8.45,9.6],[18.05,19.2],[27.65,28.8],[37.25,38.4],[42.3,43.2]],
+  "recommendedVisualCadence": "Land major changes on bar accents. Start movement 0.3–0.6 seconds before the accent; follow through over the next 0.3 seconds. Avoid changing shots on every beat."
+}

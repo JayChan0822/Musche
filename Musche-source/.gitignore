@@ -1,0 +1,21 @@
+.worktrees/
+.claude/
+.DS_Store
+**/.DS_Store
+.idea/workspace.xml
+.playwright-cli/
+test-results/
+playwright-report/
+app/config.local.js
+dist/
+app/dist/
+node_modules/
+www/
+
+# iOS（Swift 移植）
+ios/Musche/build/
+ios/MuscheCore/.build/
+**/xcuserdata/
+*.xcuserstate
+# Supabase 凭据只能来自本地 xcconfig（同 Web 端规则，见 docs/security/）
+ios/Musche/Config/Secrets.xcconfig

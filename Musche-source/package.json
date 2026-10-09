@@ -1,0 +1,44 @@
+{
+  "name": "musician-schedule",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "verify:modularization": "node tests/modularization-smoke.mjs",
+    "verify:split-state": "node tests/rec-edit-split-state.mjs",
+    "verify:supabase-keepalive": "node --test tests/supabase-keepalive.test.mjs",
+    "test": "npm run verify:modularization && npm run verify:split-state && node --test tests/*.test.mjs",
+    "test:e2e": "playwright test",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayChan0822/Musche.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JayChan0822/Musche/issues"
+  },
+  "homepage": "https://github.com/JayChan0822/Musche#readme",
+  "description": "Web schedule planner for musicians and recording sessions, with MIDI/CSV import and Supabase sync.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "cropperjs": "^2.1.1",
+    "driver.js": "^1.4.0",
+    "jzz": "^1.9.6",
+    "jzz-midi-smf": "^1.9.9",
+    "vue": "^3.5.34",
+    "xlsx-js-style": "^1.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.17",
+    "vite": "^8.0.12"
+  }
+}
