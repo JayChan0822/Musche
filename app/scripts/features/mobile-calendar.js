@@ -1,5 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { createCalendarSpring, CALENDAR_SPRINGS } from '../utils/calendar-spring.js';
+import { weekStripGeometry } from '../utils/calendar-week-motion.js';
 import { dateFromKey, dateWeek, describeDate, lunarLabel, monthKey, monthWindow, MONTH_NAMES, shiftDate, WEEKDAYS } from '../utils/mobile-calendar-dates.js';
 import { formatDate } from '../utils/format.js';
 import { parseTime, timeToMinutes, formatClock } from '../utils/time.js';
@@ -24,6 +25,8 @@ export function useMobileCalendar(ctx) {
   const months = computed(() => monthWindow(anchor.value));
   const selected = computed(() => ctx.selectedDay || today.value);
   const week = computed(() => dateWeek(selected.value));
+  const stripDays = computed(() => Array.from({length:21}, (_, i) => ({...describeDate(shiftDate(week.value[0].key,i-7)), weekOffset:Math.floor(i/7)-1})));
+  const todayWeekIndex = computed(() => stripDays.value.findIndex(day => day.key===today.value)-7);
   const multi = computed(() => mode.value === 'multiday');
   const dates = computed(() => (multi.value ? [-2, -1, 0, 1, 2, 3] : [-1, 0, 1]).map(offset => ({ ...describeDate(shiftDate(selected.value, offset)), offset })));
   const activeDates = computed(() => multi.value ? [selected.value, shiftDate(selected.value, 1)] : [selected.value]);
@@ -61,6 +64,12 @@ export function useMobileCalendar(ctx) {
     if (!root.value) return;
     root.value.style.setProperty('--mc-page-width', `${pageWidth()}px`);
     root.value.style.setProperty('--mc-page-offset', `${x - preceding() * pageWidth()}px`);
+    const dayOffset=-x/pageWidth(), weekday=dateFromKey(selected.value).getDay();
+    const geometry=weekStripGeometry(weekday,dayOffset,width.value);
+    root.value.style.setProperty('--mc-week-cell', `${geometry.cellWidth}px`);
+    root.value.style.setProperty('--mc-week-track', `${geometry.trackOffset}px`);
+    root.value.style.setProperty('--mc-week-selection', `${geometry.selectionLeft}px`);
+    root.value.style.setProperty('--mc-week-today', `${clamp(1-Math.abs(weekday+dayOffset-todayWeekIndex.value),0,1)*100}%`);
   };
   const pager = createCalendarSpring({ config: CALENDAR_SPRINGS.pager, positionThreshold: .15, velocityThreshold: 1,
     reducedMotion, onUpdate: writePager, onComplete: () => {
@@ -179,7 +188,7 @@ export function useMobileCalendar(ctx) {
     sources.forEach((source, i) => {
       const target = targets[i]; if (!target) return;
       const to = target.getBoundingClientRect(), from = source?.getBoundingClientRect() || to;
-      const el = target.cloneNode(true); el.classList.add('mc-morph-date'); el.setAttribute('aria-hidden', 'true');
+      const el = target.cloneNode(true); if (week.value[i].key===selected.value) el.classList.add('is-selected'); el.classList.add('mc-morph-date'); el.setAttribute('aria-hidden', 'true');
       transitionLayer.value.append(el);
       morphNodes.push({ el, from: { x: from.left-bounds.left, y: from.top-bounds.top }, to: { x: to.left-bounds.left, y: to.top-bounds.top } });
     });
@@ -403,7 +412,7 @@ export function useMobileCalendar(ctx) {
   });
   onBeforeUnmount(() => { disposed=true; cancelAnimationFrame(editFrame); for (const motion of sheetMotions.values()) motion.spring.dispose(); for (const motion of modeMotions.values()) { motion.x.dispose(); motion.scale.dispose(); } ctx.dayViewContainer=null; cancelPress(); navigation.dispose(); pager.dispose(); menuSpring.dispose(); observer?.disconnect(); clearInterval(minuteTimer); cancelAnimationFrame(scrollFrame); clearMorph(); edit?.origin?.remove(); });
   return { root, monthScroller, monthContent, timeline, weekStrip, transitionLayer, timePanel, menuElement,
-    mode, selected, selectedEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, dates, activeDates, multi, rows, hourHeight, allDayHeight,
+    mode, selected, selectedEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, stripDays, dates, activeDates, multi, rows, hourHeight, allDayHeight,
     menuOpen, query, editor, error, filteredAgenda, MONTH_NAMES, WEEKDAYS,
     tasks, title, color, eventStyle, eventRange, lunarLabel, dayTitle, openDate, backToMonth, selectDate, setMode, jumpToday, navigate, monthScroll, toggleMenu,
     pointerDown, pointerMove, pointerUp, cancelGesture, openEditor, saveEditor, closeEditor, deleteEvent,

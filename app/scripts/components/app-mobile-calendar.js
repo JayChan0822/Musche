@@ -51,11 +51,16 @@ export const AppMobileCalendar = {
       </div>
     </div>
     <div ref="weekStrip" class="mc-week-strip" :inert="mode === 'month'" :aria-hidden="mode === 'month'">
-      <button v-for="day in week" :key="day.key" :data-week-date="day.key" @click="selectDate(day.key)" :aria-label="day.key" :aria-pressed="selected===day.key">
-        <span class="mc-weekday">{{WEEKDAYS[day.weekday]}}</span>
-        <span class="mc-week-range" :class="{'is-covered':multi && activeDates.includes(day.key), 'is-range-start':day.key===selected}"></span>
-        <span class="mc-date-face" :class="{'is-selected':day.key===selected,'is-today':day.key===today,'is-weekend':day.weekday===0 || day.weekday===6}"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span>
-      </button>
+      <div class="mc-week-track">
+        <span v-if="multi" class="mc-week-range" aria-hidden="true"></span>
+        <div class="mc-week-selection" aria-hidden="true"><div class="mc-week-selection-labels">
+          <span v-for="day in stripDays" :key="day.key" class="mc-week-label-cell"><span class="mc-date-face"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span></span>
+        </div></div>
+        <button v-for="day in stripDays" :key="day.key" :data-week-date="day.key" :inert="day.weekOffset !== 0" :aria-hidden="day.weekOffset !== 0" @click="selectDate(day.key)" :aria-label="day.key" :aria-pressed="selected===day.key">
+          <span class="mc-weekday">{{WEEKDAYS[day.weekday]}}</span>
+          <span class="mc-date-face" :class="{'is-today':day.key===today,'is-weekend':day.weekday===0 || day.weekday===6}"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span>
+        </button>
+      </div>
     </div>
     <div ref="timePanel" class="mc-time-panel" :inert="mode === 'month'" :aria-hidden="mode === 'month'" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="cancelGesture">
       <template v-if="mode !== 'list'">

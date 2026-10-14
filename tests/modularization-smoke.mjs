@@ -7897,6 +7897,7 @@ assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point V
 
 const requiredFiles = [
     'app/scripts/utils/calendar-spring.js',
+    'app/scripts/utils/calendar-week-motion.js',
     'app/scripts/utils/mobile-calendar-dates.js',
     'app/scripts/features/mobile-calendar.js',
     'app/scripts/features/mobile-calendar-events.js',

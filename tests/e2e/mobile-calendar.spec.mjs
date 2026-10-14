@@ -170,3 +170,31 @@ test('本地化农历 day 字段不会在月历和时间轴显示 undefined',asy
     await expect(page.locator('[data-heading-date="2026-10-18"] .mc-date-subtitle')).toHaveText('丙午年九月初九');
     expect(await page.locator('.mc-calendar').textContent()).not.toMatch(/undefined|NaN/);
 });
+
+test('周日期选中圆和多日范围跟手移动，取消恢复，跨周连续接续',async({page})=>{
+    await page.clock.setFixedTime(new Date('2026-10-16T12:00:00+08:00'));
+    await boot(page); await openToday(page);
+    const marker=page.locator('.mc-week-selection'), range=page.locator('.mc-week-range');
+    const start=await marker.boundingBox(), rangeStart=await range.boundingBox();
+    await page.mouse.move(310,610); await page.mouse.down(); await page.mouse.move(225.75,610,{steps:6});
+    const half=await marker.boundingBox(), rangeHalf=await range.boundingBox();
+    expect(half.x-start.x).toBeCloseTo(402/14,0); expect(rangeHalf.x-rangeStart.x).toBeCloseTo(402/14,0);
+    await page.mouse.move(268,610,{steps:4});
+    expect((await marker.boundingBox()).x).toBeLessThan(half.x);
+    await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
+    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-start.x)).toBeLessThan(.2);
+    await page.locator('[data-week-date="2026-10-17"]').click();
+    await page.mouse.move(310,610); await page.mouse.down(); await page.mouse.move(225.75,610,{steps:6});
+    const track=await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-week-track')));
+    expect(track).toBeCloseTo(-603,0);
+    await page.mouse.move(140,610,{steps:5}); await page.mouse.up();
+    await expect(page.locator('[data-week-date][aria-pressed="true"]')).toHaveAttribute('data-week-date','2026-10-18');
+    const strip=await page.locator('.mc-week-strip').boundingBox();
+    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
+    await changeMode(page,'单日');
+    expect(await range.count()).toBe(0);
+    await page.mouse.move(300,610); await page.mouse.down(); await page.mouse.move(99,610,{steps:8});
+    expect((await marker.boundingBox()).x-strip.x).toBeCloseTo(402/7-20,0);
+    await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
+    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
+});
