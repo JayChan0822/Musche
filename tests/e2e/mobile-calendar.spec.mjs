@@ -63,6 +63,7 @@ test('跟手分页保留时间位置；动画中再次按住并反向接管', as
 });
 
 test('长按新建确认才持久化，取消不会创建，原搜索入口可筛选', async ({page})=>{
+    test.setTimeout(60000);
     await boot(page); await openToday(page);
     const createDraft=async()=>{ await page.mouse.move(310,550); await page.mouse.down(); await expect(page.locator('.mc-draft')).toBeVisible(); await page.mouse.up(); await expect(page.locator('.mc-editor-sheet')).toBeVisible(); };
     await createDraft(); await page.getByRole('textbox',{name:'日程标题'}).fill('不应保存的日程');
@@ -71,12 +72,21 @@ test('长按新建确认才持久化，取消不会创建，原搜索入口可�
     await page.locator('.mc-form-group input[type="time"]').fill('15:00');
     await page.getByRole('textbox',{name:'结束时间'}).fill('15:30');
     await page.getByRole('button',{name:'保存日程'}).click(); await expect(page.locator('.mc-editor-sheet')).toBeHidden();
-    await page.reload(); await expect(page.locator('.mc-calendar')).toBeVisible(); await openToday(page);
-    await page.locator('.mobile-tab-bar').getByRole('button',{name:'搜索'}).click();
+    await page.reload(); await expect(page.locator('#global-loader')).toBeHidden({timeout:20000}); await expect(page.locator('.mc-calendar')).toBeVisible(); await openToday(page);
+    await expect(page.locator('.mobile-tab-bar').getByRole('button',{name:'搜索'})).toHaveCount(0);
+    await expect(page.getByRole('textbox',{name:'搜索日程和任务'})).toBeVisible();
     await page.getByPlaceholder('Search...').filter({visible:true}).fill('Calendar motion review');
     await expect(page.locator('[data-active-date] .mc-event strong')).toHaveText(['Calendar motion review']);
     await page.getByPlaceholder('Search...').filter({visible:true}).fill('不应保存');
     await expect(page.locator('[data-active-date] .mc-event')).toHaveCount(0);
+    await page.getByRole('button',{name:'清空搜索'}).click();
+    const search=page.locator('.mobile-search-bar');
+    await expect(search).toBeVisible();
+    const searchBox=await search.boundingBox(), dockBox=await page.locator('.mobile-tab-bar').boundingBox();
+    expect(searchBox.y+searchBox.height).toBeLessThan(dockBox.y);
+    await page.getByRole('textbox',{name:'搜索日程和任务'}).blur();
+    await expect(search).toBeVisible();
+    await page.screenshot({path:'/tmp/musche-persistent-search.png'});
 });
 
 test('返回手势中途取消，长按草稿取消，拉伸取消与提交', async ({page})=>{
@@ -226,6 +236,8 @@ test('日程块沿用原卡片样式，触屏双击打开 TrackList', async ({pa
             }).map(node=>node.outerHTML);
         });
         expect(overflow).toEqual([]);
+        const rows=await page.locator('.track-time-field').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().top));
+        expect(Math.abs(rows[0]-rows[1])).toBeLessThan(1);
         await page.screenshot({path:`/tmp/musche-tracklist-${width}.png`});
     }
 });

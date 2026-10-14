@@ -8,16 +8,10 @@ export const AppMobileControls = {
   },
   template: `
             <template v-if="ctx.isMobile">
-                <!-- 搜索条：平时收在 dock 的放大镜里，只有聚焦中或还留着关键词时才占位 -->
-                <div v-if="ctx.isSearchFocused || ctx.globalSearchQuery"
-                     class="fixed z-[850] transition-all duration-300 ease-spring"
-                     :style="ctx.isSearchFocused
-                         ? { top: '45%', left: '16px', right: '16px', height: '50px' }
-                         : { top: 'calc(100dvh - 130px)', left: '20px', right: '20px', height: '50px' }">
+                <!-- 常驻 dock 上方，输入和清空后都保持原位。 -->
+                <div class="mobile-search-bar fixed z-[850]">
                     <div class="relative w-full h-full shadow-lg rounded-full">
-                        <div class="absolute inset-0 backdrop-blur-xl rounded-full border border-white/40 dark:border-white/10 shadow-sm transition-colors"
-                             :class="ctx.isSearchFocused ? 'bg-white/95 dark:bg-[#2c2c2e]' : 'bg-white/80 dark:bg-[#1c1c1e]/80'">
-                        </div>
+                        <div class="mobile-search-surface absolute inset-0 backdrop-blur-xl rounded-full border border-white/40 dark:border-white/10 shadow-sm"></div>
 
                         <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 text-sm z-10"></i>
 
@@ -27,22 +21,17 @@ export const AppMobileControls = {
                                @blur="ctx.handleSearchBlur"
                                @keydown.enter="ctx.handleSearchEnter"
                                class="relative w-full h-full bg-transparent pl-12 pr-12 text-base font-bold text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-full outline-none"
-                               placeholder="Search..."
+                               placeholder="Search..." aria-label="搜索日程和任务"
                                enterkeyhint="search"
                                style="caret-color: #007aff;">
 
                         <button v-if="ctx.globalSearchQuery"
                                 @mousedown.prevent
-                                @click="ctx.globalSearchQuery = ''"
+                                aria-label="清空搜索" @click="ctx.globalSearchQuery = ''"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 active:bg-black/10 dark:active:bg-white/10 transition z-10">
                             <i class="fa-solid fa-circle-xmark text-lg opacity-80"></i>
                         </button>
                     </div>
-                </div>
-
-                <div v-if="ctx.isSearchFocused"
-                     class="fixed inset-0 z-[840] bg-black/20 dark:bg-black/50 backdrop-blur-[2px] transition-opacity duration-300"
-                     @click="ctx.isSearchFocused = false">
                 </div>
 
                 <!-- 撤销条：产生可撤销改动后浮在 dock 上方，几秒后自动消失 -->
@@ -83,15 +72,6 @@ export const AppMobileControls = {
                         <span>日程表</span>
                     </button>
 
-                    <!-- 搜索：点开才展开成输入框；有关键词时保持高亮提示「还在筛选中」 -->
-                    <button @click="ctx.isSearchFocused = true; $nextTick(() => $refs.mobileSearchInput && $refs.mobileSearchInput.focus())"
-                            class="mobile-tab-item relative"
-                            :class="{'active': ctx.isSearchFocused}">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                        <span>搜索</span>
-                        <div v-if="ctx.globalSearchQuery && !ctx.isSearchFocused"
-                             class="absolute top-1.5 right-2.5 w-2 h-2 rounded-full bg-[#007aff]"></div>
-                    </button>
                 </div>
             </template>
   `,

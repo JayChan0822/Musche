@@ -456,31 +456,40 @@ html.dark .mobile-resize-bar {
     .calendar-month-view [data-date] > div:last-child > div > * { display: none; }
 }
 
-/* TrackList：窄屏按内容分行，避免 Safari 日期/时间控件的固有宽度撑开卡片。 */
-@media (max-width: 767px) {
-    .track-list-modal .track-list-header { flex-wrap:wrap; padding:16px; gap:12px; }
-    .track-list-heading { width:100%; }
-    .track-list-heading h3 { flex:1; min-width:0; }
-    .track-list-tools { width:100%; min-width:0; }
+/* TrackList 保留原有单行结构，允许每个控件缩小到容器内。 */
+@media (max-width:767px) {
+    .track-list-modal { width:450px; max-width:calc(100vw - 16px); }
+    .track-list-modal .track-list-header { padding:12px; gap:8px; flex-wrap:nowrap; }
+    .track-list-heading { flex:1; min-width:0; gap:4px; }
+    .track-list-heading h3 { min-width:0; font-size:14px; }
+    .track-list-heading > button { width:24px; height:24px; }
+    .track-list-tools { flex:0 1 190px; min-width:0; gap:4px; }
     .track-list-search { flex:1; min-width:0; margin-right:0; }
     .track-list-modal .track-list-search-input,
-    .track-list-modal .track-list-search-input:focus { width:100%; min-width:0; }
-    .track-list-tools > button { flex-shrink:0; }
-    .track-work-attempt { display:grid; grid-template-columns:minmax(0,1fr); }
-    .track-work-attempt > * { width:100%; min-width:0; }
-    .track-time-row { display:grid; grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr); grid-template-areas:"start start start" "end end end" "break clear summary"; }
-    .track-time-field { min-width:0; }
-    .track-time-field:first-child { grid-area:start; }
-    .track-time-field:nth-child(3) { grid-area:end; }
-    .track-time-field::before { width:32px; flex-shrink:0; font-size:11px; opacity:.6; }
-    .track-time-field:first-child::before { content:"开始"; }
-    .track-time-field:nth-child(3)::before { content:"结束"; }
-    .track-time-row > button:nth-child(2) { grid-area:break; justify-self:start; }
-    .track-time-row > button:nth-child(2)::before { content:"休息"; font-size:11px; margin-right:4px; }
-    .track-time-field input { width:0; min-width:0; max-width:100%; }
+    .track-list-modal .track-list-search-input:focus { width:100%; min-width:0; font-size:11px; }
+    .track-list-tools > button { width:24px; height:28px; flex-shrink:0; }
+    .track-list-modal .track-card { padding:6px; }
+    .track-work-attempt { flex-wrap:nowrap; gap:4px; font-size:10px; }
+    .track-work-attempt > span, .track-work-attempt > select { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .track-work-attempt > button { flex-shrink:0; white-space:nowrap; padding:6px 4px; }
+    .track-work-attempt > input { width:88px; min-width:0; padding:2px; font-size:10px; }
+    .track-time-row { gap:3px; padding:4px; }
+    .track-time-field { min-width:0; gap:2px; }
+    .track-time-field input { width:0; min-width:0; max-width:100%; font-size:10px; }
     .track-time-field input::-webkit-date-and-time-value { min-width:0; text-align:center; }
-    .track-time-row > button:nth-child(4) { grid-area:clear; margin-left:0; }
+    .track-time-field > button { width:18px; height:28px; border:0; }
+    .track-time-row > button:nth-child(2) { min-width:10px; padding:0; flex-shrink:0; }
+    .track-time-row > button:nth-child(4) { width:18px; margin-left:0; }
     .track-time-row > div:nth-child(5) { display:none; }
-    .track-time-row > div:last-child { grid-area:summary; min-width:0; }
+    .track-time-row > div:last-child { min-width:0; flex:0 0 54px; }
+    .track-time-row > div:last-child > input { width:100%; min-width:0; font-size:10px; }
     .track-list-modal .track-card > .flex.items-center.gap-3 { padding-right:84px; }
+}
+.mobile-search-bar { left:16px; right:16px; height:42px; bottom:calc(80px + env(safe-area-inset-bottom,0px)); }
+.mobile-search-surface { background:rgba(255,255,255,.58); }
+html.dark .mobile-search-surface { background:rgba(30,30,30,.58); }
+@media (max-width:767px) {
+    .undo-toast { bottom:calc(134px + env(safe-area-inset-bottom,0px)); }
+    .mc-scroll-tail { height:160px; }
+    .mc-month-content { padding-bottom:160px; }
 }
