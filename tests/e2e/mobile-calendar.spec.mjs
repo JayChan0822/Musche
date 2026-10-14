@@ -23,11 +23,12 @@ async function changeMode(page, name) {
     await expect(page.getByRole('menu')).toBeHidden();
 }
 
-test('录屏布局：独立月历、两列多日、菜单、单日、列表与返回', async ({ page }) => {
+test('保留原应用导航：日历表两列多日、单日、列表与返回', async ({ page }) => {
     const errors=[]; page.on('pageerror',e=>errors.push(e.message));
     await boot(page);
-    await expect(page.locator('header')).toBeHidden();
-    await expect(page.locator('.mobile-tab-bar')).toBeHidden();
+    await expect(page.locator('header')).toBeVisible();
+    await expect(page.locator('.mobile-tab-bar')).toBeVisible();
+    await expect(page.locator('.mc-toolbar,.mc-bottom-toolbar')).toHaveCount(0);
     const monthCount=await page.locator('[data-month-section]').count(); expect(monthCount).toBe(11);
     await page.screenshot({path:'/tmp/musche-fidelity-month.png'});
     const key=await openToday(page);
@@ -61,22 +62,21 @@ test('跟手分页保留时间位置；动画中再次按住并反向接管', as
     await expect(page.locator('[data-week-date][aria-pressed="true"]')).toHaveAttribute('data-week-date',key);
 });
 
-test('新建日程确认才持久化，取消不会创建，刷新后仍能搜索', async ({page})=>{
-    await boot(page); await page.getByRole('button',{name:'新建日程'}).click();
-    await page.getByRole('textbox',{name:'日程标题'}).fill('不应保存的日程');
-    await page.getByRole('button',{name:'取消编辑'}).click();
-    await page.getByRole('button',{name:'新建日程'}).click();
-    await page.getByRole('textbox',{name:'日程标题'}).fill('Calendar motion review');
-    await page.locator('.mc-form-group input[type="time"]').fill('23:00');
-    await page.getByRole('textbox',{name:'结束时间'}).fill('23:30');
-    await page.getByRole('button',{name:'保存日程'}).click();
-    await expect(page.locator('.mc-editor-sheet')).toBeHidden();
-    await page.reload(); await expect(page.locator('.mc-calendar')).toBeVisible();
-    await page.getByRole('button',{name:'搜索日程'}).click();
-    await page.getByRole('textbox',{name:'搜索日程'}).fill('Calendar motion review');
-    await expect(page.locator('.mc-search-panel .mc-agenda-day button')).toHaveCount(1);
-    await page.getByRole('textbox',{name:'搜索日程'}).fill('不应保存');
-    await expect(page.locator('.mc-search-panel .mc-agenda-day button')).toHaveCount(0);
+test('长按新建确认才持久化，取消不会创建，原搜索入口可筛选', async ({page})=>{
+    await boot(page); await openToday(page);
+    const createDraft=async()=>{ await page.mouse.move(310,550); await page.mouse.down(); await expect(page.locator('.mc-draft')).toBeVisible(); await page.mouse.up(); await expect(page.locator('.mc-editor-sheet')).toBeVisible(); };
+    await createDraft(); await page.getByRole('textbox',{name:'日程标题'}).fill('不应保存的日程');
+    await page.getByRole('button',{name:'取消编辑'}).click(); await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    await createDraft(); await page.getByRole('textbox',{name:'日程标题'}).fill('Calendar motion review');
+    await page.locator('.mc-form-group input[type="time"]').fill('15:00');
+    await page.getByRole('textbox',{name:'结束时间'}).fill('15:30');
+    await page.getByRole('button',{name:'保存日程'}).click(); await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    await page.reload(); await expect(page.locator('.mc-calendar')).toBeVisible(); await openToday(page);
+    await page.locator('.mobile-tab-bar').getByRole('button',{name:'搜索'}).click();
+    await page.getByPlaceholder('Search...').filter({visible:true}).fill('Calendar motion review');
+    await expect(page.locator('[data-active-date] .mc-event strong')).toHaveText(['Calendar motion review']);
+    await page.getByPlaceholder('Search...').filter({visible:true}).fill('不应保存');
+    await expect(page.locator('[data-active-date] .mc-event')).toHaveCount(0);
 });
 
 test('返回手势中途取消，长按草稿取消，拉伸取消与提交', async ({page})=>{
@@ -130,10 +130,25 @@ test('真实触摸横向分页与纵向滚动分流', async ({page})=>{
 test('浅色日历与桌面原界面切换',async({page})=>{
     await boot(page,'light');
     await expect(page.locator('.mc-calendar')).toBeVisible();
-    await expect(page.locator('.mc-calendar')).toHaveCSS('background-color','rgb(255, 255, 255)');
+    await expect(page.locator('.mc-calendar')).toHaveCSS('background-color','rgb(245, 245, 247)');
     await page.screenshot({path:'/tmp/musche-fidelity-light.png'});
     await page.setViewportSize({width:1400,height:900});
     await expect(page.locator('.mc-calendar')).toBeHidden(); await expect(page.locator('header')).toBeVisible();
     await expect(page.locator('#tour-view-switch')).toBeVisible(); await page.locator('#tour-view-switch').click();
     await expect(page.getByText('14:00',{exact:true}).first()).toBeVisible();
+});
+
+test('原日期导航、任务详情与任务池入口继续可用',async({page})=>{
+    await boot(page);
+    const nav=page.locator('.mobile-header-nav'); const original=await nav.innerText();
+    await nav.locator('button').last().click(); await expect(nav).not.toHaveText(original);
+    await nav.locator('button').nth(1).click(); await openToday(page);
+    await page.locator('[data-active-date] .mc-event').first().dblclick();
+    await expect(page.locator('.modal-overlay').first()).toBeVisible();
+    await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await page.locator('.mobile-tab-bar').getByRole('button',{name:'任务池'}).click();
+    await expect(page.locator('.mc-calendar')).toBeHidden();
+    await page.locator('.mobile-tab-bar').getByRole('button',{name:'日程表'}).click();
+    await expect(page.locator('#main-content .mc-calendar')).toBeVisible();
 });

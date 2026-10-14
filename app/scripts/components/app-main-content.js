@@ -1,9 +1,9 @@
-import { AppMobileDayView } from './app-mobile-day-view.js';
-import { nextTick, toRefs } from 'vue';
+import { AppMobileCalendar } from './app-mobile-calendar.js';
+import { nextTick, ref, toRefs } from 'vue';
 
 export const AppMainContent = {
   name: 'AppMainContent',
-  components: { AppMobileDayView },
+  components: { AppMobileCalendar },
   props: {
     ctx: {
       type: Object,
@@ -11,12 +11,13 @@ export const AppMainContent = {
     },
   },
   setup(props) {
+    const calendarLabel = ref('');
     const prepareCalendarView = () => {
       if (props.ctx.currentView === 'month' && props.ctx.monthViewMode === 'scrolled') {
         nextTick(() => props.ctx.scrollToMonthDate(props.ctx.viewDate));
       }
     };
-    return { ...toRefs(props.ctx), prepareCalendarView };
+    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel };
   },
   template: `
             <main id="main-content"
@@ -38,24 +39,28 @@ export const AppMainContent = {
                            :class="isSidebarOpen ? 'fa-outdent' : 'fa-indent'"></i>
                     </button>
                     <div class="mobile-header-nav flex-1 !ml-2">
-                        <button @click="changeDate(-1)"
+                        <button @click="isMobile ? $refs.mobileCalendar?.navigate(-1) : changeDate(-1)"
                                 class="w-12 h-10 flex items-center justify-center text-xl text-[#007aff] active:opacity-50">
                             <i class="fa-solid fa-chevron-left"></i>
                         </button>
 
-                        <button @click="jumpToToday"
+                        <button @click="isMobile ? $refs.mobileCalendar?.jumpToday() : jumpToToday()"
                                 class="flex-1 flex flex-col items-center justify-center leading-none">
                             <span class="text-xs opacity-50 font-bold uppercase mb-0.5">{{ isToday(formatDate(viewDate)) ? 'Today' : 'Date'
                                 }}</span>
-                            <span class="text-base font-bold">{{ currentDateLabel }}</span>
+                            <span class="text-base font-bold">{{ isMobile && calendarLabel ? calendarLabel : currentDateLabel }}</span>
                         </button>
 
-                        <button @click="changeDate(1)"
+                        <button @click="isMobile ? $refs.mobileCalendar?.navigate(1) : changeDate(1)"
                                 class="w-12 h-10 flex items-center justify-center text-xl text-[#007aff] active:opacity-50">
                             <i class="fa-solid fa-chevron-right"></i>
                         </button>
                     </div>
 
+                    <button v-if="isMobile" aria-label="切换日历视图" @click="$refs.mobileCalendar?.toggleMenu()"
+                            class="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#007aff] shrink-0">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </button>
                     <!-- 视图切换 / 排布切换：手机端已有「点日期开日视图」，两个按钮只留给桌面端 -->
                     <button id="tour-view-switch"
                             v-if="!isMobile"
@@ -75,7 +80,8 @@ export const AppMainContent = {
 
                 <div class="flex-1 relative w-full overflow-hidden flex flex-col">
 
-                    <Transition name="calendar-zoom" mode="out-in"
+                    <app-mobile-calendar v-if="isMobile" ref="mobileCalendar" :ctx="$props.ctx" @label="calendarLabel = $event"></app-mobile-calendar>
+                    <Transition v-else name="calendar-zoom" mode="out-in"
                                 @before-enter="prepareCalendarView">
 
                         <div v-if="currentView === 'week'"
@@ -358,8 +364,7 @@ export const AppMainContent = {
                     </div>
                 </div>
 
-                <!-- 手机端日视图：点月视图里的某天后从下往上滑入 -->
-                <app-mobile-day-view :ctx="$props.ctx"></app-mobile-day-view>
+
             </main>
   `,
 };

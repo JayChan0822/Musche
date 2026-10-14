@@ -6,7 +6,6 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'refs.mobileTab',
         'refs.isSidebarOpen',
         'helpers.currentDateLabel',
-        'refs.viewDate',
         'refs.currentView',
         'helpers.widthIcon',
         'helpers.viewTransitionName',
@@ -37,6 +36,7 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.nowIndicatorStyle',
     ],
     models: [
+        'refs.viewDate',
         'refs.dayViewOpen',
         'refs.weekContainer',
         'refs.weekGridWrapper',

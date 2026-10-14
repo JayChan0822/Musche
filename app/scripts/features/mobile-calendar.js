@@ -8,14 +8,14 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const clock = (minutes) => formatClock(Math.floor(minutes / 60), minutes % 60);
 
 // 手机浏览层单独持有几何/手势状态，业务变更只通过 calendarEvents 提交。
-export function useMobileCalendar(ctx, controls) {
+export function useMobileCalendar(ctx) {
   const root = ref(null), monthScroller = ref(null), monthContent = ref(null), timeline = ref(null);
   const weekStrip = ref(null), transitionLayer = ref(null), timePanel = ref(null), menuElement = ref(null);
   const mode = ref(ctx.dayViewOpen ? 'multiday' : 'month');
   const lastMode = ref('multiday');
   const anchor = ref(new Date(ctx.viewDate));
   const visibleMonth = ref(monthKey(anchor.value));
-  const menuOpen = ref(false), searchOpen = ref(false), infoOpen = ref(false), yearOpen = ref(false);
+  const menuOpen = ref(false);
   const query = ref(''), editor = ref(null), error = ref(''), selectedEvent = ref(null);
   const width = ref(402), hourHeight = ref(47);
   const today = ref(formatDate(new Date()));
@@ -42,7 +42,7 @@ export function useMobileCalendar(ctx, controls) {
     return `${full ? d.getFullYear() + '年' : ''}${d.getMonth() + 1}月${d.getDate()}日 – 周${WEEKDAYS[d.getDay()]}`;
   };
   const title = (task) => task.calendarTitle || ctx.getBlockTitle(task);
-  const color = (task) => task.isCalendarEvent ? '#0a9cda' : task.stage === 'edit' ? '#b58ae8' : '#ac70d9';
+  const color = (task) => task.isCalendarEvent ? '#007aff' : task.stage === 'edit' ? '#eab308' : '#a855f7';
   const eventStyle = (task) => ({ top: `${timeToMinutes(task.startTime) / 60 * hourHeight.value}px`, height: `${Math.max(23, parseTime(task.estDuration) / 3600 * hourHeight.value)}px`, '--event-color': color(task) });
   const eventRange = (task) => `${task.startTime}–${clock(Math.min(1440, timeToMinutes(task.startTime) + Math.round(parseTime(task.estDuration) / 60)))}`;
   const filteredAgenda = computed(() => {
@@ -148,7 +148,7 @@ export function useMobileCalendar(ctx, controls) {
     const sourceDay = monthContent.value?.querySelector(`[data-month-date="${selected.value}"]`);
     if (sourceDay) {
       const r = sourceDay.getBoundingClientRect();
-      if (r.top < bounds.top + 130 || r.bottom > bounds.bottom - 60) await centerMonth(selected.value, true);
+      if (r.top < bounds.top + 22 || r.bottom > bounds.bottom - 60) await centerMonth(selected.value, true);
     } else await centerMonth(selected.value, true);
     await nextTick();
     if (disposed || revision !== morphRevision || !root.value || !transitionLayer.value || morphGeometry) return;
@@ -156,7 +156,7 @@ export function useMobileCalendar(ctx, controls) {
     const targets = week.value.map(day => weekStrip.value?.querySelector(`[data-week-date="${day.key}"] .mc-date-face`));
     const row = monthContent.value?.querySelector(`[data-month-date="${selected.value}"]`)?.getBoundingClientRect();
     const viewport = monthScroller.value?.getBoundingClientRect();
-    const panelTop = timePanel.value?.offsetTop || 124;
+    const panelTop = timePanel.value?.offsetTop || 114;
     morphGeometry = { travel: Math.max(0, (row?.bottom || bounds.top + 340) - bounds.top - panelTop),
       upperTravel: Math.max(80, (row?.top || bounds.top + 240) - bounds.top - 80), lowerTravel: Math.max(120, bounds.bottom - (row?.bottom || bounds.top + 340)) };
     if (viewport && row) for (let i = 0; i < 2; i++) {
@@ -215,7 +215,7 @@ export function useMobileCalendar(ctx, controls) {
       for (const el of root.value.querySelectorAll('[data-heading-date], [data-page-date]')) {
         const key = (el.dataset.headingDate ? 'heading:' : 'page:') + (el.dataset.headingDate || el.dataset.pageDate);
         const motion = modeMotions.get(key);
-        measured.set(key, { rect: el.getBoundingClientRect(), velocity: motion?.x.velocity || 0 });
+        measured.set(key, { rect: el.getBoundingClientRect(), velocity: (motion?.x.velocity || 0) + pager.velocity });
       }
       for (const motion of modeMotions.values()) { motion.x.dispose(); motion.scale.dispose(); }
       modeMotions.clear();
@@ -241,15 +241,17 @@ export function useMobileCalendar(ctx, controls) {
   }
   const jumpToday = async () => {
     today.value = formatDate(new Date());
-    if (mode.value === 'month') await centerMonth(today.value);
+    if (mode.value === 'month') { ctx.viewDate=new Date(); await centerMonth(today.value); }
     else { selectDate(today.value); savedScroll = Math.max(0, (new Date().getHours() - 2) * hourHeight.value); if (timeline.value) timeline.value.scrollTo({ top: savedScroll, behavior: reducedMotion() ? 'instant' : 'smooth' }); }
   };
-  const pickMonth = async (month) => { yearOpen.value = false; await centerMonth(`${visibleMonth.value.slice(0,4)}-${String(month+1).padStart(2,'0')}-01`); };
+  const navigate = dir => { if (mode.value === 'month') { const date=dateFromKey(visibleMonth.value+'-01'); date.setMonth(date.getMonth()+dir); ctx.viewDate=date; } else { pager.stop(); pager.animateTo(-dir*pageWidth()); } };
+  watch(() => ctx.viewDate, date => { if (mode.value==='month') centerMonth(formatDate(date)); });
 
   let gesture = null;
   const cancelPress = () => { if (pendingPress) clearTimeout(pendingPress); pendingPress = null; };
   function pointerDown(event) {
     if (event.button > 0 || event.target.closest('button,input,textarea,.mc-event')) return;
+    if (edit) { eventEnd({pointerId:edit.id},true); return; }
     if (gesture) { cancelGesture(); return; }
     if (mode.value === 'month' || mode.value === 'list') return;
     const state = pager.stop();
@@ -263,6 +265,7 @@ export function useMobileCalendar(ctx, controls) {
         const minutes = clamp(Math.round((event.clientY-r.top)/hourHeight.value*60/15)*15, 0, 1380);
         gesture.axis = 'draft'; ignoreClickUntil = Date.now()+400;
         draft.value = {date:key, minutes};
+        timePanel.value?.setPointerCapture?.(gesture.id);
       }, 450);
     }
   }
@@ -328,6 +331,7 @@ export function useMobileCalendar(ctx, controls) {
 
   function eventDown(event, task, edge = 'move') {
     if (event.button > 0) return;
+    if (edit) { eventEnd({pointerId:edit.id},true); return; }
     cancelGesture(); cancelPress();
     const el = event.target.closest('.mc-event');
     const initialTop = timeToMinutes(task.startTime), initialDuration = Math.round(parseTime(task.estDuration)/60);
@@ -371,7 +375,8 @@ export function useMobileCalendar(ctx, controls) {
     }
     if(g.active) ignoreClickUntil=Date.now()+350;
   }
-  function eventClick(task) { if(Date.now()>=ignoreClickUntil) { selectedEvent.value=task.scheduleId; } }
+  function eventClick(task) { if(Date.now()>=ignoreClickUntil) { selectedEvent.value=task.scheduleId; ctx.selectTask(task.scheduleId,'schedule'); } }
+  function openTask(task,event) { if(task.isCalendarEvent) openEditor(task); else ctx.handleTaskDblClick(event,task); }
   const sheetMotions = new Map();
   function animateSheet(el, done, entering) {
     let motion = sheetMotions.get(el);
@@ -399,14 +404,13 @@ export function useMobileCalendar(ctx, controls) {
   onBeforeUnmount(() => { disposed=true; cancelAnimationFrame(editFrame); for (const motion of sheetMotions.values()) motion.spring.dispose(); for (const motion of modeMotions.values()) { motion.x.dispose(); motion.scale.dispose(); } ctx.dayViewContainer=null; cancelPress(); navigation.dispose(); pager.dispose(); menuSpring.dispose(); observer?.disconnect(); clearInterval(minuteTimer); cancelAnimationFrame(scrollFrame); clearMorph(); edit?.origin?.remove(); });
   return { root, monthScroller, monthContent, timeline, weekStrip, transitionLayer, timePanel, menuElement,
     mode, selected, selectedEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, dates, activeDates, multi, rows, hourHeight, allDayHeight,
-    menuOpen, searchOpen, infoOpen, yearOpen, query, editor, error, filteredAgenda, MONTH_NAMES, WEEKDAYS,
-    tasks, title, color, eventStyle, eventRange, lunarLabel, dayTitle, openDate, backToMonth, selectDate, setMode, jumpToday, pickMonth, monthScroll, toggleMenu,
+    menuOpen, query, editor, error, filteredAgenda, MONTH_NAMES, WEEKDAYS,
+    tasks, title, color, eventStyle, eventRange, lunarLabel, dayTitle, openDate, backToMonth, selectDate, setMode, jumpToday, navigate, monthScroll, toggleMenu,
     pointerDown, pointerMove, pointerUp, cancelGesture, openEditor, saveEditor, closeEditor, deleteEvent,
-    eventDown, eventMove, eventEnd, eventClick,
+    eventDown, eventMove, eventEnd, eventClick, openTask,
     sheetEnter: (el,done)=>animateSheet(el,done,true), sheetLeave:(el,done)=>animateSheet(el,done,false),
     timelineScroll: () => { if (!edit) selectedEvent.value=null; },
     keyNavigate: (event, dir) => { if (event.target.closest('input,textarea') || editor.value || mode.value==='month') return; event.preventDefault(); pager.stop(); pager.animateTo(-dir*pageWidth()); },
     closeError: () => { error.value=''; },
-    openPool: () => { controls.mobileTab='pool'; },
   };
 }

@@ -1,3 +1,4 @@
+import { watch } from 'vue';
 import { useMobileCalendar } from '../features/mobile-calendar.js';
 
 const paths = {
@@ -14,24 +15,22 @@ const CalendarIcon = { props: ['name'], setup: () => ({ paths }), template: '<sv
 
 export const AppMobileCalendar = {
   name: 'AppMobileCalendar', components: { CalendarIcon },
-  props: { ctx: { type: Object, required: true }, controls: { type: Object, required: true } },
-  emits: ['settings'],
-  setup(props) { return useMobileCalendar(props.ctx, props.controls); },
+  props: { ctx: { type: Object, required: true } },
+  emits: ['label'],
+  setup(props, { emit }) {
+    const calendar = useMobileCalendar(props.ctx);
+    watch(() => [calendar.mode.value, calendar.selected.value, calendar.visibleMonth.value], () => {
+      emit('label', calendar.mode.value === 'month' ? calendar.visibleMonth.value.replace('-', '年')+'月' : calendar.dayTitle(calendar.selected.value));
+    }, { immediate:true });
+    return calendar;
+  },
   template: `
   <section ref="root" class="mc-calendar" :class="{ 'mc-timeline-mode': mode !== 'month', 'mc-multi': multi }"
-      :data-mode="mode" aria-label="日历" @keydown.left="keyNavigate($event,-1)" @keydown.right="keyNavigate($event,1)">
-    <div class="mc-top-shade"></div>
-    <nav class="mc-toolbar" aria-label="日历导航">
-      <button class="mc-glass mc-back" :aria-label="mode === 'month' ? '选择月份' : '返回月视图'" @click="mode === 'month' ? yearOpen = !yearOpen : backToMonth()">
-        <calendar-icon name="back"/><span>{{ mode === 'month' ? visibleMonth.slice(0,4) + '年' : selectedMonth }}</span>
-      </button>
-      <div class="mc-glass mc-toolbar-group">
-        <button aria-label="切换日历视图" aria-haspopup="menu" :aria-expanded="menuOpen" @click="toggleMenu()"><calendar-icon :name="mode"/></button>
-        <button aria-label="搜索日程" @click="searchOpen = true"><calendar-icon name="search"/></button>
-        <button aria-label="新建日程" @click="openEditor()"><calendar-icon name="plus"/></button>
-      </div>
-    </nav>
-    <div class="mc-month-heading" :aria-hidden="mode !== 'month'"><h1>{{ monthName }}</h1></div>
+      :data-mode="mode" aria-label="日历" @touchstart.stop @touchmove.stop @touchend.stop @mousedown.stop @mouseup.stop @wheel.stop @keydown.left="keyNavigate($event,-1)" @keydown.right="keyNavigate($event,1)">
+    <div v-if="mode !== 'month'" class="mc-calendar-navigation">
+      <button aria-label="返回月视图" @click="backToMonth"><calendar-icon name="back"/><span>{{selectedMonth}}</span></button>
+      <span>{{dayTitle(selected)}}</span>
+    </div>
     <div class="mc-month-weekdays" :aria-hidden="mode !== 'month'"><span v-for="w in WEEKDAYS" :key="w">{{w}}</span></div>
     <div ref="monthScroller" class="mc-month-scroller" :inert="mode !== 'month'" @scroll.passive="monthScroll" data-mobile-month-scroller>
       <div ref="monthContent" class="mc-month-content">
@@ -65,7 +64,7 @@ export const AppMobileCalendar = {
           <div class="mc-heading-track" :style="{marginLeft:multi ? '65px' : '0'}">
             <div v-for="day in dates" :key="day.offset" class="mc-page-heading" :data-heading-date="day.key" :aria-hidden="!activeDates.includes(day.key)">
               <div class="mc-date-title">{{dayTitle(day.key,!multi)}}</div><div class="mc-date-subtitle">{{lunarLabel(day.key,true)}}</div>
-              <div class="mc-all-day-events"><button v-for="task in tasks(day.key).filter(t => t.allDay).slice(0,4)" :key="task.scheduleId" :style="{'--event-color':color(task)}" @click="openEditor(task)">{{title(task)}}</button></div>
+              <div class="mc-all-day-events"><button v-for="task in tasks(day.key).filter(t => t.allDay).slice(0,4)" :key="task.scheduleId" :style="{'--event-color':color(task)}" @click="openTask(task,$event)">{{title(task)}}</button></div>
             </div>
           </div>
         </div>
@@ -83,7 +82,7 @@ export const AppMobileCalendar = {
                     <div v-for="task in tasks(day.key).filter(t=>!t.allDay)" :key="task.scheduleId" class="mc-event" role="button" tabindex="0"
                       :aria-label="title(task)+' '+eventRange(task)" :style="eventStyle(task)" :class="{'is-selected':selectedEvent===task.scheduleId}"
                       @pointerdown.stop="eventDown($event,task)" @pointermove.stop="eventMove" @pointerup.stop="eventEnd($event)" @pointercancel.stop="eventEnd($event,true)"
-                      @click.stop="eventClick(task)" @dblclick.stop="openEditor(task)" @keydown.enter.stop="openEditor(task)">
+                      @click.stop="eventClick(task)" @dblclick.stop="openTask(task,$event)" @keydown.enter.stop="openTask(task,$event)">
                       <strong>{{title(task)}}</strong><span class="mc-event-range">{{eventRange(task)}}</span>
                       <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-start" aria-label="调整开始时间" @pointerdown.stop.prevent="eventDown($event,task,'start')"></button>
                       <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-end" aria-label="调整结束时间" @pointerdown.stop.prevent="eventDown($event,task,'end')"></button>
@@ -95,14 +94,10 @@ export const AppMobileCalendar = {
           </div><div class="mc-scroll-tail"></div>
         </div>
       </template>
-      <div v-else class="mc-agenda"><div v-for="group in filteredAgenda" :key="group.key" class="mc-agenda-day"><h2>{{dayTitle(group.key,true)}}</h2><button v-for="task in group.items" :key="task.scheduleId" @click="openEditor(task)"><time>{{task.allDay?'全天':task.startTime}}</time><i :style="{background:color(task)}"></i><span>{{title(task)}}</span></button></div><p v-if="!filteredAgenda.length" class="mc-empty">没有日程</p></div>
+      <div v-else class="mc-agenda"><div v-for="group in filteredAgenda" :key="group.key" class="mc-agenda-day"><h2>{{dayTitle(group.key,true)}}</h2><button v-for="task in group.items" :key="task.scheduleId" @click="openTask(task,$event)"><time>{{task.allDay?'全天':task.startTime}}</time><i :style="{background:color(task)}"></i><span>{{title(task)}}</span></button></div><p v-if="!filteredAgenda.length" class="mc-empty">没有日程</p></div>
     </div>
     <div ref="transitionLayer" class="mc-transition-layer" aria-hidden="true"></div>
-    <div class="mc-bottom-toolbar"><button class="mc-glass mc-today" @click="jumpToday">今天</button><div class="mc-glass mc-bottom-group"><button aria-label="日历信息" @click="infoOpen = !infoOpen"><calendar-icon name="info"/></button><button aria-label="任务池" @click="openPool"><calendar-icon name="inbox"/></button></div></div>
     <div v-if="menuOpen" class="mc-popover-dismiss" @click.self="toggleMenu(false)"><div ref="menuElement" class="mc-mode-menu mc-glass" role="menu"><button v-for="entry in [{id:'day',label:'单日'},{id:'multiday',label:'多日'},{id:'list',label:'列表'}]" :key="entry.id" role="menuitemradio" :aria-checked="mode===entry.id" @click="setMode(entry.id)"><span class="mc-menu-check">{{mode===entry.id?'✓':''}}</span><calendar-icon :name="entry.id"/><span>{{entry.label}}</span></button></div></div>
-    <div v-if="yearOpen" class="mc-popover-dismiss" @click.self="yearOpen=false"><div class="mc-year-menu mc-glass"><h2>{{visibleMonth.slice(0,4)}}年</h2><div><button v-for="(name,index) in MONTH_NAMES" :key="name" @click="pickMonth(index)">{{name}}</button></div></div></div>
-    <div v-if="infoOpen" class="mc-popover-dismiss" @click.self="infoOpen=false"><div class="mc-info-menu mc-glass"><button @click="infoOpen=false; $emit('settings')">日历与排程设置</button><button @click="openPool">任务池</button></div></div>
-    <div v-if="searchOpen" class="mc-search-panel"><div class="mc-search-bar"><calendar-icon name="search"/><input v-model="query" autofocus aria-label="搜索日程" placeholder="搜索"/><button @click="searchOpen=false;query=''">取消</button></div><div class="mc-agenda"><div v-for="group in filteredAgenda" :key="group.key" class="mc-agenda-day"><h2>{{dayTitle(group.key,true)}}</h2><button v-for="task in group.items" :key="task.scheduleId" @click="searchOpen=false;openDate(task.date);openEditor(task)"><time>{{task.startTime}}</time><i :style="{background:color(task)}"></i><span>{{title(task)}}</span></button></div><p v-if="!filteredAgenda.length" class="mc-empty">没有匹配日程</p></div></div>
     <Transition :css="false" @enter="sheetEnter" @leave="sheetLeave"><div v-if="editor" class="mc-editor-backdrop" @click.self="closeEditor"><form class="mc-editor-sheet" @submit.prevent="saveEditor" aria-label="编辑日程">
       <div class="mc-editor-toolbar"><button type="button" class="mc-glass" aria-label="取消编辑" @click="closeEditor"><calendar-icon name="close"/></button><span class="mc-editor-segment">日程</span><button type="submit" class="mc-save" aria-label="保存日程"><calendar-icon name="check"/></button></div>
       <div class="mc-editor-scroll"><div class="mc-editor-title"><input class="mc-event-title-input" v-model="editor.title" placeholder="标题" aria-label="日程标题" :readonly="editor.original && !editor.original.isCalendarEvent"/></div>

@@ -9,7 +9,7 @@ export const AppMobileControls = {
   template: `
             <template v-if="ctx.isMobile">
                 <!-- 搜索条：平时收在 dock 的放大镜里，只有聚焦中或还留着关键词时才占位 -->
-                <div v-if="(ctx.isSearchFocused || ctx.globalSearchQuery) && !ctx.dayViewOpen"
+                <div v-if="ctx.isSearchFocused || ctx.globalSearchQuery"
                      class="fixed z-[850] transition-all duration-300 ease-spring"
                      :style="ctx.isSearchFocused
                          ? { top: '45%', left: '16px', right: '16px', height: '50px' }
