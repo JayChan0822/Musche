@@ -1,5 +1,6 @@
 import { AppMobileCalendar } from './app-mobile-calendar.js';
 import { nextTick, ref, toRefs } from 'vue';
+import { lunarLabel } from '../utils/mobile-calendar-dates.js';
 
 export const AppMainContent = {
   name: 'AppMainContent',
@@ -17,7 +18,7 @@ export const AppMainContent = {
         nextTick(() => props.ctx.scrollToMonthDate(props.ctx.viewDate));
       }
     };
-    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel };
+    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel, lunarLabel };
   },
   template: `
             <main id="main-content"
@@ -97,7 +98,7 @@ export const AppMainContent = {
                             <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
                                 <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
                                 <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr"
-                                     class="h-14 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                                     class="h-16 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
                                      :style="{ minWidth: dayColWidth + 'px' }"
                                      @dblclick="switchView('month')"
                                      @touchend="handleHeaderDoubleTap($event)"
@@ -107,6 +108,7 @@ export const AppMainContent = {
                                          :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">
                                         {{ day.dateShort.split('/')[1] }}
                                     </div>
+                                    <span :data-week-lunar="day.dateStr" class="text-[10px] leading-3 opacity-50 whitespace-nowrap">{{ lunarLabel(day.dateStr) }}</span>
                                 </div>
                             </div>
 
@@ -236,7 +238,8 @@ export const AppMainContent = {
                                              @touchend="!isMobile && handleMonthCellDoubleTap($event, day.fullDate)"
                                              @dragover.prevent @drop="dropToMonth($event, day.fullDate)">
 
-                                            <div class="text-right mb-1 shrink-0">
+                                            <div class="flex items-center justify-between gap-1 mb-1 shrink-0">
+                                                <span :data-month-lunar="day.fullDate" class="text-xs opacity-50 whitespace-nowrap">{{ lunarLabel(day.fullDate) }}</span>
                                                 <span data-month-day-number class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                       :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.isCurrentMonth ? 'opacity-80' : 'opacity-30')]">
                                                     {{ day.dayNum }}
@@ -304,10 +307,11 @@ export const AppMainContent = {
                                          @dragover.prevent
                                          @drop="day.isCurrentMonth && dropToMonth($event, day.fullDate)">
 
-                                        <div class="text-right mb-1 shrink-0">
-                <span v-if="day.dayNum === 1" class="float-left ml-1 text-xs font-bold text-[#007aff] opacity-80">
-                    {{ day.dateObj.getMonth() + 1 }}月
-                </span>
+                                        <div class="flex items-center justify-between gap-1 mb-1 shrink-0">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <span v-if="day.dayNum === 1" class="text-xs font-bold text-[#007aff] opacity-80 whitespace-nowrap">{{ day.dateObj.getMonth() + 1 }}月</span>
+                                                <span :data-month-lunar="day.fullDate" class="text-xs opacity-50 whitespace-nowrap">{{ lunarLabel(day.fullDate) }}</span>
+                                            </div>
 
                                                 <span data-month-day-number class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                   :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.monthKey === activeMonthKey ? 'opacity-80' : 'opacity-30')]">

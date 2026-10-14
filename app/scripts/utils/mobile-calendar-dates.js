@@ -5,18 +5,35 @@ export const MONTH_NAMES = ['一月', '二月', '三月', '四月', '五月', '�
 export const dateFromKey = (key) => { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d, 12); };
 export const shiftDate = (key, offset) => { const d = dateFromKey(key); d.setDate(d.getDate() + offset); return formatDate(d); };
 export const monthKey = (date) => formatDate(date).slice(0, 7);
-const lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { year: 'numeric', month: 'long', day: 'numeric' });
+// Intl 的 day 是本地化字符串，不保证所有 WebKit/ICU 版本都返回阿拉伯数字。
+const lunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+  '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+  '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+const chineseNumbers = ['一','二','三','四','五','六','七','八','九','十',
+  '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+  '二十一','二十二','二十三','二十四','二十五','二十六','二十七','二十八','二十九','三十'];
+export function formatLunarDateParts(parts) {
+  const raw = String(parts.find(p => p.type === 'day')?.value ?? '').normalize('NFKC').trim().replace(/日$/, '');
+  const n = /^\d{1,2}$/.test(raw) ? Number(raw) : Math.max(lunarDays.indexOf(raw), chineseNumbers.indexOf(raw)) + 1;
+  if (!Number.isInteger(n) || n < 1 || n > 30) return { short: '', full: '' };
+  const year = parts.find(p => p.type === 'yearName')?.value || '';
+  const month = parts.find(p => p.type === 'month')?.value || '';
+  const label = lunarDays[n - 1];
+  return { short: n === 1 && month ? month : label, full: `${year ? year + '年' : ''}${month}${label}` };
+}
+const lunarFormatter = (() => {
+  try {
+    const formatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', { year: 'numeric', month: 'long', day: 'numeric', numberingSystem: 'latn' });
+    return formatter.resolvedOptions().calendar === 'chinese' ? formatter : null;
+  } catch { return null; }
+})();
 const lunarCache = new Map();
 export function lunarLabel(key, full = false) {
   if (!lunarCache.has(key)) {
-    const parts = lunarFormatter.formatToParts(dateFromKey(key));
-    const n = Number(parts.find(p => p.type === 'day')?.value);
-    const year = parts.find(p => p.type === 'yearName')?.value || '';
-    const month = parts.find(p => p.type === 'month')?.value || '';
-    const digits = '一二三四五六七八九';
-    const label = n === 10 ? '初十' : n === 20 ? '二十' : n === 30 ? '三十' : n < 10 ? `初${digits[n - 1]}` : n < 20 ? `十${digits[n - 11]}` : `廿${digits[n - 21]}`;
+    let labels = { short: '', full: '' };
+    try { if (lunarFormatter) labels = formatLunarDateParts(lunarFormatter.formatToParts(dateFromKey(key))); } catch { /* 保留公历，不显示错误的农历。 */ }
     if (lunarCache.size > 2000) lunarCache.clear();
-    lunarCache.set(key, { short: n === 1 ? month : label, full: `${year ? year + '年' : ''}${month}${label}` });
+    lunarCache.set(key, labels);
   }
   return lunarCache.get(key)[full ? 'full' : 'short'];
 }

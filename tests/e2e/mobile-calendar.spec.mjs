@@ -152,3 +152,21 @@ test('原日期导航、任务详情与任务池入口继续可用',async({page}
     await page.locator('.mobile-tab-bar').getByRole('button',{name:'日程表'}).click();
     await expect(page.locator('#main-content .mc-calendar')).toBeVisible();
 });
+
+test('本地化农历 day 字段不会在月历和时间轴显示 undefined',async({page})=>{
+    await page.clock.setFixedTime(new Date('2026-10-18T12:00:00+08:00'));
+    await page.addInitScript(()=>{
+        const original=Intl.DateTimeFormat.prototype.formatToParts;
+        const days=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+        Intl.DateTimeFormat.prototype.formatToParts=function(...args){
+            const parts=original.apply(this,args);
+            return this.resolvedOptions().calendar==='chinese' ? parts.map(part=>part.type==='day' ? {...part,value:days[Number(part.value)-1]||part.value} : part) : parts;
+        };
+    });
+    await boot(page);
+    await expect(page.locator('[data-month-date="2026-10-18"] .mc-lunar')).toHaveText('初九');
+    expect(await page.locator('.mc-calendar').textContent()).not.toMatch(/undefined|NaN/);
+    await openToday(page);
+    await expect(page.locator('[data-heading-date="2026-10-18"] .mc-date-subtitle')).toHaveText('丙午年九月初九');
+    expect(await page.locator('.mc-calendar').textContent()).not.toMatch(/undefined|NaN/);
+});
