@@ -93,8 +93,7 @@ export const AppMobileCalendar = {
                         <span class="mc-event-range mt-auto text-[11px] font-mono opacity-80 leading-none flex items-center gap-2"><span>{{task.startTime}}</span><span class="font-bold opacity-70">{{task.estDuration}}</span></span>
                       </div>
                       <div v-if="hasRecordingInfo(task)" class="absolute bottom-[1px] right-[2px] z-[15] pointer-events-none"><i class="fa-solid fa-circle-info text-[10px] opacity-90"></i></div>
-                      <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-start" aria-label="调整开始时间" @pointerdown.stop.prevent="eventDown($event,task,'start')"></button>
-                      <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-end" aria-label="调整结束时间" @pointerdown.stop.prevent="eventDown($event,task,'end')"></button>
+                      <button v-if="selectedEvent===task.scheduleId" class="resize-handle mc-event-resize" aria-label="调整结束时间" @pointerdown.stop.prevent="eventDown($event,task,'end')"></button>
                     </div>
                   </div>
                 </div>

@@ -91,12 +91,12 @@ test('返回手势中途取消，长按草稿取消，拉伸取消与提交', as
     await expect(page.locator('.mc-draft')).toBeHidden(); await expect(page.locator('.mc-editor-sheet')).toBeHidden();
     const event=page.locator('[data-active-date] .mc-event').first(); await event.click();
     const before=await event.locator('.mc-event-range').textContent();
-    let box=await event.locator('.mc-handle-end').boundingBox();
+    let box=await event.locator('.mc-event-resize').boundingBox();
     await page.mouse.move(box.x+14,box.y+14); await page.mouse.down(); await page.mouse.move(box.x+14,box.y+61,{steps:5});
     await expect(event.locator('.mc-event-range')).not.toHaveText(before);
     await event.dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
     await expect(event.locator('.mc-event-range')).toHaveText(before);
-    box=await event.locator('.mc-handle-end').boundingBox();
+    box=await event.locator('.mc-event-resize').boundingBox();
     await page.mouse.move(box.x+14,box.y+14); await page.mouse.down(); await page.mouse.move(box.x+14,box.y+61,{steps:5}); await page.mouse.up();
     await expect(event.locator('.mc-event-range')).not.toHaveText(before);
     const after=await event.locator('.mc-event-range').textContent();
@@ -212,5 +212,20 @@ test('日程块沿用原卡片样式，触屏双击打开 TrackList', async ({pa
     await event.tap();
     await expect(page.locator('.track-list-search-input')).toBeVisible();
     await expect(page.locator('.mc-editor-sheet')).toBeHidden();
-    await page.screenshot({path:'/tmp/musche-mobile-tracklist.png'});
+    await expect(page.locator('.mc-event-handle,.mc-handle-start,.mc-handle-end')).toHaveCount(0);
+    for (const width of [402,320]) {
+        await page.setViewportSize({width,height:812});
+        await page.locator('.track-list-search-input').focus();
+        await page.getByLabel('开始时间',{exact:true}).fill('10:00');
+        await page.getByLabel('结束时间',{exact:true}).fill('11:00');
+        const overflow=await page.locator('.track-list-modal').evaluate(el=>{
+            const bounds=el.getBoundingClientRect();
+            return [...el.querySelectorAll('input,button,.track-card')].filter(node=>{
+                const r=node.getBoundingClientRect();
+                return r.width && (r.left<bounds.left-1 || r.right>bounds.right+1);
+            }).map(node=>node.outerHTML);
+        });
+        expect(overflow).toEqual([]);
+        await page.screenshot({path:`/tmp/musche-tracklist-${width}.png`});
+    }
 });

@@ -11,11 +11,11 @@ export const AppTrackListModal = {
   },
   template: `
 <div v-if="showTrackList" class="modal-overlay" @click.self="showTrackList=false">
-    <div class="modal-window w-[450px] max-w-[90vw] max-h-[80vh] flex flex-col p-0 overflow-hidden animate-[fadeIn_0.1s]">
+    <div class="track-list-modal modal-window w-[450px] max-w-[90vw] max-h-[80vh] flex flex-col p-0 overflow-hidden animate-[fadeIn_0.1s]">
 
-        <div class="p-5 bg-white/50 dark:bg-black/20 backdrop-blur border-b border-glass-border dark:border-glass-borderDark flex justify-between items-center shrink-0 gap-4">
+        <div class="track-list-header p-5 bg-white/50 dark:bg-black/20 backdrop-blur border-b border-glass-border dark:border-glass-borderDark flex justify-between items-center shrink-0 gap-4">
 
-            <div class="flex items-center gap-3 min-w-0">
+            <div class="track-list-heading flex items-center gap-3 min-w-0">
                 <h3 class="font-bold text-lg truncate" :title="trackListData.name">
                     {{ trackListData.name }}
                 </h3>
@@ -27,8 +27,8 @@ export const AppTrackListModal = {
                 </button>
             </div>
 
-            <div class="flex items-center gap-2 shrink-0">
-                <div class="relative group mr-2">
+            <div class="track-list-tools flex items-center gap-2 shrink-0">
+                <div class="track-list-search relative group mr-2">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 group-focus-within:text-[#007aff] transition-colors pointer-events-none"></i>
                     <input
                             v-model="trackListSearchQuery"
@@ -187,7 +187,7 @@ export const AppTrackListModal = {
                             </div>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-2 text-xs" @click.stop>
+                        <div class="track-work-attempt flex flex-wrap items-center gap-2 text-xs" @click.stop>
                             <select v-if="workAttempts(item).length" :value="item.records[trackListData.viewType].workLogId || ''" @change="selectWorkAttempt(item, $event.target.value)" aria-label="选择工作记录" class="glass-input h-8 min-w-0 flex-1 text-xs">
                                 <option value="" disabled>选择历史记录</option>
                                 <option v-for="attempt in workAttempts(item)" :key="attempt.id" :value="attempt.id">第 {{ attempt.attemptNumber }} 次 · {{ attempt.date || '日期未记录' }} · {{ attempt.actualDuration || '未计时' }}</option>
@@ -198,11 +198,11 @@ export const AppTrackListModal = {
                         </div>
 
 
-                        <div class="flex items-center gap-2 bg-white/50 dark:bg-black/20 rounded-md p-1.5 border border-black/5 dark:border-white/5 transition-opacity duration-200"
+                        <div class="track-time-row flex items-center gap-2 bg-white/50 dark:bg-black/20 rounded-md p-1.5 border border-black/5 dark:border-white/5 transition-opacity duration-200"
                              :class="{'opacity-20 pointer-events-none select-none': item.isSkipped}">
 
-                            <div class="flex items-center gap-1 flex-1">
-                                <input type="time"
+                            <div class="track-time-field flex items-center gap-1 flex-1">
+                                <input type="time" aria-label="开始时间"
                                        v-model="item.records[trackListData.viewType].recStart"
                                        @change="calcTrackDiff(item)"
                                        class="glass-input flex-1 h-7 text-xs text-center font-mono bg-white/60 dark:bg-black/30 focus:bg-white dark:focus:bg-black/50 rounded-md transition-colors p-0 cursor-text">
@@ -226,8 +226,8 @@ export const AppTrackListModal = {
                                       class="text-[10px] opacity-20 font-bold group-hover/break:opacity-100 group-hover/break:text-[#007aff] transition-all">-</span>
                             </button>
 
-                            <div class="flex items-center gap-1 flex-1">
-                                <input type="time"
+                            <div class="track-time-field flex items-center gap-1 flex-1">
+                                <input type="time" aria-label="结束时间"
                                        v-model="item.records[trackListData.viewType].recEnd"
                                        @change="calcTrackDiff(item)"
                                        class="glass-input flex-1 h-7 text-xs text-center font-mono bg-white/60 dark:bg-black/30 focus:bg-white dark:focus:bg-black/50 rounded-md transition-colors p-0 cursor-text">

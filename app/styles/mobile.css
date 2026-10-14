@@ -455,3 +455,32 @@ html.dark .mobile-resize-bar {
     }
     .calendar-month-view [data-date] > div:last-child > div > * { display: none; }
 }
+
+/* TrackList：窄屏按内容分行，避免 Safari 日期/时间控件的固有宽度撑开卡片。 */
+@media (max-width: 767px) {
+    .track-list-modal .track-list-header { flex-wrap:wrap; padding:16px; gap:12px; }
+    .track-list-heading { width:100%; }
+    .track-list-heading h3 { flex:1; min-width:0; }
+    .track-list-tools { width:100%; min-width:0; }
+    .track-list-search { flex:1; min-width:0; margin-right:0; }
+    .track-list-modal .track-list-search-input,
+    .track-list-modal .track-list-search-input:focus { width:100%; min-width:0; }
+    .track-list-tools > button { flex-shrink:0; }
+    .track-work-attempt { display:grid; grid-template-columns:minmax(0,1fr); }
+    .track-work-attempt > * { width:100%; min-width:0; }
+    .track-time-row { display:grid; grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr); grid-template-areas:"start start start" "end end end" "break clear summary"; }
+    .track-time-field { min-width:0; }
+    .track-time-field:first-child { grid-area:start; }
+    .track-time-field:nth-child(3) { grid-area:end; }
+    .track-time-field::before { width:32px; flex-shrink:0; font-size:11px; opacity:.6; }
+    .track-time-field:first-child::before { content:"开始"; }
+    .track-time-field:nth-child(3)::before { content:"结束"; }
+    .track-time-row > button:nth-child(2) { grid-area:break; justify-self:start; }
+    .track-time-row > button:nth-child(2)::before { content:"休息"; font-size:11px; margin-right:4px; }
+    .track-time-field input { width:0; min-width:0; max-width:100%; }
+    .track-time-field input::-webkit-date-and-time-value { min-width:0; text-align:center; }
+    .track-time-row > button:nth-child(4) { grid-area:clear; margin-left:0; }
+    .track-time-row > div:nth-child(5) { display:none; }
+    .track-time-row > div:last-child { grid-area:summary; min-width:0; }
+    .track-list-modal .track-card > .flex.items-center.gap-3 { padding-right:84px; }
+}

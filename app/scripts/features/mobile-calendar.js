@@ -345,17 +345,20 @@ export function useMobileCalendar(ctx) {
     const el = event.target.closest('.mc-event');
     const initialTop = timeToMinutes(task.startTime), initialDuration = Math.round(parseTime(task.estDuration)/60);
     edit = { id: event.pointerId, task, el, edge, x:event.clientX, y:event.clientY, lastX:event.clientX, lastY:event.clientY, start:initialTop, duration:initialDuration,
-      top:initialTop, bottom:initialTop+initialDuration, date:task.date, pointerType:event.pointerType, moved:false, scroll:timeline.value?.scrollTop || 0, active:edge !== 'move', changed:false, origin:null };
+      top:initialTop, bottom:initialTop+initialDuration, date:task.date, pointerType:event.pointerType, moved:false, scroll:timeline.value?.scrollTop || 0, active:false, changed:false, origin:null };
     selectedEvent.value = task.scheduleId;
     el.setPointerCapture?.(event.pointerId);
     if (edge === 'move') pendingPress = setTimeout(() => { if (edit) { edit.active = true; el.classList.add('mc-event-editing'); editAutoScroll(); } }, 350);
-    else { el.classList.add('mc-event-editing'); editAutoScroll(); }
   }
   function eventMove(event) {
     if (!edit || event.pointerId !== edit.id) return;
     edit.lastX=event.clientX; edit.lastY=event.clientY;
     if (Math.hypot(event.clientX-edit.x,event.clientY-edit.y)>8) { edit.moved=true; lastTap=null; }
     const dy = event.clientY-edit.y+(timeline.value?.scrollTop || 0)-edit.scroll;
+    // 拉伸区域上的轻点仍参与双击；实际移动后才进入拉伸，避免选中后吞掉第二次触摸。
+    if (!edit.active && edit.edge !== 'move' && Math.abs(dy)>=4) {
+      edit.active=true; edit.el.classList.add('mc-event-editing'); editAutoScroll();
+    }
     if (!edit.active) { if (Math.abs(dy)>8) { cancelPress(); if (timeline.value) timeline.value.scrollTop = edit.scroll-(event.clientY-edit.y); } return; }
     event.preventDefault();
     if (!edit.origin) { edit.origin = edit.el.cloneNode(true); edit.origin.classList.add('mc-event-origin'); edit.origin.removeAttribute('id'); edit.origin.setAttribute('aria-hidden','true'); edit.el.parentNode.append(edit.origin); }
