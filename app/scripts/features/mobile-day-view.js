@@ -2,8 +2,7 @@ import { computed, ref, watch } from 'vue';
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
 
-// 手机端日视图（Apple 日历式）：月视图点某天 → 日视图从下往上滑入，
-// 顶部保留一行周日期条，下面是当天的小时时间轴（复用周视图的刻度与任务块）。
+// 手机端日视图：周日期条与共享时间轴，横向分页保留纵向时间位置。
 export function registerMobileDayViewFeature(context) {
   const { refs, state, utils, actions = {} } = context;
   const {
@@ -31,6 +30,18 @@ export function registerMobileDayViewFeature(context) {
 
   // 日期在两个方向上切换用不同的滑动动画（左右滑 = 前后一天）
   const dayTransitionName = ref('day-slide-next');
+  const pagerOffset = ref(0);
+  const pagerSettling = ref(false);
+  let settleVersion = 0;
+  const dayPagerStyle = computed(() => ({
+    transform: `translate3d(calc(-100% + ${pagerOffset.value}px), 0, 0)`,
+    transition: pagerSettling.value ? 'transform 240ms cubic-bezier(.22, 1, .36, 1)' : 'none',
+  }));
+  const resetPager = () => {
+    settleVersion += 1;
+    pagerSettling.value = false;
+    pagerOffset.value = 0;
+  };
   // 当前时间红线：日视图打开时每分钟刷新一次
   const nowTick = ref(getDate().getTime());
   let nowTimer = null;
@@ -47,6 +58,11 @@ export function registerMobileDayViewFeature(context) {
   };
 
   const selectedDayTasks = computed(() => (selectedDay.value ? getTasksForDate(selectedDay.value) : []));
+
+  const dayPages = computed(() => selectedDay.value ? [-1, 0, 1].map((offset) => {
+    const date = shiftDay(selectedDay.value, offset);
+    return { offset, date, tasks: getTasksForDate(date) };
+  }) : []);
 
   // 选中日期所在周（周日～周六）：日视图顶部那一行周日期
   const selectedDayWeek = computed(() => {
@@ -106,7 +122,7 @@ export function registerMobileDayViewFeature(context) {
 
   const nowIndicatorStyle = computed(() => (nowIndicator.value ? { top: `${nowIndicator.value.top}px` } : null));
 
-  // 打开时把时间轴滚到「有内容的地方」：今天滚到当前时刻，其他日期滚到第一个任务，
+  // 首次打开时先定位第一个任务；无任务的今天定位当前时刻，
   // 都没有则落在设置的起始时刻。
   const scrollDayViewToFocus = () => {
     const container = dayViewContainer.value;
@@ -130,16 +146,21 @@ export function registerMobileDayViewFeature(context) {
   const openDayView = (dateStr) => {
     if (!dateStr) return;
 
+    resetPager();
     selectedDay.value = dateStr;
     dayViewOpen.value = true;
     nowTick.value = getDate().getTime();
     // 等滑入动画的第一帧渲染出时间轴后再定位，否则容器还没高度
-    setTimeoutFn(() => requestAnimationFrameFn(scrollDayViewToFocus), 0);
+    setTimeoutFn(() => requestAnimationFrameFn(() => {
+      if (dayViewOpen.value && selectedDay.value === dateStr) scrollDayViewToFocus();
+    }), 0);
   };
 
   const closeDayView = () => {
     if (!dayViewOpen.value) return;
 
+    resetPager();
+    gesture.tracking = false;
     dayViewOpen.value = false;
     // 在日视图里翻到了别的月份：关闭后让底下的月视图跟上
     if (selectedDay.value) {
@@ -154,9 +175,10 @@ export function registerMobileDayViewFeature(context) {
   const selectDay = (dateStr) => {
     if (!dateStr || dateStr === selectedDay.value) return;
 
+    resetPager();
     dayTransitionName.value = dateStr > selectedDay.value ? 'day-slide-next' : 'day-slide-prev';
     selectedDay.value = dateStr;
-    setTimeoutFn(() => requestAnimationFrameFn(scrollDayViewToFocus), 0);
+    // 同一个滚动容器贯穿所有日期，切换不改变用户正在查看的小时。
   };
 
   const changeSelectedDay = (dir) => {
@@ -164,51 +186,63 @@ export function registerMobileDayViewFeature(context) {
     selectDay(shiftDay(selectedDay.value, dir));
   };
 
-  // —— 手势：横滑翻天、顶部下拉关闭 ——
-  const gesture = {
-    startX: 0,
-    startY: 0,
-    startScrollTop: 0,
-    tracking: false,
+  // 单指横向手势锁轴；竖向滚动和任务拖拽由各自的处理器负责。
+  const gesture = { tracking: false, axis: null, startX: 0, startY: 0, lastX: 0, lastTime: 0, velocity: 0, width: 320 };
+  const dayViewTouchCancel = () => {
+    gesture.tracking = false;
+    resetPager();
   };
-
   const dayViewTouchStart = (event) => {
-    // 任务块上的手势归拖拽/拉伸处理，日视图不抢
-    if (event.target?.closest?.('.task-block')) {
+    if (event.touches?.length !== 1 || event.target?.closest?.('.task-block') || pagerSettling.value) {
       gesture.tracking = false;
       return;
     }
-
-    const touch = event.touches?.[0];
-    if (!touch) return;
-
-    gesture.startX = touch.clientX;
+    const touch = event.touches[0];
+    gesture.startX = gesture.lastX = touch.clientX;
     gesture.startY = touch.clientY;
-    gesture.startScrollTop = dayViewContainer.value?.scrollTop ?? 0;
+    gesture.lastTime = event.timeStamp || 0;
+    gesture.velocity = 0;
+    gesture.axis = null;
+    gesture.width = dayViewContainer.value?.querySelector?.('.day-pager')?.clientWidth || 320;
     gesture.tracking = true;
   };
-
-  const dayViewTouchMove = () => {};
-
+  const dayViewTouchMove = (event) => {
+    if (event.touches?.length !== 1) { dayViewTouchCancel(); return; }
+    if (!gesture.tracking) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - gesture.startX;
+    const dy = touch.clientY - gesture.startY;
+    if (!gesture.axis && Math.max(Math.abs(dx), Math.abs(dy)) > 8) {
+      gesture.axis = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'x' : 'y';
+    }
+    if (gesture.axis !== 'x') return;
+    if (event.cancelable) event.preventDefault();
+    const elapsed = (event.timeStamp || 0) - gesture.lastTime;
+    if (elapsed > 0) gesture.velocity = (touch.clientX - gesture.lastX) / elapsed;
+    gesture.lastX = touch.clientX;
+    gesture.lastTime = event.timeStamp || 0;
+    pagerOffset.value = Math.max(-gesture.width, Math.min(gesture.width, dx));
+  };
   const dayViewTouchEnd = (event) => {
     if (!gesture.tracking) return;
     gesture.tracking = false;
-
     const touch = event.changedTouches?.[0];
-    if (!touch) return;
-
-    const deltaX = touch.clientX - gesture.startX;
-    const deltaY = touch.clientY - gesture.startY;
-
-    if (Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && Math.abs(deltaX) > 50) {
-      changeSelectedDay(deltaX < 0 ? 1 : -1);
-      return;
-    }
-
-    // 只有已经滚到时间轴顶部时，下拉才是「关闭」而不是滚动
-    if (deltaY > 80 && Math.abs(deltaY) > Math.abs(deltaX) * 1.5 && gesture.startScrollTop <= 0) {
-      closeDayView();
-    }
+    if (!touch) { resetPager(); return; }
+    const dx = touch.clientX - gesture.startX;
+    const dy = touch.clientY - gesture.startY;
+    const horizontal = gesture.axis === 'x' || (!gesture.axis && Math.abs(dx) > Math.abs(dy) * 1.5);
+    const recent = (event.timeStamp || 0) - gesture.lastTime < 100;
+    const flick = recent && Math.abs(gesture.velocity) > 0.45 && Math.abs(dx) > 16 && Math.sign(dx) === Math.sign(gesture.velocity);
+    const commit = horizontal && (Math.abs(dx) > gesture.width * 0.22 || flick);
+    const direction = dx < 0 ? 1 : -1;
+    pagerSettling.value = true;
+    pagerOffset.value = commit ? -direction * gesture.width : 0;
+    const version = ++settleVersion;
+    setTimeoutFn(() => {
+      if (version !== settleVersion) return;
+      if (commit && dayViewOpen.value) changeSelectedDay(direction);
+      else resetPager();
+    }, 240);
   };
 
   const stopNowTimer = () => {
@@ -252,6 +286,9 @@ export function registerMobileDayViewFeature(context) {
     selectedDayLabel,
     selectedDayMonthLabel,
     dayTransitionName,
+    dayPages,
+    dayPagerStyle,
+    dayViewTouchCancel,
     nowIndicator,
     nowIndicatorStyle,
     dayViewTouchStart,

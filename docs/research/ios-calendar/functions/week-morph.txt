@@ -1,0 +1,193 @@
+ev_2686588a3d69c1a78aff200dbd04efd73629e9b69e0d036be7f29c138a3b6845
+
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_retainBlock replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* Function Stack Size: 0x14 bytes */
+
+void MonthDayNavigationTransitionView::_setToDayStateAnimated_(ID param_1,SEL param_2,bool param_3)
+
+{
+  undefined *puVar1;
+  undefined *puVar2;
+  ID IVar3;
+  ID IVar4;
+  ID IVar5;
+  undefined **ppuVar6;
+  undefined **ppuVar7;
+  ID self;
+  long lVar8;
+  ID IVar9;
+  undefined8 extraout_d0;
+  undefined8 uVar10;
+  undefined8 extraout_d0_00;
+  double dVar11;
+  CGRect CVar12;
+  undefined *local_220;
+  undefined8 local_218;
+  code *local_210;
+  undefined *puStack_208;
+  ID local_200;
+  undefined8 local_1f8;
+  undefined8 uStack_1f0;
+  double local_1e8;
+  double dStack_1e0;
+  undefined *local_1d8;
+  undefined8 local_1d0;
+  code *local_1c8;
+  undefined *puStack_1c0;
+  ID local_1b8;
+  undefined1 local_1b0;
+  undefined *local_1a8;
+  undefined8 local_1a0;
+  code *local_198;
+  undefined *puStack_190;
+  ID local_188;
+  undefined1 local_180;
+  undefined *local_178;
+  undefined8 local_170;
+  code *local_168;
+  undefined *puStack_160;
+  ID local_158;
+  undefined8 local_150;
+  long lStack_148;
+  long *local_140;
+  undefined8 uStack_138;
+  undefined8 local_130;
+  undefined8 uStack_128;
+  undefined8 uStack_120;
+  undefined8 uStack_118;
+  undefined1 auStack_108 [128];
+  long local_88;
+
+  ppuVar7 = &local_220;
+  local_88 = *(long *)PTR____stack_chk_guard_10020dd08;
+  IVar3 = monthOccurrencesSnapshot(param_1);
+  if (IVar3 != 0) {
+    IVar3 = monthOccurrencesSnapshot(param_1);
+    IVar3 = objc_stub::superview(IVar3);
+    if (IVar3 == 0) {
+      IVar3 = monthOccurrencesSnapshot(param_1);
+      objc_stub::addSubview_(param_1,IVar3);
+    }
+    IVar3 = monthOccurrencesSnapshot(param_1);
+    objc_stub::bringSubviewToFront_(param_1,IVar3);
+  }
+  IVar3 = monthSummarySnapshots(param_1);
+  IVar3 = objc_stub::count(IVar3);
+  if (IVar3 != 0) {
+    IVar3 = monthSummarySnapshots(param_1);
+    IVar3 = objc_stub::count(IVar3);
+    IVar4 = monthSummaryFrames(param_1);
+    IVar4 = objc_stub::count(IVar4);
+    if (IVar3 == IVar4) {
+      uStack_128 = 0;
+      local_130 = 0;
+      uStack_118 = 0;
+      uStack_120 = 0;
+      lStack_148 = 0;
+      local_150 = 0;
+      uStack_138 = 0;
+      local_140 = (long *)0x0;
+      IVar3 = monthSummarySnapshots(param_1);
+      IVar4 = objc_stub::countByEnumeratingWithState_objects_count_
+                        (IVar3,&local_150,auStack_108,0x10);
+      if (IVar4 != 0) {
+        lVar8 = *local_140;
+        do {
+          IVar9 = 0;
+          do {
+            if (*local_140 != lVar8) {
+              _objc_enumerationMutation(IVar3);
+            }
+            self = *(ID *)(lStack_148 + IVar9 * 8);
+            IVar5 = objc_stub::superview(self);
+            if (IVar5 == 0) {
+              objc_stub::addSubview_(param_1,self);
+            }
+            objc_stub::bringSubviewToFront_(param_1,self);
+            IVar9 = IVar9 + 1;
+          } while (IVar4 != IVar9);
+          IVar4 = objc_stub::countByEnumeratingWithState_objects_count_
+                            (IVar3,&local_150,auStack_108,0x10);
+        } while (IVar4 != 0);
+      }
+    }
+  }
+  puVar2 = PTR___NSConcreteStackBlock_10020dcf0;
+  local_178 = PTR___NSConcreteStackBlock_10020dcf0;
+  local_170 = 0xc0000000;
+  local_168 = FUN_1000ea040;
+  puStack_160 = &DAT_100200168;
+  ppuVar6 = &local_178;
+  local_158 = param_1;
+  IVar3 = _todayCell(param_1);
+  objc_stub::setIsToday_(IVar3,1);
+  local_1a8 = puVar2;
+  local_1a0 = 0xc0000000;
+  local_198 = FUN_1000ea574;
+  puStack_190 = &DAT_100200140;
+  uVar10 = extraout_d0;
+  local_188 = param_1;
+  local_180 = (char)param_3;
+  _animateNavigationPreferringFRR(&local_1a8);
+  if (*(long *)(param_1 + (long)_selectedIndex) != *(long *)(param_1 + (long)_todayIndex)) {
+    local_1d8 = puVar2;
+    local_1d0 = 0xc0000000;
+    local_1c8 = FUN_1000ea5d8;
+    puStack_1c0 = &DAT_100200140;
+    local_1b8 = param_1;
+    local_1b0 = (char)param_3;
+    _animateNavigationPreferringFRR(&local_1d8);
+    if ((param_3 & 1) == 0) {
+      IVar3 = _selectedCell(param_1);
+      objc_stub::layoutIfNeeded(IVar3);
+      IVar3 = _todayCell(param_1);
+      objc_stub::layoutIfNeeded(IVar3);
+      uVar10 = extraout_d0_00;
+    }
+  }
+  puVar1 = PTR__OBJC_CLASS___UIView_10020d388;
+  if (param_3 == 0) {
+    (*local_168)(ppuVar6);
+    CVar12 = dayFrame(param_1);
+    objc_stub::setFrame_
+              (param_1,CVar12.field0_0x0.field0_0x0,CVar12.field0_0x0.field1_0x8,
+               CVar12.field1_0x10.field0_0x0,CVar12.field1_0x10.field1_0x8);
+  }
+  else {
+    _springAnimationDuration();
+    IVar3 = SpringFactory::sharedFactory((ID)PTR__OBJC_CLASS___SpringFactory_10020cc08);
+    _navigationAnimationsPreferringFRR(ppuVar6);
+    UIView::_animateWithDuration_delay_options_factory_animations_completion_
+              ((ID)puVar1,uVar10,0,0x60000,IVar3,ppuVar6,0);
+    CVar12 = dayFrame(param_1);
+    puVar1 = PTR__OBJC_CLASS___UIView_10020d388;
+    dVar11 = CVar12.field0_0x0.field0_0x0;
+    _springAnimationDuration(dVar11,CVar12.field0_0x0.field1_0x8);
+    IVar3 = SpringFactory::sharedFactory((ID)PTR__OBJC_CLASS___SpringFactory_10020cc08);
+    local_220 = puVar2;
+    local_218 = 0xc0000000;
+    local_210 = FUN_1000ea61c;
+    puStack_208 = &DAT_100200440;
+    local_1f8 = 0;
+    uStack_1f0 = 0;
+    local_200 = param_1;
+    local_1e8 = CVar12.field1_0x10.field0_0x0;
+    dStack_1e0 = CVar12.field1_0x10.field1_0x8;
+    _navigationAnimationsPreferringFRR(&local_220);
+    UIView::_animateWithDuration_delay_options_factory_animations_completion_
+              ((ID)puVar1,dVar11,0,0x60000,IVar3,ppuVar7,0);
+    CVar12 = dayFrame(param_1);
+    _animateView_toPosition_(param_1,param_1,CVar12.field0_0x0);
+  }
+  if (*(long *)PTR____stack_chk_guard_10020dd08 != local_88) {
+                    /* WARNING: Subroutine does not return */
+    ___stack_chk_fail(0);
+  }
+  return;
+}

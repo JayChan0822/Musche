@@ -1,4 +1,6 @@
-// 手机端日视图：月视图点某天后从下往上滑入，顶部保留一行周日期，
+import { toRefs } from 'vue';
+
+// 手机端日视图：从月视图进入后保留一行周日期，
 // 下面是当天的小时时间轴（刻度、任务块、拖拽/拉伸手势都与周视图同源）。
 export const AppMobileDayView = {
   name: 'AppMobileDayView',
@@ -9,25 +11,50 @@ export const AppMobileDayView = {
     },
   },
   setup(props) {
-    return props.ctx;
+    const animations = new Set();
+    const cancelMorph = () => {
+      for (const animation of animations) animation.cancel();
+      animations.clear();
+    };
+    const morphWeek = (element, leaving = false) => {
+      cancelMorph();
+      if (element.ownerDocument.defaultView.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      // 从真实月格读位置，七个日期分别移动，跨月缺少源格时只做容器淡入。
+      const pairs = [...element.querySelectorAll('[data-week-date]')].map((target) => {
+        const source = element.ownerDocument.querySelector(`[data-date="${target.dataset.weekDate}"] [data-month-day-number]`);
+        return source ? { target, from: source.getBoundingClientRect(), to: target.getBoundingClientRect() } : null;
+      }).filter(Boolean);
+      for (const { target, from, to } of pairs) {
+        if (!from.width || !to.width) continue;
+        const moved = { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px) scale(${from.width / to.width})` };
+        const resting = { transform: 'translate(0, 0) scale(1)' };
+        const animation = target.animate(leaving ? [resting, moved] : [moved, resting], {
+          duration: leaving ? 240 : 600, easing: 'cubic-bezier(.22, 1, .36, 1)',
+        });
+        animations.add(animation);
+        animation.onfinish = () => animations.delete(animation);
+      }
+    };
+    return { ...toRefs(props.ctx), enterDay: (el) => morphWeek(el), leaveDay: (el) => morphWeek(el, true), cancelMorph };
   },
   template: `
-            <Transition name="day-view">
+            <Transition name="day-view" @enter="enterDay" @leave="leaveDay"
+                        @enter-cancelled="cancelMorph" @leave-cancelled="cancelMorph" @after-leave="cancelMorph">
                 <div v-if="isMobile && dayViewOpen"
-                     class="absolute inset-0 z-[500] flex flex-col bg-white dark:bg-[#1c1c1e]"
+                     data-mobile-day-view role="region" :aria-label="selectedDayLabel"
+                     class="mobile-day-view absolute inset-0 z-[500] flex flex-col bg-white dark:bg-[#1c1c1e]"
                      :style="{ '--slot-height': slotHeight + 'px' }"
-                     @touchstart="dayViewTouchStart($event)"
-                     @touchmove="dayViewTouchMove($event)"
-                     @touchend="dayViewTouchEnd($event)">
-
-                    <!-- 下拉关闭把手 -->
-                    <div class="shrink-0 flex justify-center pt-1.5 pb-0.5">
-                        <div class="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20"></div>
-                    </div>
+                     @touchstart.stop="dayViewTouchStart($event)"
+                     @touchmove.stop="dayViewTouchMove($event)"
+                     @touchend.stop="dayViewTouchEnd($event)"
+                     @touchcancel.stop="dayViewTouchCancel"
+                     @wheel.stop
+                     @keydown.left.prevent="changeSelectedDay(-1)"
+                     @keydown.right.prevent="changeSelectedDay(1)">
 
                     <!-- 顶栏：返回月视图 + 当天日期 -->
                     <div class="shrink-0 flex items-center justify-between pl-1 pr-3">
-                        <button @click="closeDayView"
+                        <button @click="closeDayView" aria-label="返回月视图"
                                 class="flex items-center gap-1 h-11 px-2 text-[#007aff] active:opacity-50">
                             <i class="fa-solid fa-chevron-left text-lg"></i>
                             <span class="text-base font-bold">{{ selectedDayMonthLabel }}</span>
@@ -39,11 +66,13 @@ export const AppMobileDayView = {
                     <div class="shrink-0 grid grid-cols-7 px-1 pb-2 border-b border-glass-border dark:border-glass-borderDark">
                         <button v-for="d in selectedDayWeek" :key="d.fullDate"
                                 @click="selectDay(d.fullDate)"
+                                :aria-label="d.fullDate" :aria-pressed="selectedDay === d.fullDate"
+                                :aria-current="d.isToday ? 'date' : undefined"
                                 class="flex flex-col items-center justify-center py-1 gap-1">
                             <span class="text-[11px] font-bold opacity-40">{{ d.weekday }}</span>
-                            <span class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold transition-colors"
+                            <span :data-week-date="d.fullDate" class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold transition-colors"
                                   :class="selectedDay === d.fullDate
-                                      ? 'bg-[#ff3b30] text-white'
+                                      ? (d.isToday ? 'bg-[#ff3b30] text-white' : 'bg-black/10 dark:bg-white/20')
                                       : (d.isToday ? 'text-[#ff3b30]' : 'opacity-80')">
                                 {{ d.dayNum }}
                             </span>
@@ -53,7 +82,7 @@ export const AppMobileDayView = {
                     </div>
 
                     <!-- 当天时间轴 -->
-                    <div class="flex-1 overflow-y-auto overscroll-contain no-scrollbar relative"
+                    <div class="day-timeline flex-1 overflow-y-auto overscroll-contain no-scrollbar relative"
                          :ref="(el) => { dayViewContainer = el; }">
                         <div class="flex min-w-full">
                             <!-- 时间刻度列：翻天时固定不动 -->
@@ -68,17 +97,20 @@ export const AppMobileDayView = {
                             </div>
 
                             <!-- 任务格：左右滑动翻天时只滑这一层 -->
-                            <div class="relative flex-1 min-w-0">
-                                <Transition :name="dayTransitionName">
-                                    <div :key="selectedDay" :data-date-str="selectedDay" class="w-full">
+                            <div class="day-pager relative flex-1 min-w-0 overflow-hidden">
+                                <div class="day-pager-track flex" :style="dayPagerStyle">
+                                    <div v-for="page in dayPages" :key="page.offset"
+                                         :data-date-str="page.offset === 0 ? selectedDay : undefined"
+                                         :aria-hidden="page.offset !== 0" :inert="page.offset !== 0"
+                                         class="w-full shrink-0">
                                         <div class="relative" style="min-height: 1000px;">
                                             <div v-for="t in timeSlots" :key="t"
-                                                 class="grid-slot droppable-slot"
+                                                 class="grid-slot" :class="{ 'droppable-slot': page.offset === 0 }"
                                                  :data-time="t"
                                                  @dragover.prevent
                                                  @drop="dropToSchedule($event, selectedDay)"></div>
 
-                                            <div v-for="task in selectedDayTasks"
+                                            <div v-for="task in page.tasks"
                                                  :key="task.scheduleId"
                                                  class="task-block group"
                                                  @touchstart.stop="handleTouchStart($event, task, selectedDay)"
@@ -114,12 +146,12 @@ export const AppMobileDayView = {
                                             </div>
 
                                             <!-- 当前时刻红线（仅今天） -->
-                                            <div v-if="nowIndicatorStyle" class="day-now-line" :style="nowIndicatorStyle">
+                                            <div v-if="page.offset === 0 && nowIndicatorStyle" class="day-now-line" :style="nowIndicatorStyle">
                                                 <span class="day-now-dot"></span>
                                             </div>
                                         </div>
                                     </div>
-                                </Transition>
+                                </div>
                             </div>
                         </div>
                         <!-- 底部留白：别让最后一条日程被 tab bar 压住 -->

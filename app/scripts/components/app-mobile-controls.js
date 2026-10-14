@@ -62,7 +62,7 @@ export const AppMobileControls = {
                 </Transition>
 
                 <div class="mobile-tab-bar">
-                    <button @click="ctx.mobileTab='pool'; ctx.showMobileTaskInput=false"
+                    <button aria-label="任务池" @click="ctx.mobileTab='pool'; ctx.showMobileTaskInput=false"
                             class="mobile-tab-item"
                             :class="{'active': ctx.mobileTab==='pool' && !ctx.showMobileTaskInput && !ctx.isSearchFocused}">
                         <i class="fa-solid fa-layer-group"></i>
@@ -76,7 +76,7 @@ export const AppMobileControls = {
                         <span>添加</span>
                     </button>
 
-                    <button @click="ctx.mobileTab='schedule'; ctx.showMobileTaskInput=false"
+                    <button aria-label="日程表" @click="ctx.mobileTab='schedule'; ctx.showMobileTaskInput=false"
                             class="mobile-tab-item"
                             :class="{'active': ctx.mobileTab==='schedule' && !ctx.showMobileTaskInput && !ctx.isSearchFocused}">
                         <i class="fa-regular fa-calendar-days"></i>

@@ -1,0 +1,114 @@
+{
+  "observed_at": "2026-10-14",
+  "operation": "binary_session",
+  "open": false,
+  "providers": [
+    {
+      "provider": {
+        "id": "ghidra",
+        "name": "Ghidra",
+        "version": null
+      },
+      "availability": {
+        "status": "unavailable",
+        "code": "not_configured",
+        "reason": "Set GHIDRA_INSTALL_DIR to an extracted Ghidra 12.1.x release directory.",
+        "diagnostics": {
+          "install_dir": null,
+          "analyze_headless_path": null,
+          "native_decompiler_path": null,
+          "application_properties_path": null,
+          "provider_version": null,
+          "java_command": "java",
+          "java_home": "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home",
+          "java_version": "1.8.0_451",
+          "platform": "darwin",
+          "architecture": "arm64",
+          "checks": [
+            {
+              "name": "configuration",
+              "ok": false,
+              "code": "not_configured",
+              "detail": "GHIDRA_INSTALL_DIR is not set"
+            },
+            {
+              "name": "platform",
+              "ok": true,
+              "code": null,
+              "detail": "darwin"
+            },
+            {
+              "name": "architecture",
+              "ok": true,
+              "code": null,
+              "detail": "arm64"
+            },
+            {
+              "name": "installation",
+              "ok": false,
+              "code": "executable_missing",
+              "detail": "Ghidra application properties unavailable"
+            },
+            {
+              "name": "version",
+              "ok": false,
+              "code": "version_unresolved",
+              "detail": "unknown"
+            },
+            {
+              "name": "headless",
+              "ok": false,
+              "code": "executable_missing",
+              "detail": "analyzeHeadless unavailable"
+            },
+            {
+              "name": "native_decompiler",
+              "ok": false,
+              "code": "executable_missing",
+              "detail": "Matching native decompiler for darwin/arm64 was not found"
+            },
+            {
+              "name": "java",
+              "ok": false,
+              "code": "unsupported_version",
+              "detail": "1.8.0_451; 64-bit; runtime only; /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home; accepted a 64-bit full JDK 21 or newer"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "provider": {
+        "id": "hopper",
+        "name": "Hopper Disassembler",
+        "version": null
+      },
+      "availability": {
+        "status": "unavailable",
+        "code": "executable_missing",
+        "reason": "Hopper launcher is missing or not executable: /Applications/Hopper Disassembler.app/Contents/MacOS/hopper",
+        "diagnostics": {
+          "launcher_path": "/Applications/Hopper Disassembler.app/Contents/MacOS/hopper",
+          "platform": "darwin"
+        }
+      }
+    },
+    {
+      "provider": {
+        "id": "ida",
+        "name": "IDA Pro MCP adapter",
+        "version": "1"
+      },
+      "availability": {
+        "status": "unavailable",
+        "code": "not_configured",
+        "reason": "Set REA_IDA_MCP_CONFIG to an upstream IDA MCP JSON registration; see docs/ida-provider.md.",
+        "diagnostics": {
+          "configured": false,
+          "live_connection_probed": false
+        }
+      }
+    }
+  ],
+  "note": "Session diagnostics only, not Calendar implementation evidence."
+}

@@ -213,7 +213,7 @@ html.dark .mobile-resize-bar {
         height: 100dvh;
         overflow: hidden !important;
         overscroll-behavior: none;
-        touch-action: none;
+        touch-action: pan-x pan-y;
     }
 
     #app {
@@ -341,44 +341,6 @@ html.dark .mobile-resize-bar {
         justify-content: center;
     }
 
-    .grid-cols-7 .droppable-slot {
-        height: auto !important;
-        min-height: 50px !important;
-        aspect-ratio: 0.5;
-        padding: 2px !important;
-    }
-
-    .grid-cols-7 .text-right.mb-1 {
-        text-align: center !important;
-        margin-bottom: 2px !important;
-    }
-
-    .grid-cols-7 .text-sm.font-bold.w-7.h-7 {
-        width: 20px !important;
-        height: 20px !important;
-        font-size: 12px !important;
-        line-height: 20px !important;
-    }
-
-    .grid-cols-7 .space-y-1 .text-\[11px\] {
-        font-size: 8px !important;
-        padding: 1px 3px !important;
-        height: 14px !important;
-        border-radius: 2px !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-    }
-
-    .grid-cols-7 .space-y-1 .w-1\.5.h-1\.5 {
-        display: none !important;
-    }
-
-    .grid-cols-7 .space-y-1 .font-mono.opacity-80 {
-        display: none !important;
-    }
-
     :root {
         --header-base-height: 50px;
         --safe-top: env(safe-area-inset-top);
@@ -470,4 +432,26 @@ html.dark .mobile-resize-bar {
     .mobile-stat-card .mt-2.pt-2 .text-xs {
         font-size: 11px !important;
     }
+}
+
+/* 手机月历保留每周行与事件颜色，缩减卡片密度；详情进入日视图查看。 */
+@media (max-width: 800px) {
+    .calendar-month-view [data-date] {
+        min-height: 84px;
+        height: 84px;
+        border-right-color: transparent;
+        padding: 4px 3px;
+    }
+    .calendar-month-view [data-date] > div:first-child { text-align: center; }
+    .calendar-month-view [data-month-day-number] { font-size: 17px; font-weight: 500; }
+    .calendar-month-view [data-date] > div:last-child { overflow: hidden; flex: none; max-height: 34px; }
+    .calendar-month-view [data-date] > div:last-child > div {
+        height: 5px;
+        min-height: 5px;
+        padding: 0;
+        margin-top: 3px;
+        border-radius: 3px;
+        box-shadow: none;
+    }
+    .calendar-month-view [data-date] > div:last-child > div > * { display: none; }
 }

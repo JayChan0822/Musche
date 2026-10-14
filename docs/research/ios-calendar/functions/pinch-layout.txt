@@ -1,0 +1,159 @@
+ev_c1afcdaff009102fa2686a05a432cf655d1e1b2a842eaae34eaabd9fc33ef7b6
+
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_retain_x8 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_retain_x25 replaced with injection: _objc_retain_fixup */
+/* Function Stack Size: 0x20 bytes */
+
+void CompactWidthMonthViewController::applySizeToPinchView_compressed_snapToBoundary_
+               (ID param_1,SEL param_2,unsigned_long_long param_3,bool param_4,bool param_5)
+
+{
+  ID IVar1;
+  ID IVar2;
+  ID self;
+  ID IVar3;
+  ID self_00;
+  long lVar4;
+  long lVar5;
+  long lVar6;
+  double extraout_d0;
+  double in_d1;
+  double dVar7;
+  undefined8 in_d2;
+  double in_d3;
+  double dVar8;
+  double dVar9;
+  undefined8 local_210;
+  long lStack_208;
+  long *local_200;
+  undefined8 uStack_1f8;
+  undefined8 local_1f0;
+  undefined8 uStack_1e8;
+  undefined8 uStack_1e0;
+  undefined8 uStack_1d8;
+  undefined8 local_1d0;
+  long lStack_1c8;
+  long *local_1c0;
+  undefined8 uStack_1b8;
+  undefined8 local_1b0;
+  undefined8 uStack_1a8;
+  undefined8 uStack_1a0;
+  undefined8 uStack_198;
+  undefined1 auStack_190 [128];
+  undefined1 auStack_110 [128];
+  long local_90;
+
+  local_90 = *(long *)PTR____stack_chk_guard_10020dd08;
+  IVar1 = InfiniteScrollViewController::scrollView(param_1);
+  objc_stub::adjustedContentInset(IVar1);
+  lVar4 = (long)_pinchScrollView;
+  IVar1 = objc_stub::contentOffset(*(ID *)(param_1 + lVar4));
+  lStack_1c8 = 0;
+  local_1d0 = 0;
+  uStack_1b8 = 0;
+  local_1c0 = (long *)0x0;
+  uStack_1a8 = 0;
+  local_1b0 = 0;
+  uStack_198 = 0;
+  uStack_1a0 = 0;
+  lVar5 = (long)_pinchViews;
+  IVar2 = objc_stub::countByEnumeratingWithState_objects_count_
+                    (IVar1,*(undefined8 *)(param_1 + lVar5),&local_1d0,auStack_110,0x10);
+  dVar8 = 0.0;
+  if (IVar2 == 0) {
+    dVar9 = 0.0;
+    self = 0;
+  }
+  else {
+    lVar6 = *local_1c0;
+    dVar9 = 0.0;
+    do {
+      IVar3 = 0;
+      do {
+        if (*local_1c0 != lVar6) {
+          _objc_enumerationMutation(IVar1);
+        }
+        self = objc_stub::frame(*(ID *)(lStack_1c8 + IVar3 * 8));
+        dVar9 = dVar9 + in_d3;
+        if (extraout_d0 + in_d1 < dVar9) {
+          objc_stub::frame(self);
+          dVar9 = dVar9 - in_d3;
+          objc_stub::frame(self);
+          dVar9 = ((extraout_d0 + in_d1) - dVar9) / in_d3;
+          goto LAB_100086a68;
+        }
+        IVar3 = IVar3 + 1;
+      } while (IVar2 != IVar3);
+      IVar2 = objc_stub::countByEnumeratingWithState_objects_count_
+                        (IVar1,&local_1d0,auStack_110,0x10);
+    } while (IVar2 != 0);
+    dVar9 = 0.0;
+    self = 0;
+  }
+LAB_100086a68:
+  IVar1 = param_1;
+  _objc_opt_class();
+  IVar1 = objc_stub::setMonthWeekScaleSize_(IVar1,param_3);
+  uStack_1e8 = 0;
+  local_1f0 = 0;
+  uStack_1d8 = 0;
+  uStack_1e0 = 0;
+  lStack_208 = 0;
+  local_210 = 0;
+  uStack_1f8 = 0;
+  local_200 = (long *)0x0;
+  IVar2 = objc_stub::countByEnumeratingWithState_objects_count_
+                    (IVar1,*(undefined8 *)(param_1 + lVar5),&local_210,auStack_190,0x10);
+  if (IVar2 != 0) {
+    lVar5 = *local_200;
+    dVar8 = 0.0;
+    do {
+      IVar3 = 0;
+      dVar7 = in_d3;
+      do {
+        if (*local_200 != lVar5) {
+          _objc_enumerationMutation(IVar1);
+        }
+        self_00 = *(ID *)(lStack_208 + IVar3 * 8);
+        objc_stub::setCompressedVerticalMode_(self_00,(ulong)param_4);
+        objc_stub::bounds(*(ID *)(param_1 + lVar4));
+        objc_stub::sizeThatFits_(self_00,in_d2,dVar7);
+        objc_stub::frame(self_00);
+        in_d3 = dVar7;
+        objc_stub::setFrame_(self_00);
+        dVar8 = dVar8 + dVar7;
+        IVar3 = IVar3 + 1;
+        dVar7 = in_d3;
+      } while (IVar2 != IVar3);
+      IVar2 = objc_stub::countByEnumeratingWithState_objects_count_
+                        (IVar1,&local_210,auStack_190,0x10);
+    } while (IVar2 != 0);
+  }
+  IVar1 = *(ID *)(param_1 + lVar4);
+  objc_stub::contentSize(IVar1);
+  objc_stub::setContentSize_(IVar1);
+  if (param_5 == 0) {
+    objc_stub::frame(self);
+    dVar9 = dVar9 * in_d3;
+  }
+  else {
+    IVar1 = objc_stub::containsFirstDayOfMonth(self);
+    dVar9 = 0.0;
+    if ((int)IVar1 != 0) {
+      dVar9 = CompactMonthViewController::topOfMonthNameLabelToGrayLineDistance
+                        ((ID)PTR_CompactMonthViewController_10020bef0);
+    }
+  }
+  objc_stub::frame(self);
+  objc_stub::setContentOffset_animated_(*(ID *)(param_1 + lVar4),0,dVar9 + (dVar8 - extraout_d0),0);
+  if (*(long *)PTR____stack_chk_guard_10020dd08 == local_90) {
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  ___stack_chk_fail(0);
+}

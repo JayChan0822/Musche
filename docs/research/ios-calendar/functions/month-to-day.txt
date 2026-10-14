@@ -1,0 +1,191 @@
+ev_67df5a2206b430ea100693de9b497265adb8b12157b2391f2ebd0a788300ba0d
+
+/* WARNING: Function: _objc_retain_x2 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_unsafeClaimAutoreleasedReturnValue replaced with injection:
+   _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* Function Stack Size: 0x18 bytes */
+
+void MonthDayTransitionView::animateToDayWithCompletion_
+               (ID param_1,SEL param_2,ID param_3,undefined4 param_4)
+
+{
+  undefined *puVar1;
+  undefined *puVar2;
+  bool bVar3;
+  ID IVar4;
+  undefined **ppuVar5;
+  dispatch_time_t dVar6;
+  SEL extraout_x1;
+  int64_t delta;
+  long lVar7;
+  long lVar8;
+  long lVar9;
+  float extraout_s0;
+  float fVar10;
+  undefined8 extraout_d0;
+  undefined8 extraout_d0_00;
+  undefined8 extraout_d0_01;
+  undefined8 extraout_d0_02;
+  double dVar11;
+  double dVar12;
+  double dVar13;
+  double dVar14;
+  undefined8 uVar15;
+  undefined8 uVar16;
+  CGRect CVar17;
+  undefined *local_138;
+  undefined8 local_130;
+  code *local_128;
+  undefined *puStack_120;
+  ID local_118;
+  undefined *local_110;
+  undefined8 local_108;
+  code *local_100;
+  undefined *puStack_f8;
+  ID local_f0;
+  undefined *local_e8;
+  undefined8 local_e0;
+  code *local_d8;
+  undefined *puStack_d0;
+  ID local_c8;
+  undefined *local_c0;
+  undefined8 local_b8;
+  code *local_b0;
+  undefined *puStack_a8;
+  ID local_a0;
+
+  lVar9 = (long)_animating;
+  if (*(char *)(param_1 + lVar9) == '\x01') {
+    _haltAnimations(param_1);
+  }
+  CVar17 = weekDayInitialsMonth(param_1);
+  dVar13 = CVar17.field1_0x10.field1_0x8;
+  dVar12 = CVar17.field1_0x10.field0_0x0;
+  dVar11 = CVar17.field0_0x0.field1_0x8;
+  lVar8 = (long)_paletteView;
+  IVar4 = objc_stub::dayInitialsHeaderView(*(ID *)(param_1 + lVar8));
+  objc_stub::setFrame_(IVar4,CVar17.field0_0x0.field0_0x0,dVar11,dVar12,dVar13);
+  IVar4 = objc_stub::dayInitialsHeaderView(*(ID *)(param_1 + lVar8));
+  objc_stub::setAlpha_(IVar4,0x3ff0000000000000);
+  IVar4 = objc_stub::dateLabel(*(ID *)(param_1 + lVar8));
+  objc_stub::setAlpha_(IVar4,0x3ff0000000000000);
+  bVar3 = _CalSolariumCompactChromeEnabled(0,extraout_x1);
+  if ((bVar3 & 1) == 0) {
+    IVar4 = objc_stub::animatableDateLabel(*(ID *)(param_1 + lVar8));
+    objc_stub::setAlpha_(IVar4,0x3ff0000000000000);
+  }
+  IVar4 = topView(param_1);
+  objc_stub::bounds(IVar4);
+  IVar4 = topView(param_1);
+  objc_stub::convertRect_fromView_(param_1,extraout_d0,dVar11,dVar12,dVar13,IVar4);
+  CVar17 = monthScrubberFrame(param_1);
+  dVar13 = CVar17.field1_0x10.field1_0x8;
+  dVar12 = CVar17.field1_0x10.field0_0x0;
+  dVar11 = CVar17.field0_0x0.field1_0x8;
+  _topExtensionHeight(param_1);
+  IVar4 = topView(param_1);
+  objc_stub::bounds(IVar4);
+  IVar4 = topView(param_1);
+  objc_stub::convertRect_fromView_(param_1,extraout_d0_00,dVar11,dVar12,dVar13,IVar4);
+  monthScrubberFrame(param_1);
+  monthScrubberFrame(param_1);
+  IVar4 = topView(param_1);
+  objc_stub::bounds(IVar4);
+  lVar7 = (long)_monthViewController;
+  IVar4 = objc_stub::view(*(ID *)(param_1 + lVar7));
+  CVar17 = monthScrubberFrame(param_1);
+  dVar14 = CVar17.field1_0x10.field1_0x8;
+  dVar13 = CVar17.field1_0x10.field0_0x0;
+  dVar11 = CVar17.field0_0x0.field1_0x8;
+  objc_stub::convertRect_fromView_(IVar4,CVar17.field0_0x0.field0_0x0,dVar11,dVar13,dVar14,param_1);
+  IVar4 = objc_stub::view(*(ID *)(param_1 + lVar7));
+  CVar17 = dayScrubberFrame(param_1);
+  dVar12 = CVar17.field0_0x0.field1_0x8;
+  objc_stub::convertPoint_fromView_
+            (IVar4,CVar17.field0_0x0.field0_0x0,dVar12,CVar17.field1_0x10.field0_0x0,
+             CVar17.field1_0x10.field1_0x8,param_1);
+  objc_stub::enterAnimationSplitStateWithCutOutArea_topBoundary_
+            (*(ID *)(param_1 + lVar7),extraout_d0_01,dVar11,dVar13,dVar14,dVar12);
+  objc_stub::setSplitStateOpen_(*(ID *)(param_1 + lVar7),0);
+  IVar4 = topView(param_1);
+  objc_stub::setAlpha_(IVar4,0x3ff0000000000000);
+  IVar4 = bottomView(param_1);
+  objc_stub::frame(IVar4);
+  uVar15 = *(undefined8 *)(param_1 + (long)_dayViewMonthLocation);
+  uVar16 = ((undefined8 *)(param_1 + (long)_dayViewMonthLocation))[1];
+  IVar4 = bottomView(param_1);
+  objc_stub::setFrame_(IVar4,uVar15,uVar16,dVar13,dVar14);
+  objc_stub::setAlpha_(*(ID *)(param_1 + (long)_allDayView),0);
+  objc_stub::setAlpha_(*(ID *)(param_1 + (long)_topLabelsContainer),0);
+  IVar4 = objc_stub::dayScrubberController(*(ID *)(param_1 + lVar8));
+  IVar4 = objc_stub::view(IVar4);
+  objc_stub::setHidden_(IVar4,1);
+  IVar4 = scrubber(param_1);
+  objc_stub::setHidden_(IVar4,0);
+  IVar4 = scrubber(param_1);
+  objc_stub::animateToDayLayout(IVar4);
+  puVar1 = PTR__OBJC_CLASS___UIView_10020d388;
+  uVar15 = extraout_d0_02;
+  _springAnimationDuration(0);
+  IVar4 = SpringFactory::sharedFactory((ID)PTR__OBJC_CLASS___SpringFactory_10020cc08);
+  puVar2 = PTR___NSConcreteStackBlock_10020dcf0;
+  local_c0 = PTR___NSConcreteStackBlock_10020dcf0;
+  local_b8 = 0xc0000000;
+  local_b0 = FUN_10009bca4;
+  puStack_a8 = &DAT_100200168;
+  ppuVar5 = &local_c0;
+  local_a0 = param_1;
+  _navigationAnimationsPreferringFRR(ppuVar5);
+  UIView::_animateWithDuration_delay_options_factory_animations_completion_
+            ((ID)puVar1,uVar15,0,0x60000,IVar4,ppuVar5,0);
+  *(undefined1 *)(param_1 + lVar9) = 1;
+  uVar15 = setCompletion_(param_1,param_1,(int)IVar4);
+  puVar1 = PTR__OBJC_CLASS___UIView_10020d388;
+  _springAnimationDuration();
+  IVar4 = SpringFactory::sharedFactory((ID)PTR__OBJC_CLASS___SpringFactory_10020cc08);
+  local_e8 = puVar2;
+  local_e0 = 0xc0000000;
+  local_d8 = FUN_10009bcb8;
+  puStack_d0 = &DAT_100200168;
+  ppuVar5 = &local_e8;
+  local_c8 = param_1;
+  _navigationAnimationsPreferringFRR(ppuVar5);
+  UIView::_animateWithDuration_delay_options_factory_animations_completion_
+            ((ID)puVar1,uVar15,0,0x60000,IVar4,ppuVar5,0);
+  IVar4 = bottomView(param_1);
+  _animateView_toPosition_setDelegate_
+            (param_1,IVar4,*(CGPoint *)(param_1 + (long)_dayViewDayLocation),1);
+  puVar1 = PTR__OBJC_CLASS___UIView_10020d388;
+  local_110 = puVar2;
+  local_108 = 0xc0000000;
+  local_100 = FUN_10009bdbc;
+  puStack_f8 = &DAT_100200168;
+  ppuVar5 = &local_110;
+  local_f0 = param_1;
+  _navigationAnimationsPreferringFRR(ppuVar5);
+  UIView::animateWithDuration_delay_options_animations_completion_
+            ((ID)puVar1,0x3fd947ae147ae148,0x3fca3d70a3d70a3d,0x50000,ppuVar5,0);
+  fVar10 = extraout_s0;
+  _UIAnimationDragCoefficient(0);
+  if (fVar10 <= 1.5) {
+    delta = 600000000;
+  }
+  else {
+    _UIAnimationDragCoefficient();
+    delta = (int64_t)(fVar10 * 0.91 * 1e+09);
+  }
+  dVar6 = _dispatch_time(0,delta);
+  local_138 = puVar2;
+  local_130 = 0xc0000000;
+  local_128 = FUN_10009be04;
+  puStack_120 = &DAT_100200168;
+  local_118 = param_1;
+  _dispatch_after(dVar6,PTR___dispatch_main_q_10020dd18,&local_138);
+  return;
+}

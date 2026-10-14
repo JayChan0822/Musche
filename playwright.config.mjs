@@ -12,7 +12,7 @@ export default defineConfig({
         viewport: { width: 1400, height: 900 },
     },
     webServer: {
-        command: 'npm run build && npm run preview -- --port 4517 --strictPort',
+        command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4517 --strictPort',
         url: 'http://127.0.0.1:4517',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

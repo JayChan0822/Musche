@@ -1,0 +1,568 @@
+ev_0820a1224b55de40bf0933f049e026efd747a6332ebe96c363eacaf4a6f52125
+
+/* WARNING: Function: _objc_retain_x2 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x21 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x20 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x19 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x22 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_storeStrong replaced with injection: _objc_store_fixup */
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x20 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x19 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x8 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_retain_x8 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x27 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x26 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x28 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x25 replaced with injection: _objc_release_fixup */
+/* Function Stack Size: 0x3c bytes */
+
+void MonthDayTransitionView::
+     prepareTransitionScrubberWithSelectedDate_todayDate_dayViewController_monthViewController_paletteView_reverse_
+               (ID param_1,SEL param_2,ID param_3,ID param_4,ID param_5,ID param_6,ID param_7,
+               bool param_8)
+
+{
+  long lVar1;
+  long lVar2;
+  uint uVar3;
+  int iVar4;
+  ID IVar5;
+  ID IVar6;
+  ID IVar7;
+  undefined *puVar8;
+  ID IVar9;
+  undefined *puVar10;
+  undefined *puVar11;
+  ID self;
+  ID self_00;
+  ID IVar12;
+  ID IVar14;
+  ID IVar15;
+  ID IVar16;
+  ID IVar17;
+  ID IVar18;
+  ID IVar19;
+  ulong uVar20;
+  long lVar21;
+  long lVar22;
+  long lVar23;
+  long lVar24;
+  undefined8 extraout_d0;
+  double extraout_d0_00;
+  undefined8 extraout_d0_01;
+  undefined8 extraout_d0_02;
+  double extraout_d0_03;
+  undefined8 extraout_d0_04;
+  double extraout_d0_05;
+  undefined8 extraout_d0_06;
+  double dVar25;
+  undefined8 extraout_d0_07;
+  undefined8 extraout_d0_08;
+  double extraout_d0_09;
+  double extraout_d0_10;
+  undefined8 extraout_d0_11;
+  double extraout_d0_12;
+  double extraout_d0_13;
+  double extraout_d0_14;
+  double extraout_d0_15;
+  double in_d1;
+  double in_d2;
+  double dVar26;
+  double dVar27;
+  double in_d3;
+  double dVar29;
+  undefined8 uVar30;
+  double dVar31;
+  CGRect CVar32;
+  CGRect CVar33;
+  CGRect CVar34;
+  CGRect CVar35;
+  CGRect CVar36;
+  CGRect CVar37;
+  CGSize CVar38;
+  CGSize CVar39;
+  ID local_240;
+  double local_210;
+  double local_208;
+  long local_1f8;
+  ID local_1f0;
+  ID local_1c0;
+  long local_1a0;
+  long local_198;
+  long local_188;
+  double local_180;
+  undefined8 local_170;
+  long lStack_168;
+  long *local_160;
+  undefined8 uStack_158;
+  undefined8 local_150;
+  undefined8 uStack_148;
+  undefined8 uStack_140;
+  undefined8 uStack_138;
+  undefined1 auStack_130 [128];
+  long local_b0;
+  ID IVar13;
+  double dVar28;
+
+  local_b0 = *(long *)PTR____stack_chk_guard_10020dd08;
+  setSelectedDate_(param_1,param_1);
+  *(ID *)(param_1 + (long)_monthViewController) = param_6;
+  IVar5 = objc_stub::dayScrubberController(param_1);
+  IVar5 = objc_stub::view(IVar5);
+  objc_stub::layoutIfNeeded(IVar5);
+  IVar5 = objc_stub::dayScrubberController(param_1);
+  IVar5 = objc_stub::weekScrollView(IVar5);
+  objc_stub::frame(IVar5);
+  IVar5 = objc_stub::dayScrubberController(param_1);
+  IVar5 = objc_stub::weekScrollView(IVar5);
+  objc_stub::cellSize(IVar5);
+  dVar31 = in_d1;
+  IVar5 = objc_stub::dayScrubberController(param_1);
+  IVar5 = objc_stub::view(IVar5);
+  objc_stub::frame(IVar5);
+  IVar5 = objc_stub::view(param_1);
+  objc_stub::convertRect_fromView_(IVar5,extraout_d0_01,param_1);
+  IVar5 = objc_stub::view(param_1);
+  objc_stub::convertRect_fromView_(param_1,extraout_d0_02,IVar5);
+  uVar3 = 0;
+  local_208 = dVar31;
+  dVar26 = in_d2;
+  local_210 = in_d3;
+  _CalSystemSolariumEnabled();
+  dVar28 = dVar31 + -58.0;
+  if ((param_8 & uVar3) == 0) {
+    dVar28 = dVar31;
+  }
+  IVar6 = objc_stub::cellFramesForWeekContainingDate_(param_1,param_1);
+  objc_stub::frameForWeekContainingDate_(param_1,param_1);
+  IVar5 = objc_stub::view(param_1);
+  objc_stub::convertRect_fromView_(param_1,extraout_d0_04,IVar5);
+  dVar31 = local_208;
+  dVar27 = dVar26;
+  dVar29 = local_210;
+  IVar5 = objc_stub::dayScrubberController(param_1);
+  IVar5 = objc_stub::weekScrollView(IVar5);
+  IVar7 = objc_stub::firstVisibleDayOffsetFromSelectedDay(IVar5);
+  IVar18 = 0;
+  lVar21 = IVar7 + 6;
+  _CUIKCalendar();
+  puVar8 = PTR__OBJC_CLASS___NSDateComponents_10020c4a8;
+  _objc_alloc_init();
+  objc_stub::setHour_((ID)puVar8,1);
+  objc_stub::dateByAddingComponents_toDate_options_(IVar18,puVar8,param_1,0);
+  IVar5 = objc_stub::components_fromDate_(IVar18,0x200);
+  IVar9 = objc_stub::weekday(IVar5);
+  IVar5 = IVar9;
+  _CUIKZeroIndexedWeekStart();
+  IVar17 = IVar5;
+  _CalTimeDirectionIsLeftToRight();
+  lVar22 = (IVar5 - IVar9) + -6;
+  if ((int)IVar17 == 0) {
+    lVar22 = (IVar9 - IVar5) + 6;
+  }
+  lVar23 = (long)(7 - IVar9) % 7;
+  IVar5 = lVar22 % 7;
+  lVar22 = IVar5 - IVar7;
+  IVar17 = IVar7;
+  if ((long)IVar5 <= (long)IVar7) {
+    lVar22 = 0;
+    IVar17 = IVar5;
+  }
+  lVar1 = 0;
+  if ((long)IVar5 <= (long)IVar7) {
+    lVar1 = IVar7 - IVar5;
+  }
+  lVar2 = lVar21;
+  if (lVar21 <= lVar23) {
+    lVar2 = lVar23;
+  }
+  puVar10 = PTR__OBJC_CLASS___NSDateComponents_10020c4a8;
+  _objc_alloc_init();
+  puVar11 = puVar10;
+  _CalTimeDirectionIsLeftToRight();
+  IVar5 = -IVar17;
+  if ((int)puVar11 != 0) {
+    IVar5 = IVar17;
+  }
+  objc_stub::setDay_((ID)puVar10,IVar5);
+  IVar5 = objc_stub::dateByAddingComponents_toDate_options_(IVar18,puVar10,param_1,0);
+  IVar7 = objc_stub::dateByAddingComponents_toDate_options_(IVar18,puVar8,IVar5,0);
+  IVar5 = -IVar17;
+  if (-1 < (long)IVar17) {
+    IVar5 = IVar17;
+  }
+  lVar24 = -lVar2;
+  if (-1 < lVar2) {
+    lVar24 = lVar2;
+  }
+  lVar24 = IVar5 + lVar24;
+  puVar10 = PTR__OBJC_CLASS___NSMutableArray_10020c4c8;
+  _objc_alloc();
+  self = objc_stub::initWithCapacity_((ID)puVar10,lVar24 + 1);
+  IVar9 = self;
+  _CUIKGetOverlayCalendar();
+  IVar5 = 0;
+  if (IVar9 != 0) {
+    puVar10 = PTR__OBJC_CLASS___NSMutableArray_10020c4c8;
+    _objc_alloc();
+    IVar5 = objc_stub::initWithCapacity_((ID)puVar10,lVar24 + 1);
+  }
+  IVar7 = objc_stub::components_fromDate_(IVar18,0x21e,IVar7);
+  self_00 = objc_stub::components_fromDate_(IVar18,0x21e,param_1);
+  IVar12 = objc_stub::dateFromComponents_(IVar18);
+  if (param_1 == 0) {
+    local_1c0 = 0;
+    local_240 = 0;
+  }
+  else {
+    local_240 = objc_stub::components_fromDate_(IVar18,0x21e);
+    local_1c0 = objc_stub::dateFromComponents_(IVar18);
+  }
+  IVar7 = objc_stub::dateFromComponents_(IVar18,IVar7);
+  IVar7 = objc_stub::dateByAddingComponents_toDate_options_(IVar18,puVar8,IVar7,0);
+  puVar8 = PTR__OBJC_CLASS___NSDateComponents_10020c4a8;
+  _objc_alloc_init();
+  IVar13 = objc_stub::setHour_((ID)puVar8,0);
+  iVar4 = (int)IVar13;
+  _CalTimeDirectionIsLeftToRight();
+  uVar30 = 0xffffffffffffffff;
+  if (iVar4 != 0) {
+    uVar30 = 1;
+  }
+  objc_stub::setDay_((ID)puVar8,uVar30);
+  puVar10 = PTR__OBJC_CLASS___NSMutableArray_10020c4c8;
+  _objc_alloc();
+  IVar13 = objc_stub::initWithCapacity_((ID)puVar10,lVar24 + 1);
+  local_1f0 = 0;
+  lVar24 = 0;
+  if (lVar23 <= -lVar2) {
+    lVar23 = -lVar2;
+  }
+  if (lVar23 <= lVar21) {
+    lVar23 = lVar21;
+  }
+  IVar19 = -IVar17;
+  if (-1 < (long)IVar17) {
+    IVar19 = IVar17;
+  }
+  uVar30 = 0;
+  local_188 = -1;
+  local_1a0 = -1;
+  local_198 = -1;
+  local_1f8 = -1;
+  IVar17 = 0;
+  do {
+    IVar14 = objc_stub::components_fromDate_(IVar18,0x21e,IVar7);
+    IVar15 = objc_stub::day(IVar14);
+    _CUIKLocalizedStringForInteger();
+    objc_stub::addObject_(self,IVar15);
+    if (IVar5 != 0) {
+      IVar15 = CUIKDateStrings::overlayShortStringForDate_inCalendar_
+                         ((ID)PTR__OBJC_CLASS___CUIKDateStrings_10020da00,IVar7,IVar9);
+      objc_stub::addObject_(IVar5,IVar15);
+      IVar15 = objc_stub::components_fromDate_(IVar9,0x40000018,IVar7);
+      IVar16 = objc_stub::day(IVar15);
+      if (IVar16 == 1) {
+        IVar16 = objc_stub::month(IVar15);
+        local_1f8 = lVar24;
+        if ((IVar16 == 1) && (IVar15 = objc_stub::isLeapMonth(IVar15), (IVar15 & 1) == 0)) {
+          IVar15 = objc_stub::traitCollection(param_1);
+          iVar4 = (int)IVar15;
+          _EKUIUsesLargeTextLayout();
+          uVar30 = 0x4008000000000000;
+          if (iVar4 == 0) {
+            uVar30 = 0x3ff8000000000000;
+          }
+        }
+        else {
+          IVar15 = objc_stub::traitCollection(param_1);
+          iVar4 = (int)IVar15;
+          _EKUIUsesLargeTextLayout();
+          uVar30 = 0x4000000000000000;
+          if (iVar4 == 0) {
+            uVar30 = 0x3ff0000000000000;
+          }
+        }
+      }
+    }
+    IVar15 = objc_stub::weekday(IVar14);
+    if ((IVar15 == 1) || (IVar15 = objc_stub::weekday(IVar14), IVar15 == 7)) {
+      IVar15 = NSNumber::numberWithInteger_((ID)PTR__OBJC_CLASS___NSNumber_10020cfd8,lVar24);
+      objc_stub::addObject_(IVar13,IVar15);
+    }
+    if (IVar17 != 0) {
+      IVar15 = objc_stub::month(IVar14);
+      IVar17 = objc_stub::month(IVar17);
+      if (IVar15 != IVar17) {
+        local_198 = lVar24 + -1;
+      }
+    }
+    IVar17 = objc_stub::dateFromComponents_(IVar18,IVar14);
+    IVar15 = objc_stub::isEqualToDate_(IVar17,IVar12);
+    lVar21 = lVar24;
+    if ((int)IVar15 == 0) {
+      lVar21 = local_188;
+    }
+    lVar2 = local_1a0;
+    if ((local_1c0 != 0) &&
+       (IVar17 = objc_stub::isEqualToDate_(IVar17), lVar2 = lVar24, (int)IVar17 == 0)) {
+      lVar2 = local_1a0;
+    }
+    local_1a0 = lVar2;
+    if (lVar22 == lVar24) {
+      IVar17 = CUIKPreferences::sharedPreferences((ID)PTR__OBJC_CLASS___CUIKPreferences_10020da48);
+      IVar17 = CUIKPreferences::showWeekNumbers(IVar17);
+      if ((int)IVar17 != 0) {
+        local_1f0 = objc_stub::component_fromDate_(IVar18,0x2000,IVar7);
+        _CUIKLocalizedStringForInteger();
+      }
+    }
+    IVar7 = objc_stub::dateByAddingComponents_toDate_options_(IVar18,puVar8,IVar7,0);
+    puVar10 = PTR__OBJC_CLASS___EKCalendarDate_10020c3e0;
+    lVar24 = lVar24 + 1;
+    IVar17 = IVar14;
+    local_188 = lVar21;
+  } while (lVar23 + IVar19 + 1 != lVar24);
+  IVar17 = objc_stub::timeZone(IVar18);
+  IVar17 = EKCalendarDate::calendarDateWithDate_timeZone_((ID)puVar10,param_1,IVar17);
+  IVar18 = objc_stub::subviewForDate_(param_1,IVar17);
+  puVar8 = PTR_CompactMonthWeekView_10020bf10;
+  _objc_opt_class(PTR_CompactMonthWeekView_10020bf10);
+  IVar7 = IVar18;
+  _objc_opt_isKindOfClass(IVar18,puVar8);
+  IVar17 = IVar18;
+  if ((IVar7 & 1) == 0) {
+    IVar17 = 0;
+  }
+  IVar17 = objc_stub::visibleDaySummaryViews(IVar7,IVar17);
+  puVar8 = PTR__OBJC_CLASS___NSMutableArray_10020c4c8;
+  if (IVar7 != 0) {
+    if (IVar17 == 0) {
+      IVar17 = objc_stub::occurrencesView(IVar18);
+      _captureImageFromView(IVar17,0);
+      puVar8 = PTR__OBJC_CLASS___UIImageView_10020d208;
+      _objc_alloc();
+      IVar17 = objc_stub::initWithImage_((ID)puVar8,IVar17);
+      IVar7 = objc_stub::occurrencesView(IVar18);
+      objc_stub::bounds(IVar7);
+      IVar7 = objc_stub::occurrencesView(IVar18);
+      objc_stub::convertRect_fromView_(IVar18,extraout_d0_07,dVar31,dVar27,dVar29,IVar7);
+      objc_stub::setFrame_(IVar17,extraout_d0_08,dVar31,dVar27,dVar29);
+      IVar7 = objc_stub::containsFirstDayOfMonth(IVar18);
+      if ((int)IVar7 != 0) {
+        dVar25 = CompactMonthWeekView::headerHeight((ID)PTR_CompactMonthWeekView_10020bf10);
+        dVar31 = dVar31 - dVar25;
+      }
+      IVar7 = scrubber(param_1);
+      objc_stub::setMonthOccurrencesSnapshot_(IVar7,IVar17);
+      IVar17 = scrubber(param_1);
+      objc_stub::setMonthOccurrencesFrame_(IVar17,extraout_d0_08,dVar31,dVar27,dVar29);
+    }
+    else {
+      IVar7 = objc_stub::count(IVar17);
+      IVar7 = NSMutableArray::arrayWithCapacity_((ID)puVar8,IVar7);
+      puVar8 = PTR__OBJC_CLASS___NSMutableArray_10020c4c8;
+      IVar17 = objc_stub::count(IVar17);
+      IVar17 = NSMutableArray::arrayWithCapacity_((ID)puVar8,IVar17);
+      lStack_168 = 0;
+      local_170 = 0;
+      uStack_158 = 0;
+      local_160 = (long *)0x0;
+      uStack_148 = 0;
+      local_150 = 0;
+      uStack_138 = 0;
+      uStack_140 = 0;
+      IVar9 = NSMutableArray::countByEnumeratingWithState_objects_count_
+                        (IVar17,&local_170,auStack_130,0x10);
+      if (IVar9 != 0) {
+        lVar23 = *local_160;
+        do {
+          IVar12 = 0;
+          do {
+            if (*local_160 != lVar23) {
+              _objc_enumerationMutation(IVar17);
+            }
+            IVar14 = *(ID *)(lStack_168 + IVar12 * 8);
+            IVar19 = IVar14;
+            _captureImageFromView(IVar14,1);
+            puVar8 = PTR__OBJC_CLASS___UIImageView_10020d208;
+            _objc_alloc();
+            IVar19 = objc_stub::initWithImage_((ID)puVar8,IVar19);
+            objc_stub::bounds(IVar14);
+            objc_stub::convertRect_fromView_(IVar18,IVar14);
+            objc_stub::setFrame_(IVar19);
+            IVar14 = objc_stub::containsFirstDayOfMonth(IVar18);
+            if ((int)IVar14 != 0) {
+              dVar25 = CompactMonthWeekView::headerHeight((ID)PTR_CompactMonthWeekView_10020bf10);
+              dVar31 = dVar31 - dVar25;
+            }
+            NSMutableArray::addObject_(IVar7,IVar19);
+            IVar19 = NSValue::valueWithCGRect_
+                               ((ID)PTR__OBJC_CLASS___NSValue_10020d038,extraout_d0_06,dVar31,dVar27
+                                ,dVar29);
+            NSMutableArray::addObject_(IVar17,IVar19);
+            IVar12 = IVar12 + 1;
+          } while (IVar9 != IVar12);
+          IVar9 = NSMutableArray::countByEnumeratingWithState_objects_count_
+                            (IVar17,&local_170,auStack_130,0x10);
+        } while (IVar9 != 0);
+      }
+      IVar18 = scrubber(param_1);
+      objc_stub::setMonthSummarySnapshots_(IVar18,IVar7);
+      IVar7 = scrubber(param_1);
+      objc_stub::setMonthSummaryFrames_(IVar7,IVar17);
+    }
+  }
+  lVar23 = (long)_paletteView;
+  *(ID *)(param_1 + lVar23) = param_7;
+  CVar33.field0_0x0.field1_0x8 = dVar28;
+  CVar33.field0_0x0.field0_0x0 = extraout_d0_03;
+  CVar33.field1_0x10.field1_0x8 = in_d3;
+  CVar33.field1_0x10.field0_0x0 = in_d2;
+  setDayScrubberFrame_(param_1,CVar33);
+  CVar32.field0_0x0.field1_0x8 = local_208;
+  CVar32.field0_0x0.field0_0x0 = extraout_d0_05;
+  CVar32.field1_0x10.field1_0x8 = local_210;
+  CVar32.field1_0x10.field0_0x0 = dVar26;
+  dVar31 = local_208;
+  uVar20 = setMonthScrubberFrame_(param_1,CVar32);
+  _CalSystemSolariumEnabled();
+  dVar27 = extraout_d0_05;
+  local_180 = extraout_d0_03;
+  if ((uVar20 & 1) == 0) {
+    objc_stub::convertRect_fromView_
+              (*(ID *)(param_1 + lVar23),extraout_d0_03,dVar28,in_d2,in_d3,param_1);
+    objc_stub::convertRect_fromView_
+              (*(ID *)(param_1 + lVar23),extraout_d0_05,local_208,dVar26,param_1);
+    dVar31 = local_208;
+    dVar27 = extraout_d0_10;
+    local_180 = extraout_d0_09;
+  }
+  IVar17 = objc_stub::window(*(ID *)(param_1 + lVar23));
+  if (IVar17 == 0) {
+    IVar17 = objc_stub::navigationController(param_1);
+    IVar17 = objc_stub::navigationBar(IVar17);
+    objc_stub::frame(IVar17);
+    local_208 = local_208 - dVar31;
+  }
+  uVar20 = 0;
+  _CalSystemSolariumEnabled();
+  IVar17 = param_1;
+  if ((uVar20 & 1) == 0) {
+    IVar17 = *(ID *)(param_1 + lVar23);
+  }
+  IVar7 = scrubber(param_1);
+  objc_stub::addSubview_(IVar17,IVar7);
+  IVar17 = scrubber(param_1);
+  CVar38.field1_0x8 = in_d1;
+  CVar38.field0_0x0 = extraout_d0_00;
+  setDayCellSize_(IVar17,CVar38);
+  IVar17 = scrubber(param_1);
+  objc_stub::setSelectedIndex_(IVar17,lVar21);
+  IVar17 = scrubber(param_1);
+  objc_stub::setTodayIndex_(IVar17,local_1a0);
+  IVar17 = objc_stub::month(local_240);
+  IVar7 = objc_stub::month(self_00);
+  IVar18 = scrubber(param_1);
+  objc_stub::setStrings_overlayStrings_weekNumberString_todayInWeek_
+            (IVar18,self,IVar5,local_1f0,
+             (ulong)((IVar17 == IVar7 && local_1a0 != -1) && (IVar17 != IVar7 || -2 < local_1a0)));
+  if (-1 < local_1f8) {
+    IVar5 = scrubber(param_1);
+    objc_stub::setUnderlineThickness_forOverlayStringAtIndex_(IVar5,uVar30,local_1f8);
+  }
+  IVar5 = scrubber(param_1);
+  objc_stub::setWeekendIndices_(IVar5,IVar13);
+  IVar5 = scrubber(param_1);
+  IVar17 = objc_stub::dayScrubberController(param_1);
+  IVar17 = objc_stub::visibleCellDayTypes(IVar17);
+  IVar7 = objc_stub::dayScrubberController(param_1);
+  IVar7 = objc_stub::visibleCellBadgeColors(IVar7);
+  IVar18 = objc_stub::dayScrubberController(param_1);
+  IVar18 = objc_stub::visibleCellBadgeLocales(IVar18);
+  objc_stub::setDayTypes_badgeColors_badgeLocales_(IVar5,IVar17,IVar7,IVar18);
+  IVar5 = scrubber(param_1);
+  objc_stub::setDayFrame_(IVar5,local_180,dVar28,in_d2,in_d3);
+  IVar5 = scrubber(param_1);
+  objc_stub::setMonthFrame_(IVar5,dVar27,local_208,dVar26,local_210);
+  IVar5 = scrubber(param_1);
+  objc_stub::setFirstDayCellInset_(IVar5,extraout_d0);
+  IVar5 = scrubber(param_1);
+  objc_stub::setFirstDayCellIndex_(IVar5,lVar1);
+  IVar5 = scrubber(param_1);
+  objc_stub::setFirstMonthCellIndex_(IVar5,lVar22);
+  IVar5 = scrubber(param_1);
+  objc_stub::setMonthCellFrames_(IVar5,IVar6);
+  IVar5 = scrubber(param_1);
+  objc_stub::setMonthRowHeight_(IVar5,local_210);
+  IVar5 = scrubber(param_1);
+  objc_stub::setMonthBreakIndex_(IVar5,local_198);
+  CVar39.field1_0x8 = in_d1;
+  CVar39.field0_0x0 = extraout_d0_00;
+  setDayCellSize_(param_1,CVar39);
+  IVar5 = scrubber(param_1);
+  objc_stub::completeSetup(IVar5);
+  lVar21 = (long)_dayViewDayLocation;
+  IVar5 = bottomView(param_1);
+  objc_stub::frame(IVar5);
+  *(undefined8 *)(param_1 + lVar21) = extraout_d0_11;
+  ((undefined8 *)(param_1 + lVar21))[1] = in_d1;
+  lVar21 = (long)_dayViewMonthLocation;
+  CVar33 = monthScrubberFrame(param_1);
+  dVar31 = CVar33.field1_0x10.field1_0x8;
+  dVar28 = CVar33.field1_0x10.field0_0x0;
+  local_210 = local_210 + CVar33.field0_0x0.field1_0x8;
+  *(double *)(param_1 + lVar21) = CVar33.field0_0x0.field0_0x0;
+  ((double *)(param_1 + lVar21))[1] = local_210;
+  if (param_8 == 0) {
+    objc_stub::updatePalette_(param_1,param_1);
+    objc_stub::layoutSubviews(param_1);
+    IVar5 = objc_stub::dayInitialsHeaderView(param_1);
+    objc_stub::frame(IVar5);
+    CVar36.field0_0x0.field1_0x8 = local_210;
+    CVar36.field0_0x0.field0_0x0 = extraout_d0_14;
+    CVar36.field1_0x10.field1_0x8 = dVar31;
+    CVar36.field1_0x10.field0_0x0 = dVar28;
+    setWeekDayInitialsDay_(param_1,CVar36);
+    objc_stub::updatePalette_(param_1,param_1);
+    objc_stub::layoutSubviews(param_1);
+    IVar5 = objc_stub::dayInitialsHeaderView(param_1);
+    objc_stub::frame(IVar5);
+    CVar37.field0_0x0.field1_0x8 = local_210;
+    CVar37.field0_0x0.field0_0x0 = extraout_d0_15;
+    CVar37.field1_0x10.field1_0x8 = dVar31;
+    CVar37.field1_0x10.field0_0x0 = dVar28;
+    setWeekDayInitialsMonth_(param_1,CVar37);
+  }
+  else {
+    objc_stub::updatePalette_(param_1,param_1);
+    objc_stub::layoutSubviews(param_1);
+    IVar5 = objc_stub::dayInitialsHeaderView(param_1);
+    objc_stub::frame(IVar5);
+    CVar34.field0_0x0.field1_0x8 = local_210;
+    CVar34.field0_0x0.field0_0x0 = extraout_d0_12;
+    CVar34.field1_0x10.field1_0x8 = dVar31;
+    CVar34.field1_0x10.field0_0x0 = dVar28;
+    setWeekDayInitialsMonth_(param_1,CVar34);
+    objc_stub::updatePalette_(param_1,param_1);
+    objc_stub::layoutSubviews(param_1);
+    IVar5 = objc_stub::dayInitialsHeaderView(param_1);
+    objc_stub::frame(IVar5);
+    CVar35.field0_0x0.field1_0x8 = local_210;
+    CVar35.field0_0x0.field0_0x0 = extraout_d0_13;
+    CVar35.field1_0x10.field1_0x8 = dVar31;
+    CVar35.field1_0x10.field0_0x0 = dVar28;
+    setWeekDayInitialsDay_(param_1,CVar35);
+  }
+  if (*(long *)PTR____stack_chk_guard_10020dd08 != local_b0) {
+                    /* WARNING: Subroutine does not return */
+    ___stack_chk_fail(0);
+  }
+  return;
+}

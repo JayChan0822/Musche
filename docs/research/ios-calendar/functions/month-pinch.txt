@@ -1,0 +1,384 @@
+ev_b627080331535af81cd0c9b7173f284ee41c4adb739497742df5141902b56bd8
+
+/* WARNING: Function: _objc_retain_x2 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x8 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x25 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x20 replaced with injection: _objc_release_fixup */
+/* Function Stack Size: 0x18 bytes */
+
+void CompactWidthMonthViewController::_monthScrollerPinched_(ID param_1,SEL param_2,ID param_3)
+
+{
+  undefined8 *puVar1;
+  uint uVar2;
+  uint uVar3;
+  ID IVar4;
+  ID IVar5;
+  ID extraout_x0;
+  ID extraout_x0_00;
+  ID extraout_x0_01;
+  ID IVar6;
+  ID IVar7;
+  ID IVar8;
+  ID IVar9;
+  undefined *puVar10;
+  long lVar11;
+  uint uVar12;
+  long lVar13;
+  long lVar14;
+  long lVar15;
+  uint uVar16;
+  ID IVar17;
+  ID IVar18;
+  ID self;
+  uint uVar19;
+  double dVar20;
+  double extraout_d0;
+  undefined8 extraout_d0_00;
+  undefined8 extraout_d0_01;
+  double extraout_d0_02;
+  double dVar21;
+  undefined8 extraout_d0_03;
+  undefined8 extraout_d0_04;
+  undefined8 extraout_d0_05;
+  double in_d1;
+  undefined8 in_d2;
+  double in_d3;
+  undefined8 uVar22;
+  double dVar23;
+  double dVar24;
+  double dVar25;
+  undefined8 local_340;
+  long lStack_338;
+  long *local_330;
+  undefined8 uStack_328;
+  undefined8 local_320;
+  undefined8 uStack_318;
+  undefined8 uStack_310;
+  undefined8 uStack_308;
+  undefined8 local_300;
+  long lStack_2f8;
+  long *local_2f0;
+  undefined8 uStack_2e8;
+  undefined8 local_2e0;
+  undefined8 uStack_2d8;
+  undefined8 uStack_2d0;
+  undefined8 uStack_2c8;
+  undefined *local_2b8;
+  undefined8 local_2b0;
+  code *local_2a8;
+  undefined *puStack_2a0;
+  ID local_298;
+  undefined *puStack_290;
+  undefined8 local_288;
+  code *local_280;
+  undefined *puStack_278;
+  ID local_270;
+  ID IStack_268;
+  undefined8 local_260;
+  long lStack_258;
+  long *local_250;
+  undefined8 uStack_248;
+  undefined8 local_240;
+  undefined8 uStack_238;
+  undefined8 uStack_230;
+  undefined8 uStack_228;
+  undefined1 auStack_220 [128];
+  undefined1 auStack_1a0 [128];
+  undefined1 auStack_120 [128];
+  long local_a0;
+
+  local_a0 = *(long *)PTR____stack_chk_guard_10020dd08;
+  IVar4 = objc_stub::state(param_1);
+  if (IVar4 - 3 < 3) {
+    *(undefined1 *)(param_1 + (long)_eventLoadingSuspendedForPinching) = 0;
+    lStack_258 = 0;
+    local_260 = 0;
+    uStack_248 = 0;
+    local_250 = (long *)0x0;
+    uStack_238 = 0;
+    local_240 = 0;
+    uStack_228 = 0;
+    uStack_230 = 0;
+    lVar13 = (long)_pinchViews;
+    IVar5 = objc_stub::countByEnumeratingWithState_objects_count_
+                      (IVar4,*(undefined8 *)(param_1 + lVar13),&local_260,auStack_120,0x10);
+    if (IVar5 != 0) {
+      lVar14 = *local_250;
+      do {
+        IVar18 = 0;
+        do {
+          if (*local_250 != lVar14) {
+            _objc_enumerationMutation(IVar4);
+          }
+          objc_stub::finishAnimations(*(ID *)(lStack_258 + IVar18 * 8));
+          IVar18 = IVar18 + 1;
+        } while (IVar5 != IVar18);
+        IVar5 = objc_stub::countByEnumeratingWithState_objects_count_
+                          (IVar4,&local_260,auStack_120,0x10);
+      } while (IVar5 != 0);
+    }
+    IVar5 = objc_stub::firstObject(*(ID *)(param_1 + lVar13));
+    objc_stub::monthWeekScale(param_1);
+    IVar5 = objc_stub::nearestSnapBoundaryForScale_(IVar5);
+    *(undefined8 *)(param_1 + (long)_pinchingMonthWeekScale) = 0;
+    IVar18 = pinchRecognizer(param_1);
+    objc_stub::setEnabled_(IVar18,0);
+    puStack_290 = PTR___NSConcreteStackBlock_10020dcf0;
+    local_288 = 0xc0000000;
+    local_280 = FUN_1000885b8;
+    puStack_278 = &DAT_1002004b8;
+    local_2b8 = PTR___NSConcreteStackBlock_10020dcf0;
+    local_2b0 = 0xc0000000;
+    local_2a8 = FUN_1000885cc;
+    puStack_2a0 = &DAT_100200200;
+    in_d1 = 0.0;
+    in_d2 = 0;
+    in_d3 = 0.0;
+    local_298 = param_1;
+    local_270 = param_1;
+    IStack_268 = IVar5;
+    UIView::
+    animateWithSpringDuration_bounce_initialSpringVelocity_delay_options_animations_completion_
+              ((ID)PTR__OBJC_CLASS___UIView_10020d388,0x3fd0000000000000,0,0,0x10004,&puStack_290,
+               &local_2b8);
+  }
+  IVar5 = objc_stub::numberOfTouches(param_1);
+  if ((IVar5 & 0xfffffffffffffffd) != 0) goto LAB_10008856c;
+  puVar1 = (undefined8 *)(param_1 + (long)_lastPinchPoint);
+  uVar22 = *puVar1;
+  dVar23 = (double)puVar1[1];
+  if (IVar5 != 0) {
+    IVar18 = objc_stub::view(param_1);
+    objc_stub::locationOfTouch_inView_(param_1,0,IVar18);
+    dVar20 = in_d1;
+    IVar18 = objc_stub::view(param_1);
+    objc_stub::locationOfTouch_inView_(param_1,1,IVar18);
+    dVar20 = in_d1 + dVar20;
+    in_d1 = 0.5;
+    IVar18 = InfiniteScrollViewController::scrollView(param_1);
+    objc_stub::safeAreaInsets(IVar18);
+    *puVar1 = 0;
+    puVar1[1] = dVar20 * 0.5 - extraout_d0;
+  }
+  if (IVar4 != 2) {
+    if (IVar4 == 1) {
+      *(undefined1 *)(param_1 + (long)_eventLoadingSuspendedForPinching) = 1;
+      IVar4 = InfiniteScrollViewController::scrollView(param_1);
+      IVar4 = objc_stub::panGestureRecognizer(IVar4);
+      objc_stub::setEnabled_(IVar4,0);
+      IVar4 = InfiniteScrollViewController::scrollView(param_1);
+      IVar4 = objc_stub::panGestureRecognizer(IVar4);
+      objc_stub::setEnabled_(IVar4,1);
+      if (IVar5 != 0) {
+        lVar13 = (long)_lastPinchDistance;
+        IVar4 = objc_stub::view(param_1);
+        uVar22 = extraout_d0_00;
+        _pinchDistanceForGestureRecognizer(param_1,IVar4);
+        *(undefined8 *)(param_1 + lVar13) = uVar22;
+        ((undefined8 *)(param_1 + lVar13))[1] = in_d1;
+      }
+      prepareToChangeScaleFromPinch_(param_1,1);
+      *(undefined8 *)(param_1 + (long)_originalPinchDistance) =
+           *(undefined8 *)(param_1 + (long)_lastPinchDistance + 8);
+      objc_stub::monthWeekScale(param_1);
+      *(undefined8 *)(param_1 + (long)_originalPinchScale) = extraout_d0_01;
+      *(undefined8 *)(param_1 + (long)_pinchingMonthWeekScale) = extraout_d0_01;
+    }
+    goto LAB_10008856c;
+  }
+  lVar13 = (long)_pinchingMonthWeekScale;
+  dVar20 = *(double *)(param_1 + lVar13);
+  if (IVar5 == 0) {
+    dVar24 = *(double *)(param_1 + (long)_originalPinchScale);
+    objc_stub::scale(param_1);
+    dVar24 = dVar24 * extraout_d0_02;
+  }
+  else {
+    IVar4 = objc_stub::view(param_1);
+    _pinchDistanceForGestureRecognizer(param_1,IVar4);
+    in_d1 = in_d1 / *(double *)(param_1 + (long)_originalPinchDistance);
+    dVar24 = *(double *)(param_1 + (long)_originalPinchScale) * in_d1;
+  }
+  dVar21 = CompactMonthViewController::minimumWeekScale
+                     ((ID)PTR_CompactMonthViewController_10020bef0);
+  if (dVar24 < dVar21) {
+    dVar24 = CompactMonthViewController::minimumWeekScale
+                       ((ID)PTR_CompactMonthViewController_10020bef0);
+  }
+  dVar21 = CompactMonthViewController::maximumWeekScale
+                     ((ID)PTR_CompactMonthViewController_10020bef0);
+  IVar4 = extraout_x0;
+  if (dVar21 < dVar24) {
+    dVar24 = CompactMonthViewController::maximumWeekScale
+                       ((ID)PTR_CompactMonthViewController_10020bef0);
+    IVar4 = extraout_x0_00;
+  }
+  dVar25 = dVar24 / dVar20;
+  dVar21 = dVar25;
+  if (dVar25 == 1.0) {
+    CompactMonthViewController::minimumWeekScale((ID)PTR_CompactMonthViewController_10020bef0);
+    CompactMonthViewController::maximumWeekScale((ID)PTR_CompactMonthViewController_10020bef0);
+    dVar21 = 1.0;
+    IVar4 = extraout_x0_01;
+  }
+  lVar14 = (long)_pinchScrollView;
+  if (IVar5 == 0) {
+    IVar18 = objc_stub::locationInView_(param_1,*(undefined8 *)(param_1 + lVar14),IVar4);
+    uVar22 = extraout_d0_04;
+  }
+  else {
+    IVar18 = objc_stub::view(param_1);
+    objc_stub::convertPoint_fromView_(IVar4,uVar22,IVar18);
+    IVar18 = 0;
+    uVar22 = extraout_d0_03;
+    in_d1 = dVar23;
+  }
+  lVar11 = (long)_pinchViews;
+  if (dVar25 != 1.0) {
+    uStack_2d8 = 0;
+    local_2e0 = 0;
+    uStack_2c8 = 0;
+    uStack_2d0 = 0;
+    lStack_2f8 = 0;
+    local_300 = 0;
+    uStack_2e8 = 0;
+    local_2f0 = (long *)0x0;
+    IVar6 = objc_stub::countByEnumeratingWithState_objects_count_
+                      (IVar18,*(undefined8 *)(param_1 + lVar11),&local_300,auStack_1a0,0x10);
+    if (IVar6 == 0) {
+      IVar7 = 0;
+LAB_100088370:
+      puVar10 = PTR__OBJC_CLASS___UIImpactFeedbackGenerator_10020d210;
+      _objc_opt_new();
+      lVar15 = (long)_lastSnapScale;
+      if (IVar7 != *(ID *)(param_1 + lVar15)) {
+        objc_stub::impactOccurredWithIntensity_((ID)puVar10,0);
+      }
+    }
+    else {
+      uVar16 = 0;
+      uVar12 = 0;
+      lVar15 = *local_2f0;
+      do {
+        IVar17 = 0;
+        do {
+          if (*local_2f0 != lVar15) {
+            _objc_enumerationMutation(IVar18);
+          }
+          self = *(ID *)(lStack_2f8 + IVar17 * 8);
+          IVar7 = objc_stub::hideDaySummariesWithScale_(self,dVar20);
+          IVar8 = objc_stub::hideDaySummariesWithScale_(self,dVar24);
+          uVar19 = (uint)IVar7;
+          IVar7 = objc_stub::isNarrowWithScale_(self,dVar20);
+          IVar9 = objc_stub::isNarrowWithScale_(self,dVar24);
+          uVar3 = (uint)IVar7 ^ 1;
+          uVar2 = uVar3 & (uint)IVar9;
+          if ((IVar8 & 1) == 0) {
+            uVar2 = uVar19;
+          }
+          uVar12 = uVar2 | (uint)IVar8 & (uVar19 ^ 1) | uVar12;
+          if ((((uVar3 & 1) == 0) && ((IVar9 & 1) == 0)) && ((IVar8 & 1) != 0)) {
+            objc_stub::finishAnimations(self);
+            uVar12 = 1;
+          }
+          uVar16 = uVar19 ^ (uint)IVar8 | uVar16;
+          IVar7 = objc_stub::animating(self);
+          if ((((uint)IVar7 | uVar16) & 1) != 0) {
+            objc_stub::animateToScale_fromScale_completionBlock_(self,dVar24,dVar20,0);
+          }
+          IVar7 = objc_stub::nearestSnapBoundaryForScale_(self,dVar24);
+          IVar17 = IVar17 + 1;
+        } while (IVar6 != IVar17);
+        IVar6 = objc_stub::countByEnumeratingWithState_objects_count_
+                          (IVar18,&local_300,auStack_1a0,0x10);
+      } while (IVar6 != 0);
+      if ((uVar12 & 1) == 0) goto LAB_100088370;
+      IVar18 = CUIKPreferences::sharedPreferences((ID)PTR__OBJC_CLASS___CUIKPreferences_10020da48);
+      CUIKPreferences::setMonthViewScaleSize_(IVar18,IVar7);
+      puVar10 = PTR__OBJC_CLASS___UIImpactFeedbackGenerator_10020d210;
+      _objc_opt_new();
+      objc_stub::impactOccurredWithIntensity_((ID)puVar10,0x4000000000000000);
+      lVar15 = (long)_lastSnapScale;
+    }
+    *(ID *)(param_1 + lVar15) = IVar7;
+    *(double *)(param_1 + lVar13) = dVar24;
+    IVar18 = 0;
+  }
+  uStack_318 = 0;
+  local_320 = 0;
+  uStack_308 = 0;
+  uStack_310 = 0;
+  lStack_338 = 0;
+  local_340 = 0;
+  uStack_328 = 0;
+  local_330 = (long *)0x0;
+  IVar6 = objc_stub::countByEnumeratingWithState_objects_count_
+                    (IVar18,*(undefined8 *)(param_1 + lVar11),&local_340,auStack_220,0x10);
+  if (IVar6 == 0) {
+    dVar23 = 0.0;
+  }
+  else {
+    lVar13 = *local_330;
+    dVar23 = 0.0;
+    do {
+      IVar7 = 0;
+      dVar20 = in_d3;
+      do {
+        if (*local_330 != lVar13) {
+          _objc_enumerationMutation(IVar18);
+        }
+        IVar17 = *(ID *)(lStack_338 + IVar7 * 8);
+        objc_stub::bounds(*(ID *)(param_1 + lVar14));
+        objc_stub::sizeThatFits_(IVar17,in_d2);
+        objc_stub::frame(IVar17);
+        in_d3 = dVar20;
+        objc_stub::setFrame_(IVar17);
+        dVar23 = dVar23 + dVar20;
+        objc_stub::layoutSubviews(IVar17);
+        IVar7 = IVar7 + 1;
+        dVar20 = in_d3;
+      } while (IVar6 != IVar7);
+      IVar6 = objc_stub::countByEnumeratingWithState_objects_count_
+                        (IVar18,&local_340,auStack_220,0x10);
+    } while (IVar6 != 0);
+  }
+  IVar18 = *(ID *)(param_1 + lVar14);
+  objc_stub::contentSize(IVar18);
+  objc_stub::setContentSize_(IVar18);
+  objc_stub::contentOffset(*(ID *)(param_1 + lVar14));
+  dVar21 = dVar21 * in_d1;
+  if (IVar5 == 0) {
+    dVar20 = dVar23;
+    objc_stub::locationInView_(param_1,IVar4);
+    dVar24 = dVar21 - dVar20;
+  }
+  else {
+    IVar5 = objc_stub::view(param_1);
+    objc_stub::convertPoint_fromView_(IVar5,uVar22,IVar4);
+    dVar24 = dVar21 - (double)puVar1[1];
+    dVar20 = dVar21;
+  }
+  objc_stub::contentSize(*(ID *)(param_1 + lVar14));
+  objc_stub::frame(*(ID *)(param_1 + lVar14));
+  dVar21 = 0.0;
+  if (0.0 <= dVar23 + dVar24) {
+    dVar21 = dVar23 + dVar24;
+  }
+  if (dVar20 - in_d3 <= dVar21) {
+    dVar21 = dVar20 - in_d3;
+  }
+  objc_stub::setContentOffset_animated_(*(ID *)(param_1 + lVar14),extraout_d0_05,dVar21,0);
+LAB_10008856c:
+  if (*(long *)PTR____stack_chk_guard_10020dd08 == local_a0) {
+    return;
+  }
+                    /* WARNING: Subroutine does not return */
+  ___stack_chk_fail(0);
+}

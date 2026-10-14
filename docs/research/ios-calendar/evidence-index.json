@@ -1,0 +1,105 @@
+{
+  "canonical_bundle": "rea-native-evidence.json.gz",
+  "uncompressed_sha256": "d1f9f84a809605f88c6012fc28b90b011964fb7f77713a3fa186fcdaa78e53de",
+  "records": [
+    {
+      "slug": "month-pinch",
+      "evidence_id": "ev_b627080331535af81cd0c9b7173f284ee41c4adb739497742df5141902b56bd8",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x100087cf8"
+      }
+    },
+    {
+      "slug": "month-to-day",
+      "evidence_id": "ev_67df5a2206b430ea100693de9b497265adb8b12157b2391f2ebd0a788300ba0d",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x10009b6f4"
+      }
+    },
+    {
+      "slug": "transition-duration",
+      "evidence_id": "ev_e4ad94963c6a740789e80da074a66f3cbf0a0104cc32d1123f0e95cf72551dc7",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x10009a3f4"
+      }
+    },
+    {
+      "slug": "week-morph",
+      "evidence_id": "ev_2686588a3d69c1a78aff200dbd04efd73629e9b69e0d036be7f29c138a3b6845",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x1000e9c08"
+      }
+    },
+    {
+      "slug": "pinch-layout",
+      "evidence_id": "ev_c1afcdaff009102fa2686a05a432cf655d1e1b2a842eaae34eaabd9fc33ef7b6",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x100086908"
+      }
+    },
+    {
+      "slug": "month-day-animator",
+      "evidence_id": "ev_0fe465b36d401baffb65082d556801049c84c349fd296b8ba7c5dc86f8acd244",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x10012abd4"
+      }
+    },
+    {
+      "slug": "duration-bytes",
+      "evidence_id": "ev_44257d45ec07b5419d74091677483b8bb29a34908646cf1d87713d05dbf04c6b",
+      "operation": "read_bytes",
+      "parameters": {
+        "address": "0x1001e6690",
+        "length": 16
+      }
+    },
+    {
+      "slug": "day-cell-layout",
+      "evidence_id": "ev_2e3395c48a54f99725657a51a5289ce7c4260a3f464b2e22e3eb37a4a15c15e4",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x1000ea040"
+      }
+    },
+    {
+      "slug": "transition-prepare",
+      "evidence_id": "ev_0820a1224b55de40bf0933f049e026efd747a6332ebe96c363eacaf4a6f52125",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x10009a4cc"
+      }
+    },
+    {
+      "slug": "halt-transition",
+      "evidence_id": "ev_3ab919b1d10ff8df2ae96490706844429bf8342e3556d178d4dd2f570ed4184f",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x10009c5ac"
+      }
+    },
+    {
+      "slug": "month-multiday",
+      "evidence_id": "ev_4783505292c55250d672fb93c93899e5d352409ffd9bb820d35822560037946d",
+      "operation": "analyze_function",
+      "parameters": {
+        "procedure": "0x1000b8694"
+      }
+    },
+    {
+      "slug": "procedures",
+      "evidence_id": "ev_7fd31f6c142f14f5b5d9f1464e5083a10ba10329f5b31fb21598ed727141dc0c",
+      "operation": "search_procedures",
+      "parameters": {
+        "pattern": "(Month.*Day|Day.*Month|[Tt]ransition|[Pp]inch|[Ss]pring)",
+        "mode": "regex",
+        "case_sensitive": false
+      }
+    }
+  ]
+}

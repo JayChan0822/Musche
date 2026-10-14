@@ -1,0 +1,186 @@
+ev_2e3395c48a54f99725657a51a5289ce7c4260a3f464b2e22e3eb37a4a15c15e4
+
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x20 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+
+undefined8 FUN_1000ea040(undefined8 param_1,undefined8 param_2,long param_3)
+
+{
+  ulong uVar1;
+  bool bVar2;
+  int iVar3;
+  long_long lVar4;
+  ID IVar5;
+  ID IVar6;
+  ulong uVar7;
+  long lVar8;
+  long lVar9;
+  double extraout_d0;
+  double extraout_d0_00;
+  double extraout_d0_01;
+  double dVar10;
+  double dVar11;
+  double dVar12;
+  double extraout_d0_02;
+  double extraout_d0_03;
+  double extraout_d0_04;
+  double extraout_d0_05;
+  double extraout_d0_06;
+  double extraout_d0_07;
+  undefined8 extraout_d0_08;
+  undefined8 extraout_d0_09;
+  undefined8 uVar13;
+  double dVar14;
+  double dVar15;
+
+  objc_stub::firstDayCellInset(*(ID *)(param_3 + 0x20));
+  objc_stub::dayCellSize(*(ID *)(param_3 + 0x20));
+  lVar4 = *(long_long *)(param_3 + 0x20);
+  _EKUIWidthSizeClassForViewHierarchy();
+  lVar8 = (long)MonthDayNavigationTransitionView::_cells;
+  IVar5 = objc_stub::count(*(ID *)(*(long *)(param_3 + 0x20) + lVar8));
+  if (IVar5 != 0) {
+    dVar14 = -1.0;
+    uVar7 = 0;
+    dVar15 = extraout_d0;
+    do {
+      IVar5 = objc_stub::objectAtIndex_(*(ID *)(*(long *)(param_3 + 0x20) + lVar8),uVar7);
+      objc_stub::setFrame_(IVar5,dVar15,0,extraout_d0_00,param_2);
+      objc_stub::setAlpha_(IVar5,0x3ff0000000000000);
+      IVar6 = objc_stub::monthBreakIndex(*(ID *)(param_3 + 0x20));
+      if (-1 < (long)IVar6) {
+        IVar6 = objc_stub::monthBreakIndex(*(ID *)(param_3 + 0x20));
+        if ((long)uVar7 <= (long)IVar6) {
+          dVar14 = extraout_d0_00 + dVar15;
+        }
+      }
+      objc_stub::dayCellSize(*(ID *)(param_3 + 0x20));
+      dVar15 = dVar15 + extraout_d0_01;
+      dVar10 = CompactDayNavigationViewCell::standardCircleDiameterForSizeClass_
+                         ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+      dVar11 = CompactDayNavigationViewCell::overlayCircleDiameterForSizeClass_
+                         ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+      dVar12 = CompactDayNavigationViewCell::largeOverlayCircleDiameterForSizeClass_
+                         ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+      objc_stub::setCircleDiameter_overlayDiameter_largeOverlayDiameter_(IVar5,dVar10,dVar11,dVar12)
+      ;
+      objc_stub::setMonthAnimationState_(IVar5,0);
+      objc_stub::setApplyMonthAnimationStateAdjustments_(IVar5,0);
+      objc_stub::layoutIfNeeded(IVar5);
+      uVar1 = uVar7 + 1;
+      IVar5 = objc_stub::count(*(ID *)(*(long *)(param_3 + 0x20) + lVar8));
+      bVar2 = uVar7 < 6;
+      uVar7 = uVar1;
+    } while (uVar1 < IVar5 && bVar2);
+    if (0.0 <= dVar14) goto LAB_1000ea1b0;
+  }
+  objc_stub::monthFrame(*(ID *)(param_3 + 0x20));
+  dVar14 = extraout_d0_02;
+  _CGRectGetWidth();
+LAB_1000ea1b0:
+  lVar8 = (long)MonthDayNavigationTransitionView::_topLine;
+  objc_stub::setAlpha_(*(ID *)(*(long *)(param_3 + 0x20) + lVar8),0);
+  IVar5 = objc_stub::monthBreakIndex(*(ID *)(param_3 + 0x20));
+  IVar6 = *(ID *)(param_3 + 0x20);
+  dVar15 = dVar14;
+  dVar10 = 0.0;
+  if ((-1 < (long)IVar5) &&
+     (*(long *)(IVar6 + (long)MonthDayNavigationTransitionView::_monthBreakIndex) <
+      *(long *)(IVar6 + (long)MonthDayNavigationTransitionView::_selectedIndex))) {
+    objc_stub::monthFrame(IVar6);
+    dVar15 = extraout_d0_03;
+    _CGRectGetWidth();
+    dVar15 = dVar15 - dVar14;
+    IVar6 = *(ID *)(param_3 + 0x20);
+    dVar10 = dVar14;
+  }
+  dVar14 = 0.0;
+  uVar13 = 0x3ff0000000000000;
+  objc_stub::setFrame_(*(ID *)(IVar6 + lVar8),dVar10,0,dVar15,0x3ff0000000000000);
+  IVar5 = *(ID *)(param_3 + 0x20);
+  if (*(char *)(IVar5 + (long)MonthDayNavigationTransitionView::_showWeekNumber) == '\x01') {
+    lVar9 = (long)MonthDayNavigationTransitionView::_weekNumberLabel;
+    objc_stub::sizeToFit(*(ID *)(IVar5 + lVar9));
+    IVar5 = objc_stub::frame(*(ID *)(*(long *)(param_3 + 0x20) + lVar9));
+    iVar3 = (int)IVar5;
+    _CalTimeDirectionIsLeftToRight();
+    if (iVar3 == 0) {
+      objc_stub::frame(*(ID *)(*(long *)(param_3 + 0x20) + lVar8));
+      dVar10 = extraout_d0_06;
+      _CGRectGetMaxX();
+      dVar11 = CompactMonthWeekView::weekNumberDistanceFromGrayLine
+                         ((ID)PTR_CompactMonthWeekView_10020bf10);
+      dVar10 = dVar10 + dVar11;
+    }
+    else {
+      objc_stub::frame(*(ID *)(*(long *)(param_3 + 0x20) + lVar8));
+      dVar11 = extraout_d0_05;
+      _CGRectGetMinX();
+      dVar12 = extraout_d0_04;
+      _CGRectGetWidth(extraout_d0_04,dVar14,dVar15,uVar13);
+      dVar10 = CompactMonthWeekView::weekNumberDistanceFromGrayLine
+                         ((ID)PTR_CompactMonthWeekView_10020bf10);
+      dVar10 = (dVar11 - dVar12) - dVar10;
+    }
+    _CalRoundToScreenScale(dVar10);
+    objc_stub::frame(*(ID *)(*(long *)(param_3 + 0x20) + lVar8));
+    dVar11 = extraout_d0_07;
+    _CGRectGetMinY();
+    dVar12 = dVar10;
+    _CGRectGetHeight(dVar10,dVar14,dVar15,uVar13);
+    dVar14 = dVar11 + dVar12 * -0.5;
+    objc_stub::setFrame_(*(ID *)(*(long *)(param_3 + 0x20) + lVar9),dVar10,dVar14,dVar15,uVar13);
+    objc_stub::setAlpha_(*(ID *)(*(long *)(param_3 + 0x20) + lVar9),0);
+    IVar5 = *(ID *)(param_3 + 0x20);
+  }
+  if (*(long *)(IVar5 + (long)MonthDayNavigationTransitionView::_todayIndex) ==
+      *(long *)(IVar5 + (long)MonthDayNavigationTransitionView::_selectedIndex)) {
+    IVar5 = objc_stub::_todayCell(IVar5);
+    dVar10 = CompactDayNavigationViewCell::standardCircleDiameterForSizeClass_
+                       ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+    dVar14 = CompactDayNavigationViewCell::overlayCircleDiameterForSizeClass_
+                       ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+    dVar15 = CompactDayNavigationViewCell::largeOverlayCircleDiameterForSizeClass_
+                       ((ID)PTR_CompactDayNavigationViewCell_10020bee0,lVar4);
+    objc_stub::setCircleDiameter_overlayDiameter_largeOverlayDiameter_(IVar5,dVar10,dVar14,dVar15);
+    IVar5 = objc_stub::_todayCell(*(ID *)(param_3 + 0x20));
+    objc_stub::layoutIfNeeded(IVar5);
+    IVar5 = *(ID *)(param_3 + 0x20);
+  }
+  IVar5 = objc_stub::monthOccurrencesSnapshot(IVar5);
+  if (IVar5 != 0) {
+    IVar5 = objc_stub::monthOccurrencesSnapshot(*(ID *)(param_3 + 0x20));
+    objc_stub::setAlpha_(IVar5,0);
+    objc_stub::monthOccurrencesFrame(*(ID *)(param_3 + 0x20));
+    IVar5 = objc_stub::monthOccurrencesSnapshot(*(ID *)(param_3 + 0x20));
+    objc_stub::setFrame_(IVar5,extraout_d0_08,dVar14,dVar15,uVar13);
+  }
+  IVar5 = objc_stub::monthSummarySnapshots(*(ID *)(param_3 + 0x20));
+  IVar5 = objc_stub::count(IVar5);
+  IVar6 = objc_stub::monthSummaryFrames(*(ID *)(param_3 + 0x20));
+  IVar6 = objc_stub::count(IVar6);
+  if (IVar5 == IVar6) {
+    IVar5 = objc_stub::monthSummarySnapshots(*(ID *)(param_3 + 0x20));
+    IVar5 = objc_stub::count(IVar5);
+    if (0 < (long)IVar5) {
+      lVar8 = 0;
+      do {
+        IVar5 = objc_stub::monthSummarySnapshots(*(ID *)(param_3 + 0x20));
+        IVar5 = objc_stub::objectAtIndexedSubscript_(IVar5,lVar8);
+        IVar6 = objc_stub::monthSummaryFrames(*(ID *)(param_3 + 0x20));
+        IVar6 = objc_stub::objectAtIndexedSubscript_(IVar6,lVar8);
+        objc_stub::CGRectValue(IVar6);
+        objc_stub::setAlpha_(IVar5,0);
+        objc_stub::setFrame_(IVar5,extraout_d0_09,dVar14,dVar15,uVar13);
+        lVar8 = lVar8 + 1;
+        IVar5 = objc_stub::monthSummarySnapshots(*(ID *)(param_3 + 0x20));
+        IVar5 = objc_stub::count(IVar5);
+      } while (lVar8 < (long)IVar5);
+    }
+  }
+  return 0;
+}

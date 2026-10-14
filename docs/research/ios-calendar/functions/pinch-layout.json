@@ -1,0 +1,362 @@
+{
+  "evidence_id": "ev_c1afcdaff009102fa2686a05a432cf655d1e1b2a842eaae34eaabd9fc33ef7b6",
+  "subject": {
+    "name": "MobileCal",
+    "digest": {
+      "sha256": "0345bcd16bd3c645d7227832b543a44c4a06b30afd115103c0684a31a8f6e8e2"
+    },
+    "format": "mach-o",
+    "architecture": "arm64",
+    "local_path": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.v5GPUp/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileCal.app/MobileCal"
+  },
+  "provider": {
+    "id": "ghidra",
+    "name": "Ghidra",
+    "version": "12.1.4"
+  },
+  "analysis_profile": {
+    "provider": {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "version": "12.1.4"
+    },
+    "parameters": {
+      "target_kind": "executable",
+      "target_format": "mach-o",
+      "architecture": "arm64",
+      "available_architectures": [
+        "arm64"
+      ],
+      "import_mode": "ephemeral-source-immutable",
+      "annotation_policy": "atomic-function-entry-metadata-v1",
+      "load_image_observations": "source-mappings-entry-context-v2",
+      "function_body_evidence": "complete-inclusive-ranges-v1",
+      "function_references": "complete-body-and-entry-reference-manager-v2",
+      "string_inventory_evidence": "defined-data-coverage-v1",
+      "location_resolution": "explicit-address-exact-entry-symbol-first-v3",
+      "instruction_flow_evidence": "decoded-return-pcode-v1",
+      "function_boundary_observations": "ghidra-terminal-call-limitations-v1",
+      "no_return_repair": "returning-imports-decoded-return-v2",
+      "process_launch": "inspected-jvm-launch-support-v1",
+      "jump_table_evidence": "typed-case-default-blocks-v1",
+      "decompiler_jump_loads": true,
+      "loader": "auto-from-header",
+      "language_id": "auto-from-header",
+      "compiler_spec_id": "auto-default",
+      "analyzer_preset": "ghidra-default"
+    },
+    "digest": "20565088524a2d0359b9b96f46ac48e679d774c7b0092c56abc06de8fdbec11c"
+  },
+  "operation": "analyze_function",
+  "parameters": {
+    "procedure": "0x100086908"
+  },
+  "confidence": "observed",
+  "authority": "shipped-artifact",
+  "limitations": [
+    "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+    "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+    "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+    "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+    "References cover the complete Ghidra function-body AddressSet and exact entry. Dossier incoming edges omit sources owned by that function; procedure_references also retains those internal edges.",
+    "The dossier combines Ghidra FunctionManager, Listing, ReferenceManager, BasicBlockModel, and decompiler observations; provider-specific pseudocode and assembly are not cross-provider text invariants.",
+    "Resolved reference metadata identifies computed, indirect, external, call, jump, and data edges; unresolved targetless flows remain unknown, and function classifications distinguish thunks and externals.",
+    "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+    "The Java bridge serializes one function request per Program and lets each decompilation run until it completes or the caller cancels.",
+    "Ghidra Listing reports a terminal call at 0x100086bf8 to 0x10015c170 ___stack_chk_fail (external=false, thunk=true, hasNoReturn=true); fallthrough is excluded by Ghidra's flow model. This records Ghidra's FunctionManager flag, not an independent verification that the callee cannot return.",
+    "macOS sessions require a matching executable Ghidra native decompiler; REA checks for it but does not build native components or change Gatekeeper quarantine state."
+  ],
+  "normalized_result": {
+    "procedure": {
+      "address": "0x100086908",
+      "name": "CompactWidthMonthViewController::applySizeToPinchView:compressed:snapToBoundary:",
+      "classification": {
+        "external": false,
+        "thunk": false,
+        "thunk_target": null,
+        "provenance": "ghidra-function-manager"
+      },
+      "body": {
+        "available": true,
+        "provenance": "ghidra-function-body-address-set",
+        "ranges": [
+          {
+            "start": "0x100086908",
+            "end": "0x100086bfb"
+          }
+        ],
+        "total_bytes": 756,
+        "span_bytes": 756,
+        "non_contiguous": false,
+        "contains_entry": true
+      },
+      "signature": "void __swiftcall applySizeToPinchView:compressed:snapToBoundary:(ID param_1, SEL param_2, unsigned long long param_3, bool param_4, bool param_5)",
+      "locals": [
+        {
+          "description": "undefined8 local_10 @ Stack[-0x10]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_1b0 @ Stack[-0x1b0]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_1c0 @ Stack[-0x1c0]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_1d0 @ Stack[-0x1d0]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_1f0 @ Stack[-0x1f0]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_20 @ Stack[-0x20]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_200 @ Stack[-0x200]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined1[16] local_210 @ Stack[-0x210]:16",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_218 @ Stack[-0x218]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_30 @ Stack[-0x30]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_40 @ Stack[-0x40]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_50 @ Stack[-0x50]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_60 @ Stack[-0x60]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_70 @ Stack[-0x70]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_80 @ Stack[-0x80]:8",
+          "provenance": "ghidra-function-database"
+        },
+        {
+          "description": "undefined8 local_90 @ Stack[-0x90]:8",
+          "provenance": "ghidra-function-database"
+        }
+      ]
+    },
+    "pseudocode": "\n/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup\n    */\n/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */\n/* WARNING: Function: _objc_retain_x8 replaced with injection: _objc_retain_fixup */\n/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */\n/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */\n/* WARNING: Function: _objc_retain_x25 replaced with injection: _objc_retain_fixup */\n/* Function Stack Size: 0x20 bytes */\n\nvoid CompactWidthMonthViewController::applySizeToPinchView_compressed_snapToBoundary_\n               (ID param_1,SEL param_2,unsigned_long_long param_3,bool param_4,bool param_5)\n\n{\n  ID IVar1;\n  ID IVar2;\n  ID self;\n  ID IVar3;\n  ID self_00;\n  long lVar4;\n  long lVar5;\n  long lVar6;\n  double extraout_d0;\n  double in_d1;\n  double dVar7;\n  undefined8 in_d2;\n  double in_d3;\n  double dVar8;\n  double dVar9;\n  undefined8 local_210;\n  long lStack_208;\n  long *local_200;\n  undefined8 uStack_1f8;\n  undefined8 local_1f0;\n  undefined8 uStack_1e8;\n  undefined8 uStack_1e0;\n  undefined8 uStack_1d8;\n  undefined8 local_1d0;\n  long lStack_1c8;\n  long *local_1c0;\n  undefined8 uStack_1b8;\n  undefined8 local_1b0;\n  undefined8 uStack_1a8;\n  undefined8 uStack_1a0;\n  undefined8 uStack_198;\n  undefined1 auStack_190 [128];\n  undefined1 auStack_110 [128];\n  long local_90;\n  \n  local_90 = *(long *)PTR____stack_chk_guard_10020dd08;\n  IVar1 = InfiniteScrollViewController::scrollView(param_1);\n  objc_stub::adjustedContentInset(IVar1);\n  lVar4 = (long)_pinchScrollView;\n  IVar1 = objc_stub::contentOffset(*(ID *)(param_1 + lVar4));\n  lStack_1c8 = 0;\n  local_1d0 = 0;\n  uStack_1b8 = 0;\n  local_1c0 = (long *)0x0;\n  uStack_1a8 = 0;\n  local_1b0 = 0;\n  uStack_198 = 0;\n  uStack_1a0 = 0;\n  lVar5 = (long)_pinchViews;\n  IVar2 = objc_stub::countByEnumeratingWithState_objects_count_\n                    (IVar1,*(undefined8 *)(param_1 + lVar5),&local_1d0,auStack_110,0x10);\n  dVar8 = 0.0;\n  if (IVar2 == 0) {\n    dVar9 = 0.0;\n    self = 0;\n  }\n  else {\n    lVar6 = *local_1c0;\n    dVar9 = 0.0;\n    do {\n      IVar3 = 0;\n      do {\n        if (*local_1c0 != lVar6) {\n          _objc_enumerationMutation(IVar1);\n        }\n        self = objc_stub::frame(*(ID *)(lStack_1c8 + IVar3 * 8));\n        dVar9 = dVar9 + in_d3;\n        if (extraout_d0 + in_d1 < dVar9) {\n          objc_stub::frame(self);\n          dVar9 = dVar9 - in_d3;\n          objc_stub::frame(self);\n          dVar9 = ((extraout_d0 + in_d1) - dVar9) / in_d3;\n          goto LAB_100086a68;\n        }\n        IVar3 = IVar3 + 1;\n      } while (IVar2 != IVar3);\n      IVar2 = objc_stub::countByEnumeratingWithState_objects_count_\n                        (IVar1,&local_1d0,auStack_110,0x10);\n    } while (IVar2 != 0);\n    dVar9 = 0.0;\n    self = 0;\n  }\nLAB_100086a68:\n  IVar1 = param_1;\n  _objc_opt_class();\n  IVar1 = objc_stub::setMonthWeekScaleSize_(IVar1,param_3);\n  uStack_1e8 = 0;\n  local_1f0 = 0;\n  uStack_1d8 = 0;\n  uStack_1e0 = 0;\n  lStack_208 = 0;\n  local_210 = 0;\n  uStack_1f8 = 0;\n  local_200 = (long *)0x0;\n  IVar2 = objc_stub::countByEnumeratingWithState_objects_count_\n                    (IVar1,*(undefined8 *)(param_1 + lVar5),&local_210,auStack_190,0x10);\n  if (IVar2 != 0) {\n    lVar5 = *local_200;\n    dVar8 = 0.0;\n    do {\n      IVar3 = 0;\n      dVar7 = in_d3;\n      do {\n        if (*local_200 != lVar5) {\n          _objc_enumerationMutation(IVar1);\n        }\n        self_00 = *(ID *)(lStack_208 + IVar3 * 8);\n        objc_stub::setCompressedVerticalMode_(self_00,(ulong)param_4);\n        objc_stub::bounds(*(ID *)(param_1 + lVar4));\n        objc_stub::sizeThatFits_(self_00,in_d2,dVar7);\n        objc_stub::frame(self_00);\n        in_d3 = dVar7;\n        objc_stub::setFrame_(self_00);\n        dVar8 = dVar8 + dVar7;\n        IVar3 = IVar3 + 1;\n        dVar7 = in_d3;\n      } while (IVar2 != IVar3);\n      IVar2 = objc_stub::countByEnumeratingWithState_objects_count_\n                        (IVar1,&local_210,auStack_190,0x10);\n    } while (IVar2 != 0);\n  }\n  IVar1 = *(ID *)(param_1 + lVar4);\n  objc_stub::contentSize(IVar1);\n  objc_stub::setContentSize_(IVar1);\n  if (param_5 == 0) {\n    objc_stub::frame(self);\n    dVar9 = dVar9 * in_d3;\n  }\n  else {\n    IVar1 = objc_stub::containsFirstDayOfMonth(self);\n    dVar9 = 0.0;\n    if ((int)IVar1 != 0) {\n      dVar9 = CompactMonthViewController::topOfMonthNameLabelToGrayLineDistance\n                        ((ID)PTR_CompactMonthViewController_10020bef0);\n    }\n  }\n  objc_stub::frame(self);\n  objc_stub::setContentOffset_animated_(*(ID *)(param_1 + lVar4),0,dVar9 + (dVar8 - extraout_d0),0);\n  if (*(long *)PTR____stack_chk_guard_10020dd08 == local_90) {\n    return;\n  }\n                    /* WARNING: Subroutine does not return */\n  ___stack_chk_fail(0);\n}\n\n",
+    "assembly": [
+      "0x100086908: stp d11, d10, [sp, #-0x80]!",
+      "0x10008690c: stp d9, d8, [sp, #0x10]",
+      "0x100086910: stp x28, x27, [sp, #0x20]",
+      "0x100086914: stp x26, x25, [sp, #0x30]",
+      "0x100086918: stp x24, x23, [sp, #0x40]",
+      "0x10008691c: stp x22, x21, [sp, #0x50]",
+      "0x100086920: stp x20, x19, [sp, #0x60]",
+      "0x100086924: stp x29, x30, [sp, #0x70]",
+      "0x100086928: add x29, sp, #0x70",
+      "0x10008692c: sub sp, sp, #0x1a0",
+      "0x100086930: mov x20, x4",
+      "0x100086934: mov x21, x3",
+      "0x100086938: mov x23, x2",
+      "0x10008693c: mov x19, x0",
+      "0x100086940: adrp x8, 0x10020d000",
+      "0x100086944: ldr x8, [x8, #0xd08]",
+      "0x100086948: ldr x8, [x8]",
+      "0x10008694c: stur x8, [x29, #-0x80]",
+      "0x100086950: bl 0x100177a40",
+      "0x100086954: bl 0x10015c3ec",
+      "0x100086958: mov x22, x0",
+      "0x10008695c: bl 0x1001656e0",
+      "0x100086960: mov v8.16B, v0.16B",
+      "0x100086964: bl 0x10015c50c",
+      "0x100086968: adrp x8, 0x10023b000",
+      "0x10008696c: ldrsw x26, [x8, #0x604]",
+      "0x100086970: ldr x0, [x19, x26#0x0]",
+      "0x100086974: bl 0x100168e00",
+      "0x100086978: mov v10.16B, v1.16B",
+      "0x10008697c: movi v0.2D, #0x0",
+      "0x100086980: stp q0, q0, [sp, #0x50]",
+      "0x100086984: stp q0, q0, [sp, #0x70]",
+      "0x100086988: adrp x8, 0x10023b000",
+      "0x10008698c: ldrsw x27, [x8, #0x640]",
+      "0x100086990: ldr x8, [x19, x27#0x0]",
+      "0x100086994: bl 0x10015c680",
+      "0x100086998: mov x24, x0",
+      "0x10008699c: add x2, sp, #0x50",
+      "0x1000869a0: sub x3, x29, #0x100",
+      "0x1000869a4: mov w4, #0x10",
+      "0x1000869a8: bl 0x100169160",
+      "0x1000869ac: mov x22, x0",
+      "0x1000869b0: movi v9.2D, #0x0",
+      "0x1000869b4: cbz x0, 0x100086a64",
+      "0x1000869b8: str x23, [sp, #0x8]",
+      "0x1000869bc: mov x23, x20",
+      "0x1000869c0: fadd d10, d8, d10",
+      "0x1000869c4: ldr x8, [sp, #0x60]",
+      "0x1000869c8: ldr x28, [x8]",
+      "0x1000869cc: movi v11.2D, #0x0",
+      "0x1000869d0: mov x20, #0x0",
+      "0x1000869d4: ldr x8, [sp, #0x60]",
+      "0x1000869d8: ldr x8, [x8]",
+      "0x1000869dc: cmp x8, x28",
+      "0x1000869e0: b.eq 0x1000869ec",
+      "0x1000869e4: mov x0, x24",
+      "0x1000869e8: bl 0x10015c410",
+      "0x1000869ec: ldr x8, [sp, #0x58]",
+      "0x1000869f0: ldr x25, [x8, x20, LSL #0x3]",
+      "0x1000869f4: mov x0, x25",
+      "0x1000869f8: bl 0x10016dc00",
+      "0x1000869fc: fadd d11, d11, d3",
+      "0x100086a00: fcmp d11, d10",
+      "0x100086a04: b.gt 0x100086a38",
+      "0x100086a08: add x20, x20, #0x1",
+      "0x100086a0c: cmp x22, x20",
+      "0x100086a10: b.ne 0x1000869d4",
+      "0x100086a14: add x2, sp, #0x50",
+      "0x100086a18: sub x3, x29, #0x100",
+      "0x100086a1c: mov x0, x24",
+      "0x100086a20: mov w4, #0x10",
+      "0x100086a24: bl 0x100169160",
+      "0x100086a28: mov x22, x0",
+      "0x100086a2c: cbnz x0, 0x1000869d0",
+      "0x100086a30: movi v11.2D, #0x0",
+      "0x100086a34: b 0x100086a58",
+      "0x100086a38: bl 0x10015c620",
+      "0x100086a3c: mov x22, x0",
+      "0x100086a40: bl 0x10016dc00",
+      "0x100086a44: fsub d0, d11, d3",
+      "0x100086a48: fsub d10, d10, d0",
+      "0x100086a4c: mov x0, x22",
+      "0x100086a50: bl 0x10016dc00",
+      "0x100086a54: fdiv d11, d10, d3",
+      "0x100086a58: mov x20, x23",
+      "0x100086a5c: ldr x23, [sp, #0x8]",
+      "0x100086a60: b 0x100086a68",
+      "0x100086a64: movi v11.2D, #0x0",
+      "0x100086a68: bl 0x10015c524",
+      "0x100086a6c: mov x0, x19",
+      "0x100086a70: bl 0x10015c47c",
+      "0x100086a74: mov x2, x23",
+      "0x100086a78: bl 0x10017bd60",
+      "0x100086a7c: movi v0.2D, #0x0",
+      "0x100086a80: stp q0, q0, [sp, #0x30]",
+      "0x100086a84: ldr x8, [x19, x27#0x0]",
+      "0x100086a88: stp q0, q0, [sp, #0x10]",
+      "0x100086a8c: bl 0x10015c680",
+      "0x100086a90: mov x23, x0",
+      "0x100086a94: add x2, sp, #0x10",
+      "0x100086a98: add x3, sp, #0x90",
+      "0x100086a9c: mov w4, #0x10",
+      "0x100086aa0: bl 0x100169160",
+      "0x100086aa4: cbz x0, 0x100086b48",
+      "0x100086aa8: mov x24, x0",
+      "0x100086aac: ldr x8, [sp, #0x20]",
+      "0x100086ab0: ldr x27, [x8]",
+      "0x100086ab4: movi v9.2D, #0x0",
+      "0x100086ab8: mov x28, #0x0",
+      "0x100086abc: ldr x8, [sp, #0x20]",
+      "0x100086ac0: ldr x8, [x8]",
+      "0x100086ac4: cmp x8, x27",
+      "0x100086ac8: b.eq 0x100086ad4",
+      "0x100086acc: mov x0, x23",
+      "0x100086ad0: bl 0x10015c410",
+      "0x100086ad4: ldr x8, [sp, #0x18]",
+      "0x100086ad8: ldr x25, [x8, x28, LSL #0x3]",
+      "0x100086adc: mov x0, x25",
+      "0x100086ae0: mov x2, x21",
+      "0x100086ae4: bl 0x100179460",
+      "0x100086ae8: ldr x0, [x19, x26#0x0]",
+      "0x100086aec: bl 0x100166c80",
+      "0x100086af0: mov v0.16B, v2.16B",
+      "0x100086af4: mov v1.16B, v3.16B",
+      "0x100086af8: mov x0, x25",
+      "0x100086afc: bl 0x100180800",
+      "0x100086b00: mov v10.16B, v1.16B",
+      "0x100086b04: mov x0, x25",
+      "0x100086b08: bl 0x10016dc00",
+      "0x100086b0c: mov x0, x25",
+      "0x100086b10: mov v1.16B, v9.16B",
+      "0x100086b14: mov v3.16B, v10.16B",
+      "0x100086b18: bl 0x10017aa20",
+      "0x100086b1c: fadd d9, d9, d10",
+      "0x100086b20: add x28, x28, #0x1",
+      "0x100086b24: cmp x24, x28",
+      "0x100086b28: b.ne 0x100086abc",
+      "0x100086b2c: add x2, sp, #0x10",
+      "0x100086b30: add x3, sp, #0x90",
+      "0x100086b34: mov x0, x23",
+      "0x100086b38: mov w4, #0x10",
+      "0x100086b3c: bl 0x100169160",
+      "0x100086b40: mov x24, x0",
+      "0x100086b44: cbnz x0, 0x100086ab8",
+      "0x100086b48: bl 0x10015c518",
+      "0x100086b4c: ldr x21, [x19, x26#0x0]",
+      "0x100086b50: mov x0, x21",
+      "0x100086b54: bl 0x100168e20",
+      "0x100086b58: mov x0, x21",
+      "0x100086b5c: mov v1.16B, v9.16B",
+      "0x100086b60: bl 0x1001796a0",
+      "0x100086b64: mov x0, x22",
+      "0x100086b68: cbz w20, 0x100086b8c",
+      "0x100086b6c: bl 0x100168cc0",
+      "0x100086b70: movi v9.2D, #0x0",
+      "0x100086b74: cbz w0, 0x100086b94",
+      "0x100086b78: adrp x8, 0x10020b000",
+      "0x100086b7c: ldr x0, [x8, #0xef0]",
+      "0x100086b80: bl 0x100182540",
+      "0x100086b84: mov v9.16B, v0.16B",
+      "0x100086b88: b 0x100086b94",
+      "0x100086b8c: bl 0x10016dc00",
+      "0x100086b90: fmul d9, d11, d3",
+      "0x100086b94: mov x0, x22",
+      "0x100086b98: bl 0x10016dc00",
+      "0x100086b9c: fsub d0, d1, d8",
+      "0x100086ba0: fadd d1, d9, d0",
+      "0x100086ba4: ldr x0, [x19, x26#0x0]",
+      "0x100086ba8: movi v0.2D, #0x0",
+      "0x100086bac: mov w2, #0x0",
+      "0x100086bb0: bl 0x100179680",
+      "0x100086bb4: bl 0x10015c50c",
+      "0x100086bb8: ldur x8, [x29, #-0x80]",
+      "0x100086bbc: adrp x9, 0x10020d000",
+      "0x100086bc0: ldr x9, [x9, #0xd08]",
+      "0x100086bc4: ldr x9, [x9]",
+      "0x100086bc8: cmp x9, x8",
+      "0x100086bcc: b.ne 0x100086bf8",
+      "0x100086bd0: add sp, sp, #0x1a0",
+      "0x100086bd4: ldp x29, x30, [sp, #0x70]",
+      "0x100086bd8: ldp x20, x19, [sp, #0x60]",
+      "0x100086bdc: ldp x22, x21, [sp, #0x50]",
+      "0x100086be0: ldp x24, x23, [sp, #0x40]",
+      "0x100086be4: ldp x26, x25, [sp, #0x30]",
+      "0x100086be8: ldp x28, x27, [sp, #0x20]",
+      "0x100086bec: ldp d9, d8, [sp, #0x10]",
+      "0x100086bf0: ldp d11, d10, [sp], #0x80",
+      "0x100086bf4: ret",
+      "0x100086bf8: bl 0x10015c170"
+    ],
+    "limitations": [
+      "Unresolved computed or indirect flows without target addresses are not represented as reference edges.",
+      "Thunk and external classifications are Ghidra FunctionManager observations; they do not resolve targetless calls.",
+      "Pseudocode and assembly are Ghidra-specific representations, not original source or Hopper-equivalent text.",
+      "Synthetic Ghidra entry-point references without actionable memory sources are omitted.",
+      "Ghidra Listing reports a terminal call at 0x100086bf8 to 0x10015c170 ___stack_chk_fail (external=false, thunk=true, hasNoReturn=true); fallthrough is excluded by Ghidra's flow model. This records Ghidra's FunctionManager flag, not an independent verification that the callee cannot return."
+    ]
+  },
+  "view_note": "Derived reading view; full canonical record retained in rea-native-evidence.json.gz."
+}

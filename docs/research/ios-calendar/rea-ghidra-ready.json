@@ -1,0 +1,76 @@
+{
+  "id": "ghidra",
+  "configured": true,
+  "available": true,
+  "providerVersion": "12.1.4",
+  "registrationEnvironment": {
+    "GHIDRA_INSTALL_DIR": "/Users/jaychan/.local/share/rea-tools/ghidra_12.1.4_PUBLIC",
+    "JAVA_HOME": "/Users/jaychan/.local/share/rea-tools/jdk-21.0.12.1+1/Contents/Home"
+  },
+  "checks": [
+    {
+      "name": "configuration",
+      "ok": true,
+      "code": null,
+      "detail": "/Users/jaychan/.local/share/rea-tools/ghidra_12.1.4_PUBLIC",
+      "remediation": null,
+      "classification": "config_drift"
+    },
+    {
+      "name": "platform",
+      "ok": true,
+      "code": null,
+      "detail": "darwin",
+      "remediation": null,
+      "classification": "unsupported_host"
+    },
+    {
+      "name": "architecture",
+      "ok": true,
+      "code": null,
+      "detail": "arm64",
+      "remediation": null,
+      "classification": "unsupported_host"
+    },
+    {
+      "name": "installation",
+      "ok": true,
+      "code": null,
+      "detail": "/Users/jaychan/.local/share/rea-tools/ghidra_12.1.4_PUBLIC/Ghidra/application.properties",
+      "remediation": null,
+      "classification": "config_drift"
+    },
+    {
+      "name": "version",
+      "ok": true,
+      "code": null,
+      "detail": "12.1.4",
+      "remediation": null,
+      "classification": "config_drift"
+    },
+    {
+      "name": "headless",
+      "ok": true,
+      "code": null,
+      "detail": "/Users/jaychan/.local/share/rea-tools/ghidra_12.1.4_PUBLIC/support/analyzeHeadless",
+      "remediation": null,
+      "classification": "config_drift"
+    },
+    {
+      "name": "native_decompiler",
+      "ok": true,
+      "code": null,
+      "detail": "/Users/jaychan/.local/share/rea-tools/ghidra_12.1.4_PUBLIC/Ghidra/Features/Decompiler/os/mac_arm_64/decompile reports mach-o arm64, which matches darwin/arm64",
+      "remediation": null,
+      "classification": "config_drift"
+    },
+    {
+      "name": "java",
+      "ok": true,
+      "code": null,
+      "detail": "21.0.12.1; 64-bit; JDK; /Users/jaychan/.local/share/rea-tools/jdk-21.0.12.1+1/Contents/Home; accepted a 64-bit full JDK 21 or newer",
+      "remediation": null,
+      "classification": "config_drift"
+    }
+  ]
+}

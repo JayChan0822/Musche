@@ -1,0 +1,154 @@
+ev_4783505292c55250d672fb93c93899e5d352409ffd9bb820d35822560037946d
+
+/* WARNING: Function: _objc_retain_x2 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_claimAutoreleasedReturnValue replaced with injection: _objc_retain_fixup
+    */
+/* WARNING: Function: _objc_release_x19 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x20 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x28 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_retain_x21 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x24 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_retain_x22 replaced with injection: _objc_retain_fixup */
+/* WARNING: Function: _objc_release_x8 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x21 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x24 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x22 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x27 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x25 replaced with injection: _objc_release_fixup */
+/* WARNING: Function: _objc_release_x23 replaced with injection: _objc_release_fixup */
+/* Function Stack Size: 0x18 bytes */
+
+void CompactMonthMultiDayAnimator::animateTransition_(ID param_1,SEL param_2,ID param_3)
+
+{
+  bool bVar1;
+  ID self;
+  ID self_00;
+  ID IVar2;
+  ID IVar3;
+  ID IVar4;
+  ID self_01;
+  ID IVar5;
+  ID IVar6;
+  undefined8 uVar7;
+  undefined8 uVar8;
+  undefined *local_e8;
+  undefined8 local_e0;
+  code *local_d8;
+  undefined *puStack_d0;
+  ID local_c8;
+  ID local_c0;
+  ID local_b8;
+  ID local_b0;
+  undefined *local_a8;
+  undefined8 local_a0;
+  code *local_98;
+  undefined *puStack_90;
+  ID local_88;
+  ID local_80;
+  ID local_78;
+  ID local_70;
+
+  self = objc_stub::viewControllerForKey_
+                   (param_1,*(undefined8 *)PTR__UITransitionContextFromViewControllerKey_10020d5b0);
+  self_00 = objc_stub::viewControllerForKey_
+                      (param_1,*(undefined8 *)PTR__UITransitionContextToViewControllerKey_10020d5b8)
+  ;
+  IVar2 = objc_stub::view(self);
+  IVar3 = objc_stub::view(self_00);
+  IVar4 = objc_stub::containerView(param_1);
+  bVar1 = reverse(param_1);
+  if (bVar1 == 0) {
+    objc_stub::insertSubview_belowSubview_(IVar4,IVar3,IVar2);
+  }
+  else {
+    objc_stub::addSubview_(IVar4,IVar3);
+  }
+  IVar2 = transitionView(param_1);
+  objc_stub::addSubview_(IVar4,IVar2);
+  IVar2 = transitionView(param_1);
+  objc_stub::bringSubviewToFront_(IVar4,IVar2);
+  self_01 = transitionView(param_1);
+  bVar1 = reverse(param_1);
+  IVar2 = self;
+  IVar3 = self_00;
+  if (bVar1 == 0) {
+    IVar2 = self_00;
+    IVar3 = self;
+  }
+  IVar3 = objc_stub::currentChildViewController(IVar3);
+  IVar2 = objc_stub::currentChildViewController(IVar2);
+  objc_stub::viewWillLayoutSubviews(self_00);
+  IVar5 = objc_stub::view(self_00);
+  objc_stub::layoutSubviews(IVar5);
+  objc_stub::viewDidLayoutSubviews(self_00);
+  objc_stub::layoutSubviews(*(ID *)(param_1 + 0x20));
+  IVar5 = model(param_1);
+  IVar5 = objc_stub::selectedDate(IVar5);
+  IVar6 = objc_stub::date(IVar5);
+  bVar1 = reverse(param_1);
+  if (bVar1 == 0) {
+    objc_stub::selectDate_animated_(IVar2,IVar5,0);
+  }
+  else {
+    IVar5 = objc_stub::view(IVar3);
+    objc_stub::layoutIfNeeded(IVar5);
+    objc_stub::showDate_animated_(IVar3,IVar6,0);
+  }
+  objc_stub::bounds(IVar4);
+  objc_stub::setFrame_(self_01);
+  IVar4 = objc_stub::view(IVar3);
+  IVar5 = objc_stub::view(IVar2);
+  objc_stub::prepareTransitionWithTopView_bottomView_allDayView_topLabelsContainer_
+            (self_01,IVar4,IVar5,0,0);
+  IVar4 = objc_stub::currentChildViewController(self_00);
+  if (IVar3 == IVar4) {
+    IVar4 = model(param_1);
+    IVar4 = objc_stub::selectedDate(IVar4);
+    IVar4 = objc_stub::subviewForDate_(IVar3,IVar4);
+    if (IVar4 == 0) {
+      IVar4 = objc_stub::view(IVar3);
+      objc_stub::layoutBelowIfNeeded(IVar4);
+      IVar4 = model(param_1);
+      IVar4 = objc_stub::selectedDate(IVar4);
+      IVar4 = objc_stub::subviewForDate_(IVar3,IVar4);
+    }
+    objc_stub::layoutSubviews(IVar4);
+  }
+  uVar7 = 0;
+  _CUIKTodayDate(0);
+  uVar8 = *(undefined8 *)(param_1 + 0x20);
+  bVar1 = reverse(param_1);
+  objc_stub::
+  prepareTransitionScrubberWithSelectedDate_todayDate_dayViewController_monthViewController_paletteView_reverse_
+            (self_01,IVar6,uVar7,IVar2,IVar3,uVar8,(ulong)bVar1);
+  objc_stub::setHidden_(self_01,0);
+  objc_stub::updatePalette_(self_00,*(undefined8 *)(param_1 + 0x20));
+  objc_stub::setAnimatingViewTransition_(self,1);
+  objc_stub::setAnimatingViewTransition_(self_00,1);
+  bVar1 = reverse(param_1);
+  IVar2 = transitionView(param_1);
+  if (bVar1 == 0) {
+    local_e8 = PTR___NSConcreteStackBlock_10020dcf0;
+    local_e0 = 0xc0000000;
+    local_d8 = FUN_1000b8ba0;
+    puStack_d0 = &DAT_100200800;
+    local_c8 = self;
+    local_c0 = self_00;
+    local_b8 = param_1;
+    local_b0 = param_1;
+    objc_stub::animateToDayWithCompletion_(IVar2,&local_e8);
+  }
+  else {
+    local_a8 = PTR___NSConcreteStackBlock_10020dcf0;
+    local_a0 = 0xc0000000;
+    local_98 = FUN_1000b8b4c;
+    puStack_90 = &DAT_100200800;
+    local_88 = self;
+    local_80 = self_00;
+    local_78 = param_1;
+    local_70 = param_1;
+    objc_stub::animateToMonthWithCompletion_(IVar2,&local_a8);
+  }
+  return;
+}

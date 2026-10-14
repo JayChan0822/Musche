@@ -1,0 +1,6010 @@
+{
+  "evidence_id": "ev_7fd31f6c142f14f5b5d9f1464e5083a10ba10329f5b31fb21598ed727141dc0c",
+  "subject": {
+    "name": "MobileCal",
+    "digest": {
+      "sha256": "0345bcd16bd3c645d7227832b543a44c4a06b30afd115103c0684a31a8f6e8e2"
+    },
+    "format": "mach-o",
+    "architecture": "arm64",
+    "local_path": "/private/var/run/com.apple.security.cryptexd/mnt/com.apple.iPhoneOS.SimulatorRuntime-v24.1.434.0.v5GPUp/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 27.0.simruntime/Contents/Resources/RuntimeRoot/Applications/MobileCal.app/MobileCal"
+  },
+  "provider": {
+    "id": "ghidra",
+    "name": "Ghidra",
+    "version": "12.1.4"
+  },
+  "analysis_profile": {
+    "provider": {
+      "id": "ghidra",
+      "name": "Ghidra",
+      "version": "12.1.4"
+    },
+    "parameters": {
+      "target_kind": "executable",
+      "target_format": "mach-o",
+      "architecture": "arm64",
+      "available_architectures": [
+        "arm64"
+      ],
+      "import_mode": "ephemeral-source-immutable",
+      "annotation_policy": "atomic-function-entry-metadata-v1",
+      "load_image_observations": "source-mappings-entry-context-v2",
+      "function_body_evidence": "complete-inclusive-ranges-v1",
+      "function_references": "complete-body-and-entry-reference-manager-v2",
+      "string_inventory_evidence": "defined-data-coverage-v1",
+      "location_resolution": "explicit-address-exact-entry-symbol-first-v3",
+      "instruction_flow_evidence": "decoded-return-pcode-v1",
+      "function_boundary_observations": "ghidra-terminal-call-limitations-v1",
+      "no_return_repair": "returning-imports-decoded-return-v2",
+      "process_launch": "inspected-jvm-launch-support-v1",
+      "jump_table_evidence": "typed-case-default-blocks-v1",
+      "decompiler_jump_loads": true,
+      "loader": "auto-from-header",
+      "language_id": "auto-from-header",
+      "compiler_spec_id": "auto-default",
+      "analyzer_preset": "ghidra-default"
+    },
+    "digest": "20565088524a2d0359b9b96f46ac48e679d774c7b0092c56abc06de8fdbec11c"
+  },
+  "predicate_type": "rea.analysis",
+  "operation": "search_procedures",
+  "parameters": {
+    "pattern": "(Month.*Day|Day.*Month|[Tt]ransition|[Pp]inch|[Ss]pring)",
+    "mode": "regex",
+    "case_sensitive": false
+  },
+  "raw_result": [
+    {
+      "address": "EXTERNAL:0x1a9",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::_CUIKBirthdayMonthCalendarColor"
+    },
+    {
+      "address": "EXTERNAL:0x2d8",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_pinchDistanceForGestureRecognizer"
+    },
+    {
+      "address": "EXTERNAL:0x2de",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewAlpha"
+    },
+    {
+      "address": "EXTERNAL:0x2df",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewBounds"
+    },
+    {
+      "address": "EXTERNAL:0x2e0",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewFrame"
+    },
+    {
+      "address": "EXTERNAL:0x2e1",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewPosition"
+    },
+    {
+      "address": "EXTERNAL:0x2e2",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimationDuration"
+    },
+    {
+      "address": "EXTERNAL:0x711",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "EXTERNAL:0x716",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "EXTERNAL:0x7d6",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x7e2",
+      "value": "/System/Library/PrivateFrameworks/CalendarFoundation.framework/CalendarFoundation::daysInMonth"
+    },
+    {
+      "address": "EXTERNAL:0x804",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x829",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x82a",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x857",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "EXTERNAL:0x859",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x86e",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x892",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "EXTERNAL:0x896",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::replaceOffUpTransition"
+    },
+    {
+      "address": "EXTERNAL:0x897",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::transitionWithByLayer"
+    },
+    {
+      "address": "EXTERNAL:0x898",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::magicTransitionWithFallback:"
+    },
+    {
+      "address": "EXTERNAL:0x8d1",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "EXTERNAL:0x8e7",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x954",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "EXTERNAL:0x955",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_performWithoutDeferringTransitions:"
+    },
+    {
+      "address": "0x100003ea4",
+      "value": "LargeMonthWeekView::updateToday"
+    },
+    {
+      "address": "0x1000040c0",
+      "value": "LargeMonthWeekView::frameForTodayHighlight"
+    },
+    {
+      "address": "0x1000044c8",
+      "value": "LargeMonthWeekView::setDayCount:"
+    },
+    {
+      "address": "0x100004500",
+      "value": "LargeMonthWeekView::dayCount"
+    },
+    {
+      "address": "0x100004510",
+      "value": "LargeMonthWeekView::setStartDate:endDate:dayCount:todayDay:reload:"
+    },
+    {
+      "address": "0x100004c98",
+      "value": "LargeMonthWeekView::_rebuildDayNumberLabels"
+    },
+    {
+      "address": "0x100005410",
+      "value": "LargeMonthWeekView::setShowsFirstDayOfMonthLabel:animated:"
+    },
+    {
+      "address": "0x100006344",
+      "value": "LargeMonthWeekView::_updateDayFrames"
+    },
+    {
+      "address": "0x1000071fc",
+      "value": "LargeMonthWeekView::dayFrames"
+    },
+    {
+      "address": "0x1000073dc",
+      "value": "LargeMonthWeekView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000074a4",
+      "value": "LargeMonthWeekView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x100007598",
+      "value": "LargeMonthWeekView::setHighlightedDayRange:"
+    },
+    {
+      "address": "0x100007e0c",
+      "value": "LargeMonthWeekView::weekdayLabels"
+    },
+    {
+      "address": "0x100007e1c",
+      "value": "LargeMonthWeekView::todayCircle"
+    },
+    {
+      "address": "0x100007e74",
+      "value": "LargeMonthWeekView::dayIndexForToday"
+    },
+    {
+      "address": "0x100007ecc",
+      "value": "LargeMonthWeekView::todayDay"
+    },
+    {
+      "address": "0x100007edc",
+      "value": "LargeMonthWeekView::setTodayDay:"
+    },
+    {
+      "address": "0x100007f0c",
+      "value": "LargeMonthWeekView::highlightedDayRange"
+    },
+    {
+      "address": "0x10000d9dc",
+      "value": "CompactDayNavigationViewCell::roundedRectHeightToMatchMonthView"
+    },
+    {
+      "address": "0x10000db2c",
+      "value": "CompactDayNavigationViewCell::initWithFrame:loadMonthAnimationState:hasOverlay:sizeClass:"
+    },
+    {
+      "address": "0x10000deb8",
+      "value": "CompactDayNavigationViewCell::_createMonthAnimationStateModeSubviews"
+    },
+    {
+      "address": "0x10000dff0",
+      "value": "CompactDayNavigationViewCell::setMonthAnimationState:"
+    },
+    {
+      "address": "0x10000e0a0",
+      "value": "CompactDayNavigationViewCell::monthAnimationState"
+    },
+    {
+      "address": "0x10000e0b0",
+      "value": "CompactDayNavigationViewCell::setApplyMonthAnimationStateAdjustments:"
+    },
+    {
+      "address": "0x10000e0d0",
+      "value": "CompactDayNavigationViewCell::applyMonthAnimationStateAdjustments"
+    },
+    {
+      "address": "0x10000e0e0",
+      "value": "CompactDayNavigationViewCell::_loadMonthAnimationStateOverlayIfNeeded"
+    },
+    {
+      "address": "0x10000e1b4",
+      "value": "CompactDayNavigationViewCell::_loadMonthAnimationStateBadgeIfNeeded"
+    },
+    {
+      "address": "0x10000e240",
+      "value": "CompactDayNavigationViewCell::_updateMonthAnimationStateBadgeToState:"
+    },
+    {
+      "address": "0x10000f22c",
+      "value": "CompactDayNavigationViewCell::setMatchesMonthView:"
+    },
+    {
+      "address": "0x10000f8d8",
+      "value": "CompactDayNavigationViewCell::_updateToMatchMonthViewIfNeeded"
+    },
+    {
+      "address": "0x10000fea4",
+      "value": "CompactDayNavigationViewCell::matchesMonthView"
+    },
+    {
+      "address": "0x100010b48",
+      "value": "MonthViewController::shouldPushNextLevelViewControllerWhenTodayIsVisible"
+    },
+    {
+      "address": "0x100010b7c",
+      "value": "MonthViewController::isTodayVisible"
+    },
+    {
+      "address": "0x100010b80",
+      "value": "MonthViewController::_isTodayCircleFrameFullyUnobstructed"
+    },
+    {
+      "address": "0x1000110f8",
+      "value": "MonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x1000120bc",
+      "value": "MonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10001660c",
+      "value": "WeekAllDayView::showOverlayMonthInCellAtOffset:animated:"
+    },
+    {
+      "address": "0x10001e07c",
+      "value": "MainWindowContentContainerViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10001e4c0",
+      "value": "MainWindowContentContainerViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002386c",
+      "value": "CompactDayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002490c",
+      "value": "CompactMonthListAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x100024918",
+      "value": "CompactMonthListAnimator::animateTransition:"
+    },
+    {
+      "address": "0x100026e94",
+      "value": "CompactMonthListAnimator::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x100026ea0",
+      "value": "CompactMonthListAnimator::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x100028c3c",
+      "value": "SplitViewWindowRootViewController::traitCollectionToUseWhileLoadingViewsDuringTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100028cac",
+      "value": "SplitViewWindowRootViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002a45c",
+      "value": "SplitViewWindowRootViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002d16c",
+      "value": "SplitViewWindowRootViewController::_applyCustomScrollEdgeTransitionToViewController:"
+    },
+    {
+      "address": "0x100031ac0",
+      "value": "SplitViewWindowRootViewController::_recordJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100035ca8",
+      "value": "InboxViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100036a04",
+      "value": "DayNavigationViewCell::setOverlayShowsMonth:animated:"
+    },
+    {
+      "address": "0x10003e1f8",
+      "value": "YearMonthView::dayNumberFont"
+    },
+    {
+      "address": "0x10003e220",
+      "value": "YearMonthView::todayNumberFont"
+    },
+    {
+      "address": "0x10003e23c",
+      "value": "YearMonthView::dayTextSize"
+    },
+    {
+      "address": "0x10003e290",
+      "value": "YearMonthView::todayTextSize"
+    },
+    {
+      "address": "0x10003e294",
+      "value": "YearMonthView::dayNumberKerning"
+    },
+    {
+      "address": "0x10003e2f0",
+      "value": "YearMonthView::todayNumberKerning"
+    },
+    {
+      "address": "0x10003e404",
+      "value": "YearMonthView::daysXAdjustLeft"
+    },
+    {
+      "address": "0x10003e444",
+      "value": "YearMonthView::daysYAdjustTop"
+    },
+    {
+      "address": "0x10003e49c",
+      "value": "YearMonthView::showWeekDayInitials"
+    },
+    {
+      "address": "0x10003e508",
+      "value": "YearMonthView::weekDayInitialsFont"
+    },
+    {
+      "address": "0x10003e584",
+      "value": "YearMonthView::weekDayInitialsAdjustLeft"
+    },
+    {
+      "address": "0x10003e588",
+      "value": "YearMonthView::weekDayInitialsAdjustTop"
+    },
+    {
+      "address": "0x10003e5e0",
+      "value": "YearMonthView::roundedRectSizeForDayNumberString:"
+    },
+    {
+      "address": "0x10003e6fc",
+      "value": "YearMonthView::frameForGridOfDays"
+    },
+    {
+      "address": "0x10003f270",
+      "value": "MonthViewContainerViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000435dc",
+      "value": "MainViewControllerContainer::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100044bcc",
+      "value": "MainViewControllerContainer::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x100045ff0",
+      "value": "MainViewControllerContainer::animatingViewTransition"
+    },
+    {
+      "address": "0x100046000",
+      "value": "MainViewControllerContainer::setAnimatingViewTransition:"
+    },
+    {
+      "address": "0x100046e98",
+      "value": "InfiniteScrollViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100046ea0",
+      "value": "InfiniteScrollViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10004bb6c",
+      "value": "PhoneDayToMonthAnimationTest::notificationName"
+    },
+    {
+      "address": "0x10004bb7c",
+      "value": "PhoneDayToMonthAnimationTest::setUp"
+    },
+    {
+      "address": "0x10004bc68",
+      "value": "PhoneDayToMonthAnimationTest::kickOffAnimation"
+    },
+    {
+      "address": "0x10004bcac",
+      "value": "PhoneDayToMonthAnimationTest::.cxx_destruct"
+    },
+    {
+      "address": "0x10004f0c0",
+      "value": "MonthWeekOccurrencesView::setStartDate:endDate:dayCount:"
+    },
+    {
+      "address": "0x10004f7d0",
+      "value": "MonthWeekOccurrencesView::firstOccurrencesForEachDay"
+    },
+    {
+      "address": "0x10004f9d8",
+      "value": "MonthWeekOccurrencesView::secondAndThirdOccurrencesForEachDay"
+    },
+    {
+      "address": "0x10004fb10",
+      "value": "MonthWeekOccurrencesView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x10004fcc4",
+      "value": "MonthWeekOccurrencesView::frameForLastOccurrenceOnDay:"
+    },
+    {
+      "address": "0x10005006c",
+      "value": "MonthWeekOccurrencesView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x100050218",
+      "value": "MonthWeekOccurrencesView::occurrenceViewForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000502ec",
+      "value": "MonthWeekOccurrencesView::_frameForStartColumn:endColumn:dayRow:occurrenceRow:numRows:"
+    },
+    {
+      "address": "0x100050424",
+      "value": "MonthWeekOccurrencesView::setDayFrames:"
+    },
+    {
+      "address": "0x100051030",
+      "value": "MonthWeekOccurrencesView::_dayRangeForOccurrence:useProposedTime:isMultiDay:"
+    },
+    {
+      "address": "0x1000520f0",
+      "value": "MonthWeekOccurrencesView::_dayTypeForOccurrence:"
+    },
+    {
+      "address": "0x1000521a4",
+      "value": "MonthWeekOccurrencesView::firstNonAllDayEvent"
+    },
+    {
+      "address": "0x100052240",
+      "value": "MonthWeekOccurrencesView::dayTypesFromOccurrences"
+    },
+    {
+      "address": "0x100052250",
+      "value": "MonthWeekOccurrencesView::dayBadgeColorsFromOccurrences"
+    },
+    {
+      "address": "0x100052260",
+      "value": "MonthWeekOccurrencesView::dayBadgeLocalesFromOccurrences"
+    },
+    {
+      "address": "0x100054a18",
+      "value": "MonthWeekOccurrencesView::dayCount"
+    },
+    {
+      "address": "0x100054a28",
+      "value": "MonthWeekOccurrencesView::setDayCount:"
+    },
+    {
+      "address": "0x1000565fc",
+      "value": "LargeMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100056604",
+      "value": "LargeMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100057590",
+      "value": "LargeMonthViewController::_updateDayHeaderFrames"
+    },
+    {
+      "address": "0x100058274",
+      "value": "LargeMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x100059148",
+      "value": "LargeMonthViewController::largeMonthWeekView:didTapOccurrence:onDay:extendSelection:source:tappedSymbol:"
+    },
+    {
+      "address": "0x100059584",
+      "value": "LargeMonthViewController::largeMonthWeekView:didDoubleTapOnDay:"
+    },
+    {
+      "address": "0x10005a214",
+      "value": "LargeMonthViewController::_showEventDetailsForOccurrence:inWeek:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10005a240",
+      "value": "LargeMonthViewController::_showEventDetailsForOccurrence:inWeek:onDay:animatedScrollToVisible:showMode:context:creationMethod:"
+    },
+    {
+      "address": "0x10005a71c",
+      "value": "LargeMonthViewController::_highlightOccurrenceForPointerTarget:inWeek:onDay:"
+    },
+    {
+      "address": "0x10005bc50",
+      "value": "LargeMonthViewController::editorShowTransition"
+    },
+    {
+      "address": "0x10005bc58",
+      "value": "LargeMonthViewController::editorHideTransition"
+    },
+    {
+      "address": "0x10005ceb4",
+      "value": "LargeMonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10005d3b4",
+      "value": "CompactDividedMonthMultiDayAnimator::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x100064728",
+      "value": "CompactMonthWeekDayOverlay::_attributes"
+    },
+    {
+      "address": "0x1000647c8",
+      "value": "CompactMonthWeekDayOverlay::_generateImageForString:isWeekend:underlineThickness:fontSize:style:"
+    },
+    {
+      "address": "0x100064a54",
+      "value": "CompactMonthWeekDayOverlay::_cachedImageForString:isWeekend:underlineThickness:fontSize:style:"
+    },
+    {
+      "address": "0x100064b8c",
+      "value": "CompactMonthWeekDayOverlay::setDate:"
+    },
+    {
+      "address": "0x100064bc0",
+      "value": "CompactMonthWeekDayOverlay::update"
+    },
+    {
+      "address": "0x100064f78",
+      "value": "CompactMonthWeekDayOverlay::date"
+    },
+    {
+      "address": "0x100064f88",
+      "value": "CompactMonthWeekDayOverlay::fontSize"
+    },
+    {
+      "address": "0x100064f98",
+      "value": "CompactMonthWeekDayOverlay::setFontSize:"
+    },
+    {
+      "address": "0x100064fa8",
+      "value": "CompactMonthWeekDayOverlay::.cxx_destruct"
+    },
+    {
+      "address": "0x100064fbc",
+      "value": "DividedMonthDayTransitionView::dividedMonthPaletteBackgroundColor"
+    },
+    {
+      "address": "0x100064fc0",
+      "value": "DividedMonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x1000661a8",
+      "value": "DividedMonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x1000673f8",
+      "value": "DividedMonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x10006748c",
+      "value": "DividedMonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x10006749c",
+      "value": "DividedMonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x1000674a8",
+      "value": "DividedMonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x100069a30",
+      "value": "MultiDayWeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100077078",
+      "value": "WeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100077f84",
+      "value": "WeekViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10007cdcc",
+      "value": "WeekViewController::_weekScrollerPinched:"
+    },
+    {
+      "address": "0x100085770",
+      "value": "CompactWidthMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100085e40",
+      "value": "CompactWidthMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10008629c",
+      "value": "CompactWidthMonthViewController::weekViewForDayHeaderMeasurement"
+    },
+    {
+      "address": "0x1000862f0",
+      "value": "CompactWidthMonthViewController::relayoutPinchView"
+    },
+    {
+      "address": "0x100086460",
+      "value": "CompactWidthMonthViewController::prepareToChangeScaleFromPinch:"
+    },
+    {
+      "address": "0x100086908",
+      "value": "CompactWidthMonthViewController::applySizeToPinchView:compressed:snapToBoundary:"
+    },
+    {
+      "address": "0x100087cf8",
+      "value": "CompactWidthMonthViewController::_monthScrollerPinched:"
+    },
+    {
+      "address": "0x100088620",
+      "value": "CompactWidthMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100089e98",
+      "value": "CompactWidthMonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10008a178",
+      "value": "CompactWidthMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10008a2ac",
+      "value": "CompactWidthMonthViewController::_isTodayHighlightVisible"
+    },
+    {
+      "address": "0x10008a370",
+      "value": "CompactWidthMonthViewController::isTodayVisible"
+    },
+    {
+      "address": "0x10008a3a4",
+      "value": "CompactWidthMonthViewController::_isTodayCircleFrameFullyUnobstructed"
+    },
+    {
+      "address": "0x10008a6c4",
+      "value": "CompactWidthMonthViewController::pushedDayViewControllerWithDate:animated:"
+    },
+    {
+      "address": "0x10008a768",
+      "value": "CompactWidthMonthViewController::pushedMultiDayViewControllerWithDate:animated:"
+    },
+    {
+      "address": "0x10008a8b0",
+      "value": "CompactWidthMonthViewController::drillIntoDayWithDate:animated:"
+    },
+    {
+      "address": "0x10008b174",
+      "value": "CompactWidthMonthViewController::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x10008b17c",
+      "value": "CompactWidthMonthViewController::numberOfTapsRequiredForDayCellGesture"
+    },
+    {
+      "address": "0x10008c1bc",
+      "value": "CompactWidthMonthViewController::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10008c24c",
+      "value": "CompactWidthMonthViewController::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10008c5d4",
+      "value": "CompactWidthMonthViewController::setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10008cfb0",
+      "value": "CompactWidthMonthViewController::_dayIndexesForRangeStart:rangeEnd:outFirstDayIndex:outLastDayIndex:"
+    },
+    {
+      "address": "0x10008f0ac",
+      "value": "CompactWidthMonthViewController::_snapshotViewForDividedListTransition:useFastPath:"
+    },
+    {
+      "address": "0x10008fcd0",
+      "value": "CompactWidthMonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10008fe74",
+      "value": "CompactWidthMonthViewController::dayCellsScrubbingGestureRecognizer"
+    },
+    {
+      "address": "0x10008fe84",
+      "value": "CompactWidthMonthViewController::setDayCellsScrubbingGestureRecognizer:"
+    },
+    {
+      "address": "0x10008fe98",
+      "value": "CompactWidthMonthViewController::dayCellsTapGestureRecognizer"
+    },
+    {
+      "address": "0x10008fea8",
+      "value": "CompactWidthMonthViewController::setDayCellsTapGestureRecognizer:"
+    },
+    {
+      "address": "0x10008febc",
+      "value": "CompactWidthMonthViewController::pinchRecognizer"
+    },
+    {
+      "address": "0x10008fecc",
+      "value": "CompactWidthMonthViewController::setPinchRecognizer:"
+    },
+    {
+      "address": "0x100090164",
+      "value": "YearMonthAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x1000901a0",
+      "value": "YearMonthAnimator::animateTransition:"
+    },
+    {
+      "address": "0x100090850",
+      "value": "YearMonthAnimator::transitionView"
+    },
+    {
+      "address": "0x100090858",
+      "value": "YearMonthAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x100098d70",
+      "value": "DismissPresentedViewControllerOperation::initWithPresentingViewController:transition:completion:"
+    },
+    {
+      "address": "0x100099f14",
+      "value": "CompactYearViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100099f1c",
+      "value": "CompactYearViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10009a168",
+      "value": "CompactYearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x10009a27c",
+      "value": "MonthDayTransitionView::monthDayNavigationTransitionViewClass"
+    },
+    {
+      "address": "0x10009a288",
+      "value": "MonthDayTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x10009a2d8",
+      "value": "MonthDayTransitionView::_createViews"
+    },
+    {
+      "address": "0x10009a394",
+      "value": "MonthDayTransitionView::weekDayInitialsDay"
+    },
+    {
+      "address": "0x10009a3ac",
+      "value": "MonthDayTransitionView::setWeekDayInitialsDay:"
+    },
+    {
+      "address": "0x10009a3c4",
+      "value": "MonthDayTransitionView::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x10009a3dc",
+      "value": "MonthDayTransitionView::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x10009a3f4",
+      "value": "MonthDayTransitionView::animationDuration"
+    },
+    {
+      "address": "0x10009a424",
+      "value": "MonthDayTransitionView::prepareTransitionWithTopView:bottomView:allDayView:topLabelsContainer:"
+    },
+    {
+      "address": "0x10009a4cc",
+      "value": "MonthDayTransitionView::prepareTransitionScrubberWithSelectedDate:todayDate:dayViewController:monthViewController:paletteView:reverse:"
+    },
+    {
+      "address": "0x10009b6f4",
+      "value": "MonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x10009be0c",
+      "value": "MonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x10009c590",
+      "value": "MonthDayTransitionView::_topExtensionHeight"
+    },
+    {
+      "address": "0x10009c5ac",
+      "value": "MonthDayTransitionView::_haltAnimations"
+    },
+    {
+      "address": "0x10009c66c",
+      "value": "MonthDayTransitionView::_animateView:toPosition:setDelegate:"
+    },
+    {
+      "address": "0x10009c6b4",
+      "value": "MonthDayTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x10009c6d4",
+      "value": "MonthDayTransitionView::_animateView:toAlpha:delay:"
+    },
+    {
+      "address": "0x10009c7d8",
+      "value": "MonthDayTransitionView::_basicAnimateView:toAlpha:duration:"
+    },
+    {
+      "address": "0x10009c8e4",
+      "value": "MonthDayTransitionView::animationDidStart:"
+    },
+    {
+      "address": "0x10009c8e8",
+      "value": "MonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x10009caa0",
+      "value": "MonthDayTransitionView::animating"
+    },
+    {
+      "address": "0x10009cab0",
+      "value": "MonthDayTransitionView::setAnimating:"
+    },
+    {
+      "address": "0x10009cac0",
+      "value": "MonthDayTransitionView::dividedMonthView"
+    },
+    {
+      "address": "0x10009cad0",
+      "value": "MonthDayTransitionView::setDividedMonthView:"
+    },
+    {
+      "address": "0x10009cae0",
+      "value": "MonthDayTransitionView::selectedDate"
+    },
+    {
+      "address": "0x10009caf0",
+      "value": "MonthDayTransitionView::setSelectedDate:"
+    },
+    {
+      "address": "0x10009cb04",
+      "value": "MonthDayTransitionView::topView"
+    },
+    {
+      "address": "0x10009cb14",
+      "value": "MonthDayTransitionView::setTopView:"
+    },
+    {
+      "address": "0x10009cb28",
+      "value": "MonthDayTransitionView::bottomView"
+    },
+    {
+      "address": "0x10009cb38",
+      "value": "MonthDayTransitionView::setBottomView:"
+    },
+    {
+      "address": "0x10009cb4c",
+      "value": "MonthDayTransitionView::scrubber"
+    },
+    {
+      "address": "0x10009cb5c",
+      "value": "MonthDayTransitionView::setScrubber:"
+    },
+    {
+      "address": "0x10009cb70",
+      "value": "MonthDayTransitionView::dayScrubberFrame"
+    },
+    {
+      "address": "0x10009cb88",
+      "value": "MonthDayTransitionView::setDayScrubberFrame:"
+    },
+    {
+      "address": "0x10009cba0",
+      "value": "MonthDayTransitionView::dayCellSize"
+    },
+    {
+      "address": "0x10009cbb4",
+      "value": "MonthDayTransitionView::setDayCellSize:"
+    },
+    {
+      "address": "0x10009cbc8",
+      "value": "MonthDayTransitionView::monthScrubberFrame"
+    },
+    {
+      "address": "0x10009cbe0",
+      "value": "MonthDayTransitionView::setMonthScrubberFrame:"
+    },
+    {
+      "address": "0x10009cbf8",
+      "value": "MonthDayTransitionView::monthViewController"
+    },
+    {
+      "address": "0x10009cc08",
+      "value": "MonthDayTransitionView::setMonthViewController:"
+    },
+    {
+      "address": "0x10009cc1c",
+      "value": "MonthDayTransitionView::paletteView"
+    },
+    {
+      "address": "0x10009cc2c",
+      "value": "MonthDayTransitionView::setPaletteView:"
+    },
+    {
+      "address": "0x10009cc40",
+      "value": "MonthDayTransitionView::allDayView"
+    },
+    {
+      "address": "0x10009cc50",
+      "value": "MonthDayTransitionView::setAllDayView:"
+    },
+    {
+      "address": "0x10009cc64",
+      "value": "MonthDayTransitionView::topLabelsContainer"
+    },
+    {
+      "address": "0x10009cc74",
+      "value": "MonthDayTransitionView::setTopLabelsContainer:"
+    },
+    {
+      "address": "0x10009cc88",
+      "value": "MonthDayTransitionView::dayViewDayLocation"
+    },
+    {
+      "address": "0x10009cc9c",
+      "value": "MonthDayTransitionView::setDayViewDayLocation:"
+    },
+    {
+      "address": "0x10009ccb0",
+      "value": "MonthDayTransitionView::dayViewMonthLocation"
+    },
+    {
+      "address": "0x10009ccc4",
+      "value": "MonthDayTransitionView::setDayViewMonthLocation:"
+    },
+    {
+      "address": "0x10009ccd8",
+      "value": "MonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x10009cce8",
+      "value": "MonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x10009ccf4",
+      "value": "MonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x10009fa64",
+      "value": "EnqueueableManagedNavigationController::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x10009fbe8",
+      "value": "EnqueueableManagedNavigationController::dismissViewControllerWithoutEnqueuingWithTransition:completion:"
+    },
+    {
+      "address": "0x1000aa8d0",
+      "value": "RootNavigationController::presentModalViewController:withTransition:"
+    },
+    {
+      "address": "0x1000af01c",
+      "value": "RootNavigationController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000af0d4",
+      "value": "RootNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000af39c",
+      "value": "RootNavigationController::_performCustomRotationAnimationForMainWindowWithTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000afa44",
+      "value": "RootNavigationController::prepareForWindowLayoutTransitionFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x1000afc74",
+      "value": "RootNavigationController::commitDeferredModelMutationsForLayoutTransition"
+    },
+    {
+      "address": "0x1000afdc4",
+      "value": "RootNavigationController::applyPendingLayoutTransitionIfNeeded"
+    },
+    {
+      "address": "0x1000affb0",
+      "value": "RootNavigationController::clearPendingLayoutTransition"
+    },
+    {
+      "address": "0x1000affb4",
+      "value": "RootNavigationController::_resetLayoutTransitionState"
+    },
+    {
+      "address": "0x1000b00d4",
+      "value": "RootNavigationController::preferredPostTransitionViewFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x1000b0248",
+      "value": "RootNavigationController::_canSkipViewHierarchyRebuildingWhenTransitioningFromOldCollection:toNewCollection:"
+    },
+    {
+      "address": "0x1000b02c8",
+      "value": "RootNavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000b0d70",
+      "value": "RootNavigationController::_setNavigationStackOfMainViewControllersForTraitsTransitionFromTraitCollection:toNewTraitCollection:withPreTransitionViewType:withPreferredPostTransitionViewType:"
+    },
+    {
+      "address": "0x1000b7e90",
+      "value": "RootNavigationController::isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x1000b7f98",
+      "value": "RootNavigationController::todayButtonDayOfMonth"
+    },
+    {
+      "address": "0x1000b7fa8",
+      "value": "RootNavigationController::setTodayButtonDayOfMonth:"
+    },
+    {
+      "address": "0x1000b8548",
+      "value": "CompactDividedMonthDayAnimator::monthDayTransitionViewClass"
+    },
+    {
+      "address": "0x1000b8580",
+      "value": "CompactMonthMultiDayAnimator::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x1000b858c",
+      "value": "CompactMonthMultiDayAnimator::initWithModel:paletteView:reverse:"
+    },
+    {
+      "address": "0x1000b8658",
+      "value": "CompactMonthMultiDayAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x1000b8694",
+      "value": "CompactMonthMultiDayAnimator::animateTransition:"
+    },
+    {
+      "address": "0x1000b8bf4",
+      "value": "CompactMonthMultiDayAnimator::model"
+    },
+    {
+      "address": "0x1000b8bfc",
+      "value": "CompactMonthMultiDayAnimator::setModel:"
+    },
+    {
+      "address": "0x1000b8c08",
+      "value": "CompactMonthMultiDayAnimator::reverse"
+    },
+    {
+      "address": "0x1000b8c10",
+      "value": "CompactMonthMultiDayAnimator::setReverse:"
+    },
+    {
+      "address": "0x1000b8c18",
+      "value": "CompactMonthMultiDayAnimator::transitionView"
+    },
+    {
+      "address": "0x1000b8c20",
+      "value": "CompactMonthMultiDayAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x1000b8c2c",
+      "value": "CompactMonthMultiDayAnimator::paletteView"
+    },
+    {
+      "address": "0x1000b8c34",
+      "value": "CompactMonthMultiDayAnimator::setPaletteView:"
+    },
+    {
+      "address": "0x1000b8c40",
+      "value": "CompactMonthMultiDayAnimator::.cxx_destruct"
+    },
+    {
+      "address": "0x1000b8c7c",
+      "value": "CompactMonthWeekTodayCircle::initWithCalendarDate:"
+    },
+    {
+      "address": "0x1000b8e68",
+      "value": "CompactMonthWeekTodayCircle::circleDiameter"
+    },
+    {
+      "address": "0x1000b8e74",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterCompressed"
+    },
+    {
+      "address": "0x1000b8e7c",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterExpandedFormatForFontSize:"
+    },
+    {
+      "address": "0x1000b8f60",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterWithOverlay"
+    },
+    {
+      "address": "0x1000b8f64",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterWithOverlayLarge"
+    },
+    {
+      "address": "0x1000b8f70",
+      "value": "CompactMonthWeekTodayCircle::roundedRectHeightWithOverlay:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b8f9c",
+      "value": "CompactMonthWeekTodayCircle::roundedRectSizeForNumberString:overlayString:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b9168",
+      "value": "CompactMonthWeekTodayCircle::dayNumberString"
+    },
+    {
+      "address": "0x1000b9178",
+      "value": "CompactMonthWeekTodayCircle::overlayString"
+    },
+    {
+      "address": "0x1000b9188",
+      "value": "CompactMonthWeekTodayCircle::dayNumberFrame"
+    },
+    {
+      "address": "0x1000b9198",
+      "value": "CompactMonthWeekTodayCircle::topOffset"
+    },
+    {
+      "address": "0x1000b91a0",
+      "value": "CompactMonthWeekTodayCircle::sizeThatFits:"
+    },
+    {
+      "address": "0x1000b9320",
+      "value": "CompactMonthWeekTodayCircle::setUseTodayColors:"
+    },
+    {
+      "address": "0x1000b9390",
+      "value": "CompactMonthWeekTodayCircle::setFontOverride:"
+    },
+    {
+      "address": "0x1000b941c",
+      "value": "CompactMonthWeekTodayCircle::setDrawCircle:"
+    },
+    {
+      "address": "0x1000b945c",
+      "value": "CompactMonthWeekTodayCircle::setShowOverlay:"
+    },
+    {
+      "address": "0x1000b95bc",
+      "value": "CompactMonthWeekTodayCircle::updateOverlay"
+    },
+    {
+      "address": "0x1000b9670",
+      "value": "CompactMonthWeekTodayCircle::setNonTodayColor:"
+    },
+    {
+      "address": "0x1000b96a4",
+      "value": "CompactMonthWeekTodayCircle::setFontSize:"
+    },
+    {
+      "address": "0x1000b9718",
+      "value": "CompactMonthWeekTodayCircle::setOverlayFontSize:"
+    },
+    {
+      "address": "0x1000b97b0",
+      "value": "CompactMonthWeekTodayCircle::_updateTextColor"
+    },
+    {
+      "address": "0x1000b98a4",
+      "value": "CompactMonthWeekTodayCircle::_dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000b9954",
+      "value": "CompactMonthWeekTodayCircle::dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000b996c",
+      "value": "CompactMonthWeekTodayCircle::dayOverlayFontForSize:"
+    },
+    {
+      "address": "0x1000b9984",
+      "value": "CompactMonthWeekTodayCircle::roundedRectDayNumberBaselineOffsetWithOverlay:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b9b48",
+      "value": "CompactMonthWeekTodayCircle::layoutSubviews"
+    },
+    {
+      "address": "0x1000b9d90",
+      "value": "CompactMonthWeekTodayCircle::backgroundColor"
+    },
+    {
+      "address": "0x1000b9d9c",
+      "value": "CompactMonthWeekTodayCircle::drawRect:"
+    },
+    {
+      "address": "0x1000b9ec8",
+      "value": "CompactMonthWeekTodayCircle::compressed"
+    },
+    {
+      "address": "0x1000b9ed8",
+      "value": "CompactMonthWeekTodayCircle::setCompressed:"
+    },
+    {
+      "address": "0x1000b9ee8",
+      "value": "CompactMonthWeekTodayCircle::expandedFormat"
+    },
+    {
+      "address": "0x1000b9ef8",
+      "value": "CompactMonthWeekTodayCircle::setExpandedFormat:"
+    },
+    {
+      "address": "0x1000b9f08",
+      "value": "CompactMonthWeekTodayCircle::drawCircle"
+    },
+    {
+      "address": "0x1000b9f18",
+      "value": "CompactMonthWeekTodayCircle::useTodayColors"
+    },
+    {
+      "address": "0x1000b9f28",
+      "value": "CompactMonthWeekTodayCircle::showOverlay"
+    },
+    {
+      "address": "0x1000b9f38",
+      "value": "CompactMonthWeekTodayCircle::nonTodayColor"
+    },
+    {
+      "address": "0x1000b9f48",
+      "value": "CompactMonthWeekTodayCircle::nonTodayCircleColor"
+    },
+    {
+      "address": "0x1000b9f58",
+      "value": "CompactMonthWeekTodayCircle::setNonTodayCircleColor:"
+    },
+    {
+      "address": "0x1000b9f6c",
+      "value": "CompactMonthWeekTodayCircle::fontOverride"
+    },
+    {
+      "address": "0x1000b9f7c",
+      "value": "CompactMonthWeekTodayCircle::fontSize"
+    },
+    {
+      "address": "0x1000b9f8c",
+      "value": "CompactMonthWeekTodayCircle::overlayFontSize"
+    },
+    {
+      "address": "0x1000b9f9c",
+      "value": "CompactMonthWeekTodayCircle::usesRoundedRectInsteadOfCircle"
+    },
+    {
+      "address": "0x1000b9fac",
+      "value": "CompactMonthWeekTodayCircle::setUsesRoundedRectInsteadOfCircle:"
+    },
+    {
+      "address": "0x1000b9fbc",
+      "value": "CompactMonthWeekTodayCircle::.cxx_destruct"
+    },
+    {
+      "address": "0x1000baf6c",
+      "value": "InboxSwitcherViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000baf74",
+      "value": "InboxSwitcherViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000bbc80",
+      "value": "CompactMonthWeekDayData::dayDataWithEventCount:dayType:"
+    },
+    {
+      "address": "0x1000bbcd0",
+      "value": "CompactMonthWeekDayData::eventCount"
+    },
+    {
+      "address": "0x1000bbcd8",
+      "value": "CompactMonthWeekDayData::setEventCount:"
+    },
+    {
+      "address": "0x1000bbce0",
+      "value": "CompactMonthWeekDayData::dayType"
+    },
+    {
+      "address": "0x1000bbce8",
+      "value": "CompactMonthWeekDayData::setDayType:"
+    },
+    {
+      "address": "0x1000bbcf0",
+      "value": "CompactMonthWeekDayData::dayTypeBadgeColor"
+    },
+    {
+      "address": "0x1000bbcf8",
+      "value": "CompactMonthWeekDayData::setDayTypeBadgeColor:"
+    },
+    {
+      "address": "0x1000bbd04",
+      "value": "CompactMonthWeekDayData::dayTypeBadgeLocale"
+    },
+    {
+      "address": "0x1000bbd0c",
+      "value": "CompactMonthWeekDayData::setDayTypeBadgeLocale:"
+    },
+    {
+      "address": "0x1000bbd18",
+      "value": "CompactMonthWeekDayData::eventSummaryData"
+    },
+    {
+      "address": "0x1000bbd20",
+      "value": "CompactMonthWeekDayData::setEventSummaryData:"
+    },
+    {
+      "address": "0x1000bbd2c",
+      "value": "CompactMonthWeekDayData::.cxx_destruct"
+    },
+    {
+      "address": "0x1000bc478",
+      "value": "CompactMonthWeekView::_initializeDays"
+    },
+    {
+      "address": "0x1000bc5fc",
+      "value": "CompactMonthWeekView::_initializeDaySummaries"
+    },
+    {
+      "address": "0x1000bc6ac",
+      "value": "CompactMonthWeekView::_updateDayFrames"
+    },
+    {
+      "address": "0x1000bcbf0",
+      "value": "CompactMonthWeekView::dayNumberLayerYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bcdb4",
+      "value": "CompactMonthWeekView::circleYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd024",
+      "value": "CompactMonthWeekView::distanceToBottomOfCircleCompressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd064",
+      "value": "CompactMonthWeekView::heightForViewThatContainsFirstDayOfMonth:compressed:scale:"
+    },
+    {
+      "address": "0x1000bd388",
+      "value": "CompactMonthWeekView::_roundedRectOriginForDayLayerFrame:roundedRectSize:withOverlay:compressed:"
+    },
+    {
+      "address": "0x1000bd474",
+      "value": "CompactMonthWeekView::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd4d8",
+      "value": "CompactMonthWeekView::frameForDayCircleWithSize:dayNumberLayerFrame:dayNumberFrame:withOverlay:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd5a4",
+      "value": "CompactMonthWeekView::_circleFrameWithDayFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd6a4",
+      "value": "CompactMonthWeekView::_roundedRectFrameWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:"
+    },
+    {
+      "address": "0x1000bd798",
+      "value": "CompactMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd958",
+      "value": "CompactMonthWeekView::dayTypeBadgeDiameter:"
+    },
+    {
+      "address": "0x1000bdb48",
+      "value": "CompactMonthWeekView::hideDaySummariesWithScale:"
+    },
+    {
+      "address": "0x1000c0260",
+      "value": "CompactMonthWeekView::pulseTodayCircle"
+    },
+    {
+      "address": "0x1000c0510",
+      "value": "CompactMonthWeekView::haltTodayPulse"
+    },
+    {
+      "address": "0x1000c0974",
+      "value": "CompactMonthWeekView::containsFirstDayOfMonth"
+    },
+    {
+      "address": "0x1000c0984",
+      "value": "CompactMonthWeekView::daysInMonth"
+    },
+    {
+      "address": "0x1000c0a0c",
+      "value": "CompactMonthWeekView::isTodayHighlightVisible"
+    },
+    {
+      "address": "0x1000c0a4c",
+      "value": "CompactMonthWeekView::frameForTodayHighlight"
+    },
+    {
+      "address": "0x1000c0acc",
+      "value": "CompactMonthWeekView::dayNumberCellFrames"
+    },
+    {
+      "address": "0x1000c0bac",
+      "value": "CompactMonthWeekView::days"
+    },
+    {
+      "address": "0x1000c0bbc",
+      "value": "CompactMonthWeekView::dayForPoint:"
+    },
+    {
+      "address": "0x1000c0e44",
+      "value": "CompactMonthWeekView::adjustHighlight:forDay:"
+    },
+    {
+      "address": "0x1000c1998",
+      "value": "CompactMonthWeekView::makeDayCircleForDate:isToday:"
+    },
+    {
+      "address": "0x1000c1ad8",
+      "value": "CompactMonthWeekView::resetTodayBits"
+    },
+    {
+      "address": "0x1000c1e90",
+      "value": "CompactMonthWeekView::_clearTodayHighlight"
+    },
+    {
+      "address": "0x1000c2568",
+      "value": "CompactMonthWeekView::setSelectedDay:animated:"
+    },
+    {
+      "address": "0x1000c2d70",
+      "value": "CompactMonthWeekView::visibleDaySummaryViews"
+    },
+    {
+      "address": "0x1000c2ef8",
+      "value": "CompactMonthWeekView::dayNumberFontSize:"
+    },
+    {
+      "address": "0x1000c2ffc",
+      "value": "CompactMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x1000c30b8",
+      "value": "CompactMonthWeekView::_updateSingleDaySummaryForDayIndex:withData:date:calendar:"
+    },
+    {
+      "address": "0x1000c31c4",
+      "value": "CompactMonthWeekView::dayTypeBadgeBackgroundColorForVerticallyCompressedMode:"
+    },
+    {
+      "address": "0x1000c32bc",
+      "value": "CompactMonthWeekView::_updateDayTypeBadgeForDayNumber:withDayType:color:locale:forceImageUpdate:"
+    },
+    {
+      "address": "0x1000c353c",
+      "value": "CompactMonthWeekView::_forceReloadImagesForDayTypeBadges"
+    },
+    {
+      "address": "0x1000c3780",
+      "value": "CompactMonthWeekView::_updateDayTypeBadgesWithBackgroundColor"
+    },
+    {
+      "address": "0x1000c3890",
+      "value": "CompactMonthWeekView::_layoutDayTypeBadgeForDayNumber:yOffset:"
+    },
+    {
+      "address": "0x1000c3a00",
+      "value": "CompactMonthWeekView::dayTypeBadgeFrameFromDayNumberFrame:compressed:"
+    },
+    {
+      "address": "0x1000c3aa8",
+      "value": "CompactMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:"
+    },
+    {
+      "address": "0x1000c48f0",
+      "value": "CompactMonthWeekView::_viewForCalendarDateContainsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000c4c18",
+      "value": "CompactMonthWeekView::_daysInAWeek"
+    },
+    {
+      "address": "0x1000c4df0",
+      "value": "CompactMonthWeekView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000c4eb8",
+      "value": "CompactMonthWeekView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x1000c4f90",
+      "value": "CompactMonthWeekView::setHighlightedDayRange:"
+    },
+    {
+      "address": "0x1000c578c",
+      "value": "CompactMonthWeekView::disableTodayPulse"
+    },
+    {
+      "address": "0x1000c579c",
+      "value": "CompactMonthWeekView::setDisableTodayPulse:"
+    },
+    {
+      "address": "0x1000c5830",
+      "value": "CompactMonthWeekView::dayBadgeColor"
+    },
+    {
+      "address": "0x1000c5840",
+      "value": "CompactMonthWeekView::setDayBadgeColor:"
+    },
+    {
+      "address": "0x1000c7884",
+      "value": "CompactMonthWeekDayNumber::initWithWeekView:andCalendar:"
+    },
+    {
+      "address": "0x1000c79c4",
+      "value": "CompactMonthWeekDayNumber::init"
+    },
+    {
+      "address": "0x1000c7a50",
+      "value": "CompactMonthWeekDayNumber::description"
+    },
+    {
+      "address": "0x1000c7b5c",
+      "value": "CompactMonthWeekDayNumber::updateOverlay"
+    },
+    {
+      "address": "0x1000c7cf4",
+      "value": "CompactMonthWeekDayNumber::hideOverlayAndNumber:"
+    },
+    {
+      "address": "0x1000c7d58",
+      "value": "CompactMonthWeekDayNumber::layer"
+    },
+    {
+      "address": "0x1000c7d60",
+      "value": "CompactMonthWeekDayNumber::offsetX"
+    },
+    {
+      "address": "0x1000c7d68",
+      "value": "CompactMonthWeekDayNumber::baselineOffsetFromTopOfLayerForFontSize:"
+    },
+    {
+      "address": "0x1000c7df0",
+      "value": "CompactMonthWeekDayNumber::heightOfFrameForFontSize:"
+    },
+    {
+      "address": "0x1000c7e78",
+      "value": "CompactMonthWeekDayNumber::setCalendarDate:"
+    },
+    {
+      "address": "0x1000c7f2c",
+      "value": "CompactMonthWeekDayNumber::updateDayNumber"
+    },
+    {
+      "address": "0x1000c80b4",
+      "value": "CompactMonthWeekDayNumber::representsActualDate"
+    },
+    {
+      "address": "0x1000c80e4",
+      "value": "CompactMonthWeekDayNumber::_calendarDateIsOnWeekend"
+    },
+    {
+      "address": "0x1000c816c",
+      "value": "CompactMonthWeekDayNumber::_standardLabelForFontSize:"
+    },
+    {
+      "address": "0x1000c81e0",
+      "value": "CompactMonthWeekDayNumber::_generateImageWithString:color:fontSize:"
+    },
+    {
+      "address": "0x1000c832c",
+      "value": "CompactMonthWeekDayNumber::_weekdayImageForDayNumberString:"
+    },
+    {
+      "address": "0x1000c84ac",
+      "value": "CompactMonthWeekDayNumber::_weekendImageForDayNumberString:"
+    },
+    {
+      "address": "0x1000c8624",
+      "value": "CompactMonthWeekDayNumber::dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000c86a4",
+      "value": "CompactMonthWeekDayNumber::calendarDate"
+    },
+    {
+      "address": "0x1000c86ac",
+      "value": "CompactMonthWeekDayNumber::calendar"
+    },
+    {
+      "address": "0x1000c86b4",
+      "value": "CompactMonthWeekDayNumber::setCalendar:"
+    },
+    {
+      "address": "0x1000c86c0",
+      "value": "CompactMonthWeekDayNumber::attachedTodayCircle"
+    },
+    {
+      "address": "0x1000c86c8",
+      "value": "CompactMonthWeekDayNumber::setAttachedTodayCircle:"
+    },
+    {
+      "address": "0x1000c86d4",
+      "value": "CompactMonthWeekDayNumber::frame"
+    },
+    {
+      "address": "0x1000c86e0",
+      "value": "CompactMonthWeekDayNumber::setFrame:"
+    },
+    {
+      "address": "0x1000c86ec",
+      "value": "CompactMonthWeekDayNumber::overlay"
+    },
+    {
+      "address": "0x1000c86f4",
+      "value": "CompactMonthWeekDayNumber::setOverlay:"
+    },
+    {
+      "address": "0x1000c8700",
+      "value": "CompactMonthWeekDayNumber::dayTypeBadge"
+    },
+    {
+      "address": "0x1000c8708",
+      "value": "CompactMonthWeekDayNumber::setDayTypeBadge:"
+    },
+    {
+      "address": "0x1000c8714",
+      "value": "CompactMonthWeekDayNumber::dayBadgeType"
+    },
+    {
+      "address": "0x1000c871c",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeType:"
+    },
+    {
+      "address": "0x1000c8724",
+      "value": "CompactMonthWeekDayNumber::dayBadgeColor"
+    },
+    {
+      "address": "0x1000c872c",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeColor:"
+    },
+    {
+      "address": "0x1000c8738",
+      "value": "CompactMonthWeekDayNumber::dayBadgeLocale"
+    },
+    {
+      "address": "0x1000c8740",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeLocale:"
+    },
+    {
+      "address": "0x1000c874c",
+      "value": "CompactMonthWeekDayNumber::fontSize"
+    },
+    {
+      "address": "0x1000c8754",
+      "value": "CompactMonthWeekDayNumber::setFontSize:"
+    },
+    {
+      "address": "0x1000c875c",
+      "value": "CompactMonthWeekDayNumber::overlayFontSize"
+    },
+    {
+      "address": "0x1000c8764",
+      "value": "CompactMonthWeekDayNumber::setOverlayFontSize:"
+    },
+    {
+      "address": "0x1000c876c",
+      "value": "CompactMonthWeekDayNumber::.cxx_destruct"
+    },
+    {
+      "address": "0x1000cac10",
+      "value": "MainViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cb61c",
+      "value": "MainViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cb74c",
+      "value": "MainViewController::transitionToSizeWillStart"
+    },
+    {
+      "address": "0x1000cb840",
+      "value": "MainViewController::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x1000cb9f4",
+      "value": "MainViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x1000cdaf0",
+      "value": "PaletteNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cdc48",
+      "value": "PaletteNavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000d338c",
+      "value": "LargeDayNavigationViewCell::setOverlayShowsMonth:animated:"
+    },
+    {
+      "address": "0x1000d765c",
+      "value": "LargeWeekViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000d7664",
+      "value": "LargeWeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000de538",
+      "value": "LargeWeekViewController::editorShowTransition"
+    },
+    {
+      "address": "0x1000de540",
+      "value": "LargeWeekViewController::editorHideTransition"
+    },
+    {
+      "address": "0x1000e0380",
+      "value": "LargeDayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000e058c",
+      "value": "LargeDayViewController::_isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x1000e0a4c",
+      "value": "LargeDayViewController::editorShowTransition"
+    },
+    {
+      "address": "0x1000e0a54",
+      "value": "LargeDayViewController::editorHideTransition"
+    },
+    {
+      "address": "0x1000e0c1c",
+      "value": "LargeDayViewController::isPinchingDayView"
+    },
+    {
+      "address": "0x1000e0d4c",
+      "value": "LargeDayViewController::finishedPinchingDayView"
+    },
+    {
+      "address": "0x1000e9230",
+      "value": "MonthDayNavigationTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x1000e92ec",
+      "value": "MonthDayNavigationTransitionView::setStrings:overlayStrings:weekNumberString:todayInWeek:"
+    },
+    {
+      "address": "0x1000e95bc",
+      "value": "MonthDayNavigationTransitionView::setUnderlineThickness:forOverlayStringAtIndex:"
+    },
+    {
+      "address": "0x1000e964c",
+      "value": "MonthDayNavigationTransitionView::setDayTypes:badgeColors:badgeLocales:"
+    },
+    {
+      "address": "0x1000e97c0",
+      "value": "MonthDayNavigationTransitionView::setVerticallyCompressedState:"
+    },
+    {
+      "address": "0x1000e98c4",
+      "value": "MonthDayNavigationTransitionView::completeSetup"
+    },
+    {
+      "address": "0x1000e99bc",
+      "value": "MonthDayNavigationTransitionView::setWeekendIndices:"
+    },
+    {
+      "address": "0x1000e99d0",
+      "value": "MonthDayNavigationTransitionView::_updateWeekendIndices"
+    },
+    {
+      "address": "0x1000e9bb0",
+      "value": "MonthDayNavigationTransitionView::animateToDayLayout"
+    },
+    {
+      "address": "0x1000e9bdc",
+      "value": "MonthDayNavigationTransitionView::animateToMonthLayout"
+    },
+    {
+      "address": "0x1000e9c08",
+      "value": "MonthDayNavigationTransitionView::_setToDayStateAnimated:"
+    },
+    {
+      "address": "0x1000ea62c",
+      "value": "MonthDayNavigationTransitionView::_yOffsetForMonthCells:"
+    },
+    {
+      "address": "0x1000ea65c",
+      "value": "MonthDayNavigationTransitionView::_setToMonthStateAnimated:"
+    },
+    {
+      "address": "0x1000eb568",
+      "value": "MonthDayNavigationTransitionView::_selectedCell"
+    },
+    {
+      "address": "0x1000eb5dc",
+      "value": "MonthDayNavigationTransitionView::_todayCell"
+    },
+    {
+      "address": "0x1000eb650",
+      "value": "MonthDayNavigationTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x1000eb790",
+      "value": "MonthDayNavigationTransitionView::verticallyCompressedState"
+    },
+    {
+      "address": "0x1000eb7a0",
+      "value": "MonthDayNavigationTransitionView::weekendIndices"
+    },
+    {
+      "address": "0x1000eb7b0",
+      "value": "MonthDayNavigationTransitionView::selectedIndex"
+    },
+    {
+      "address": "0x1000eb7c0",
+      "value": "MonthDayNavigationTransitionView::setSelectedIndex:"
+    },
+    {
+      "address": "0x1000eb7d0",
+      "value": "MonthDayNavigationTransitionView::todayIndex"
+    },
+    {
+      "address": "0x1000eb7e0",
+      "value": "MonthDayNavigationTransitionView::setTodayIndex:"
+    },
+    {
+      "address": "0x1000eb7f0",
+      "value": "MonthDayNavigationTransitionView::dayFrame"
+    },
+    {
+      "address": "0x1000eb808",
+      "value": "MonthDayNavigationTransitionView::setDayFrame:"
+    },
+    {
+      "address": "0x1000eb820",
+      "value": "MonthDayNavigationTransitionView::firstDayCellInset"
+    },
+    {
+      "address": "0x1000eb830",
+      "value": "MonthDayNavigationTransitionView::setFirstDayCellInset:"
+    },
+    {
+      "address": "0x1000eb840",
+      "value": "MonthDayNavigationTransitionView::firstDayCellIndex"
+    },
+    {
+      "address": "0x1000eb850",
+      "value": "MonthDayNavigationTransitionView::setFirstDayCellIndex:"
+    },
+    {
+      "address": "0x1000eb860",
+      "value": "MonthDayNavigationTransitionView::dayCellSize"
+    },
+    {
+      "address": "0x1000eb874",
+      "value": "MonthDayNavigationTransitionView::setDayCellSize:"
+    },
+    {
+      "address": "0x1000eb888",
+      "value": "MonthDayNavigationTransitionView::monthFrame"
+    },
+    {
+      "address": "0x1000eb8a0",
+      "value": "MonthDayNavigationTransitionView::setMonthFrame:"
+    },
+    {
+      "address": "0x1000eb8b8",
+      "value": "MonthDayNavigationTransitionView::monthRowHeight"
+    },
+    {
+      "address": "0x1000eb8c8",
+      "value": "MonthDayNavigationTransitionView::setMonthRowHeight:"
+    },
+    {
+      "address": "0x1000eb8d8",
+      "value": "MonthDayNavigationTransitionView::firstMonthCellIndex"
+    },
+    {
+      "address": "0x1000eb8e8",
+      "value": "MonthDayNavigationTransitionView::setFirstMonthCellIndex:"
+    },
+    {
+      "address": "0x1000eb8f8",
+      "value": "MonthDayNavigationTransitionView::monthCellFrames"
+    },
+    {
+      "address": "0x1000eb908",
+      "value": "MonthDayNavigationTransitionView::setMonthCellFrames:"
+    },
+    {
+      "address": "0x1000eb91c",
+      "value": "MonthDayNavigationTransitionView::monthBreakIndex"
+    },
+    {
+      "address": "0x1000eb92c",
+      "value": "MonthDayNavigationTransitionView::setMonthBreakIndex:"
+    },
+    {
+      "address": "0x1000eb93c",
+      "value": "MonthDayNavigationTransitionView::monthOccurrencesSnapshot"
+    },
+    {
+      "address": "0x1000eb94c",
+      "value": "MonthDayNavigationTransitionView::setMonthOccurrencesSnapshot:"
+    },
+    {
+      "address": "0x1000eb960",
+      "value": "MonthDayNavigationTransitionView::monthOccurrencesFrame"
+    },
+    {
+      "address": "0x1000eb978",
+      "value": "MonthDayNavigationTransitionView::setMonthOccurrencesFrame:"
+    },
+    {
+      "address": "0x1000eb990",
+      "value": "MonthDayNavigationTransitionView::monthSummarySnapshots"
+    },
+    {
+      "address": "0x1000eb9a0",
+      "value": "MonthDayNavigationTransitionView::setMonthSummarySnapshots:"
+    },
+    {
+      "address": "0x1000eb9b4",
+      "value": "MonthDayNavigationTransitionView::monthSummaryFrames"
+    },
+    {
+      "address": "0x1000eb9c4",
+      "value": "MonthDayNavigationTransitionView::setMonthSummaryFrames:"
+    },
+    {
+      "address": "0x1000eb9d8",
+      "value": "MonthDayNavigationTransitionView::debug"
+    },
+    {
+      "address": "0x1000eb9e8",
+      "value": "MonthDayNavigationTransitionView::setDebug:"
+    },
+    {
+      "address": "0x1000eb9f8",
+      "value": "MonthDayNavigationTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x1000ebabc",
+      "value": "LargeTextLargeMonthViewController::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x1000ebc68",
+      "value": "LargeTextLargeMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x1000f0d48",
+      "value": "DayNavigationView::initWithCalendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000f1828",
+      "value": "DayNavigationView::willTransitionToSize"
+    },
+    {
+      "address": "0x1000f1ef0",
+      "value": "DayNavigationView::setOverlayMonthText:"
+    },
+    {
+      "address": "0x1000f4d4c",
+      "value": "PhoneMonthToDayAnimationTest::notificationName"
+    },
+    {
+      "address": "0x1000f4d5c",
+      "value": "PhoneMonthToDayAnimationTest::setUp"
+    },
+    {
+      "address": "0x1000f4e08",
+      "value": "PhoneMonthToDayAnimationTest::kickOffAnimation"
+    },
+    {
+      "address": "0x1000f4e6c",
+      "value": "PhoneMonthToDayAnimationTest::.cxx_destruct"
+    },
+    {
+      "address": "0x1000f65e8",
+      "value": "YearViewController::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x1000f6d0c",
+      "value": "YearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x1000f8210",
+      "value": "DayNavigationWeekScrollView::initWithFrame:calendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000fb14c",
+      "value": "DayNavigationWeekScrollView::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000fb51c",
+      "value": "DayNavigationWeekScrollView::willTransitionToSize"
+    },
+    {
+      "address": "0x1000fcc1c",
+      "value": "DayNavigationWeekScrollView::dayNavigationCellShouldEnableSpringLoading"
+    },
+    {
+      "address": "0x1000fcd48",
+      "value": "DayNavigationWeekScrollView::eventSpringLoadingEnabled"
+    },
+    {
+      "address": "0x1001039a4",
+      "value": "SolariumDividedMonthDayTransitionView::dividedMonthPaletteBackgroundColor"
+    },
+    {
+      "address": "0x1001039b0",
+      "value": "SolariumDividedMonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x10010449c",
+      "value": "SolariumDividedMonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x100105064",
+      "value": "SolariumDividedMonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x1001050f8",
+      "value": "SolariumDividedMonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x100105108",
+      "value": "SolariumDividedMonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x100105114",
+      "value": "SolariumDividedMonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x100105630",
+      "value": "DayNavigationViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100105f3c",
+      "value": "DayNavigationViewController::eventSpringLoadingEnabled"
+    },
+    {
+      "address": "0x100105f4c",
+      "value": "DayNavigationViewController::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10010641c",
+      "value": "LargeYearViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100106424",
+      "value": "LargeYearViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001065e4",
+      "value": "LargeYearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x1001082c0",
+      "value": "AddEventViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001093a4",
+      "value": "AdaptiveSearchController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100109870",
+      "value": "CompactMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100109968",
+      "value": "CompactMonthViewController::dayHeaderFrames"
+    },
+    {
+      "address": "0x100109c30",
+      "value": "CompactMonthViewController::convertsDayHeaderFramesToPaletteCoords"
+    },
+    {
+      "address": "0x100109c38",
+      "value": "CompactMonthViewController::weekViewForDayHeaderMeasurement"
+    },
+    {
+      "address": "0x100109c3c",
+      "value": "CompactMonthViewController::_updateDayHeaderFrames"
+    },
+    {
+      "address": "0x100109cdc",
+      "value": "CompactMonthViewController::shouldPushNextLevelViewControllerWhenTodayIsVisible"
+    },
+    {
+      "address": "0x10010adfc",
+      "value": "MultiColumnMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10010ae04",
+      "value": "MultiColumnMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10010b2e0",
+      "value": "MultiColumnMonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10010d024",
+      "value": "MultiColumnMonthViewController::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10010d06c",
+      "value": "MultiColumnMonthViewController::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10010d240",
+      "value": "MultiColumnMonthViewController::_setSelectedDay:"
+    },
+    {
+      "address": "0x10010d2cc",
+      "value": "MultiColumnMonthViewController::_setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10010f114",
+      "value": "MultiColumnMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10010f8fc",
+      "value": "MultiColumnMonthViewController::_listViewShowsSingleDay"
+    },
+    {
+      "address": "0x100110728",
+      "value": "MultiColumnMonthViewController::dayCellsTapGestureRecognizer"
+    },
+    {
+      "address": "0x100110738",
+      "value": "MultiColumnMonthViewController::setDayCellsTapGestureRecognizer:"
+    },
+    {
+      "address": "0x10011074c",
+      "value": "MultiColumnMonthViewController::dayCellsScrubbingGestureRecognizer"
+    },
+    {
+      "address": "0x10011075c",
+      "value": "MultiColumnMonthViewController::setDayCellsScrubbingGestureRecognizer:"
+    },
+    {
+      "address": "0x1001109b0",
+      "value": "LargeTextLargeMonthWeekView::dayNumberFontSize:"
+    },
+    {
+      "address": "0x1001109bc",
+      "value": "LargeTextLargeMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x100110a34",
+      "value": "LargeTextLargeMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x100110b3c",
+      "value": "LargeTextLargeMonthWeekView::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100110b94",
+      "value": "LargePhoneMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x100111b90",
+      "value": "YearMonthTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x100111bfc",
+      "value": "YearMonthTransitionView::_createLabelWithFont:"
+    },
+    {
+      "address": "0x100111c40",
+      "value": "YearMonthTransitionView::prepareWithYearViewController:monthViewController:selectedDate:calendar:yearToMonth:paletteView:"
+    },
+    {
+      "address": "0x100112810",
+      "value": "YearMonthTransitionView::animateToMonthViewWithCompletion:"
+    },
+    {
+      "address": "0x100112948",
+      "value": "YearMonthTransitionView::animateToYearViewWithCompletion:"
+    },
+    {
+      "address": "0x100112a80",
+      "value": "YearMonthTransitionView::animationDuration"
+    },
+    {
+      "address": "0x100112a88",
+      "value": "YearMonthTransitionView::_animationComplete"
+    },
+    {
+      "address": "0x100112bf4",
+      "value": "YearMonthTransitionView::_setToYearState"
+    },
+    {
+      "address": "0x100112f38",
+      "value": "YearMonthTransitionView::_setToMonthState"
+    },
+    {
+      "address": "0x100113208",
+      "value": "YearMonthTransitionView::_animateZoomToYearState"
+    },
+    {
+      "address": "0x100113880",
+      "value": "YearMonthTransitionView::_animateZoomToMonthState"
+    },
+    {
+      "address": "0x100113f5c",
+      "value": "YearMonthTransitionView::_calculateMonthFrameForYearViewZoom"
+    },
+    {
+      "address": "0x100113fe0",
+      "value": "YearMonthTransitionView::_calculateYearFrameForYearViewZoom"
+    },
+    {
+      "address": "0x100113ff8",
+      "value": "YearMonthTransitionView::_setUpMonthViewInMonthViewFrame"
+    },
+    {
+      "address": "0x1001140a0",
+      "value": "YearMonthTransitionView::_captureImageOfMonthInYearView"
+    },
+    {
+      "address": "0x1001140ec",
+      "value": "YearMonthTransitionView::_captureImagesForSlidingPiecesFromMonthViewController:selectedDate:calendar:"
+    },
+    {
+      "address": "0x10011446c",
+      "value": "YearMonthTransitionView::_haltAnimations"
+    },
+    {
+      "address": "0x100114614",
+      "value": "YearMonthTransitionView::_animateView:toFrame:"
+    },
+    {
+      "address": "0x10011463c",
+      "value": "YearMonthTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x100114664",
+      "value": "YearMonthTransitionView::_animateView:toBounds:"
+    },
+    {
+      "address": "0x10011468c",
+      "value": "YearMonthTransitionView::_animateView:toAlpha:"
+    },
+    {
+      "address": "0x1001146b4",
+      "value": "YearMonthTransitionView::_basicAnimateView:toAlpha:duration:"
+    },
+    {
+      "address": "0x1001147b4",
+      "value": "YearMonthTransitionView::_canFastSnapshotYear"
+    },
+    {
+      "address": "0x1001147c4",
+      "value": "YearMonthTransitionView::_canFastSnapshotMonth"
+    },
+    {
+      "address": "0x1001147dc",
+      "value": "YearMonthTransitionView::_monthFrameForMonthBefore:anchorMonth:"
+    },
+    {
+      "address": "0x100114898",
+      "value": "YearMonthTransitionView::_monthFrameForMonthAfter:anchorMonth:"
+    },
+    {
+      "address": "0x10011494c",
+      "value": "YearMonthTransitionView::_getMonthViewMonthContainingDate:hideMonthLabel:"
+    },
+    {
+      "address": "0x100115094",
+      "value": "YearMonthTransitionView::_getWeekContainingDate:prevDate:"
+    },
+    {
+      "address": "0x100115184",
+      "value": "YearMonthTransitionView::_monthHeaderHeight"
+    },
+    {
+      "address": "0x100115190",
+      "value": "YearMonthTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x1001152c0",
+      "value": "YearMonthTransitionMonthView::monthFrame"
+    },
+    {
+      "address": "0x1001152e4",
+      "value": "YearMonthTransitionMonthView::monthFrameInMonthView"
+    },
+    {
+      "address": "0x100115308",
+      "value": "YearMonthTransitionMonthView::_adjustFrame:"
+    },
+    {
+      "address": "0x100115364",
+      "value": "YearMonthTransitionMonthView::monthLabelFrame"
+    },
+    {
+      "address": "0x100115420",
+      "value": "YearMonthTransitionMonthView::monthLabelText"
+    },
+    {
+      "address": "0x100115458",
+      "value": "YearMonthTransitionMonthView::monthLabelColor"
+    },
+    {
+      "address": "0x100115490",
+      "value": "YearMonthTransitionMonthView::topInset"
+    },
+    {
+      "address": "0x1001154a0",
+      "value": "YearMonthTransitionMonthView::setTopInset:"
+    },
+    {
+      "address": "0x1001154b0",
+      "value": "YearMonthTransitionMonthView::hasValidOrigin"
+    },
+    {
+      "address": "0x1001154c0",
+      "value": "YearMonthTransitionMonthView::setHasValidOrigin:"
+    },
+    {
+      "address": "0x1001154d0",
+      "value": "YearMonthTransitionMonthView::monthLabel"
+    },
+    {
+      "address": "0x1001154e0",
+      "value": "YearMonthTransitionMonthView::setMonthLabel:"
+    },
+    {
+      "address": "0x1001154f4",
+      "value": "YearMonthTransitionMonthView::weekViews"
+    },
+    {
+      "address": "0x100115504",
+      "value": "YearMonthTransitionMonthView::setWeekViews:"
+    },
+    {
+      "address": "0x100115518",
+      "value": "YearMonthTransitionMonthView::.cxx_destruct"
+    },
+    {
+      "address": "0x10011e818",
+      "value": "SearchResultsNavigationController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10011e820",
+      "value": "SearchResultsNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10011efb0",
+      "value": "SearchResultsNavigationController::hideSearchBarForNavigationTransitionAnimated:"
+    },
+    {
+      "address": "0x100123df8",
+      "value": "MonthViewOccurrence::initWithFrame:occurrence:forDayRange:isProposedTime:isCompact:isLargeCompact:isMultiDay:"
+    },
+    {
+      "address": "0x10012425c",
+      "value": "MonthViewOccurrence::initWithFrame:occurrence:forDayRange:isCompact:isLargeCompact:isMultiDay:"
+    },
+    {
+      "address": "0x1001256d4",
+      "value": "MonthViewOccurrence::isAllDay"
+    },
+    {
+      "address": "0x1001256e8",
+      "value": "MonthViewOccurrence::isSingleDay"
+    },
+    {
+      "address": "0x100125704",
+      "value": "MonthViewOccurrence::isMultiDay"
+    },
+    {
+      "address": "0x100128d9c",
+      "value": "MonthViewOccurrence::dayRange"
+    },
+    {
+      "address": "0x100128db0",
+      "value": "MonthViewOccurrence::setDayRange:"
+    },
+    {
+      "address": "0x10012aac0",
+      "value": "CompactMonthDayAnimator::monthDayTransitionViewClass"
+    },
+    {
+      "address": "0x10012aacc",
+      "value": "CompactMonthDayAnimator::initWithModel:paletteView:reverse:"
+    },
+    {
+      "address": "0x10012ab98",
+      "value": "CompactMonthDayAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x10012abd4",
+      "value": "CompactMonthDayAnimator::animateTransition:"
+    },
+    {
+      "address": "0x10012b1d4",
+      "value": "CompactMonthDayAnimator::model"
+    },
+    {
+      "address": "0x10012b1dc",
+      "value": "CompactMonthDayAnimator::setModel:"
+    },
+    {
+      "address": "0x10012b1e8",
+      "value": "CompactMonthDayAnimator::reverse"
+    },
+    {
+      "address": "0x10012b1f0",
+      "value": "CompactMonthDayAnimator::setReverse:"
+    },
+    {
+      "address": "0x10012b1f8",
+      "value": "CompactMonthDayAnimator::transitionView"
+    },
+    {
+      "address": "0x10012b200",
+      "value": "CompactMonthDayAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x10012b20c",
+      "value": "CompactMonthDayAnimator::paletteView"
+    },
+    {
+      "address": "0x10012b214",
+      "value": "CompactMonthDayAnimator::setPaletteView:"
+    },
+    {
+      "address": "0x10012b220",
+      "value": "CompactMonthDayAnimator::.cxx_destruct"
+    },
+    {
+      "address": "0x100132cb0",
+      "value": "DayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10013553c",
+      "value": "DayViewController::dayViewControllerDidFinishPinchingDayView:"
+    },
+    {
+      "address": "0x100135540",
+      "value": "DayViewController::dayViewControllerIsPinchingDayView:"
+    },
+    {
+      "address": "0x100136a18",
+      "value": "DayViewController::editorShowTransition"
+    },
+    {
+      "address": "0x100136a20",
+      "value": "DayViewController::editorHideTransition"
+    },
+    {
+      "address": "0x100136a34",
+      "value": "DayViewController::isPinchingDayView"
+    },
+    {
+      "address": "0x100136a38",
+      "value": "DayViewController::finishedPinchingDayView"
+    },
+    {
+      "address": "0x100159628",
+      "value": "MonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10015b90c",
+      "value": "_CUIKBirthdayMonthCalendarColor"
+    },
+    {
+      "address": "0x10015c740",
+      "value": "_pinchDistanceForGestureRecognizer"
+    },
+    {
+      "address": "0x10015c788",
+      "value": "_springAnimateViewAlpha"
+    },
+    {
+      "address": "0x10015c794",
+      "value": "_springAnimateViewBounds"
+    },
+    {
+      "address": "0x10015c7a0",
+      "value": "_springAnimateViewFrame"
+    },
+    {
+      "address": "0x10015c7ac",
+      "value": "_springAnimateViewPosition"
+    },
+    {
+      "address": "0x10015c7b8",
+      "value": "_springAnimationDuration"
+    },
+    {
+      "address": "0x10015d2a0",
+      "value": "objc_stub::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x10015d2e0",
+      "value": "objc_stub::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "0x10015d4c0",
+      "value": "objc_stub::_applyCustomScrollEdgeTransitionToViewController:"
+    },
+    {
+      "address": "0x10015d860",
+      "value": "objc_stub::_cal_RecursiveBuildJournal:ofViewControllerSubtree:transitioningToTraitCollection:stopCondition:useOuterMostDismissPattern:"
+    },
+    {
+      "address": "0x10015d8a0",
+      "value": "objc_stub::_cal_TearDownAndCreateJournalForTransitioningToTraitCollection:viewHierarchyRoot:useOuterMostDismissPattern:dismissCompletion:"
+    },
+    {
+      "address": "0x10015d920",
+      "value": "objc_stub::_cal_ViewControllerWantsDismissOnSizeClassChange:transitioningToTraitCollection:"
+    },
+    {
+      "address": "0x10015dbc0",
+      "value": "objc_stub::_canSkipViewHierarchyRebuildingWhenTransitioningFromOldCollection:toNewCollection:"
+    },
+    {
+      "address": "0x10015e480",
+      "value": "objc_stub::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10015e740",
+      "value": "objc_stub::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10015fba0",
+      "value": "objc_stub::_isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x100160880",
+      "value": "objc_stub::_performCustomRotationAnimationForMainWindowWithTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001608e0",
+      "value": "objc_stub::_performWithoutDeferringTransitions:"
+    },
+    {
+      "address": "0x100160de0",
+      "value": "objc_stub::_recordJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x1001611a0",
+      "value": "objc_stub::_resetLayoutTransitionState"
+    },
+    {
+      "address": "0x100161ac0",
+      "value": "objc_stub::_setAutoScrollEdgeTransitionDistance:"
+    },
+    {
+      "address": "0x100161b80",
+      "value": "objc_stub::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "0x100161e80",
+      "value": "objc_stub::_setNavigationStackOfMainViewControllersForTraitsTransitionFromTraitCollection:toNewTraitCollection:withPreTransitionViewType:withPreferredPostTransitionViewType:"
+    },
+    {
+      "address": "0x100162040",
+      "value": "objc_stub::_setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x100164660",
+      "value": "objc_stub::_viewForCalendarDateContainsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100165bc0",
+      "value": "objc_stub::animateAlongsideTransition:completion:"
+    },
+    {
+      "address": "0x100165de0",
+      "value": "objc_stub::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x100165e00",
+      "value": "objc_stub::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "0x100166100",
+      "value": "objc_stub::applyPendingLayoutTransitionIfNeeded"
+    },
+    {
+      "address": "0x100166120",
+      "value": "objc_stub::applySizeToPinchView:compressed:snapToBoundary:"
+    },
+    {
+      "address": "0x1001668e0",
+      "value": "objc_stub::beginAppearanceTransition:animated:"
+    },
+    {
+      "address": "0x100166ea0",
+      "value": "objc_stub::cal_TearDownAndCreateJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100167d80",
+      "value": "objc_stub::circleYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100168240",
+      "value": "objc_stub::commitDeferredModelMutationsForLayoutTransition"
+    },
+    {
+      "address": "0x1001684c0",
+      "value": "objc_stub::completeTransition:"
+    },
+    {
+      "address": "0x100168cc0",
+      "value": "objc_stub::containsFirstDayOfMonth"
+    },
+    {
+      "address": "0x10016a140",
+      "value": "objc_stub::dayNavigationCellShouldEnableSpringLoading"
+    },
+    {
+      "address": "0x10016a460",
+      "value": "objc_stub::dayNumberLayerYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x10016a7e0",
+      "value": "objc_stub::dayViewMonthLocation"
+    },
+    {
+      "address": "0x10016a880",
+      "value": "objc_stub::daysInMonth"
+    },
+    {
+      "address": "0x10016aba0",
+      "value": "objc_stub::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "0x10016b6a0",
+      "value": "objc_stub::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x10016b6c0",
+      "value": "objc_stub::dismissViewControllerWithoutEnqueuingWithTransition:completion:"
+    },
+    {
+      "address": "0x10016bf20",
+      "value": "objc_stub::durationForTransition:"
+    },
+    {
+      "address": "0x10016c500",
+      "value": "objc_stub::endAppearanceTransition"
+    },
+    {
+      "address": "0x10016dc80",
+      "value": "objc_stub::frameForDayCircleWithSize:dayNumberLayerFrame:dayNumberFrame:withOverlay:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x10016e9a0",
+      "value": "objc_stub::heightForViewThatContainsFirstDayOfMonth:compressed:scale:"
+    },
+    {
+      "address": "0x10016fa40",
+      "value": "objc_stub::initWithFrame:calendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10016ffa0",
+      "value": "objc_stub::initWithPresentingViewController:transition:completion:"
+    },
+    {
+      "address": "0x1001716c0",
+      "value": "objc_stub::isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x100171a80",
+      "value": "objc_stub::largeMonthWeekView:didDoubleTapOnDay:"
+    },
+    {
+      "address": "0x100171aa0",
+      "value": "objc_stub::largeMonthWeekView:didTapOccurrence:onDay:extendSelection:source:tappedSymbol:"
+    },
+    {
+      "address": "0x1001726e0",
+      "value": "objc_stub::magicTransitionWithFallback:"
+    },
+    {
+      "address": "0x100172f00",
+      "value": "objc_stub::monthDayNavigationTransitionViewClass"
+    },
+    {
+      "address": "0x100172f20",
+      "value": "objc_stub::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "0x100173040",
+      "value": "objc_stub::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x1001747e0",
+      "value": "objc_stub::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "0x100174e80",
+      "value": "objc_stub::pinchRecognizer"
+    },
+    {
+      "address": "0x100174ea0",
+      "value": "objc_stub::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100175000",
+      "value": "objc_stub::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1001752e0",
+      "value": "objc_stub::preferredPostTransitionViewFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x100175300",
+      "value": "objc_stub::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x100175520",
+      "value": "objc_stub::prepareForWindowLayoutTransitionFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x100175540",
+      "value": "objc_stub::prepareToChangeScaleFromPinch:"
+    },
+    {
+      "address": "0x100175560",
+      "value": "objc_stub::prepareTransitionScrubberWithSelectedDate:todayDate:dayViewController:monthViewController:paletteView:reverse:"
+    },
+    {
+      "address": "0x100175580",
+      "value": "objc_stub::prepareTransitionWithTopView:bottomView:allDayView:topLabelsContainer:"
+    },
+    {
+      "address": "0x1001756e0",
+      "value": "objc_stub::presentModalViewController:withTransition:"
+    },
+    {
+      "address": "0x100176520",
+      "value": "objc_stub::relayoutPinchView"
+    },
+    {
+      "address": "0x100176ac0",
+      "value": "objc_stub::replaceOffUpTransition"
+    },
+    {
+      "address": "0x100178a20",
+      "value": "objc_stub::setAnimatingViewTransition:"
+    },
+    {
+      "address": "0x10017a380",
+      "value": "objc_stub::setEditorHideTransition:"
+    },
+    {
+      "address": "0x10017a3a0",
+      "value": "objc_stub::setEditorShowTransition:"
+    },
+    {
+      "address": "0x10017a620",
+      "value": "objc_stub::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10017bae0",
+      "value": "objc_stub::setModalTransitionStyle:"
+    },
+    {
+      "address": "0x10017c600",
+      "value": "objc_stub::setPinchRecognizer:"
+    },
+    {
+      "address": "0x10017d3e0",
+      "value": "objc_stub::setSelectedDateChangesDelayedUntilAfterTransition:"
+    },
+    {
+      "address": "0x10017d440",
+      "value": "objc_stub::setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10017db60",
+      "value": "objc_stub::setShowsFirstDayOfMonthLabel:animated:"
+    },
+    {
+      "address": "0x10017dee0",
+      "value": "objc_stub::setSpringLoaded:"
+    },
+    {
+      "address": "0x10017e200",
+      "value": "objc_stub::setSymbolImage:withContentTransition:options:"
+    },
+    {
+      "address": "0x10017e7c0",
+      "value": "objc_stub::setTransitioningDelegate:"
+    },
+    {
+      "address": "0x10017ede0",
+      "value": "objc_stub::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x10017f580",
+      "value": "objc_stub::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x10017f5a0",
+      "value": "objc_stub::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x100180ce0",
+      "value": "objc_stub::springAnimateToEndStateWithTimingFunction:"
+    },
+    {
+      "address": "0x100180d00",
+      "value": "objc_stub::springAnimateToStartStateWithTimingFunction:"
+    },
+    {
+      "address": "0x100182800",
+      "value": "objc_stub::traitCollectionToUseWhileLoadingViewsDuringTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x1001828a0",
+      "value": "objc_stub::transitionCoordinator"
+    },
+    {
+      "address": "0x1001828c0",
+      "value": "objc_stub::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "0x1001828e0",
+      "value": "objc_stub::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x100182900",
+      "value": "objc_stub::transitionToSizeWillStart"
+    },
+    {
+      "address": "0x100182920",
+      "value": "objc_stub::transitionView"
+    },
+    {
+      "address": "0x100182940",
+      "value": "objc_stub::transitionWithByLayer"
+    },
+    {
+      "address": "0x100182960",
+      "value": "objc_stub::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "0x100183f20",
+      "value": "objc_stub::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001844c0",
+      "value": "objc_stub::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x100184de0",
+      "value": "objc_stub::willTransitionToSize"
+    },
+    {
+      "address": "0x10029d503",
+      "value": "CUIKDateStrings::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "0x10029d507",
+      "value": "CUIKDateStrings::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "0x10029e601",
+      "value": "CUIKViewConfiguration::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "0x10029fc0f",
+      "value": "EKCalendarDate::daysInMonth"
+    },
+    {
+      "address": "0x1002a3d02",
+      "value": "EKUIYearMonthView::roundedRectSizeForDayNumberString:"
+    },
+    {
+      "address": "0x1002a6f01",
+      "value": "NSSymbolReplaceContentTransition::replaceOffUpTransition"
+    },
+    {
+      "address": "0x1002a6f02",
+      "value": "NSSymbolReplaceContentTransition::transitionWithByLayer"
+    },
+    {
+      "address": "0x1002a6f03",
+      "value": "NSSymbolReplaceContentTransition::magicTransitionWithFallback:"
+    },
+    {
+      "address": "0x1002a8501",
+      "value": "SpringFactory::sharedFactory"
+    },
+    {
+      "address": "0x1002ab605",
+      "value": "UINavigationController::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "0x1002ab608",
+      "value": "UINavigationController::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x1002ab60d",
+      "value": "UINavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ab60e",
+      "value": "UINavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002add37",
+      "value": "UIView::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add3c",
+      "value": "UIView::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "0x1002add3d",
+      "value": "UIView::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add3e",
+      "value": "UIView::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add47",
+      "value": "UIView::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add52",
+      "value": "UIView::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "0x1002ade01",
+      "value": "UIViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ade03",
+      "value": "UIViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ade1c",
+      "value": "UIViewController::_performWithoutDeferringTransitions:"
+    }
+  ],
+  "normalized_result": [
+    {
+      "address": "EXTERNAL:0x1a9",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::_CUIKBirthdayMonthCalendarColor"
+    },
+    {
+      "address": "EXTERNAL:0x2d8",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_pinchDistanceForGestureRecognizer"
+    },
+    {
+      "address": "EXTERNAL:0x2de",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewAlpha"
+    },
+    {
+      "address": "EXTERNAL:0x2df",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewBounds"
+    },
+    {
+      "address": "EXTERNAL:0x2e0",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewFrame"
+    },
+    {
+      "address": "EXTERNAL:0x2e1",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimateViewPosition"
+    },
+    {
+      "address": "EXTERNAL:0x2e2",
+      "value": "/System/Library/Frameworks/EventKitUI.framework/EventKitUI::_springAnimationDuration"
+    },
+    {
+      "address": "EXTERNAL:0x711",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "EXTERNAL:0x716",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "EXTERNAL:0x7d6",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x7e2",
+      "value": "/System/Library/PrivateFrameworks/CalendarFoundation.framework/CalendarFoundation::daysInMonth"
+    },
+    {
+      "address": "EXTERNAL:0x804",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x829",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x82a",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x857",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "EXTERNAL:0x859",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x86e",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x892",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "EXTERNAL:0x896",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::replaceOffUpTransition"
+    },
+    {
+      "address": "EXTERNAL:0x897",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::transitionWithByLayer"
+    },
+    {
+      "address": "EXTERNAL:0x898",
+      "value": "/System/Library/Frameworks/Symbols.framework/Symbols::magicTransitionWithFallback:"
+    },
+    {
+      "address": "EXTERNAL:0x8d1",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "EXTERNAL:0x8e7",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "EXTERNAL:0x954",
+      "value": "/System/Library/PrivateFrameworks/CalendarUIKit.framework/CalendarUIKit::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "EXTERNAL:0x955",
+      "value": "/System/Library/Frameworks/UIKit.framework/UIKit::_performWithoutDeferringTransitions:"
+    },
+    {
+      "address": "0x100003ea4",
+      "value": "LargeMonthWeekView::updateToday"
+    },
+    {
+      "address": "0x1000040c0",
+      "value": "LargeMonthWeekView::frameForTodayHighlight"
+    },
+    {
+      "address": "0x1000044c8",
+      "value": "LargeMonthWeekView::setDayCount:"
+    },
+    {
+      "address": "0x100004500",
+      "value": "LargeMonthWeekView::dayCount"
+    },
+    {
+      "address": "0x100004510",
+      "value": "LargeMonthWeekView::setStartDate:endDate:dayCount:todayDay:reload:"
+    },
+    {
+      "address": "0x100004c98",
+      "value": "LargeMonthWeekView::_rebuildDayNumberLabels"
+    },
+    {
+      "address": "0x100005410",
+      "value": "LargeMonthWeekView::setShowsFirstDayOfMonthLabel:animated:"
+    },
+    {
+      "address": "0x100006344",
+      "value": "LargeMonthWeekView::_updateDayFrames"
+    },
+    {
+      "address": "0x1000071fc",
+      "value": "LargeMonthWeekView::dayFrames"
+    },
+    {
+      "address": "0x1000073dc",
+      "value": "LargeMonthWeekView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000074a4",
+      "value": "LargeMonthWeekView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x100007598",
+      "value": "LargeMonthWeekView::setHighlightedDayRange:"
+    },
+    {
+      "address": "0x100007e0c",
+      "value": "LargeMonthWeekView::weekdayLabels"
+    },
+    {
+      "address": "0x100007e1c",
+      "value": "LargeMonthWeekView::todayCircle"
+    },
+    {
+      "address": "0x100007e74",
+      "value": "LargeMonthWeekView::dayIndexForToday"
+    },
+    {
+      "address": "0x100007ecc",
+      "value": "LargeMonthWeekView::todayDay"
+    },
+    {
+      "address": "0x100007edc",
+      "value": "LargeMonthWeekView::setTodayDay:"
+    },
+    {
+      "address": "0x100007f0c",
+      "value": "LargeMonthWeekView::highlightedDayRange"
+    },
+    {
+      "address": "0x10000d9dc",
+      "value": "CompactDayNavigationViewCell::roundedRectHeightToMatchMonthView"
+    },
+    {
+      "address": "0x10000db2c",
+      "value": "CompactDayNavigationViewCell::initWithFrame:loadMonthAnimationState:hasOverlay:sizeClass:"
+    },
+    {
+      "address": "0x10000deb8",
+      "value": "CompactDayNavigationViewCell::_createMonthAnimationStateModeSubviews"
+    },
+    {
+      "address": "0x10000dff0",
+      "value": "CompactDayNavigationViewCell::setMonthAnimationState:"
+    },
+    {
+      "address": "0x10000e0a0",
+      "value": "CompactDayNavigationViewCell::monthAnimationState"
+    },
+    {
+      "address": "0x10000e0b0",
+      "value": "CompactDayNavigationViewCell::setApplyMonthAnimationStateAdjustments:"
+    },
+    {
+      "address": "0x10000e0d0",
+      "value": "CompactDayNavigationViewCell::applyMonthAnimationStateAdjustments"
+    },
+    {
+      "address": "0x10000e0e0",
+      "value": "CompactDayNavigationViewCell::_loadMonthAnimationStateOverlayIfNeeded"
+    },
+    {
+      "address": "0x10000e1b4",
+      "value": "CompactDayNavigationViewCell::_loadMonthAnimationStateBadgeIfNeeded"
+    },
+    {
+      "address": "0x10000e240",
+      "value": "CompactDayNavigationViewCell::_updateMonthAnimationStateBadgeToState:"
+    },
+    {
+      "address": "0x10000f22c",
+      "value": "CompactDayNavigationViewCell::setMatchesMonthView:"
+    },
+    {
+      "address": "0x10000f8d8",
+      "value": "CompactDayNavigationViewCell::_updateToMatchMonthViewIfNeeded"
+    },
+    {
+      "address": "0x10000fea4",
+      "value": "CompactDayNavigationViewCell::matchesMonthView"
+    },
+    {
+      "address": "0x100010b48",
+      "value": "MonthViewController::shouldPushNextLevelViewControllerWhenTodayIsVisible"
+    },
+    {
+      "address": "0x100010b7c",
+      "value": "MonthViewController::isTodayVisible"
+    },
+    {
+      "address": "0x100010b80",
+      "value": "MonthViewController::_isTodayCircleFrameFullyUnobstructed"
+    },
+    {
+      "address": "0x1000110f8",
+      "value": "MonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x1000120bc",
+      "value": "MonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10001660c",
+      "value": "WeekAllDayView::showOverlayMonthInCellAtOffset:animated:"
+    },
+    {
+      "address": "0x10001e07c",
+      "value": "MainWindowContentContainerViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10001e4c0",
+      "value": "MainWindowContentContainerViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002386c",
+      "value": "CompactDayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002490c",
+      "value": "CompactMonthListAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x100024918",
+      "value": "CompactMonthListAnimator::animateTransition:"
+    },
+    {
+      "address": "0x100026e94",
+      "value": "CompactMonthListAnimator::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x100026ea0",
+      "value": "CompactMonthListAnimator::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x100028c3c",
+      "value": "SplitViewWindowRootViewController::traitCollectionToUseWhileLoadingViewsDuringTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100028cac",
+      "value": "SplitViewWindowRootViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002a45c",
+      "value": "SplitViewWindowRootViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10002d16c",
+      "value": "SplitViewWindowRootViewController::_applyCustomScrollEdgeTransitionToViewController:"
+    },
+    {
+      "address": "0x100031ac0",
+      "value": "SplitViewWindowRootViewController::_recordJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100035ca8",
+      "value": "InboxViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100036a04",
+      "value": "DayNavigationViewCell::setOverlayShowsMonth:animated:"
+    },
+    {
+      "address": "0x10003e1f8",
+      "value": "YearMonthView::dayNumberFont"
+    },
+    {
+      "address": "0x10003e220",
+      "value": "YearMonthView::todayNumberFont"
+    },
+    {
+      "address": "0x10003e23c",
+      "value": "YearMonthView::dayTextSize"
+    },
+    {
+      "address": "0x10003e290",
+      "value": "YearMonthView::todayTextSize"
+    },
+    {
+      "address": "0x10003e294",
+      "value": "YearMonthView::dayNumberKerning"
+    },
+    {
+      "address": "0x10003e2f0",
+      "value": "YearMonthView::todayNumberKerning"
+    },
+    {
+      "address": "0x10003e404",
+      "value": "YearMonthView::daysXAdjustLeft"
+    },
+    {
+      "address": "0x10003e444",
+      "value": "YearMonthView::daysYAdjustTop"
+    },
+    {
+      "address": "0x10003e49c",
+      "value": "YearMonthView::showWeekDayInitials"
+    },
+    {
+      "address": "0x10003e508",
+      "value": "YearMonthView::weekDayInitialsFont"
+    },
+    {
+      "address": "0x10003e584",
+      "value": "YearMonthView::weekDayInitialsAdjustLeft"
+    },
+    {
+      "address": "0x10003e588",
+      "value": "YearMonthView::weekDayInitialsAdjustTop"
+    },
+    {
+      "address": "0x10003e5e0",
+      "value": "YearMonthView::roundedRectSizeForDayNumberString:"
+    },
+    {
+      "address": "0x10003e6fc",
+      "value": "YearMonthView::frameForGridOfDays"
+    },
+    {
+      "address": "0x10003f270",
+      "value": "MonthViewContainerViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000435dc",
+      "value": "MainViewControllerContainer::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100044bcc",
+      "value": "MainViewControllerContainer::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x100045ff0",
+      "value": "MainViewControllerContainer::animatingViewTransition"
+    },
+    {
+      "address": "0x100046000",
+      "value": "MainViewControllerContainer::setAnimatingViewTransition:"
+    },
+    {
+      "address": "0x100046e98",
+      "value": "InfiniteScrollViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100046ea0",
+      "value": "InfiniteScrollViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10004bb6c",
+      "value": "PhoneDayToMonthAnimationTest::notificationName"
+    },
+    {
+      "address": "0x10004bb7c",
+      "value": "PhoneDayToMonthAnimationTest::setUp"
+    },
+    {
+      "address": "0x10004bc68",
+      "value": "PhoneDayToMonthAnimationTest::kickOffAnimation"
+    },
+    {
+      "address": "0x10004bcac",
+      "value": "PhoneDayToMonthAnimationTest::.cxx_destruct"
+    },
+    {
+      "address": "0x10004f0c0",
+      "value": "MonthWeekOccurrencesView::setStartDate:endDate:dayCount:"
+    },
+    {
+      "address": "0x10004f7d0",
+      "value": "MonthWeekOccurrencesView::firstOccurrencesForEachDay"
+    },
+    {
+      "address": "0x10004f9d8",
+      "value": "MonthWeekOccurrencesView::secondAndThirdOccurrencesForEachDay"
+    },
+    {
+      "address": "0x10004fb10",
+      "value": "MonthWeekOccurrencesView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x10004fcc4",
+      "value": "MonthWeekOccurrencesView::frameForLastOccurrenceOnDay:"
+    },
+    {
+      "address": "0x10005006c",
+      "value": "MonthWeekOccurrencesView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x100050218",
+      "value": "MonthWeekOccurrencesView::occurrenceViewForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000502ec",
+      "value": "MonthWeekOccurrencesView::_frameForStartColumn:endColumn:dayRow:occurrenceRow:numRows:"
+    },
+    {
+      "address": "0x100050424",
+      "value": "MonthWeekOccurrencesView::setDayFrames:"
+    },
+    {
+      "address": "0x100051030",
+      "value": "MonthWeekOccurrencesView::_dayRangeForOccurrence:useProposedTime:isMultiDay:"
+    },
+    {
+      "address": "0x1000520f0",
+      "value": "MonthWeekOccurrencesView::_dayTypeForOccurrence:"
+    },
+    {
+      "address": "0x1000521a4",
+      "value": "MonthWeekOccurrencesView::firstNonAllDayEvent"
+    },
+    {
+      "address": "0x100052240",
+      "value": "MonthWeekOccurrencesView::dayTypesFromOccurrences"
+    },
+    {
+      "address": "0x100052250",
+      "value": "MonthWeekOccurrencesView::dayBadgeColorsFromOccurrences"
+    },
+    {
+      "address": "0x100052260",
+      "value": "MonthWeekOccurrencesView::dayBadgeLocalesFromOccurrences"
+    },
+    {
+      "address": "0x100054a18",
+      "value": "MonthWeekOccurrencesView::dayCount"
+    },
+    {
+      "address": "0x100054a28",
+      "value": "MonthWeekOccurrencesView::setDayCount:"
+    },
+    {
+      "address": "0x1000565fc",
+      "value": "LargeMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100056604",
+      "value": "LargeMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100057590",
+      "value": "LargeMonthViewController::_updateDayHeaderFrames"
+    },
+    {
+      "address": "0x100058274",
+      "value": "LargeMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x100059148",
+      "value": "LargeMonthViewController::largeMonthWeekView:didTapOccurrence:onDay:extendSelection:source:tappedSymbol:"
+    },
+    {
+      "address": "0x100059584",
+      "value": "LargeMonthViewController::largeMonthWeekView:didDoubleTapOnDay:"
+    },
+    {
+      "address": "0x10005a214",
+      "value": "LargeMonthViewController::_showEventDetailsForOccurrence:inWeek:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10005a240",
+      "value": "LargeMonthViewController::_showEventDetailsForOccurrence:inWeek:onDay:animatedScrollToVisible:showMode:context:creationMethod:"
+    },
+    {
+      "address": "0x10005a71c",
+      "value": "LargeMonthViewController::_highlightOccurrenceForPointerTarget:inWeek:onDay:"
+    },
+    {
+      "address": "0x10005bc50",
+      "value": "LargeMonthViewController::editorShowTransition"
+    },
+    {
+      "address": "0x10005bc58",
+      "value": "LargeMonthViewController::editorHideTransition"
+    },
+    {
+      "address": "0x10005ceb4",
+      "value": "LargeMonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10005d3b4",
+      "value": "CompactDividedMonthMultiDayAnimator::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x100064728",
+      "value": "CompactMonthWeekDayOverlay::_attributes"
+    },
+    {
+      "address": "0x1000647c8",
+      "value": "CompactMonthWeekDayOverlay::_generateImageForString:isWeekend:underlineThickness:fontSize:style:"
+    },
+    {
+      "address": "0x100064a54",
+      "value": "CompactMonthWeekDayOverlay::_cachedImageForString:isWeekend:underlineThickness:fontSize:style:"
+    },
+    {
+      "address": "0x100064b8c",
+      "value": "CompactMonthWeekDayOverlay::setDate:"
+    },
+    {
+      "address": "0x100064bc0",
+      "value": "CompactMonthWeekDayOverlay::update"
+    },
+    {
+      "address": "0x100064f78",
+      "value": "CompactMonthWeekDayOverlay::date"
+    },
+    {
+      "address": "0x100064f88",
+      "value": "CompactMonthWeekDayOverlay::fontSize"
+    },
+    {
+      "address": "0x100064f98",
+      "value": "CompactMonthWeekDayOverlay::setFontSize:"
+    },
+    {
+      "address": "0x100064fa8",
+      "value": "CompactMonthWeekDayOverlay::.cxx_destruct"
+    },
+    {
+      "address": "0x100064fbc",
+      "value": "DividedMonthDayTransitionView::dividedMonthPaletteBackgroundColor"
+    },
+    {
+      "address": "0x100064fc0",
+      "value": "DividedMonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x1000661a8",
+      "value": "DividedMonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x1000673f8",
+      "value": "DividedMonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x10006748c",
+      "value": "DividedMonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x10006749c",
+      "value": "DividedMonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x1000674a8",
+      "value": "DividedMonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x100069a30",
+      "value": "MultiDayWeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100077078",
+      "value": "WeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100077f84",
+      "value": "WeekViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10007cdcc",
+      "value": "WeekViewController::_weekScrollerPinched:"
+    },
+    {
+      "address": "0x100085770",
+      "value": "CompactWidthMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100085e40",
+      "value": "CompactWidthMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10008629c",
+      "value": "CompactWidthMonthViewController::weekViewForDayHeaderMeasurement"
+    },
+    {
+      "address": "0x1000862f0",
+      "value": "CompactWidthMonthViewController::relayoutPinchView"
+    },
+    {
+      "address": "0x100086460",
+      "value": "CompactWidthMonthViewController::prepareToChangeScaleFromPinch:"
+    },
+    {
+      "address": "0x100086908",
+      "value": "CompactWidthMonthViewController::applySizeToPinchView:compressed:snapToBoundary:"
+    },
+    {
+      "address": "0x100087cf8",
+      "value": "CompactWidthMonthViewController::_monthScrollerPinched:"
+    },
+    {
+      "address": "0x100088620",
+      "value": "CompactWidthMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100089e98",
+      "value": "CompactWidthMonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10008a178",
+      "value": "CompactWidthMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10008a2ac",
+      "value": "CompactWidthMonthViewController::_isTodayHighlightVisible"
+    },
+    {
+      "address": "0x10008a370",
+      "value": "CompactWidthMonthViewController::isTodayVisible"
+    },
+    {
+      "address": "0x10008a3a4",
+      "value": "CompactWidthMonthViewController::_isTodayCircleFrameFullyUnobstructed"
+    },
+    {
+      "address": "0x10008a6c4",
+      "value": "CompactWidthMonthViewController::pushedDayViewControllerWithDate:animated:"
+    },
+    {
+      "address": "0x10008a768",
+      "value": "CompactWidthMonthViewController::pushedMultiDayViewControllerWithDate:animated:"
+    },
+    {
+      "address": "0x10008a8b0",
+      "value": "CompactWidthMonthViewController::drillIntoDayWithDate:animated:"
+    },
+    {
+      "address": "0x10008b174",
+      "value": "CompactWidthMonthViewController::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x10008b17c",
+      "value": "CompactWidthMonthViewController::numberOfTapsRequiredForDayCellGesture"
+    },
+    {
+      "address": "0x10008c1bc",
+      "value": "CompactWidthMonthViewController::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10008c24c",
+      "value": "CompactWidthMonthViewController::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10008c5d4",
+      "value": "CompactWidthMonthViewController::setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10008cfb0",
+      "value": "CompactWidthMonthViewController::_dayIndexesForRangeStart:rangeEnd:outFirstDayIndex:outLastDayIndex:"
+    },
+    {
+      "address": "0x10008f0ac",
+      "value": "CompactWidthMonthViewController::_snapshotViewForDividedListTransition:useFastPath:"
+    },
+    {
+      "address": "0x10008fcd0",
+      "value": "CompactWidthMonthViewController::showDetailsForDraggedOccurrence:inWeekView:onDay:creationMethod:"
+    },
+    {
+      "address": "0x10008fe74",
+      "value": "CompactWidthMonthViewController::dayCellsScrubbingGestureRecognizer"
+    },
+    {
+      "address": "0x10008fe84",
+      "value": "CompactWidthMonthViewController::setDayCellsScrubbingGestureRecognizer:"
+    },
+    {
+      "address": "0x10008fe98",
+      "value": "CompactWidthMonthViewController::dayCellsTapGestureRecognizer"
+    },
+    {
+      "address": "0x10008fea8",
+      "value": "CompactWidthMonthViewController::setDayCellsTapGestureRecognizer:"
+    },
+    {
+      "address": "0x10008febc",
+      "value": "CompactWidthMonthViewController::pinchRecognizer"
+    },
+    {
+      "address": "0x10008fecc",
+      "value": "CompactWidthMonthViewController::setPinchRecognizer:"
+    },
+    {
+      "address": "0x100090164",
+      "value": "YearMonthAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x1000901a0",
+      "value": "YearMonthAnimator::animateTransition:"
+    },
+    {
+      "address": "0x100090850",
+      "value": "YearMonthAnimator::transitionView"
+    },
+    {
+      "address": "0x100090858",
+      "value": "YearMonthAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x100098d70",
+      "value": "DismissPresentedViewControllerOperation::initWithPresentingViewController:transition:completion:"
+    },
+    {
+      "address": "0x100099f14",
+      "value": "CompactYearViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100099f1c",
+      "value": "CompactYearViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10009a168",
+      "value": "CompactYearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x10009a27c",
+      "value": "MonthDayTransitionView::monthDayNavigationTransitionViewClass"
+    },
+    {
+      "address": "0x10009a288",
+      "value": "MonthDayTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x10009a2d8",
+      "value": "MonthDayTransitionView::_createViews"
+    },
+    {
+      "address": "0x10009a394",
+      "value": "MonthDayTransitionView::weekDayInitialsDay"
+    },
+    {
+      "address": "0x10009a3ac",
+      "value": "MonthDayTransitionView::setWeekDayInitialsDay:"
+    },
+    {
+      "address": "0x10009a3c4",
+      "value": "MonthDayTransitionView::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x10009a3dc",
+      "value": "MonthDayTransitionView::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x10009a3f4",
+      "value": "MonthDayTransitionView::animationDuration"
+    },
+    {
+      "address": "0x10009a424",
+      "value": "MonthDayTransitionView::prepareTransitionWithTopView:bottomView:allDayView:topLabelsContainer:"
+    },
+    {
+      "address": "0x10009a4cc",
+      "value": "MonthDayTransitionView::prepareTransitionScrubberWithSelectedDate:todayDate:dayViewController:monthViewController:paletteView:reverse:"
+    },
+    {
+      "address": "0x10009b6f4",
+      "value": "MonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x10009be0c",
+      "value": "MonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x10009c590",
+      "value": "MonthDayTransitionView::_topExtensionHeight"
+    },
+    {
+      "address": "0x10009c5ac",
+      "value": "MonthDayTransitionView::_haltAnimations"
+    },
+    {
+      "address": "0x10009c66c",
+      "value": "MonthDayTransitionView::_animateView:toPosition:setDelegate:"
+    },
+    {
+      "address": "0x10009c6b4",
+      "value": "MonthDayTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x10009c6d4",
+      "value": "MonthDayTransitionView::_animateView:toAlpha:delay:"
+    },
+    {
+      "address": "0x10009c7d8",
+      "value": "MonthDayTransitionView::_basicAnimateView:toAlpha:duration:"
+    },
+    {
+      "address": "0x10009c8e4",
+      "value": "MonthDayTransitionView::animationDidStart:"
+    },
+    {
+      "address": "0x10009c8e8",
+      "value": "MonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x10009caa0",
+      "value": "MonthDayTransitionView::animating"
+    },
+    {
+      "address": "0x10009cab0",
+      "value": "MonthDayTransitionView::setAnimating:"
+    },
+    {
+      "address": "0x10009cac0",
+      "value": "MonthDayTransitionView::dividedMonthView"
+    },
+    {
+      "address": "0x10009cad0",
+      "value": "MonthDayTransitionView::setDividedMonthView:"
+    },
+    {
+      "address": "0x10009cae0",
+      "value": "MonthDayTransitionView::selectedDate"
+    },
+    {
+      "address": "0x10009caf0",
+      "value": "MonthDayTransitionView::setSelectedDate:"
+    },
+    {
+      "address": "0x10009cb04",
+      "value": "MonthDayTransitionView::topView"
+    },
+    {
+      "address": "0x10009cb14",
+      "value": "MonthDayTransitionView::setTopView:"
+    },
+    {
+      "address": "0x10009cb28",
+      "value": "MonthDayTransitionView::bottomView"
+    },
+    {
+      "address": "0x10009cb38",
+      "value": "MonthDayTransitionView::setBottomView:"
+    },
+    {
+      "address": "0x10009cb4c",
+      "value": "MonthDayTransitionView::scrubber"
+    },
+    {
+      "address": "0x10009cb5c",
+      "value": "MonthDayTransitionView::setScrubber:"
+    },
+    {
+      "address": "0x10009cb70",
+      "value": "MonthDayTransitionView::dayScrubberFrame"
+    },
+    {
+      "address": "0x10009cb88",
+      "value": "MonthDayTransitionView::setDayScrubberFrame:"
+    },
+    {
+      "address": "0x10009cba0",
+      "value": "MonthDayTransitionView::dayCellSize"
+    },
+    {
+      "address": "0x10009cbb4",
+      "value": "MonthDayTransitionView::setDayCellSize:"
+    },
+    {
+      "address": "0x10009cbc8",
+      "value": "MonthDayTransitionView::monthScrubberFrame"
+    },
+    {
+      "address": "0x10009cbe0",
+      "value": "MonthDayTransitionView::setMonthScrubberFrame:"
+    },
+    {
+      "address": "0x10009cbf8",
+      "value": "MonthDayTransitionView::monthViewController"
+    },
+    {
+      "address": "0x10009cc08",
+      "value": "MonthDayTransitionView::setMonthViewController:"
+    },
+    {
+      "address": "0x10009cc1c",
+      "value": "MonthDayTransitionView::paletteView"
+    },
+    {
+      "address": "0x10009cc2c",
+      "value": "MonthDayTransitionView::setPaletteView:"
+    },
+    {
+      "address": "0x10009cc40",
+      "value": "MonthDayTransitionView::allDayView"
+    },
+    {
+      "address": "0x10009cc50",
+      "value": "MonthDayTransitionView::setAllDayView:"
+    },
+    {
+      "address": "0x10009cc64",
+      "value": "MonthDayTransitionView::topLabelsContainer"
+    },
+    {
+      "address": "0x10009cc74",
+      "value": "MonthDayTransitionView::setTopLabelsContainer:"
+    },
+    {
+      "address": "0x10009cc88",
+      "value": "MonthDayTransitionView::dayViewDayLocation"
+    },
+    {
+      "address": "0x10009cc9c",
+      "value": "MonthDayTransitionView::setDayViewDayLocation:"
+    },
+    {
+      "address": "0x10009ccb0",
+      "value": "MonthDayTransitionView::dayViewMonthLocation"
+    },
+    {
+      "address": "0x10009ccc4",
+      "value": "MonthDayTransitionView::setDayViewMonthLocation:"
+    },
+    {
+      "address": "0x10009ccd8",
+      "value": "MonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x10009cce8",
+      "value": "MonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x10009ccf4",
+      "value": "MonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x10009fa64",
+      "value": "EnqueueableManagedNavigationController::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x10009fbe8",
+      "value": "EnqueueableManagedNavigationController::dismissViewControllerWithoutEnqueuingWithTransition:completion:"
+    },
+    {
+      "address": "0x1000aa8d0",
+      "value": "RootNavigationController::presentModalViewController:withTransition:"
+    },
+    {
+      "address": "0x1000af01c",
+      "value": "RootNavigationController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000af0d4",
+      "value": "RootNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000af39c",
+      "value": "RootNavigationController::_performCustomRotationAnimationForMainWindowWithTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000afa44",
+      "value": "RootNavigationController::prepareForWindowLayoutTransitionFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x1000afc74",
+      "value": "RootNavigationController::commitDeferredModelMutationsForLayoutTransition"
+    },
+    {
+      "address": "0x1000afdc4",
+      "value": "RootNavigationController::applyPendingLayoutTransitionIfNeeded"
+    },
+    {
+      "address": "0x1000affb0",
+      "value": "RootNavigationController::clearPendingLayoutTransition"
+    },
+    {
+      "address": "0x1000affb4",
+      "value": "RootNavigationController::_resetLayoutTransitionState"
+    },
+    {
+      "address": "0x1000b00d4",
+      "value": "RootNavigationController::preferredPostTransitionViewFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x1000b0248",
+      "value": "RootNavigationController::_canSkipViewHierarchyRebuildingWhenTransitioningFromOldCollection:toNewCollection:"
+    },
+    {
+      "address": "0x1000b02c8",
+      "value": "RootNavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000b0d70",
+      "value": "RootNavigationController::_setNavigationStackOfMainViewControllersForTraitsTransitionFromTraitCollection:toNewTraitCollection:withPreTransitionViewType:withPreferredPostTransitionViewType:"
+    },
+    {
+      "address": "0x1000b7e90",
+      "value": "RootNavigationController::isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x1000b7f98",
+      "value": "RootNavigationController::todayButtonDayOfMonth"
+    },
+    {
+      "address": "0x1000b7fa8",
+      "value": "RootNavigationController::setTodayButtonDayOfMonth:"
+    },
+    {
+      "address": "0x1000b8548",
+      "value": "CompactDividedMonthDayAnimator::monthDayTransitionViewClass"
+    },
+    {
+      "address": "0x1000b8580",
+      "value": "CompactMonthMultiDayAnimator::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x1000b858c",
+      "value": "CompactMonthMultiDayAnimator::initWithModel:paletteView:reverse:"
+    },
+    {
+      "address": "0x1000b8658",
+      "value": "CompactMonthMultiDayAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x1000b8694",
+      "value": "CompactMonthMultiDayAnimator::animateTransition:"
+    },
+    {
+      "address": "0x1000b8bf4",
+      "value": "CompactMonthMultiDayAnimator::model"
+    },
+    {
+      "address": "0x1000b8bfc",
+      "value": "CompactMonthMultiDayAnimator::setModel:"
+    },
+    {
+      "address": "0x1000b8c08",
+      "value": "CompactMonthMultiDayAnimator::reverse"
+    },
+    {
+      "address": "0x1000b8c10",
+      "value": "CompactMonthMultiDayAnimator::setReverse:"
+    },
+    {
+      "address": "0x1000b8c18",
+      "value": "CompactMonthMultiDayAnimator::transitionView"
+    },
+    {
+      "address": "0x1000b8c20",
+      "value": "CompactMonthMultiDayAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x1000b8c2c",
+      "value": "CompactMonthMultiDayAnimator::paletteView"
+    },
+    {
+      "address": "0x1000b8c34",
+      "value": "CompactMonthMultiDayAnimator::setPaletteView:"
+    },
+    {
+      "address": "0x1000b8c40",
+      "value": "CompactMonthMultiDayAnimator::.cxx_destruct"
+    },
+    {
+      "address": "0x1000b8c7c",
+      "value": "CompactMonthWeekTodayCircle::initWithCalendarDate:"
+    },
+    {
+      "address": "0x1000b8e68",
+      "value": "CompactMonthWeekTodayCircle::circleDiameter"
+    },
+    {
+      "address": "0x1000b8e74",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterCompressed"
+    },
+    {
+      "address": "0x1000b8e7c",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterExpandedFormatForFontSize:"
+    },
+    {
+      "address": "0x1000b8f60",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterWithOverlay"
+    },
+    {
+      "address": "0x1000b8f64",
+      "value": "CompactMonthWeekTodayCircle::circleDiameterWithOverlayLarge"
+    },
+    {
+      "address": "0x1000b8f70",
+      "value": "CompactMonthWeekTodayCircle::roundedRectHeightWithOverlay:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b8f9c",
+      "value": "CompactMonthWeekTodayCircle::roundedRectSizeForNumberString:overlayString:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b9168",
+      "value": "CompactMonthWeekTodayCircle::dayNumberString"
+    },
+    {
+      "address": "0x1000b9178",
+      "value": "CompactMonthWeekTodayCircle::overlayString"
+    },
+    {
+      "address": "0x1000b9188",
+      "value": "CompactMonthWeekTodayCircle::dayNumberFrame"
+    },
+    {
+      "address": "0x1000b9198",
+      "value": "CompactMonthWeekTodayCircle::topOffset"
+    },
+    {
+      "address": "0x1000b91a0",
+      "value": "CompactMonthWeekTodayCircle::sizeThatFits:"
+    },
+    {
+      "address": "0x1000b9320",
+      "value": "CompactMonthWeekTodayCircle::setUseTodayColors:"
+    },
+    {
+      "address": "0x1000b9390",
+      "value": "CompactMonthWeekTodayCircle::setFontOverride:"
+    },
+    {
+      "address": "0x1000b941c",
+      "value": "CompactMonthWeekTodayCircle::setDrawCircle:"
+    },
+    {
+      "address": "0x1000b945c",
+      "value": "CompactMonthWeekTodayCircle::setShowOverlay:"
+    },
+    {
+      "address": "0x1000b95bc",
+      "value": "CompactMonthWeekTodayCircle::updateOverlay"
+    },
+    {
+      "address": "0x1000b9670",
+      "value": "CompactMonthWeekTodayCircle::setNonTodayColor:"
+    },
+    {
+      "address": "0x1000b96a4",
+      "value": "CompactMonthWeekTodayCircle::setFontSize:"
+    },
+    {
+      "address": "0x1000b9718",
+      "value": "CompactMonthWeekTodayCircle::setOverlayFontSize:"
+    },
+    {
+      "address": "0x1000b97b0",
+      "value": "CompactMonthWeekTodayCircle::_updateTextColor"
+    },
+    {
+      "address": "0x1000b98a4",
+      "value": "CompactMonthWeekTodayCircle::_dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000b9954",
+      "value": "CompactMonthWeekTodayCircle::dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000b996c",
+      "value": "CompactMonthWeekTodayCircle::dayOverlayFontForSize:"
+    },
+    {
+      "address": "0x1000b9984",
+      "value": "CompactMonthWeekTodayCircle::roundedRectDayNumberBaselineOffsetWithOverlay:fontSize:overlayFontSize:"
+    },
+    {
+      "address": "0x1000b9b48",
+      "value": "CompactMonthWeekTodayCircle::layoutSubviews"
+    },
+    {
+      "address": "0x1000b9d90",
+      "value": "CompactMonthWeekTodayCircle::backgroundColor"
+    },
+    {
+      "address": "0x1000b9d9c",
+      "value": "CompactMonthWeekTodayCircle::drawRect:"
+    },
+    {
+      "address": "0x1000b9ec8",
+      "value": "CompactMonthWeekTodayCircle::compressed"
+    },
+    {
+      "address": "0x1000b9ed8",
+      "value": "CompactMonthWeekTodayCircle::setCompressed:"
+    },
+    {
+      "address": "0x1000b9ee8",
+      "value": "CompactMonthWeekTodayCircle::expandedFormat"
+    },
+    {
+      "address": "0x1000b9ef8",
+      "value": "CompactMonthWeekTodayCircle::setExpandedFormat:"
+    },
+    {
+      "address": "0x1000b9f08",
+      "value": "CompactMonthWeekTodayCircle::drawCircle"
+    },
+    {
+      "address": "0x1000b9f18",
+      "value": "CompactMonthWeekTodayCircle::useTodayColors"
+    },
+    {
+      "address": "0x1000b9f28",
+      "value": "CompactMonthWeekTodayCircle::showOverlay"
+    },
+    {
+      "address": "0x1000b9f38",
+      "value": "CompactMonthWeekTodayCircle::nonTodayColor"
+    },
+    {
+      "address": "0x1000b9f48",
+      "value": "CompactMonthWeekTodayCircle::nonTodayCircleColor"
+    },
+    {
+      "address": "0x1000b9f58",
+      "value": "CompactMonthWeekTodayCircle::setNonTodayCircleColor:"
+    },
+    {
+      "address": "0x1000b9f6c",
+      "value": "CompactMonthWeekTodayCircle::fontOverride"
+    },
+    {
+      "address": "0x1000b9f7c",
+      "value": "CompactMonthWeekTodayCircle::fontSize"
+    },
+    {
+      "address": "0x1000b9f8c",
+      "value": "CompactMonthWeekTodayCircle::overlayFontSize"
+    },
+    {
+      "address": "0x1000b9f9c",
+      "value": "CompactMonthWeekTodayCircle::usesRoundedRectInsteadOfCircle"
+    },
+    {
+      "address": "0x1000b9fac",
+      "value": "CompactMonthWeekTodayCircle::setUsesRoundedRectInsteadOfCircle:"
+    },
+    {
+      "address": "0x1000b9fbc",
+      "value": "CompactMonthWeekTodayCircle::.cxx_destruct"
+    },
+    {
+      "address": "0x1000baf6c",
+      "value": "InboxSwitcherViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000baf74",
+      "value": "InboxSwitcherViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000bbc80",
+      "value": "CompactMonthWeekDayData::dayDataWithEventCount:dayType:"
+    },
+    {
+      "address": "0x1000bbcd0",
+      "value": "CompactMonthWeekDayData::eventCount"
+    },
+    {
+      "address": "0x1000bbcd8",
+      "value": "CompactMonthWeekDayData::setEventCount:"
+    },
+    {
+      "address": "0x1000bbce0",
+      "value": "CompactMonthWeekDayData::dayType"
+    },
+    {
+      "address": "0x1000bbce8",
+      "value": "CompactMonthWeekDayData::setDayType:"
+    },
+    {
+      "address": "0x1000bbcf0",
+      "value": "CompactMonthWeekDayData::dayTypeBadgeColor"
+    },
+    {
+      "address": "0x1000bbcf8",
+      "value": "CompactMonthWeekDayData::setDayTypeBadgeColor:"
+    },
+    {
+      "address": "0x1000bbd04",
+      "value": "CompactMonthWeekDayData::dayTypeBadgeLocale"
+    },
+    {
+      "address": "0x1000bbd0c",
+      "value": "CompactMonthWeekDayData::setDayTypeBadgeLocale:"
+    },
+    {
+      "address": "0x1000bbd18",
+      "value": "CompactMonthWeekDayData::eventSummaryData"
+    },
+    {
+      "address": "0x1000bbd20",
+      "value": "CompactMonthWeekDayData::setEventSummaryData:"
+    },
+    {
+      "address": "0x1000bbd2c",
+      "value": "CompactMonthWeekDayData::.cxx_destruct"
+    },
+    {
+      "address": "0x1000bc478",
+      "value": "CompactMonthWeekView::_initializeDays"
+    },
+    {
+      "address": "0x1000bc5fc",
+      "value": "CompactMonthWeekView::_initializeDaySummaries"
+    },
+    {
+      "address": "0x1000bc6ac",
+      "value": "CompactMonthWeekView::_updateDayFrames"
+    },
+    {
+      "address": "0x1000bcbf0",
+      "value": "CompactMonthWeekView::dayNumberLayerYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bcdb4",
+      "value": "CompactMonthWeekView::circleYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd024",
+      "value": "CompactMonthWeekView::distanceToBottomOfCircleCompressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd064",
+      "value": "CompactMonthWeekView::heightForViewThatContainsFirstDayOfMonth:compressed:scale:"
+    },
+    {
+      "address": "0x1000bd388",
+      "value": "CompactMonthWeekView::_roundedRectOriginForDayLayerFrame:roundedRectSize:withOverlay:compressed:"
+    },
+    {
+      "address": "0x1000bd474",
+      "value": "CompactMonthWeekView::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd4d8",
+      "value": "CompactMonthWeekView::frameForDayCircleWithSize:dayNumberLayerFrame:dayNumberFrame:withOverlay:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000bd5a4",
+      "value": "CompactMonthWeekView::_circleFrameWithDayFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd6a4",
+      "value": "CompactMonthWeekView::_roundedRectFrameWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:"
+    },
+    {
+      "address": "0x1000bd798",
+      "value": "CompactMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x1000bd958",
+      "value": "CompactMonthWeekView::dayTypeBadgeDiameter:"
+    },
+    {
+      "address": "0x1000bdb48",
+      "value": "CompactMonthWeekView::hideDaySummariesWithScale:"
+    },
+    {
+      "address": "0x1000c0260",
+      "value": "CompactMonthWeekView::pulseTodayCircle"
+    },
+    {
+      "address": "0x1000c0510",
+      "value": "CompactMonthWeekView::haltTodayPulse"
+    },
+    {
+      "address": "0x1000c0974",
+      "value": "CompactMonthWeekView::containsFirstDayOfMonth"
+    },
+    {
+      "address": "0x1000c0984",
+      "value": "CompactMonthWeekView::daysInMonth"
+    },
+    {
+      "address": "0x1000c0a0c",
+      "value": "CompactMonthWeekView::isTodayHighlightVisible"
+    },
+    {
+      "address": "0x1000c0a4c",
+      "value": "CompactMonthWeekView::frameForTodayHighlight"
+    },
+    {
+      "address": "0x1000c0acc",
+      "value": "CompactMonthWeekView::dayNumberCellFrames"
+    },
+    {
+      "address": "0x1000c0bac",
+      "value": "CompactMonthWeekView::days"
+    },
+    {
+      "address": "0x1000c0bbc",
+      "value": "CompactMonthWeekView::dayForPoint:"
+    },
+    {
+      "address": "0x1000c0e44",
+      "value": "CompactMonthWeekView::adjustHighlight:forDay:"
+    },
+    {
+      "address": "0x1000c1998",
+      "value": "CompactMonthWeekView::makeDayCircleForDate:isToday:"
+    },
+    {
+      "address": "0x1000c1ad8",
+      "value": "CompactMonthWeekView::resetTodayBits"
+    },
+    {
+      "address": "0x1000c1e90",
+      "value": "CompactMonthWeekView::_clearTodayHighlight"
+    },
+    {
+      "address": "0x1000c2568",
+      "value": "CompactMonthWeekView::setSelectedDay:animated:"
+    },
+    {
+      "address": "0x1000c2d70",
+      "value": "CompactMonthWeekView::visibleDaySummaryViews"
+    },
+    {
+      "address": "0x1000c2ef8",
+      "value": "CompactMonthWeekView::dayNumberFontSize:"
+    },
+    {
+      "address": "0x1000c2ffc",
+      "value": "CompactMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x1000c30b8",
+      "value": "CompactMonthWeekView::_updateSingleDaySummaryForDayIndex:withData:date:calendar:"
+    },
+    {
+      "address": "0x1000c31c4",
+      "value": "CompactMonthWeekView::dayTypeBadgeBackgroundColorForVerticallyCompressedMode:"
+    },
+    {
+      "address": "0x1000c32bc",
+      "value": "CompactMonthWeekView::_updateDayTypeBadgeForDayNumber:withDayType:color:locale:forceImageUpdate:"
+    },
+    {
+      "address": "0x1000c353c",
+      "value": "CompactMonthWeekView::_forceReloadImagesForDayTypeBadges"
+    },
+    {
+      "address": "0x1000c3780",
+      "value": "CompactMonthWeekView::_updateDayTypeBadgesWithBackgroundColor"
+    },
+    {
+      "address": "0x1000c3890",
+      "value": "CompactMonthWeekView::_layoutDayTypeBadgeForDayNumber:yOffset:"
+    },
+    {
+      "address": "0x1000c3a00",
+      "value": "CompactMonthWeekView::dayTypeBadgeFrameFromDayNumberFrame:compressed:"
+    },
+    {
+      "address": "0x1000c3aa8",
+      "value": "CompactMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:"
+    },
+    {
+      "address": "0x1000c48f0",
+      "value": "CompactMonthWeekView::_viewForCalendarDateContainsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1000c4c18",
+      "value": "CompactMonthWeekView::_daysInAWeek"
+    },
+    {
+      "address": "0x1000c4df0",
+      "value": "CompactMonthWeekView::frameForOccurrence:onDay:"
+    },
+    {
+      "address": "0x1000c4eb8",
+      "value": "CompactMonthWeekView::frameForOccurrenceAfterLastOnDay:"
+    },
+    {
+      "address": "0x1000c4f90",
+      "value": "CompactMonthWeekView::setHighlightedDayRange:"
+    },
+    {
+      "address": "0x1000c578c",
+      "value": "CompactMonthWeekView::disableTodayPulse"
+    },
+    {
+      "address": "0x1000c579c",
+      "value": "CompactMonthWeekView::setDisableTodayPulse:"
+    },
+    {
+      "address": "0x1000c5830",
+      "value": "CompactMonthWeekView::dayBadgeColor"
+    },
+    {
+      "address": "0x1000c5840",
+      "value": "CompactMonthWeekView::setDayBadgeColor:"
+    },
+    {
+      "address": "0x1000c7884",
+      "value": "CompactMonthWeekDayNumber::initWithWeekView:andCalendar:"
+    },
+    {
+      "address": "0x1000c79c4",
+      "value": "CompactMonthWeekDayNumber::init"
+    },
+    {
+      "address": "0x1000c7a50",
+      "value": "CompactMonthWeekDayNumber::description"
+    },
+    {
+      "address": "0x1000c7b5c",
+      "value": "CompactMonthWeekDayNumber::updateOverlay"
+    },
+    {
+      "address": "0x1000c7cf4",
+      "value": "CompactMonthWeekDayNumber::hideOverlayAndNumber:"
+    },
+    {
+      "address": "0x1000c7d58",
+      "value": "CompactMonthWeekDayNumber::layer"
+    },
+    {
+      "address": "0x1000c7d60",
+      "value": "CompactMonthWeekDayNumber::offsetX"
+    },
+    {
+      "address": "0x1000c7d68",
+      "value": "CompactMonthWeekDayNumber::baselineOffsetFromTopOfLayerForFontSize:"
+    },
+    {
+      "address": "0x1000c7df0",
+      "value": "CompactMonthWeekDayNumber::heightOfFrameForFontSize:"
+    },
+    {
+      "address": "0x1000c7e78",
+      "value": "CompactMonthWeekDayNumber::setCalendarDate:"
+    },
+    {
+      "address": "0x1000c7f2c",
+      "value": "CompactMonthWeekDayNumber::updateDayNumber"
+    },
+    {
+      "address": "0x1000c80b4",
+      "value": "CompactMonthWeekDayNumber::representsActualDate"
+    },
+    {
+      "address": "0x1000c80e4",
+      "value": "CompactMonthWeekDayNumber::_calendarDateIsOnWeekend"
+    },
+    {
+      "address": "0x1000c816c",
+      "value": "CompactMonthWeekDayNumber::_standardLabelForFontSize:"
+    },
+    {
+      "address": "0x1000c81e0",
+      "value": "CompactMonthWeekDayNumber::_generateImageWithString:color:fontSize:"
+    },
+    {
+      "address": "0x1000c832c",
+      "value": "CompactMonthWeekDayNumber::_weekdayImageForDayNumberString:"
+    },
+    {
+      "address": "0x1000c84ac",
+      "value": "CompactMonthWeekDayNumber::_weekendImageForDayNumberString:"
+    },
+    {
+      "address": "0x1000c8624",
+      "value": "CompactMonthWeekDayNumber::dayNumberFontForSize:"
+    },
+    {
+      "address": "0x1000c86a4",
+      "value": "CompactMonthWeekDayNumber::calendarDate"
+    },
+    {
+      "address": "0x1000c86ac",
+      "value": "CompactMonthWeekDayNumber::calendar"
+    },
+    {
+      "address": "0x1000c86b4",
+      "value": "CompactMonthWeekDayNumber::setCalendar:"
+    },
+    {
+      "address": "0x1000c86c0",
+      "value": "CompactMonthWeekDayNumber::attachedTodayCircle"
+    },
+    {
+      "address": "0x1000c86c8",
+      "value": "CompactMonthWeekDayNumber::setAttachedTodayCircle:"
+    },
+    {
+      "address": "0x1000c86d4",
+      "value": "CompactMonthWeekDayNumber::frame"
+    },
+    {
+      "address": "0x1000c86e0",
+      "value": "CompactMonthWeekDayNumber::setFrame:"
+    },
+    {
+      "address": "0x1000c86ec",
+      "value": "CompactMonthWeekDayNumber::overlay"
+    },
+    {
+      "address": "0x1000c86f4",
+      "value": "CompactMonthWeekDayNumber::setOverlay:"
+    },
+    {
+      "address": "0x1000c8700",
+      "value": "CompactMonthWeekDayNumber::dayTypeBadge"
+    },
+    {
+      "address": "0x1000c8708",
+      "value": "CompactMonthWeekDayNumber::setDayTypeBadge:"
+    },
+    {
+      "address": "0x1000c8714",
+      "value": "CompactMonthWeekDayNumber::dayBadgeType"
+    },
+    {
+      "address": "0x1000c871c",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeType:"
+    },
+    {
+      "address": "0x1000c8724",
+      "value": "CompactMonthWeekDayNumber::dayBadgeColor"
+    },
+    {
+      "address": "0x1000c872c",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeColor:"
+    },
+    {
+      "address": "0x1000c8738",
+      "value": "CompactMonthWeekDayNumber::dayBadgeLocale"
+    },
+    {
+      "address": "0x1000c8740",
+      "value": "CompactMonthWeekDayNumber::setDayBadgeLocale:"
+    },
+    {
+      "address": "0x1000c874c",
+      "value": "CompactMonthWeekDayNumber::fontSize"
+    },
+    {
+      "address": "0x1000c8754",
+      "value": "CompactMonthWeekDayNumber::setFontSize:"
+    },
+    {
+      "address": "0x1000c875c",
+      "value": "CompactMonthWeekDayNumber::overlayFontSize"
+    },
+    {
+      "address": "0x1000c8764",
+      "value": "CompactMonthWeekDayNumber::setOverlayFontSize:"
+    },
+    {
+      "address": "0x1000c876c",
+      "value": "CompactMonthWeekDayNumber::.cxx_destruct"
+    },
+    {
+      "address": "0x1000cac10",
+      "value": "MainViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cb61c",
+      "value": "MainViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cb74c",
+      "value": "MainViewController::transitionToSizeWillStart"
+    },
+    {
+      "address": "0x1000cb840",
+      "value": "MainViewController::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x1000cb9f4",
+      "value": "MainViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x1000cdaf0",
+      "value": "PaletteNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000cdc48",
+      "value": "PaletteNavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000d338c",
+      "value": "LargeDayNavigationViewCell::setOverlayShowsMonth:animated:"
+    },
+    {
+      "address": "0x1000d765c",
+      "value": "LargeWeekViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x1000d7664",
+      "value": "LargeWeekViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000de538",
+      "value": "LargeWeekViewController::editorShowTransition"
+    },
+    {
+      "address": "0x1000de540",
+      "value": "LargeWeekViewController::editorHideTransition"
+    },
+    {
+      "address": "0x1000e0380",
+      "value": "LargeDayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1000e058c",
+      "value": "LargeDayViewController::_isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x1000e0a4c",
+      "value": "LargeDayViewController::editorShowTransition"
+    },
+    {
+      "address": "0x1000e0a54",
+      "value": "LargeDayViewController::editorHideTransition"
+    },
+    {
+      "address": "0x1000e0c1c",
+      "value": "LargeDayViewController::isPinchingDayView"
+    },
+    {
+      "address": "0x1000e0d4c",
+      "value": "LargeDayViewController::finishedPinchingDayView"
+    },
+    {
+      "address": "0x1000e9230",
+      "value": "MonthDayNavigationTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x1000e92ec",
+      "value": "MonthDayNavigationTransitionView::setStrings:overlayStrings:weekNumberString:todayInWeek:"
+    },
+    {
+      "address": "0x1000e95bc",
+      "value": "MonthDayNavigationTransitionView::setUnderlineThickness:forOverlayStringAtIndex:"
+    },
+    {
+      "address": "0x1000e964c",
+      "value": "MonthDayNavigationTransitionView::setDayTypes:badgeColors:badgeLocales:"
+    },
+    {
+      "address": "0x1000e97c0",
+      "value": "MonthDayNavigationTransitionView::setVerticallyCompressedState:"
+    },
+    {
+      "address": "0x1000e98c4",
+      "value": "MonthDayNavigationTransitionView::completeSetup"
+    },
+    {
+      "address": "0x1000e99bc",
+      "value": "MonthDayNavigationTransitionView::setWeekendIndices:"
+    },
+    {
+      "address": "0x1000e99d0",
+      "value": "MonthDayNavigationTransitionView::_updateWeekendIndices"
+    },
+    {
+      "address": "0x1000e9bb0",
+      "value": "MonthDayNavigationTransitionView::animateToDayLayout"
+    },
+    {
+      "address": "0x1000e9bdc",
+      "value": "MonthDayNavigationTransitionView::animateToMonthLayout"
+    },
+    {
+      "address": "0x1000e9c08",
+      "value": "MonthDayNavigationTransitionView::_setToDayStateAnimated:"
+    },
+    {
+      "address": "0x1000ea62c",
+      "value": "MonthDayNavigationTransitionView::_yOffsetForMonthCells:"
+    },
+    {
+      "address": "0x1000ea65c",
+      "value": "MonthDayNavigationTransitionView::_setToMonthStateAnimated:"
+    },
+    {
+      "address": "0x1000eb568",
+      "value": "MonthDayNavigationTransitionView::_selectedCell"
+    },
+    {
+      "address": "0x1000eb5dc",
+      "value": "MonthDayNavigationTransitionView::_todayCell"
+    },
+    {
+      "address": "0x1000eb650",
+      "value": "MonthDayNavigationTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x1000eb790",
+      "value": "MonthDayNavigationTransitionView::verticallyCompressedState"
+    },
+    {
+      "address": "0x1000eb7a0",
+      "value": "MonthDayNavigationTransitionView::weekendIndices"
+    },
+    {
+      "address": "0x1000eb7b0",
+      "value": "MonthDayNavigationTransitionView::selectedIndex"
+    },
+    {
+      "address": "0x1000eb7c0",
+      "value": "MonthDayNavigationTransitionView::setSelectedIndex:"
+    },
+    {
+      "address": "0x1000eb7d0",
+      "value": "MonthDayNavigationTransitionView::todayIndex"
+    },
+    {
+      "address": "0x1000eb7e0",
+      "value": "MonthDayNavigationTransitionView::setTodayIndex:"
+    },
+    {
+      "address": "0x1000eb7f0",
+      "value": "MonthDayNavigationTransitionView::dayFrame"
+    },
+    {
+      "address": "0x1000eb808",
+      "value": "MonthDayNavigationTransitionView::setDayFrame:"
+    },
+    {
+      "address": "0x1000eb820",
+      "value": "MonthDayNavigationTransitionView::firstDayCellInset"
+    },
+    {
+      "address": "0x1000eb830",
+      "value": "MonthDayNavigationTransitionView::setFirstDayCellInset:"
+    },
+    {
+      "address": "0x1000eb840",
+      "value": "MonthDayNavigationTransitionView::firstDayCellIndex"
+    },
+    {
+      "address": "0x1000eb850",
+      "value": "MonthDayNavigationTransitionView::setFirstDayCellIndex:"
+    },
+    {
+      "address": "0x1000eb860",
+      "value": "MonthDayNavigationTransitionView::dayCellSize"
+    },
+    {
+      "address": "0x1000eb874",
+      "value": "MonthDayNavigationTransitionView::setDayCellSize:"
+    },
+    {
+      "address": "0x1000eb888",
+      "value": "MonthDayNavigationTransitionView::monthFrame"
+    },
+    {
+      "address": "0x1000eb8a0",
+      "value": "MonthDayNavigationTransitionView::setMonthFrame:"
+    },
+    {
+      "address": "0x1000eb8b8",
+      "value": "MonthDayNavigationTransitionView::monthRowHeight"
+    },
+    {
+      "address": "0x1000eb8c8",
+      "value": "MonthDayNavigationTransitionView::setMonthRowHeight:"
+    },
+    {
+      "address": "0x1000eb8d8",
+      "value": "MonthDayNavigationTransitionView::firstMonthCellIndex"
+    },
+    {
+      "address": "0x1000eb8e8",
+      "value": "MonthDayNavigationTransitionView::setFirstMonthCellIndex:"
+    },
+    {
+      "address": "0x1000eb8f8",
+      "value": "MonthDayNavigationTransitionView::monthCellFrames"
+    },
+    {
+      "address": "0x1000eb908",
+      "value": "MonthDayNavigationTransitionView::setMonthCellFrames:"
+    },
+    {
+      "address": "0x1000eb91c",
+      "value": "MonthDayNavigationTransitionView::monthBreakIndex"
+    },
+    {
+      "address": "0x1000eb92c",
+      "value": "MonthDayNavigationTransitionView::setMonthBreakIndex:"
+    },
+    {
+      "address": "0x1000eb93c",
+      "value": "MonthDayNavigationTransitionView::monthOccurrencesSnapshot"
+    },
+    {
+      "address": "0x1000eb94c",
+      "value": "MonthDayNavigationTransitionView::setMonthOccurrencesSnapshot:"
+    },
+    {
+      "address": "0x1000eb960",
+      "value": "MonthDayNavigationTransitionView::monthOccurrencesFrame"
+    },
+    {
+      "address": "0x1000eb978",
+      "value": "MonthDayNavigationTransitionView::setMonthOccurrencesFrame:"
+    },
+    {
+      "address": "0x1000eb990",
+      "value": "MonthDayNavigationTransitionView::monthSummarySnapshots"
+    },
+    {
+      "address": "0x1000eb9a0",
+      "value": "MonthDayNavigationTransitionView::setMonthSummarySnapshots:"
+    },
+    {
+      "address": "0x1000eb9b4",
+      "value": "MonthDayNavigationTransitionView::monthSummaryFrames"
+    },
+    {
+      "address": "0x1000eb9c4",
+      "value": "MonthDayNavigationTransitionView::setMonthSummaryFrames:"
+    },
+    {
+      "address": "0x1000eb9d8",
+      "value": "MonthDayNavigationTransitionView::debug"
+    },
+    {
+      "address": "0x1000eb9e8",
+      "value": "MonthDayNavigationTransitionView::setDebug:"
+    },
+    {
+      "address": "0x1000eb9f8",
+      "value": "MonthDayNavigationTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x1000ebabc",
+      "value": "LargeTextLargeMonthViewController::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x1000ebc68",
+      "value": "LargeTextLargeMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x1000f0d48",
+      "value": "DayNavigationView::initWithCalendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000f1828",
+      "value": "DayNavigationView::willTransitionToSize"
+    },
+    {
+      "address": "0x1000f1ef0",
+      "value": "DayNavigationView::setOverlayMonthText:"
+    },
+    {
+      "address": "0x1000f4d4c",
+      "value": "PhoneMonthToDayAnimationTest::notificationName"
+    },
+    {
+      "address": "0x1000f4d5c",
+      "value": "PhoneMonthToDayAnimationTest::setUp"
+    },
+    {
+      "address": "0x1000f4e08",
+      "value": "PhoneMonthToDayAnimationTest::kickOffAnimation"
+    },
+    {
+      "address": "0x1000f4e6c",
+      "value": "PhoneMonthToDayAnimationTest::.cxx_destruct"
+    },
+    {
+      "address": "0x1000f65e8",
+      "value": "YearViewController::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x1000f6d0c",
+      "value": "YearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x1000f8210",
+      "value": "DayNavigationWeekScrollView::initWithFrame:calendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000fb14c",
+      "value": "DayNavigationWeekScrollView::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x1000fb51c",
+      "value": "DayNavigationWeekScrollView::willTransitionToSize"
+    },
+    {
+      "address": "0x1000fcc1c",
+      "value": "DayNavigationWeekScrollView::dayNavigationCellShouldEnableSpringLoading"
+    },
+    {
+      "address": "0x1000fcd48",
+      "value": "DayNavigationWeekScrollView::eventSpringLoadingEnabled"
+    },
+    {
+      "address": "0x1001039a4",
+      "value": "SolariumDividedMonthDayTransitionView::dividedMonthPaletteBackgroundColor"
+    },
+    {
+      "address": "0x1001039b0",
+      "value": "SolariumDividedMonthDayTransitionView::animateToMonthWithCompletion:"
+    },
+    {
+      "address": "0x10010449c",
+      "value": "SolariumDividedMonthDayTransitionView::animateToDayWithCompletion:"
+    },
+    {
+      "address": "0x100105064",
+      "value": "SolariumDividedMonthDayTransitionView::animationDidStop:finished:"
+    },
+    {
+      "address": "0x1001050f8",
+      "value": "SolariumDividedMonthDayTransitionView::completion"
+    },
+    {
+      "address": "0x100105108",
+      "value": "SolariumDividedMonthDayTransitionView::setCompletion:"
+    },
+    {
+      "address": "0x100105114",
+      "value": "SolariumDividedMonthDayTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x100105630",
+      "value": "DayNavigationViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x100105f3c",
+      "value": "DayNavigationViewController::eventSpringLoadingEnabled"
+    },
+    {
+      "address": "0x100105f4c",
+      "value": "DayNavigationViewController::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10010641c",
+      "value": "LargeYearViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100106424",
+      "value": "LargeYearViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001065e4",
+      "value": "LargeYearViewController::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x1001082c0",
+      "value": "AddEventViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001093a4",
+      "value": "AdaptiveSearchController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x100109870",
+      "value": "CompactMonthViewController::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100109968",
+      "value": "CompactMonthViewController::dayHeaderFrames"
+    },
+    {
+      "address": "0x100109c30",
+      "value": "CompactMonthViewController::convertsDayHeaderFramesToPaletteCoords"
+    },
+    {
+      "address": "0x100109c38",
+      "value": "CompactMonthViewController::weekViewForDayHeaderMeasurement"
+    },
+    {
+      "address": "0x100109c3c",
+      "value": "CompactMonthViewController::_updateDayHeaderFrames"
+    },
+    {
+      "address": "0x100109cdc",
+      "value": "CompactMonthViewController::shouldPushNextLevelViewControllerWhenTodayIsVisible"
+    },
+    {
+      "address": "0x10010adfc",
+      "value": "MultiColumnMonthViewController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10010ae04",
+      "value": "MultiColumnMonthViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10010b2e0",
+      "value": "MultiColumnMonthViewController::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x10010d024",
+      "value": "MultiColumnMonthViewController::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10010d06c",
+      "value": "MultiColumnMonthViewController::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10010d240",
+      "value": "MultiColumnMonthViewController::_setSelectedDay:"
+    },
+    {
+      "address": "0x10010d2cc",
+      "value": "MultiColumnMonthViewController::_setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10010f114",
+      "value": "MultiColumnMonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10010f8fc",
+      "value": "MultiColumnMonthViewController::_listViewShowsSingleDay"
+    },
+    {
+      "address": "0x100110728",
+      "value": "MultiColumnMonthViewController::dayCellsTapGestureRecognizer"
+    },
+    {
+      "address": "0x100110738",
+      "value": "MultiColumnMonthViewController::setDayCellsTapGestureRecognizer:"
+    },
+    {
+      "address": "0x10011074c",
+      "value": "MultiColumnMonthViewController::dayCellsScrubbingGestureRecognizer"
+    },
+    {
+      "address": "0x10011075c",
+      "value": "MultiColumnMonthViewController::setDayCellsScrubbingGestureRecognizer:"
+    },
+    {
+      "address": "0x1001109b0",
+      "value": "LargeTextLargeMonthWeekView::dayNumberFontSize:"
+    },
+    {
+      "address": "0x1001109bc",
+      "value": "LargeTextLargeMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x100110a34",
+      "value": "LargeTextLargeMonthWeekView::frameForCircleWithDayFrame:dayLayerFrame:numberString:overlayString:compressed:containsFirstDay:"
+    },
+    {
+      "address": "0x100110b3c",
+      "value": "LargeTextLargeMonthWeekView::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100110b94",
+      "value": "LargePhoneMonthWeekView::dayNumberOverlayFontSize:"
+    },
+    {
+      "address": "0x100111b90",
+      "value": "YearMonthTransitionView::initWithFrame:"
+    },
+    {
+      "address": "0x100111bfc",
+      "value": "YearMonthTransitionView::_createLabelWithFont:"
+    },
+    {
+      "address": "0x100111c40",
+      "value": "YearMonthTransitionView::prepareWithYearViewController:monthViewController:selectedDate:calendar:yearToMonth:paletteView:"
+    },
+    {
+      "address": "0x100112810",
+      "value": "YearMonthTransitionView::animateToMonthViewWithCompletion:"
+    },
+    {
+      "address": "0x100112948",
+      "value": "YearMonthTransitionView::animateToYearViewWithCompletion:"
+    },
+    {
+      "address": "0x100112a80",
+      "value": "YearMonthTransitionView::animationDuration"
+    },
+    {
+      "address": "0x100112a88",
+      "value": "YearMonthTransitionView::_animationComplete"
+    },
+    {
+      "address": "0x100112bf4",
+      "value": "YearMonthTransitionView::_setToYearState"
+    },
+    {
+      "address": "0x100112f38",
+      "value": "YearMonthTransitionView::_setToMonthState"
+    },
+    {
+      "address": "0x100113208",
+      "value": "YearMonthTransitionView::_animateZoomToYearState"
+    },
+    {
+      "address": "0x100113880",
+      "value": "YearMonthTransitionView::_animateZoomToMonthState"
+    },
+    {
+      "address": "0x100113f5c",
+      "value": "YearMonthTransitionView::_calculateMonthFrameForYearViewZoom"
+    },
+    {
+      "address": "0x100113fe0",
+      "value": "YearMonthTransitionView::_calculateYearFrameForYearViewZoom"
+    },
+    {
+      "address": "0x100113ff8",
+      "value": "YearMonthTransitionView::_setUpMonthViewInMonthViewFrame"
+    },
+    {
+      "address": "0x1001140a0",
+      "value": "YearMonthTransitionView::_captureImageOfMonthInYearView"
+    },
+    {
+      "address": "0x1001140ec",
+      "value": "YearMonthTransitionView::_captureImagesForSlidingPiecesFromMonthViewController:selectedDate:calendar:"
+    },
+    {
+      "address": "0x10011446c",
+      "value": "YearMonthTransitionView::_haltAnimations"
+    },
+    {
+      "address": "0x100114614",
+      "value": "YearMonthTransitionView::_animateView:toFrame:"
+    },
+    {
+      "address": "0x10011463c",
+      "value": "YearMonthTransitionView::_animateView:toPosition:"
+    },
+    {
+      "address": "0x100114664",
+      "value": "YearMonthTransitionView::_animateView:toBounds:"
+    },
+    {
+      "address": "0x10011468c",
+      "value": "YearMonthTransitionView::_animateView:toAlpha:"
+    },
+    {
+      "address": "0x1001146b4",
+      "value": "YearMonthTransitionView::_basicAnimateView:toAlpha:duration:"
+    },
+    {
+      "address": "0x1001147b4",
+      "value": "YearMonthTransitionView::_canFastSnapshotYear"
+    },
+    {
+      "address": "0x1001147c4",
+      "value": "YearMonthTransitionView::_canFastSnapshotMonth"
+    },
+    {
+      "address": "0x1001147dc",
+      "value": "YearMonthTransitionView::_monthFrameForMonthBefore:anchorMonth:"
+    },
+    {
+      "address": "0x100114898",
+      "value": "YearMonthTransitionView::_monthFrameForMonthAfter:anchorMonth:"
+    },
+    {
+      "address": "0x10011494c",
+      "value": "YearMonthTransitionView::_getMonthViewMonthContainingDate:hideMonthLabel:"
+    },
+    {
+      "address": "0x100115094",
+      "value": "YearMonthTransitionView::_getWeekContainingDate:prevDate:"
+    },
+    {
+      "address": "0x100115184",
+      "value": "YearMonthTransitionView::_monthHeaderHeight"
+    },
+    {
+      "address": "0x100115190",
+      "value": "YearMonthTransitionView::.cxx_destruct"
+    },
+    {
+      "address": "0x1001152c0",
+      "value": "YearMonthTransitionMonthView::monthFrame"
+    },
+    {
+      "address": "0x1001152e4",
+      "value": "YearMonthTransitionMonthView::monthFrameInMonthView"
+    },
+    {
+      "address": "0x100115308",
+      "value": "YearMonthTransitionMonthView::_adjustFrame:"
+    },
+    {
+      "address": "0x100115364",
+      "value": "YearMonthTransitionMonthView::monthLabelFrame"
+    },
+    {
+      "address": "0x100115420",
+      "value": "YearMonthTransitionMonthView::monthLabelText"
+    },
+    {
+      "address": "0x100115458",
+      "value": "YearMonthTransitionMonthView::monthLabelColor"
+    },
+    {
+      "address": "0x100115490",
+      "value": "YearMonthTransitionMonthView::topInset"
+    },
+    {
+      "address": "0x1001154a0",
+      "value": "YearMonthTransitionMonthView::setTopInset:"
+    },
+    {
+      "address": "0x1001154b0",
+      "value": "YearMonthTransitionMonthView::hasValidOrigin"
+    },
+    {
+      "address": "0x1001154c0",
+      "value": "YearMonthTransitionMonthView::setHasValidOrigin:"
+    },
+    {
+      "address": "0x1001154d0",
+      "value": "YearMonthTransitionMonthView::monthLabel"
+    },
+    {
+      "address": "0x1001154e0",
+      "value": "YearMonthTransitionMonthView::setMonthLabel:"
+    },
+    {
+      "address": "0x1001154f4",
+      "value": "YearMonthTransitionMonthView::weekViews"
+    },
+    {
+      "address": "0x100115504",
+      "value": "YearMonthTransitionMonthView::setWeekViews:"
+    },
+    {
+      "address": "0x100115518",
+      "value": "YearMonthTransitionMonthView::.cxx_destruct"
+    },
+    {
+      "address": "0x10011e818",
+      "value": "SearchResultsNavigationController::_shouldForwardViewWillTransitionToSize"
+    },
+    {
+      "address": "0x10011e820",
+      "value": "SearchResultsNavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10011efb0",
+      "value": "SearchResultsNavigationController::hideSearchBarForNavigationTransitionAnimated:"
+    },
+    {
+      "address": "0x100123df8",
+      "value": "MonthViewOccurrence::initWithFrame:occurrence:forDayRange:isProposedTime:isCompact:isLargeCompact:isMultiDay:"
+    },
+    {
+      "address": "0x10012425c",
+      "value": "MonthViewOccurrence::initWithFrame:occurrence:forDayRange:isCompact:isLargeCompact:isMultiDay:"
+    },
+    {
+      "address": "0x1001256d4",
+      "value": "MonthViewOccurrence::isAllDay"
+    },
+    {
+      "address": "0x1001256e8",
+      "value": "MonthViewOccurrence::isSingleDay"
+    },
+    {
+      "address": "0x100125704",
+      "value": "MonthViewOccurrence::isMultiDay"
+    },
+    {
+      "address": "0x100128d9c",
+      "value": "MonthViewOccurrence::dayRange"
+    },
+    {
+      "address": "0x100128db0",
+      "value": "MonthViewOccurrence::setDayRange:"
+    },
+    {
+      "address": "0x10012aac0",
+      "value": "CompactMonthDayAnimator::monthDayTransitionViewClass"
+    },
+    {
+      "address": "0x10012aacc",
+      "value": "CompactMonthDayAnimator::initWithModel:paletteView:reverse:"
+    },
+    {
+      "address": "0x10012ab98",
+      "value": "CompactMonthDayAnimator::transitionDuration:"
+    },
+    {
+      "address": "0x10012abd4",
+      "value": "CompactMonthDayAnimator::animateTransition:"
+    },
+    {
+      "address": "0x10012b1d4",
+      "value": "CompactMonthDayAnimator::model"
+    },
+    {
+      "address": "0x10012b1dc",
+      "value": "CompactMonthDayAnimator::setModel:"
+    },
+    {
+      "address": "0x10012b1e8",
+      "value": "CompactMonthDayAnimator::reverse"
+    },
+    {
+      "address": "0x10012b1f0",
+      "value": "CompactMonthDayAnimator::setReverse:"
+    },
+    {
+      "address": "0x10012b1f8",
+      "value": "CompactMonthDayAnimator::transitionView"
+    },
+    {
+      "address": "0x10012b200",
+      "value": "CompactMonthDayAnimator::setTransitionView:"
+    },
+    {
+      "address": "0x10012b20c",
+      "value": "CompactMonthDayAnimator::paletteView"
+    },
+    {
+      "address": "0x10012b214",
+      "value": "CompactMonthDayAnimator::setPaletteView:"
+    },
+    {
+      "address": "0x10012b220",
+      "value": "CompactMonthDayAnimator::.cxx_destruct"
+    },
+    {
+      "address": "0x100132cb0",
+      "value": "DayViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x10013553c",
+      "value": "DayViewController::dayViewControllerDidFinishPinchingDayView:"
+    },
+    {
+      "address": "0x100135540",
+      "value": "DayViewController::dayViewControllerIsPinchingDayView:"
+    },
+    {
+      "address": "0x100136a18",
+      "value": "DayViewController::editorShowTransition"
+    },
+    {
+      "address": "0x100136a20",
+      "value": "DayViewController::editorHideTransition"
+    },
+    {
+      "address": "0x100136a34",
+      "value": "DayViewController::isPinchingDayView"
+    },
+    {
+      "address": "0x100136a38",
+      "value": "DayViewController::finishedPinchingDayView"
+    },
+    {
+      "address": "0x100159628",
+      "value": "MonthViewController::frameForTodayHighlight"
+    },
+    {
+      "address": "0x10015b90c",
+      "value": "_CUIKBirthdayMonthCalendarColor"
+    },
+    {
+      "address": "0x10015c740",
+      "value": "_pinchDistanceForGestureRecognizer"
+    },
+    {
+      "address": "0x10015c788",
+      "value": "_springAnimateViewAlpha"
+    },
+    {
+      "address": "0x10015c794",
+      "value": "_springAnimateViewBounds"
+    },
+    {
+      "address": "0x10015c7a0",
+      "value": "_springAnimateViewFrame"
+    },
+    {
+      "address": "0x10015c7ac",
+      "value": "_springAnimateViewPosition"
+    },
+    {
+      "address": "0x10015c7b8",
+      "value": "_springAnimationDuration"
+    },
+    {
+      "address": "0x10015d2a0",
+      "value": "objc_stub::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x10015d2e0",
+      "value": "objc_stub::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "0x10015d4c0",
+      "value": "objc_stub::_applyCustomScrollEdgeTransitionToViewController:"
+    },
+    {
+      "address": "0x10015d860",
+      "value": "objc_stub::_cal_RecursiveBuildJournal:ofViewControllerSubtree:transitioningToTraitCollection:stopCondition:useOuterMostDismissPattern:"
+    },
+    {
+      "address": "0x10015d8a0",
+      "value": "objc_stub::_cal_TearDownAndCreateJournalForTransitioningToTraitCollection:viewHierarchyRoot:useOuterMostDismissPattern:dismissCompletion:"
+    },
+    {
+      "address": "0x10015d920",
+      "value": "objc_stub::_cal_ViewControllerWantsDismissOnSizeClassChange:transitioningToTraitCollection:"
+    },
+    {
+      "address": "0x10015dbc0",
+      "value": "objc_stub::_canSkipViewHierarchyRebuildingWhenTransitioningFromOldCollection:toNewCollection:"
+    },
+    {
+      "address": "0x10015e480",
+      "value": "objc_stub::_createMonthHighlightForMonthView:day:"
+    },
+    {
+      "address": "0x10015e740",
+      "value": "objc_stub::_dayInMonth:fromGesture:"
+    },
+    {
+      "address": "0x10015fba0",
+      "value": "objc_stub::_isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x100160880",
+      "value": "objc_stub::_performCustomRotationAnimationForMainWindowWithTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001608e0",
+      "value": "objc_stub::_performWithoutDeferringTransitions:"
+    },
+    {
+      "address": "0x100160de0",
+      "value": "objc_stub::_recordJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x1001611a0",
+      "value": "objc_stub::_resetLayoutTransitionState"
+    },
+    {
+      "address": "0x100161ac0",
+      "value": "objc_stub::_setAutoScrollEdgeTransitionDistance:"
+    },
+    {
+      "address": "0x100161b80",
+      "value": "objc_stub::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "0x100161e80",
+      "value": "objc_stub::_setNavigationStackOfMainViewControllersForTraitsTransitionFromTraitCollection:toNewTraitCollection:withPreTransitionViewType:withPreferredPostTransitionViewType:"
+    },
+    {
+      "address": "0x100162040",
+      "value": "objc_stub::_setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x100164660",
+      "value": "objc_stub::_viewForCalendarDateContainsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100165bc0",
+      "value": "objc_stub::animateAlongsideTransition:completion:"
+    },
+    {
+      "address": "0x100165de0",
+      "value": "objc_stub::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x100165e00",
+      "value": "objc_stub::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "0x100166100",
+      "value": "objc_stub::applyPendingLayoutTransitionIfNeeded"
+    },
+    {
+      "address": "0x100166120",
+      "value": "objc_stub::applySizeToPinchView:compressed:snapToBoundary:"
+    },
+    {
+      "address": "0x1001668e0",
+      "value": "objc_stub::beginAppearanceTransition:animated:"
+    },
+    {
+      "address": "0x100166ea0",
+      "value": "objc_stub::cal_TearDownAndCreateJournalForTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x100167d80",
+      "value": "objc_stub::circleYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x100168240",
+      "value": "objc_stub::commitDeferredModelMutationsForLayoutTransition"
+    },
+    {
+      "address": "0x1001684c0",
+      "value": "objc_stub::completeTransition:"
+    },
+    {
+      "address": "0x100168cc0",
+      "value": "objc_stub::containsFirstDayOfMonth"
+    },
+    {
+      "address": "0x10016a140",
+      "value": "objc_stub::dayNavigationCellShouldEnableSpringLoading"
+    },
+    {
+      "address": "0x10016a460",
+      "value": "objc_stub::dayNumberLayerYOffsetCompressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x10016a7e0",
+      "value": "objc_stub::dayViewMonthLocation"
+    },
+    {
+      "address": "0x10016a880",
+      "value": "objc_stub::daysInMonth"
+    },
+    {
+      "address": "0x10016aba0",
+      "value": "objc_stub::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "0x10016b6a0",
+      "value": "objc_stub::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x10016b6c0",
+      "value": "objc_stub::dismissViewControllerWithoutEnqueuingWithTransition:completion:"
+    },
+    {
+      "address": "0x10016bf20",
+      "value": "objc_stub::durationForTransition:"
+    },
+    {
+      "address": "0x10016c500",
+      "value": "objc_stub::endAppearanceTransition"
+    },
+    {
+      "address": "0x10016dc80",
+      "value": "objc_stub::frameForDayCircleWithSize:dayNumberLayerFrame:dayNumberFrame:withOverlay:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x10016e9a0",
+      "value": "objc_stub::heightForViewThatContainsFirstDayOfMonth:compressed:scale:"
+    },
+    {
+      "address": "0x10016fa40",
+      "value": "objc_stub::initWithFrame:calendar:selectedDate:cellFactory:eventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10016ffa0",
+      "value": "objc_stub::initWithPresentingViewController:transition:completion:"
+    },
+    {
+      "address": "0x1001716c0",
+      "value": "objc_stub::isTransitioningTraitCollection"
+    },
+    {
+      "address": "0x100171a80",
+      "value": "objc_stub::largeMonthWeekView:didDoubleTapOnDay:"
+    },
+    {
+      "address": "0x100171aa0",
+      "value": "objc_stub::largeMonthWeekView:didTapOccurrence:onDay:extendSelection:source:tappedSymbol:"
+    },
+    {
+      "address": "0x1001726e0",
+      "value": "objc_stub::magicTransitionWithFallback:"
+    },
+    {
+      "address": "0x100172f00",
+      "value": "objc_stub::monthDayNavigationTransitionViewClass"
+    },
+    {
+      "address": "0x100172f20",
+      "value": "objc_stub::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "0x100173040",
+      "value": "objc_stub::monthMultiDayTransitionViewClass"
+    },
+    {
+      "address": "0x1001747e0",
+      "value": "objc_stub::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "0x100174e80",
+      "value": "objc_stub::pinchRecognizer"
+    },
+    {
+      "address": "0x100174ea0",
+      "value": "objc_stub::pinchToZoomAllowed"
+    },
+    {
+      "address": "0x100175000",
+      "value": "objc_stub::positionOfCircleInCellWithWidth:circleSize:compressed:containsFirstDayOfMonth:"
+    },
+    {
+      "address": "0x1001752e0",
+      "value": "objc_stub::preferredPostTransitionViewFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x100175300",
+      "value": "objc_stub::preferredPreSizeClassTransitionSelectedDate"
+    },
+    {
+      "address": "0x100175520",
+      "value": "objc_stub::prepareForWindowLayoutTransitionFromTraitCollection:toTraitCollection:currentViewType:"
+    },
+    {
+      "address": "0x100175540",
+      "value": "objc_stub::prepareToChangeScaleFromPinch:"
+    },
+    {
+      "address": "0x100175560",
+      "value": "objc_stub::prepareTransitionScrubberWithSelectedDate:todayDate:dayViewController:monthViewController:paletteView:reverse:"
+    },
+    {
+      "address": "0x100175580",
+      "value": "objc_stub::prepareTransitionWithTopView:bottomView:allDayView:topLabelsContainer:"
+    },
+    {
+      "address": "0x1001756e0",
+      "value": "objc_stub::presentModalViewController:withTransition:"
+    },
+    {
+      "address": "0x100176520",
+      "value": "objc_stub::relayoutPinchView"
+    },
+    {
+      "address": "0x100176ac0",
+      "value": "objc_stub::replaceOffUpTransition"
+    },
+    {
+      "address": "0x100178a20",
+      "value": "objc_stub::setAnimatingViewTransition:"
+    },
+    {
+      "address": "0x10017a380",
+      "value": "objc_stub::setEditorHideTransition:"
+    },
+    {
+      "address": "0x10017a3a0",
+      "value": "objc_stub::setEditorShowTransition:"
+    },
+    {
+      "address": "0x10017a620",
+      "value": "objc_stub::setEventSpringLoadingEnabled:"
+    },
+    {
+      "address": "0x10017bae0",
+      "value": "objc_stub::setModalTransitionStyle:"
+    },
+    {
+      "address": "0x10017c600",
+      "value": "objc_stub::setPinchRecognizer:"
+    },
+    {
+      "address": "0x10017d3e0",
+      "value": "objc_stub::setSelectedDateChangesDelayedUntilAfterTransition:"
+    },
+    {
+      "address": "0x10017d440",
+      "value": "objc_stub::setSelectedDay:onMonthWeekView:animated:"
+    },
+    {
+      "address": "0x10017db60",
+      "value": "objc_stub::setShowsFirstDayOfMonthLabel:animated:"
+    },
+    {
+      "address": "0x10017dee0",
+      "value": "objc_stub::setSpringLoaded:"
+    },
+    {
+      "address": "0x10017e200",
+      "value": "objc_stub::setSymbolImage:withContentTransition:options:"
+    },
+    {
+      "address": "0x10017e7c0",
+      "value": "objc_stub::setTransitioningDelegate:"
+    },
+    {
+      "address": "0x10017ede0",
+      "value": "objc_stub::setWeekDayInitialsMonth:"
+    },
+    {
+      "address": "0x10017f580",
+      "value": "objc_stub::shouldAnimateTransitionToDay"
+    },
+    {
+      "address": "0x10017f5a0",
+      "value": "objc_stub::shouldAnimateTransitionsToMonthView"
+    },
+    {
+      "address": "0x100180ce0",
+      "value": "objc_stub::springAnimateToEndStateWithTimingFunction:"
+    },
+    {
+      "address": "0x100180d00",
+      "value": "objc_stub::springAnimateToStartStateWithTimingFunction:"
+    },
+    {
+      "address": "0x100182800",
+      "value": "objc_stub::traitCollectionToUseWhileLoadingViewsDuringTransitioningToTraitCollection:"
+    },
+    {
+      "address": "0x1001828a0",
+      "value": "objc_stub::transitionCoordinator"
+    },
+    {
+      "address": "0x1001828c0",
+      "value": "objc_stub::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "0x1001828e0",
+      "value": "objc_stub::transitionToSizeDidEnd"
+    },
+    {
+      "address": "0x100182900",
+      "value": "objc_stub::transitionToSizeWillStart"
+    },
+    {
+      "address": "0x100182920",
+      "value": "objc_stub::transitionView"
+    },
+    {
+      "address": "0x100182940",
+      "value": "objc_stub::transitionWithByLayer"
+    },
+    {
+      "address": "0x100182960",
+      "value": "objc_stub::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "0x100183f20",
+      "value": "objc_stub::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1001844c0",
+      "value": "objc_stub::weekDayInitialsMonth"
+    },
+    {
+      "address": "0x100184de0",
+      "value": "objc_stub::willTransitionToSize"
+    },
+    {
+      "address": "0x10029d503",
+      "value": "CUIKDateStrings::monthDayStringForDate:inCalendar:"
+    },
+    {
+      "address": "0x10029d507",
+      "value": "CUIKDateStrings::overlayFirstDayOfLunarMonthLocalizedStringInCalendar:"
+    },
+    {
+      "address": "0x10029e601",
+      "value": "CUIKViewConfiguration::defaultRegularWidthPhoneConfigurationForCompactWidthMainView:showDayAsList:showMonthAsDivided:"
+    },
+    {
+      "address": "0x10029fc0f",
+      "value": "EKCalendarDate::daysInMonth"
+    },
+    {
+      "address": "0x1002a3d02",
+      "value": "EKUIYearMonthView::roundedRectSizeForDayNumberString:"
+    },
+    {
+      "address": "0x1002a6f01",
+      "value": "NSSymbolReplaceContentTransition::replaceOffUpTransition"
+    },
+    {
+      "address": "0x1002a6f02",
+      "value": "NSSymbolReplaceContentTransition::transitionWithByLayer"
+    },
+    {
+      "address": "0x1002a6f03",
+      "value": "NSSymbolReplaceContentTransition::magicTransitionWithFallback:"
+    },
+    {
+      "address": "0x1002a8501",
+      "value": "SpringFactory::sharedFactory"
+    },
+    {
+      "address": "0x1002ab605",
+      "value": "UINavigationController::_setClipUnderlapWhileTransitioning:"
+    },
+    {
+      "address": "0x1002ab608",
+      "value": "UINavigationController::dismissViewControllerWithTransition:completion:"
+    },
+    {
+      "address": "0x1002ab60d",
+      "value": "UINavigationController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ab60e",
+      "value": "UINavigationController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002add37",
+      "value": "UIView::animateWithDuration:delay:usingSpringWithDamping:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add3c",
+      "value": "UIView::_animateUsingSpringWithDuration:delay:options:mass:stiffness:damping:initialVelocity:animations:completion:"
+    },
+    {
+      "address": "0x1002add3d",
+      "value": "UIView::_animateUsingDefaultDampedSpringWithDelay:initialSpringVelocity:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add3e",
+      "value": "UIView::animateWithSpringDuration:bounce:initialSpringVelocity:delay:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add47",
+      "value": "UIView::transitionWithView:duration:options:animations:completion:"
+    },
+    {
+      "address": "0x1002add52",
+      "value": "UIView::transitionFromView:toView:duration:options:completion:"
+    },
+    {
+      "address": "0x1002ade01",
+      "value": "UIViewController::viewWillTransitionToSize:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ade03",
+      "value": "UIViewController::willTransitionToTraitCollection:withTransitionCoordinator:"
+    },
+    {
+      "address": "0x1002ade1c",
+      "value": "UIViewController::_performWithoutDeferringTransitions:"
+    }
+  ],
+  "confidence": "observed",
+  "authority": "shipped-artifact",
+  "environment": null,
+  "limitations": [
+    "The session serves operations only after Ghidra reports default auto-analysis complete; incomplete analysis does not expose partial results.",
+    "The imported Program and temporary project are ephemeral and deleted on close. Annotation operations edit session database metadata; original executable bytes are never written.",
+    "Cancelling an active Ghidra request terminates its ephemeral database and discards session annotations. The selected target remains open; the next provider query imports the original artifact again.",
+    "Default-space addresses use lowercase 0x-prefixed hexadecimal; other address spaces use <percent-encoded-space>:0x<hex>.",
+    "Regex mode uses Java Pattern semantics. Matcher or compiler stack exhaustion returns a resource constraint without closing the session; literal mode avoids regex recursion and returns complete matching values.",
+    "macOS sessions require a matching executable Ghidra native decompiler; REA checks for it but does not build native components or change Gatekeeper quarantine state."
+  ],
+  "locations": [],
+  "evidence_links": []
+}

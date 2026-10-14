@@ -949,56 +949,18 @@ html.dark .week-zoom-control {
     opacity: 0;
 }
 
-/* 手机端日视图：从下往上滑入覆盖月视图，关闭时滑回底部（Apple 日历式）。
-   入场用轻微回弹的 spring，出场走标准缓出，配合下拉关闭手势。 */
-.day-view-enter-active {
-    transition: transform 0.36s cubic-bezier(0.32, 1.28, 0.6, 1), opacity 0.2s ease;
+/* 月／日切换保留空间关系，避免把日历表现为底部弹出的模态表单。 */
+.day-view-enter-active, .day-view-leave-active {
+    transition: opacity 240ms ease, transform 360ms cubic-bezier(.22, 1, .36, 1);
 }
-
-.day-view-leave-active {
-    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.26s ease;
-}
-
-.day-view-enter-from,
-.day-view-leave-to {
-    transform: translateY(100%);
-    opacity: 0.6;
-}
-
-/* 日视图翻天：时间刻度列固定，只滑任务格（与周视图 week-slide 同构） */
-.day-slide-next-enter-active,
-.day-slide-prev-enter-active {
-    transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.28s ease;
-}
-
-.day-slide-next-leave-active,
-.day-slide-prev-leave-active {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 5;
-    transition: transform 0.18s ease, opacity 0.18s ease;
-}
-
-.day-slide-next-enter-from {
-    transform: translateX(100%);
+.day-view-enter-from, .day-view-leave-to {
     opacity: 0;
 }
-
-.day-slide-next-leave-to {
-    transform: translateX(-20%);
-    opacity: 0;
-}
-
-.day-slide-prev-enter-from {
-    transform: translateX(-100%);
-    opacity: 0;
-}
-
-.day-slide-prev-leave-to {
-    transform: translateX(20%);
-    opacity: 0;
+.day-timeline { touch-action: pan-y; }
+.day-pager-track { will-change: transform; }
+@media (prefers-reduced-motion: reduce) {
+    .day-view-enter-active, .day-view-leave-active { transition: none; }
+    .day-pager-track { transition: none !important; }
 }
 
 /* 日视图当前时刻红线 */

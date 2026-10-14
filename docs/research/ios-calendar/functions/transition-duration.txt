@@ -1,0 +1,17 @@
+ev_e4ad94963c6a740789e80da074a66f3cbf0a0104cc32d1123f0e95cf72551dc7
+
+/* Function Stack Size: 0x10 bytes */
+
+double MonthDayTransitionView::animationDuration(ID param_1,SEL param_2)
+
+{
+  long lVar1;
+  float in_s0;
+
+  _UIAnimationDragCoefficient();
+  lVar1 = 8;
+  if (in_s0 <= 1.5) {
+    lVar1 = 0;
+  }
+  return *(double *)((long)&DAT_1001e6690 + lVar1);
+}

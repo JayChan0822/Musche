@@ -220,13 +220,18 @@ export const AppMainContent = {
                                              class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
                                              :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                              :data-date="day.fullDate"
+                                         :role="isMobile ? 'button' : undefined"
+                                         :tabindex="isMobile ? 0 : undefined"
+                                         :aria-label="isMobile ? day.fullDate + '，' + (tasksByDateMap[day.fullDate] || []).length + ' 项日程' : undefined"
+                                         @keydown.enter="isMobile && openDayView(day.fullDate)"
+                                         @keydown.space.prevent="isMobile && openDayView(day.fullDate)"
                                              @click="isMobile && openDayView(day.fullDate)"
                                              @dblclick="!isMobile && switchToWeek(day.fullDate)"
                                              @touchend="!isMobile && handleMonthCellDoubleTap($event, day.fullDate)"
                                              @dragover.prevent @drop="dropToMonth($event, day.fullDate)">
 
                                             <div class="text-right mb-1 shrink-0">
-                                                <span class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
+                                                <span data-month-day-number class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                       :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.isCurrentMonth ? 'opacity-80' : 'opacity-30')]">
                                                     {{ day.dayNum }}
                                                 </span>
@@ -245,7 +250,7 @@ export const AppMainContent = {
                                                                  backgroundColor: task.stage === 'edit' || (!task.stage && task.projectId && !task.musicianId) ? '#eab308' : '#a855f7',
                                                                  color: 'white'
                                                              }"
-                                                     @click.stop="selectTask(task.scheduleId, 'schedule')"
+                                                     @click.stop="isMobile ? openDayView(day.fullDate) : selectTask(task.scheduleId, 'schedule')"
                                                      @dblclick.stop="handleTaskDblClick($event, task)"
                                                      :draggable="!isMobile"
                                                      @dragstart.stop="dragStart($event, task, 'schedule')"
@@ -279,6 +284,11 @@ export const AppMainContent = {
                                          class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
                                          :class="day.monthKey === activeMonthKey ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                          :data-date="day.fullDate"
+                                         :role="isMobile ? 'button' : undefined"
+                                         :tabindex="isMobile ? 0 : undefined"
+                                         :aria-label="isMobile ? day.fullDate + '，' + (tasksByDateMap[day.fullDate] || []).length + ' 项日程' : undefined"
+                                         @keydown.enter="isMobile && openDayView(day.fullDate)"
+                                         @keydown.space.prevent="isMobile && openDayView(day.fullDate)"
                                          :data-month-key="day.monthKey"
                                          :data-month-start="day.isFirstDay ? day.fullDate : null"
                                          :ref="day.isFirstDay ? setMonthRef : null"
@@ -293,7 +303,7 @@ export const AppMainContent = {
                     {{ day.dateObj.getMonth() + 1 }}月
                 </span>
 
-                                                <span class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
+                                                <span data-month-day-number class="text-sm font-bold w-7 h-7 inline-flex items-center justify-center rounded-full"
                                                   :class="[isToday(day.fullDate) ? 'bg-[#ff3b30] text-white' : (day.monthKey === activeMonthKey ? 'opacity-80' : 'opacity-30')]">
                     {{ day.dayNum }}
                 </span>
@@ -312,7 +322,7 @@ export const AppMainContent = {
                          backgroundColor: task.stage === 'edit' || (!task.stage && task.projectId && !task.musicianId) ? '#eab308' : '#a855f7',
                          color: 'white'
                      }"
-                                                 @click.stop="selectTask(task.scheduleId, 'schedule')"
+                                                 @click.stop="isMobile ? openDayView(day.fullDate) : selectTask(task.scheduleId, 'schedule')"
                                                  @dblclick.stop="handleTaskDblClick($event, task)"
                                                  :draggable="!isMobile"
                                                  @dragstart.stop="dragStart($event, task, 'schedule')"

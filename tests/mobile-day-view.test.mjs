@@ -134,26 +134,28 @@ test('当前时刻红线只在今天出现，且限定在设置的时段内', ()
 });
 
 test('横滑翻天：左滑下一天、右滑上一天', () => {
-  const { refs, feature } = setup();
+  const { refs, feature, runTimers } = setup();
   feature.openDayView('2026-08-13');
 
   feature.dayViewTouchStart({ touches: [{ clientX: 300, clientY: 400 }], target: {} });
   feature.dayViewTouchEnd({ changedTouches: [{ clientX: 200, clientY: 410 }] });
+  runTimers();
   assert.equal(refs.selectedDay.value, '2026-08-14');
 
   feature.dayViewTouchStart({ touches: [{ clientX: 100, clientY: 400 }], target: {} });
   feature.dayViewTouchEnd({ changedTouches: [{ clientX: 220, clientY: 395 }] });
+  runTimers();
   assert.equal(refs.selectedDay.value, '2026-08-13');
 });
 
-test('顶部下拉关闭日视图，已滚动时下拉不关', () => {
+test('竖向滚动不关闭日视图，包括到达时间轴顶部时', () => {
   const { refs, feature } = setup();
   refs.dayViewContainer.value = { scrollTop: 0 };
   feature.openDayView('2026-08-13');
 
   feature.dayViewTouchStart({ touches: [{ clientX: 200, clientY: 200 }], target: {} });
   feature.dayViewTouchEnd({ changedTouches: [{ clientX: 205, clientY: 320 }] });
-  assert.equal(refs.dayViewOpen.value, false);
+  assert.equal(refs.dayViewOpen.value, true);
 
   refs.dayViewContainer.value = { scrollTop: 240 };
   feature.openDayView('2026-08-13');
@@ -265,4 +267,64 @@ test('桌面端 switchToWeek 仍切周视图', () => {
 
   assert.deepEqual(openedDays, []);
   assert.equal(refs.currentView.value, 'week');
+});
+
+
+test('切换日期保留纵向位置，预览页跨年正确', () => {
+  const { refs, feature, runTimers } = setup();
+  refs.dayViewContainer.value = { scrollTop: 0 };
+  feature.openDayView('2026-12-31');
+  runTimers();
+  refs.dayViewContainer.value.scrollTop = 420;
+  feature.selectDay('2027-01-01');
+  runTimers();
+  assert.equal(refs.dayViewContainer.value.scrollTop, 420);
+  assert.deepEqual(feature.dayPages.value.map(page => page.date), ['2026-12-31', '2027-01-01', '2027-01-02']);
+});
+
+const finger = (x, y, timeStamp = 0) => ({ touches: [{ clientX: x, clientY: y }], timeStamp, target: {}, cancelable: true, preventDefault() {} });
+const release = (x, y, timeStamp = 0) => ({ changedTouches: [{ clientX: x, clientY: y }], timeStamp });
+
+test('跟手移动、短距离回弹、快速轻甩提交', () => {
+  const { refs, feature, runTimers } = setup();
+  feature.openDayView('2026-08-13'); runTimers();
+  feature.dayViewTouchStart(finger(200, 200, 100));
+  feature.dayViewTouchMove(finger(170, 202, 300));
+  assert.match(feature.dayPagerStyle.value.transform, /-30px/);
+  feature.dayViewTouchEnd(release(170, 202, 400)); runTimers();
+  assert.equal(refs.selectedDay.value, '2026-08-13');
+  feature.dayViewTouchStart(finger(200, 200, 500));
+  feature.dayViewTouchMove(finger(170, 202, 530));
+  feature.dayViewTouchEnd(release(170, 202, 540)); runTimers();
+  assert.equal(refs.selectedDay.value, '2026-08-14');
+});
+
+test('竖向锁轴、第二根手指、系统取消不会误翻日', () => {
+  const { refs, feature, runTimers } = setup();
+  feature.openDayView('2026-08-13'); runTimers();
+  feature.dayViewTouchStart(finger(200, 200));
+  feature.dayViewTouchMove(finger(202, 230));
+  feature.dayViewTouchEnd(release(50, 235)); runTimers();
+  assert.equal(refs.selectedDay.value, '2026-08-13');
+  for (const cancel of [() => feature.dayViewTouchCancel(), () => feature.dayViewTouchMove({ touches: [{}, {}] })]) {
+    feature.dayViewTouchStart(finger(200, 200));
+    feature.dayViewTouchMove(finger(50, 202));
+    cancel();
+    feature.dayViewTouchEnd(release(50, 202)); runTimers();
+    assert.equal(refs.selectedDay.value, '2026-08-13');
+    assert.match(feature.dayPagerStyle.value.transform, /\+ 0px/);
+  }
+});
+
+test('收尾动画期间选择另一日期或关闭，不执行过期翻页', () => {
+  const { refs, feature, runTimers } = setup();
+  feature.openDayView('2026-08-13'); runTimers();
+  feature.dayViewTouchStart(finger(200, 200));
+  feature.dayViewTouchEnd(release(50, 202));
+  feature.selectDay('2026-08-20'); runTimers();
+  assert.equal(refs.selectedDay.value, '2026-08-20');
+  feature.dayViewTouchStart(finger(200, 200));
+  feature.dayViewTouchEnd(release(50, 202));
+  feature.closeDayView(); runTimers();
+  assert.equal(refs.selectedDay.value, '2026-08-20');
 });

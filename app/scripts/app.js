@@ -811,6 +811,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 selectedDayTasks,
                 selectedDayLabel,
                 selectedDayMonthLabel,
+                dayPages, dayPagerStyle, dayViewTouchCancel,
                 dayTransitionName,
                 nowIndicatorStyle,
                 dayViewTouchStart,
@@ -829,6 +830,7 @@ import { createAppDependencies } from './services/app-dependencies.js';
                 timeSlots, setMonthRef, switchView,
                 openDayView, closeDayView, selectDay, changeSelectedDay,
                 selectedDayWeek, selectedDayTasks, selectedDayLabel, selectedDayMonthLabel,
+                dayPages, dayPagerStyle, dayViewTouchCancel,
                 dayTransitionName, nowIndicatorStyle,
                 dayViewTouchStart, dayViewTouchMove, dayViewTouchEnd,
             });

@@ -33,6 +33,8 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.selectedDayLabel',
         'helpers.selectedDayMonthLabel',
         'helpers.dayTransitionName',
+        'helpers.dayPages',
+        'helpers.dayPagerStyle',
         'helpers.nowIndicatorStyle',
     ],
     models: [
@@ -92,5 +94,6 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.dayViewTouchStart',
         'helpers.dayViewTouchMove',
         'helpers.dayViewTouchEnd',
+        'helpers.dayViewTouchCancel',
     ],
 });
