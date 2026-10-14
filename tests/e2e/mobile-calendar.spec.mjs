@@ -198,3 +198,19 @@ test('周日期选中圆和多日范围跟手移动，取消恢复，跨周连�
     await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
     await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
 });
+
+test('日程块沿用原卡片样式，触屏双击打开 TrackList', async ({page})=>{
+    await boot(page); await openToday(page);
+    const event=page.locator('[data-active-date] .mc-event').first();
+    await expect(event).toHaveClass(/task-block/);
+    const style=await event.evaluate(el=>({background:getComputedStyle(el).backgroundColor,radius:getComputedStyle(el).borderRadius}));
+    expect(style.background).toBe('rgba(45, 45, 48, 0.95)');
+    expect(style.radius).toBe('6px');
+    await expect(event.locator('.mc-event-range > span')).toHaveCount(2);
+    await event.tap();
+    await expect(page.locator('.track-list-search-input')).toBeHidden();
+    await event.tap();
+    await expect(page.locator('.track-list-search-input')).toBeVisible();
+    await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    await page.screenshot({path:'/tmp/musche-mobile-tracklist.png'});
+});

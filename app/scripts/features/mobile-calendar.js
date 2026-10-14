@@ -2,7 +2,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { createCalendarSpring, CALENDAR_SPRINGS } from '../utils/calendar-spring.js';
 import { weekStripGeometry } from '../utils/calendar-week-motion.js';
 import { dateFromKey, dateWeek, describeDate, lunarLabel, monthKey, monthWindow, MONTH_NAMES, shiftDate, WEEKDAYS } from '../utils/mobile-calendar-dates.js';
-import { formatDate } from '../utils/format.js';
+import { formatDate, formatSecs } from '../utils/format.js';
 import { parseTime, timeToMinutes, formatClock } from '../utils/time.js';
 
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
@@ -46,7 +46,7 @@ export function useMobileCalendar(ctx) {
   };
   const title = (task) => task.calendarTitle || ctx.getBlockTitle(task);
   const color = (task) => task.isCalendarEvent ? '#007aff' : task.stage === 'edit' ? '#eab308' : '#a855f7';
-  const eventStyle = (task) => ({ top: `${timeToMinutes(task.startTime) / 60 * hourHeight.value}px`, height: `${Math.max(23, parseTime(task.estDuration) / 3600 * hourHeight.value)}px`, '--event-color': color(task) });
+  const eventStyle = (task) => ({ ...ctx.getTaskStyle(task), top: `${timeToMinutes(task.startTime) / 60 * hourHeight.value}px`, height: `${Math.max(23, parseTime(task.estDuration) / 3600 * hourHeight.value)}px`, '--event-color': color(task) });
   const eventRange = (task) => `${task.startTime}–${clock(Math.min(1440, timeToMinutes(task.startTime) + Math.round(parseTime(task.estDuration) / 60)))}`;
   const filteredAgenda = computed(() => {
     const q = query.value.trim().toLowerCase();
@@ -326,7 +326,7 @@ export function useMobileCalendar(ctx) {
     const result = ctx.calendarEvents.deleteCalendarEvent(editor.value.original);
     if (!result.ok) error.value = result.error; else { editor.value = null; selectedEvent.value = null; }
   }
-  let edit = null, editFrame = 0;
+  let edit = null, editFrame = 0, lastTap = null, lastOpened = null;
   function editAutoScroll() {
     if (!edit?.active || !timeline.value) { editFrame=0; return; }
     const bounds=timeline.value.getBoundingClientRect();
@@ -345,7 +345,7 @@ export function useMobileCalendar(ctx) {
     const el = event.target.closest('.mc-event');
     const initialTop = timeToMinutes(task.startTime), initialDuration = Math.round(parseTime(task.estDuration)/60);
     edit = { id: event.pointerId, task, el, edge, x:event.clientX, y:event.clientY, lastX:event.clientX, lastY:event.clientY, start:initialTop, duration:initialDuration,
-      top:initialTop, bottom:initialTop+initialDuration, date:task.date, scroll:timeline.value?.scrollTop || 0, active:edge !== 'move', changed:false, origin:null };
+      top:initialTop, bottom:initialTop+initialDuration, date:task.date, pointerType:event.pointerType, moved:false, scroll:timeline.value?.scrollTop || 0, active:edge !== 'move', changed:false, origin:null };
     selectedEvent.value = task.scheduleId;
     el.setPointerCapture?.(event.pointerId);
     if (edge === 'move') pendingPress = setTimeout(() => { if (edit) { edit.active = true; el.classList.add('mc-event-editing'); editAutoScroll(); } }, 350);
@@ -354,6 +354,7 @@ export function useMobileCalendar(ctx) {
   function eventMove(event) {
     if (!edit || event.pointerId !== edit.id) return;
     edit.lastX=event.clientX; edit.lastY=event.clientY;
+    if (Math.hypot(event.clientX-edit.x,event.clientY-edit.y)>8) { edit.moved=true; lastTap=null; }
     const dy = event.clientY-edit.y+(timeline.value?.scrollTop || 0)-edit.scroll;
     if (!edit.active) { if (Math.abs(dy)>8) { cancelPress(); if (timeline.value) timeline.value.scrollTop = edit.scroll-(event.clientY-edit.y); } return; }
     event.preventDefault();
@@ -370,22 +371,34 @@ export function useMobileCalendar(ctx) {
     edit.changed = edit.top !== edit.start || edit.bottom !== edit.start+edit.duration || edit.date !== edit.task.date;
     edit.el.style.top = `${edit.top/60*hourHeight.value}px`;
     edit.el.style.height = `${Math.max(23,(edit.bottom-edit.top)/60*hourHeight.value)}px`;
-    const label = edit.el.querySelector('.mc-event-range'); if (label) label.textContent = `${clock(edit.top)}–${clock(edit.bottom)}`;
+    const label = edit.el.querySelector('.mc-event-range'); if (label) { label.children[0].textContent=clock(edit.top); label.children[1].textContent=formatSecs((edit.bottom-edit.top)*60); }
   }
   function eventEnd(event, cancelled = false) {
     if (!edit || event.pointerId !== edit.id) return;
     cancelPress(); cancelAnimationFrame(editFrame); editFrame=0; const g=edit; edit=null;
     g.origin?.remove(); g.el.style.transform=''; g.el.classList.remove('mc-event-editing');
     g.el.style.top=`${g.start/60*hourHeight.value}px`; g.el.style.height=`${Math.max(23,g.duration/60*hourHeight.value)}px`;
-    const label=g.el.querySelector('.mc-event-range'); if(label) label.textContent=eventRange(g.task);
+    const label=g.el.querySelector('.mc-event-range'); if(label) { label.children[0].textContent=g.task.startTime; label.children[1].textContent=g.task.estDuration; }
     if (!cancelled && g.changed) {
       const result=ctx.calendarEvents.commitCalendarEvent(g.task,{title:title(g.task),date:g.date,startTime:clock(g.top),endTime:clock(g.bottom),allDay:false,notes:g.task.notes||''});
       if(!result.ok) error.value=result.error;
     }
-    if(g.active) ignoreClickUntil=Date.now()+350;
+    if(g.active || g.moved || cancelled) { ignoreClickUntil=Date.now()+350; lastTap=null; }
+    else if(g.pointerType==='touch' || g.pointerType==='pen') {
+      const now=Date.now();
+      if(lastTap && lastTap.id===g.task.scheduleId && now-lastTap.time<350 && Math.hypot(g.x-lastTap.x,g.y-lastTap.y)<24) {
+        lastTap=null; openTask(g.task,event);
+      } else lastTap={id:g.task.scheduleId,time:now,x:g.x,y:g.y};
+    }
   }
   function eventClick(task) { if(Date.now()>=ignoreClickUntil) { selectedEvent.value=task.scheduleId; ctx.selectTask(task.scheduleId,'schedule'); } }
-  function openTask(task,event) { if(task.isCalendarEvent) openEditor(task); else ctx.handleTaskDblClick(event,task); }
+  function openTask(task,event) {
+    const now=Date.now();
+    if(now<ignoreClickUntil || (lastOpened?.id===task.scheduleId && now-lastOpened.time<400)) return;
+    lastOpened={id:task.scheduleId,time:now};
+    lastTap=null;
+    if(task.isCalendarEvent) openEditor(task); else ctx.handleTaskDblClick(event,task);
+  }
   const sheetMotions = new Map();
   function animateSheet(el, done, entering) {
     let motion = sheetMotions.get(el);
@@ -414,6 +427,7 @@ export function useMobileCalendar(ctx) {
   return { root, monthScroller, monthContent, timeline, weekStrip, transitionLayer, timePanel, menuElement,
     mode, selected, selectedEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, stripDays, dates, activeDates, multi, rows, hourHeight, allDayHeight,
     menuOpen, query, editor, error, filteredAgenda, MONTH_NAMES, WEEKDAYS,
+    hasRecordingInfo: ctx.hasRecordingInfo, isTaskGhost: ctx.isTaskGhost,
     tasks, title, color, eventStyle, eventRange, lunarLabel, dayTitle, openDate, backToMonth, selectDate, setMode, jumpToday, navigate, monthScroll, toggleMenu,
     pointerDown, pointerMove, pointerUp, cancelGesture, openEditor, saveEditor, closeEditor, deleteEvent,
     eventDown, eventMove, eventEnd, eventClick, openTask,

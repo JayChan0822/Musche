@@ -83,12 +83,16 @@ export const AppMobileCalendar = {
                   <div class="mc-time-grid" :class="{'has-ruler':!multi}" :data-time-grid="day.key">
                     <div v-for="hour in rows" :key="hour" class="mc-hour-line" :style="{top:hour*hourHeight+'px'}"></div>
                     <div v-if="day.key===today" class="mc-now-line" :style="{top:nowMinutes/60*hourHeight+'px'}" aria-hidden="true"><i></i></div>
-                    <div v-if="draft?.date===day.key" class="mc-event mc-draft" :style="{top:draft.minutes/60*hourHeight+'px',height:hourHeight+'px','--event-color':'#0a9cda'}">新建日程</div>
-                    <div v-for="task in tasks(day.key).filter(t=>!t.allDay)" :key="task.scheduleId" class="mc-event" role="button" tabindex="0"
-                      :aria-label="title(task)+' '+eventRange(task)" :style="eventStyle(task)" :class="{'is-selected':selectedEvent===task.scheduleId}"
+                    <div v-if="draft?.date===day.key" class="mc-event task-block mc-draft" :style="{top:draft.minutes/60*hourHeight+'px',height:hourHeight+'px','--event-color':'#0a9cda'}">新建日程</div>
+                    <div v-for="task in tasks(day.key).filter(t=>!t.allDay)" :key="task.scheduleId" class="mc-event task-block group" role="button" tabindex="0"
+                      :aria-label="title(task)+' '+eventRange(task)" :style="eventStyle(task)" :class="{'is-selected':selectedEvent===task.scheduleId,'is-ghost':isTaskGhost(task)}"
                       @pointerdown.stop="eventDown($event,task)" @pointermove.stop="eventMove" @pointerup.stop="eventEnd($event)" @pointercancel.stop="eventEnd($event,true)"
                       @click.stop="eventClick(task)" @dblclick.stop="openTask(task,$event)" @keydown.enter.stop="openTask(task,$event)">
-                      <strong>{{title(task)}}</strong><span class="mc-event-range">{{eventRange(task)}}</span>
+                      <div class="flex flex-col h-full justify-between pointer-events-none">
+                        <strong class="font-bold leading-tight truncate pr-1">{{title(task)}}</strong>
+                        <span class="mc-event-range mt-auto text-[11px] font-mono opacity-80 leading-none flex items-center gap-2"><span>{{task.startTime}}</span><span class="font-bold opacity-70">{{task.estDuration}}</span></span>
+                      </div>
+                      <div v-if="hasRecordingInfo(task)" class="absolute bottom-[1px] right-[2px] z-[15] pointer-events-none"><i class="fa-solid fa-circle-info text-[10px] opacity-90"></i></div>
                       <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-start" aria-label="调整开始时间" @pointerdown.stop.prevent="eventDown($event,task,'start')"></button>
                       <button v-if="selectedEvent===task.scheduleId" class="mc-event-handle mc-handle-end" aria-label="调整结束时间" @pointerdown.stop.prevent="eventDown($event,task,'end')"></button>
                     </div>

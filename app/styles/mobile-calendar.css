@@ -65,14 +65,14 @@ html.dark .mc-calendar { --mc-bg:#1c1c1e; --mc-text:#f5f5f7; --mc-secondary:#858
 .mc-ruler span { position:absolute; right:10px; transform:translateY(-50%); }
 .mc-fixed-ruler { z-index:3; background:var(--mc-bg); }
 .mc-hour-line { position:absolute; left:0; right:0; height:1px; background:var(--mc-line); pointer-events:none; }
-.mc-calendar .mc-event { position:absolute; left:2px; right:2px; border-radius:3px; border-left:3px solid var(--event-color); background:color-mix(in srgb,var(--event-color) 24%,var(--mc-bg)); color:var(--event-color); padding:3px 4px; z-index:4; overflow:visible; touch-action:none; cursor:pointer; min-height:23px; user-select:none; }
-.mc-event strong { display:block; font-size:12px; line-height:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mc-event-range { display:block; font-size:10px; line-height:13px; font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
-.mc-event.is-selected,.mc-event.mc-event-editing { background:var(--event-color); color:#fff; box-shadow:0 0 0 1px var(--event-color); z-index:10; }
+.mc-calendar .mc-event { touch-action:none; min-height:23px; user-select:none; }
+.mc-event strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mc-event-range { font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; }
+.mc-calendar .mc-event-editing { cursor:grabbing; }
 .mc-calendar .mc-event-origin { opacity:.23; pointer-events:none; z-index:3; background:var(--event-color); }
 .mc-calendar .mc-event-handle { position:absolute; width:28px; height:28px; z-index:11; border-radius:50%; touch-action:none; }
-.mc-event-handle::after { content:''; position:absolute; inset:10px; border-radius:50%; background:var(--mc-text); border:1px solid var(--event-color); }
-.mc-handle-start { top:-14px; right:0; }.mc-handle-end { bottom:-14px; left:0; }
+.mc-event-handle::after { content:''; position:absolute; left:6px; right:6px; top:12px; height:3px; border-radius:2px; background:currentColor; opacity:.5; }
+.mc-handle-start { top:-10px; right:0; }.mc-handle-end { bottom:-10px; left:0; }
 .mc-scroll-tail { height:110px; }
 .mc-transition-layer { position:absolute; inset:0; pointer-events:none; z-index:10; overflow:hidden; }
 .mc-morph-date { position:absolute; left:0; top:0; will-change:transform; }
