@@ -241,3 +241,41 @@ test('日程块沿用原卡片样式，触屏双击打开 TrackList', async ({pa
         await page.screenshot({path:`/tmp/musche-tracklist-${width}.png`});
     }
 });
+
+test('键盘缩小和平移可见视口时底栏跟随，搜索聚焦不重置滚动', async ({page})=>{
+    await page.addInitScript(()=>{
+        const viewport = new EventTarget();
+        Object.assign(viewport,{height:window.innerHeight,offsetTop:0,scale:1});
+        Object.defineProperty(window,'visualViewport',{value:viewport,configurable:true});
+    });
+    await boot(page);
+    await page.evaluate(()=>{
+        window.searchScrollResets=[];
+        window.scrollTo=(...args)=>window.searchScrollResets.push(args);
+    });
+    const search=page.getByRole('textbox',{name:'搜索日程和任务'});
+    await search.focus();
+    await page.evaluate(()=>{
+        window.visualViewport.height=window.innerHeight-300;
+        window.visualViewport.dispatchEvent(new Event('resize'));
+    });
+    const dock=page.locator('.mobile-tab-bar'), bar=page.locator('.mobile-search-bar');
+    await expect.poll(()=>dock.evaluate(el=>parseFloat(getComputedStyle(el).bottom))).toBe(312);
+    await expect.poll(()=>bar.evaluate(el=>parseFloat(getComputedStyle(el).bottom))).toBe(380);
+    await page.evaluate(()=>{
+        window.visualViewport.offsetTop=70;
+        window.visualViewport.dispatchEvent(new Event('scroll'));
+    });
+    await expect.poll(()=>dock.evaluate(el=>parseFloat(getComputedStyle(el).bottom))).toBe(242);
+    await page.waitForTimeout(400); // 覆盖旧实现 100/300ms 的滚动重置定时器。
+    expect(await page.evaluate(()=>window.searchScrollResets)).toEqual([]);
+    await expect(search).toBeFocused();
+    await search.blur();
+    await page.evaluate(()=>{
+        window.visualViewport.height=window.innerHeight;
+        window.visualViewport.offsetTop=0;
+        window.visualViewport.dispatchEvent(new Event('resize'));
+    });
+    await expect.poll(()=>dock.evaluate(el=>parseFloat(getComputedStyle(el).bottom))).toBe(12);
+    await expect.poll(()=>bar.evaluate(el=>parseFloat(getComputedStyle(el).bottom))).toBe(80);
+});

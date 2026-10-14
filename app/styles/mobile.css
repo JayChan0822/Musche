@@ -61,7 +61,7 @@ html.dark .mobile-list-btn:active {
 .mobile-tab-bar {
     position: fixed;
     /* dock 瘦身：给内容让出一条横栏的高度（原 bottom 24 + 高 70） */
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px) + var(--mobile-keyboard-inset, 0px));
     left: 16px;
     right: 16px;
     height: 56px;
@@ -485,7 +485,7 @@ html.dark .mobile-resize-bar {
     .track-time-row > div:last-child > input { width:100%; min-width:0; font-size:10px; }
     .track-list-modal .track-card > .flex.items-center.gap-3 { padding-right:84px; }
 }
-.mobile-search-bar { left:16px; right:16px; height:42px; bottom:calc(80px + env(safe-area-inset-bottom,0px)); }
+.mobile-search-bar { left:16px; right:16px; height:42px; bottom:calc(80px + env(safe-area-inset-bottom,0px) + var(--mobile-keyboard-inset,0px)); }
 .mobile-search-surface { background:rgba(255,255,255,.58); }
 html.dark .mobile-search-surface { background:rgba(30,30,30,.58); }
 @media (max-width:767px) {

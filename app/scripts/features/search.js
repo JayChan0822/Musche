@@ -291,25 +291,11 @@ export function registerSearchFeature(context) {
   };
 
   const handleSearchBlur = () => {
-    setTimeout(() => {
-      isSearchFocused.value = false;
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-    }, 100);
+    isSearchFocused.value = false;
   };
 
   const onSearchFocus = () => {
     isSearchFocused.value = true;
-
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      document.body.scrollTop = 0;
-    }, 100);
-
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 300);
   };
 
   return {

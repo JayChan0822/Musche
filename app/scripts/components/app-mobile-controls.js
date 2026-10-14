@@ -1,3 +1,5 @@
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+
 export const AppMobileControls = {
   name: 'AppMobileControls',
   props: {
@@ -6,10 +8,37 @@ export const AppMobileControls = {
       required: true,
     },
   },
+  setup() {
+    const viewportInset = ref(0);
+    let frame = 0;
+    const viewport = window.visualViewport;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // 键盘可能只缩小 visual viewport；同时扣除 Safari 自动平移的 offsetTop。
+        // Android 若已缩小布局视口，差值为零，不重复上移。
+        viewportInset.value = viewport && Math.abs(viewport.scale - 1) < .01
+          ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+      });
+    };
+    onMounted(() => {
+      viewport?.addEventListener('resize', update);
+      viewport?.addEventListener('scroll', update);
+      window.addEventListener('resize', update);
+      update();
+    });
+    onBeforeUnmount(() => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener('resize', update);
+      viewport?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    });
+    return { viewportInset };
+  },
   template: `
             <template v-if="ctx.isMobile">
                 <!-- 常驻 dock 上方，输入和清空后都保持原位。 -->
-                <div class="mobile-search-bar fixed z-[850]">
+                <div class="mobile-search-bar fixed z-[850]" :style="{'--mobile-keyboard-inset':viewportInset+'px'}">
                     <div class="relative w-full h-full shadow-lg rounded-full">
                         <div class="mobile-search-surface absolute inset-0 backdrop-blur-xl rounded-full border border-white/40 dark:border-white/10 shadow-sm"></div>
 
@@ -50,7 +79,7 @@ export const AppMobileControls = {
                     </div>
                 </Transition>
 
-                <div class="mobile-tab-bar">
+                <div class="mobile-tab-bar" :style="{'--mobile-keyboard-inset':viewportInset+'px'}">
                     <button aria-label="任务池" @click="ctx.mobileTab='pool'; ctx.showMobileTaskInput=false"
                             class="mobile-tab-item"
                             :class="{'active': ctx.mobileTab==='pool' && !ctx.showMobileTaskInput && !ctx.isSearchFocused}">
