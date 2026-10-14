@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 10,
+  "pool": [],
+  "tasks": [],
+  "settings": {
+    "startHour": 8,
+    "endHour": 20,
+    "sessions": [
+      {
+        "id": "S_A",
+        "name": "Session A"
+      },
+      {
+        "id": "S_B",
+        "name": "Session B"
+      }
+    ],
+    "musicians": [],
+    "projects": [],
+    "instruments": [],
+    "studios": [],
+    "engineers": [],
+    "operators": [],
+    "assistants": [],
+    "lastSessionId": "S_A"
+  }
+}

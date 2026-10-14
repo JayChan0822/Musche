@@ -1,0 +1,1545 @@
+{
+  "source": "Actual Musche local application; original rendered UI and actual drag/resize/session/credits interactions. Fictional A/B sample data in an isolated browser context.",
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "pixelRatio": 2,
+  "assets": [
+    {
+      "name": "rec-before-full",
+      "file": "rec-before-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "rec-before-calendar",
+      "file": "rec-before-calendar.png",
+      "sourceSelector": "#main-content",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "rec-before-stat",
+      "file": "rec-before-stat.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 102
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 204
+      }
+    },
+    {
+      "name": "rec-before-ratio",
+      "file": "rec-before-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 281.59375,
+        "y": 263,
+        "width": 40.40625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 244,
+        "height": 144
+      }
+    },
+    {
+      "name": "pool-expanded",
+      "file": "pool-expanded.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 161.25
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 324
+      }
+    },
+    {
+      "name": "pool-task",
+      "file": "pool-task.png",
+      "sourceSelector": "[data-capture-pool]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 43,
+        "y": 354,
+        "width": 279,
+        "height": 42.25
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1116,
+        "height": 170
+      }
+    },
+    {
+      "name": "sidebar-before",
+      "file": "sidebar-before.png",
+      "sourceSelector": "#sidebar",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 64,
+        "width": 350,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 700,
+        "height": 2032
+      }
+    },
+    {
+      "name": "rec-60-full",
+      "file": "rec-60-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "rec-60-calendar",
+      "file": "rec-60-calendar.png",
+      "sourceSelector": "#main-content",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "rec-calendar-clean",
+      "file": "rec-calendar-clean.png",
+      "sourceSelector": "#main-content",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "rec-60-block",
+      "file": "rec-60-block.png",
+      "sourceSelector": ".calendar-week-view .task-block:not(.is-ghost):has-text(\"Player A\")",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 852.578125,
+        "y": 369,
+        "width": 207.28125,
+        "height": 80
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 416,
+        "height": 160
+      }
+    },
+    {
+      "name": "rec-60-stat",
+      "file": "rec-60-stat.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 161.25
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 324
+      }
+    },
+    {
+      "name": "rec-60-ratio",
+      "file": "rec-60-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "ratio-60-popover",
+      "file": "ratio-60-popover.png",
+      "sourceSelector": "[aria-label=\"倍率详情\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 8,
+        "y": 295,
+        "width": 288,
+        "height": 42
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1152,
+        "height": 168
+      }
+    },
+    {
+      "name": "rec-61-ratio",
+      "file": "rec-61-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-62-ratio",
+      "file": "rec-62-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-63-ratio",
+      "file": "rec-63-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-64-ratio",
+      "file": "rec-64-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-65-ratio",
+      "file": "rec-65-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-66-ratio",
+      "file": "rec-66-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-67-ratio",
+      "file": "rec-67-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-68-ratio",
+      "file": "rec-68-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-69-ratio",
+      "file": "rec-69-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-70-ratio",
+      "file": "rec-70-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-71-ratio",
+      "file": "rec-71-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-72-ratio",
+      "file": "rec-72-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-73-ratio",
+      "file": "rec-73-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-74-ratio",
+      "file": "rec-74-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-75-ratio",
+      "file": "rec-75-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-75-full",
+      "file": "rec-75-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "rec-75-block",
+      "file": "rec-75-block.png",
+      "sourceSelector": ".calendar-week-view .task-block:not(.is-ghost):has-text(\"Player A\")",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 852.578125,
+        "y": 369,
+        "width": 207.28125,
+        "height": 100
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 416,
+        "height": 200
+      }
+    },
+    {
+      "name": "rec-75-stat",
+      "file": "rec-75-stat.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 161.25
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 324
+      }
+    },
+    {
+      "name": "rec-76-ratio",
+      "file": "rec-76-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-77-ratio",
+      "file": "rec-77-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-78-ratio",
+      "file": "rec-78-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-79-ratio",
+      "file": "rec-79-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-80-ratio",
+      "file": "rec-80-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-81-ratio",
+      "file": "rec-81-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-82-ratio",
+      "file": "rec-82-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-83-ratio",
+      "file": "rec-83-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-84-ratio",
+      "file": "rec-84-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-85-ratio",
+      "file": "rec-85-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-86-ratio",
+      "file": "rec-86-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-87-ratio",
+      "file": "rec-87-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-88-ratio",
+      "file": "rec-88-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-89-ratio",
+      "file": "rec-89-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-90-ratio",
+      "file": "rec-90-ratio.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"] [aria-label=\"查看平均与安排倍率\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 215.984375,
+        "y": 263,
+        "width": 62.015625,
+        "height": 24
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 374,
+        "height": 144
+      }
+    },
+    {
+      "name": "rec-90-full",
+      "file": "rec-90-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "rec-90-block",
+      "file": "rec-90-block.png",
+      "sourceSelector": ".calendar-week-view .task-block:not(.is-ghost):has-text(\"Player A\")",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 852.578125,
+        "y": 369,
+        "width": 207.28125,
+        "height": 120
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 416,
+        "height": 240
+      }
+    },
+    {
+      "name": "rec-90-stat",
+      "file": "rec-90-stat.png",
+      "sourceSelector": "[data-stat-id=\"M_A\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 161.25
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 324
+      }
+    },
+    {
+      "name": "ratio-90-popover",
+      "file": "ratio-90-popover.png",
+      "sourceSelector": "[aria-label=\"倍率详情\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 8,
+        "y": 295,
+        "width": 288,
+        "height": 42
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1152,
+        "height": 168
+      }
+    },
+    {
+      "name": "rec-90-calendar",
+      "file": "rec-90-calendar.png",
+      "sourceSelector": "#main-content",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "rec-tabs",
+      "file": "rec-tabs.png",
+      "sourceSelector": "#tour-new-task + div",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 132,
+        "width": 325,
+        "height": 36
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1300,
+        "height": 144
+      }
+    },
+    {
+      "name": "edit-tabs",
+      "file": "edit-tabs.png",
+      "sourceSelector": "#tour-new-task + div",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 132,
+        "width": 325,
+        "height": 36
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1300,
+        "height": 144
+      }
+    },
+    {
+      "name": "edit-before-full",
+      "file": "edit-before-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "edit-before-sidebar",
+      "file": "edit-before-sidebar.png",
+      "sourceSelector": "#sidebar",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 64,
+        "width": 350,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 700,
+        "height": 2032
+      }
+    },
+    {
+      "name": "edit-after-full",
+      "file": "edit-after-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "edit-after-calendar",
+      "file": "edit-after-calendar.png",
+      "sourceSelector": "#main-content",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 350,
+        "y": 64,
+        "width": 1570,
+        "height": 1016
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3140,
+        "height": 2032
+      }
+    },
+    {
+      "name": "edit-after-block",
+      "file": "edit-after-block.png",
+      "sourceSelector": ".calendar-week-view .task-block:not(.is-ghost):has-text(\"Player B\")",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 1066.859375,
+        "y": 609,
+        "width": 207.296875,
+        "height": 80
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 416,
+        "height": 160
+      }
+    },
+    {
+      "name": "edit-after-stat",
+      "file": "edit-after-stat.png",
+      "sourceSelector": "[data-stat-id=\"M_B\"]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 12,
+        "y": 248,
+        "width": 325,
+        "height": 161.25
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 650,
+        "height": 324
+      }
+    },
+    {
+      "name": "session-menu",
+      "file": "session-menu.png",
+      "sourceSelector": "#tour-session-select .custom-dropdown-menu",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 833.7631225585938,
+        "y": 53.5,
+        "width": 250.87994384765625,
+        "height": 242.05999755859375
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 502,
+        "height": 486
+      }
+    },
+    {
+      "name": "session-dropdown",
+      "file": "session-dropdown.png",
+      "sourceSelector": "#tour-session-select .custom-dropdown-menu",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 831.203125,
+        "y": 61.5,
+        "width": 256,
+        "height": 247
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 512,
+        "height": 494
+      }
+    },
+    {
+      "name": "session-menu-full",
+      "file": "session-menu-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "session-b-full",
+      "file": "session-b-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "session-b-label",
+      "file": "session-b-label.png",
+      "sourceSelector": "#tour-session-select",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 831.203125,
+        "y": 9.5,
+        "width": 260,
+        "height": 44
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 1040,
+        "height": 176
+      }
+    },
+    {
+      "name": "export-menu",
+      "file": "export-menu.png",
+      "sourceSelector": ".menu-shortcuts-dropdown",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 24,
+        "y": 61.5,
+        "width": 192,
+        "height": 300
+      },
+      "scale": 2,
+      "pixels": {
+        "width": 768,
+        "height": 1200
+      }
+    },
+    {
+      "name": "credits-entry-button",
+      "file": "credits-entry-button.png",
+      "sourceSelector": "[data-credit-entry]",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 29,
+        "y": 320.5,
+        "width": 182,
+        "height": 40
+      },
+      "scale": 4,
+      "pixels": {
+        "width": 1456,
+        "height": 320
+      }
+    },
+    {
+      "name": "credits-full",
+      "file": "credits-full.png",
+      "sourceSelector": "#app",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 3840,
+        "height": 2160
+      }
+    },
+    {
+      "name": "credits-modal",
+      "file": "credits-modal.png",
+      "sourceSelector": ".modal-window",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 660,
+        "y": 108,
+        "width": 600,
+        "height": 864
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 1200,
+        "height": 1728
+      }
+    },
+    {
+      "name": "credits-copy-button",
+      "file": "credits-copy-button.png",
+      "sourceSelector": ".modal-window button:has(i.fa-copy)",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 1134,
+        "y": 201,
+        "width": 92,
+        "height": 28
+      },
+      "scale": 3,
+      "pixels": {
+        "width": 552,
+        "height": 168
+      }
+    },
+    {
+      "name": "credits-copied-modal",
+      "file": "credits-copied-modal.png",
+      "sourceSelector": ".modal-window",
+      "description": "",
+      "transparent": true,
+      "bounds": {
+        "x": 660,
+        "y": 108,
+        "width": 600,
+        "height": 864
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 1200,
+        "height": 1728
+      }
+    },
+    {
+      "name": "credits-post-production",
+      "file": "credits-post-production.png",
+      "sourceSelector": ".modal-window",
+      "description": "",
+      "transparent": false,
+      "bounds": {
+        "x": 660,
+        "y": 108,
+        "width": 600,
+        "height": 864
+      },
+      "scale": 1,
+      "pixels": {
+        "width": 1200,
+        "height": 1728
+      }
+    }
+  ],
+  "states": [
+    {
+      "name": "before-schedule",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_A",
+          "name": "Player A",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": null,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 0,
+            "scheduledMusicSeconds": 0
+          },
+          "scheduledSeconds": 0,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "scheduled-60",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_A",
+          "name": "Player A",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 3600,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 3600,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "resized-75",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_A",
+          "name": "Player A",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 25,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 4500,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 4500,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "resized-90",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_A",
+          "name": "Player A",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 30,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 5400,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 5400,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "edit-scheduled",
+      "sidebarTab": "project",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "edit",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 3600,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 3600,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "session-b",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 2400,
+            "scheduledMusicSeconds": 120
+          },
+          "scheduledSeconds": 2400,
+          "totalDuration": "00:40:00"
+        }
+      ],
+      "session": "Session B"
+    },
+    {
+      "name": "edit-scheduled",
+      "sidebarTab": "project",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "edit",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 3600,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 3600,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "session-b",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 2400,
+            "scheduledMusicSeconds": 120
+          },
+          "scheduledSeconds": 2400,
+          "totalDuration": "00:40:00"
+        }
+      ],
+      "session": "Session B"
+    },
+    {
+      "name": "edit-scheduled",
+      "sidebarTab": "project",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "edit",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 3600,
+            "scheduledMusicSeconds": 180
+          },
+          "scheduledSeconds": 3600,
+          "totalDuration": "01:00:00"
+        }
+      ],
+      "session": "Session A"
+    },
+    {
+      "name": "session-b",
+      "sidebarTab": "musician",
+      "stats": [
+        {
+          "id": "M_B",
+          "name": "Player B",
+          "ratioComparison": {
+            "stage": "rec",
+            "averageRatio": null,
+            "scheduledRatio": 20,
+            "differencePercent": null,
+            "actualSeconds": 0,
+            "recordedMusicSeconds": 0,
+            "blockSeconds": 2400,
+            "scheduledMusicSeconds": 120
+          },
+          "scheduledSeconds": 2400,
+          "totalDuration": "00:40:00"
+        }
+      ],
+      "session": "Session B"
+    }
+  ],
+  "notes": [
+    "Credits actual output is editable generated text with Copy All; no separate Credits file-export preview exists.",
+    "Credits actual output is editable generated text with Copy All; no separate Credits file-export preview exists.",
+    "Credits actual output is editable generated text with Copy All; no separate Credits file-export preview exists."
+  ],
+  "creditsText": "曲目名称 Title：Project A\n\n作曲 Composer：Composer A\n\n编曲 Arranger：Arranger A\n\n乐器录制（Instruments Recording）\n\nInstrument A：Player A\n\n录音棚 Recording Studio：Studio A\n录音工程师 Recording Engineer：Engineer A\n录音操作员 Recording Operator：Operator A\n录音师助理 Recording Assistant：Assistant A\n\n\n声音后期制作（Editing, Mixing & Mastering）\n\n音频编辑 Audio Editor：Player B\n混音工程师 Mixing Engineer：Engineer B\n混音工作室 Mixing Studio：Studio B\n\n音乐制作人（Music Producer）\nProducer A\n------------------------------------------------\n",
+  "copiedText": "曲目名称 Title：Project A\n\n作曲 Composer：Composer A\n\n编曲 Arranger：Arranger A\n\n乐器录制（Instruments Recording）\n\nInstrument A：Player A\n\n录音棚 Recording Studio：Studio A\n录音工程师 Recording Engineer：Engineer A\n录音操作员 Recording Operator：Operator A\n录音师助理 Recording Assistant：Assistant A\n\n\n声音后期制作（Editing, Mixing & Mastering）\n\n音频编辑 Audio Editor：Player B\n混音工程师 Mixing Engineer：Engineer B\n混音工作室 Mixing Studio：Studio B\n\n音乐制作人（Music Producer）\nProducer A\n------------------------------------------------\n"
+}

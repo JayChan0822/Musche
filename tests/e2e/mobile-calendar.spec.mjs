@@ -1,45 +1,139 @@
 import { test, expect } from '@playwright/test';
 
-test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-
-test('手机日历跟手翻日、保持小时位置、隔离后台月份导航', async ({ page }) => {
-    const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    await page.addInitScript(() => localStorage.setItem('musche_tour_seen', '1'));
+test.use({ viewport: { width: 402, height: 812 }, isMobile: true, hasTouch: true, colorScheme: 'dark' });
+async function boot(page, theme = 'dark') {
+    await page.addInitScript(theme => { localStorage.setItem('musche_tour_seen', '1'); localStorage.setItem('theme_mode', theme); }, theme);
     await page.goto('/');
-    await expect(page.locator('#global-loader')).toBeHidden();
-    await page.getByRole('button', { name: '日程表', exact: true }).click();
-    const date = await page.evaluate(() => {
-        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-        return `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
-    });
-    await page.locator(`[data-calendar-scroller] [data-date="${date}"]`).click();
-    const day = page.locator('[data-mobile-day-view]');
-    await expect(day).toBeVisible();
-    await expect(day.locator('[aria-pressed="true"]')).toHaveAttribute('aria-label', date);
-    await page.waitForTimeout(650);
-    const monthLabel = await page.locator('.mobile-header-nav').innerText();
-    await day.locator('.day-timeline').evaluate(el => { el.scrollTop = 250; });
-    const scrollBefore = await day.locator('.day-timeline').evaluate(el => el.scrollTop);
-    const slot = day.locator('[data-date-str] .grid-slot').first();
-    await slot.dispatchEvent('touchstart', { touches: [{ identifier: 1, clientX: 300, clientY: 400 }] });
-    await slot.dispatchEvent('touchmove', { touches: [{ identifier: 1, clientX: 170, clientY: 403 }] });
-    await expect(day.locator('.day-pager-track')).toHaveAttribute('style', /-\s*130px/);
-    await slot.dispatchEvent('touchend', { changedTouches: [{ identifier: 1, clientX: 170, clientY: 403 }], touches: [] });
-    const next = new Date(`${date}T12:00:00`); next.setDate(next.getDate() + 1);
-    const nextDate = `${next.getFullYear()}-${String(next.getMonth()+1).padStart(2,'0')}-${String(next.getDate()).padStart(2,'0')}`;
-    await expect(day.locator('[aria-pressed="true"]')).toHaveAttribute('aria-label', nextDate);
-    expect(await day.locator('.day-timeline').evaluate(el => el.scrollTop)).toBe(scrollBefore);
-    expect(await page.locator('.mobile-header-nav').innerText()).toBe(monthLabel);
-    expect(await day.locator('[inert]').count()).toBe(2);
-    await day.locator('.day-timeline').evaluate(el => { el.scrollTop = 0; });
-    await page.waitForTimeout(300);
-    await page.screenshot({ path: '/tmp/musche-mobile-day.png' });
-    await day.getByRole('button', { name: '返回月视图' }).click();
-    await expect(day).toBeHidden();
-    const number = page.locator(`[data-date="${nextDate}"] [data-month-day-number]`);
-    await expect(number).toHaveCSS('font-size', '17px');
-    await expect(page.locator(`[data-date="${nextDate}"] > div:last-child > div`).first()).toHaveCSS('height', '5px');
-    await page.screenshot({ path: '/tmp/musche-mobile-month.png' });
+    await expect(page.locator('#global-loader')).toBeHidden({ timeout: 20000 });
+    await expect(page.locator('.mc-calendar')).toBeVisible();
+}
+async function dateKey(page, delta = 0) {
+    return page.evaluate(delta => { const d = new Date(); d.setDate(d.getDate()+delta); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }, delta);
+}
+async function openToday(page) {
+    const key = await dateKey(page);
+    await page.locator(`[data-month-date="${key}"]`).click();
+    await expect(page.locator('.mc-calendar')).toHaveAttribute('data-mode', 'multiday');
+    await expect(page.locator('.mc-calendar')).toHaveAttribute('data-depth', '1.0000');
+    return key;
+}
+async function changeMode(page, name) {
+    await page.getByRole('button', { name: '切换日历视图' }).click();
+    await page.getByRole('menuitemradio', { name, exact: false }).click();
+    await expect(page.getByRole('menu')).toBeHidden();
+}
+
+test('录屏布局：独立月历、两列多日、菜单、单日、列表与返回', async ({ page }) => {
+    const errors=[]; page.on('pageerror',e=>errors.push(e.message));
+    await boot(page);
+    await expect(page.locator('header')).toBeHidden();
+    await expect(page.locator('.mobile-tab-bar')).toBeHidden();
+    const monthCount=await page.locator('[data-month-section]').count(); expect(monthCount).toBe(11);
+    await page.screenshot({path:'/tmp/musche-fidelity-month.png'});
+    const key=await openToday(page);
+    await expect(page.locator('[data-active-date]')).toHaveCount(2);
+    await page.screenshot({path:'/tmp/musche-fidelity-multi.png'});
+    await changeMode(page,'单日');
+    await expect(page.locator('[data-active-date]')).toHaveCount(1);
+    await expect(page.locator(`[data-week-date="${key}"]`)).toHaveAttribute('aria-pressed','true');
+    await page.screenshot({path:'/tmp/musche-fidelity-day.png'});
+    await changeMode(page,'列表'); await expect(page.locator('.mc-calendar')).toHaveAttribute('data-mode','list');
+    await page.getByRole('button',{name:'返回月视图'}).click();
+    await expect(page.locator('.mc-calendar')).toHaveAttribute('data-mode','month');
     expect(errors).toEqual([]);
+});
+
+test('跟手分页保留时间位置；动画中再次按住并反向接管', async ({ page }) => {
+    await boot(page); const key=await openToday(page); await changeMode(page,'单日');
+    const scroll=page.locator('.mc-timeline-scroll'); await scroll.evaluate(el=>el.scrollTop=300);
+    const top=await scroll.evaluate(el=>el.scrollTop);
+    await page.mouse.move(300,620); await page.mouse.down(); await page.mouse.move(140,622,{steps:8});
+    const offset=await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')));
+    expect(offset).toBeLessThan(-402);
+    await page.mouse.up();
+    await page.mouse.move(230,620); await page.mouse.down();
+    const before=await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')));
+    await page.mouse.move(330,620,{steps:8});
+    const after=await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')));
+    expect(after-before).toBeCloseTo(100,0); await page.mouse.up();
+    await expect.poll(()=>page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')))).toBe(-402);
+    expect(await scroll.evaluate(el=>el.scrollTop)).toBe(top);
+    await expect(page.locator('[data-week-date][aria-pressed="true"]')).toHaveAttribute('data-week-date',key);
+});
+
+test('新建日程确认才持久化，取消不会创建，刷新后仍能搜索', async ({page})=>{
+    await boot(page); await page.getByRole('button',{name:'新建日程'}).click();
+    await page.getByRole('textbox',{name:'日程标题'}).fill('不应保存的日程');
+    await page.getByRole('button',{name:'取消编辑'}).click();
+    await page.getByRole('button',{name:'新建日程'}).click();
+    await page.getByRole('textbox',{name:'日程标题'}).fill('Calendar motion review');
+    await page.locator('.mc-form-group input[type="time"]').fill('23:00');
+    await page.getByRole('textbox',{name:'结束时间'}).fill('23:30');
+    await page.getByRole('button',{name:'保存日程'}).click();
+    await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    await page.reload(); await expect(page.locator('.mc-calendar')).toBeVisible();
+    await page.getByRole('button',{name:'搜索日程'}).click();
+    await page.getByRole('textbox',{name:'搜索日程'}).fill('Calendar motion review');
+    await expect(page.locator('.mc-search-panel .mc-agenda-day button')).toHaveCount(1);
+    await page.getByRole('textbox',{name:'搜索日程'}).fill('不应保存');
+    await expect(page.locator('.mc-search-panel .mc-agenda-day button')).toHaveCount(0);
+});
+
+test('返回手势中途取消，长按草稿取消，拉伸取消与提交', async ({page})=>{
+    await boot(page); await openToday(page);
+    await page.mouse.move(10,420); await page.mouse.down(); await page.mouse.move(115,420,{steps:6});
+    const depth=Number(await page.locator('.mc-calendar').getAttribute('data-depth')); expect(depth).toBeGreaterThan(0); expect(depth).toBeLessThan(1);
+    await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
+    await expect(page.locator('.mc-calendar')).toHaveAttribute('data-depth','1.0000');
+    await page.mouse.move(310,450); await page.mouse.down();
+    await expect(page.locator('.mc-draft')).toBeVisible();
+    await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
+    await expect(page.locator('.mc-draft')).toBeHidden(); await expect(page.locator('.mc-editor-sheet')).toBeHidden();
+    const event=page.locator('[data-active-date] .mc-event').first(); await event.click();
+    const before=await event.locator('.mc-event-range').textContent();
+    let box=await event.locator('.mc-handle-end').boundingBox();
+    await page.mouse.move(box.x+14,box.y+14); await page.mouse.down(); await page.mouse.move(box.x+14,box.y+61,{steps:5});
+    await expect(event.locator('.mc-event-range')).not.toHaveText(before);
+    await event.dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
+    await expect(event.locator('.mc-event-range')).toHaveText(before);
+    box=await event.locator('.mc-handle-end').boundingBox();
+    await page.mouse.move(box.x+14,box.y+14); await page.mouse.down(); await page.mouse.move(box.x+14,box.y+61,{steps:5}); await page.mouse.up();
+    await expect(event.locator('.mc-event-range')).not.toHaveText(before);
+    const after=await event.locator('.mc-event-range').textContent();
+    await page.reload(); await expect(page.locator('.mc-calendar')).toBeVisible(); await openToday(page);
+    await expect(page.locator('[data-active-date] .mc-event-range').first()).toHaveText(after);
+});
+
+test('窄屏与减少动态效果保留可用布局', async ({page})=>{
+    await page.setViewportSize({width:320,height:720}); await page.emulateMedia({reducedMotion:'reduce'});
+    await boot(page); await openToday(page); await changeMode(page,'单日');
+    expect(await page.locator('.mc-calendar').evaluate(el=>el.scrollWidth)).toBe(320);
+    await page.getByRole('button',{name:'返回月视图'}).click();
+    await expect(page.locator('.mc-calendar')).toHaveAttribute('data-mode','month');
+});
+
+test('真实触摸横向分页与纵向滚动分流', async ({page})=>{
+    await boot(page); await openToday(page);
+    const client=await page.context().newCDPSession(page);
+    const touch=async(type,x,y)=>client.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x,y,id:1}]});
+    await touch('touchStart',310,450);
+    for(let x=290;x>=170;x-=20) await touch('touchMove',x,450);
+    expect(await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')))).toBeLessThan(-337);
+    await touch('touchEnd');
+    await expect.poll(()=>page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-page-offset')))).toBe(-337);
+    const before=await page.locator('.mc-timeline-scroll').evaluate(el=>el.scrollTop);
+    await touch('touchStart',300,560); for(let y=540;y>=380;y-=20) await touch('touchMove',300,y); await touch('touchEnd');
+    await expect.poll(()=>page.locator('.mc-timeline-scroll').evaluate(el=>el.scrollTop)).toBeGreaterThan(before);
+    await expect(page.locator('.mc-editor-sheet')).toBeHidden(); await client.detach();
+});
+
+test('浅色日历与桌面原界面切换',async({page})=>{
+    await boot(page,'light');
+    await expect(page.locator('.mc-calendar')).toBeVisible();
+    await expect(page.locator('.mc-calendar')).toHaveCSS('background-color','rgb(255, 255, 255)');
+    await page.screenshot({path:'/tmp/musche-fidelity-light.png'});
+    await page.setViewportSize({width:1400,height:900});
+    await expect(page.locator('.mc-calendar')).toBeHidden(); await expect(page.locator('header')).toBeVisible();
+    await expect(page.locator('#tour-view-switch')).toBeVisible(); await page.locator('#tour-view-switch').click();
+    await expect(page.getByText('14:00',{exact:true}).first()).toBeVisible();
 });

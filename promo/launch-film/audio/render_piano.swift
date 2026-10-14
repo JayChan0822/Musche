@@ -5,6 +5,8 @@ struct Note: Decodable { let time: Double; let note: UInt8; let velocity: UInt8;
 struct Event { let sample: Int64; let note: UInt8; let velocity: UInt8; let on: Bool }
 
 let base = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+let duration = CommandLine.arguments.count > 2 ? Double(CommandLine.arguments[2])! : 48.0
+let totalFrames = Int64((duration * 48000).rounded())
 let notes = try JSONDecoder().decode([Note].self, from: Data(contentsOf: base.appendingPathComponent("piano-events.json")))
 var events: [Event] = []
 for note in notes {
@@ -24,7 +26,7 @@ let out = try AVAudioFile(forWriting: base.appendingPathComponent("piano-dry.wav
 let buf = AVAudioPCMBuffer(pcmFormat: engine.manualRenderingFormat, frameCapacity: 1024)!
 var index = 0
 var active: [UInt8:Int] = [:]
-while engine.manualRenderingSampleTime < 2304000 {
+while engine.manualRenderingSampleTime < totalFrames {
     let now = engine.manualRenderingSampleTime
     while index < events.count && events[index].sample <= now {
         let ev=events[index]
@@ -38,9 +40,9 @@ while engine.manualRenderingSampleTime < 2304000 {
         index += 1
     }
     let untilNext = index < events.count ? events[index].sample-now : 1024
-    let count = AVAudioFrameCount(min(1024,2304000-now,max(1,untilNext)))
+    let count = AVAudioFrameCount(min(1024,totalFrames-now,max(1,untilNext)))
     let result = try engine.renderOffline(count, to: buf)
     if result == .success {try out.write(from:buf)}
 }
 engine.stop()
-print("Rendered \(notes.count) piano notes into 48 s stereo stem.")
+print("Rendered \(notes.count) piano notes into \(duration) s stereo stem.")

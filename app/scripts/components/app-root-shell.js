@@ -21,16 +21,17 @@ export const AppRootShell = {
   },
   template: `
     <div class="liquid-window flex-1 flex flex-col overflow-hidden relative">
-        <app-header :ctx="ctx.appHeader" :library-open="libraryOpen" @toggle-library="libraryOpen = !libraryOpen"></app-header>
+        <app-header v-if="!ctx.appMainContent.isMobile || ctx.appMobileControls.mobileTab !== 'schedule'" :ctx="ctx.appHeader" :library-open="libraryOpen" @toggle-library="libraryOpen = !libraryOpen"></app-header>
 
         <div class="flex-1 min-w-0 flex overflow-hidden relative">
-            <app-sidebar :ctx="ctx.appSidebar"></app-sidebar>
+            <app-sidebar v-if="!ctx.appMainContent.isMobile || ctx.appMobileControls.mobileTab !== 'schedule'" :ctx="ctx.appSidebar"></app-sidebar>
 
-            <app-main-content :ctx="ctx.appMainContent"></app-main-content>
+            <app-mobile-calendar v-if="ctx.appMainContent.isMobile && ctx.appMobileControls.mobileTab === 'schedule'" :ctx="ctx.appMainContent" :controls="ctx.appMobileControls" @settings="libraryOpen = true"></app-mobile-calendar>
+            <app-main-content v-else :ctx="ctx.appMainContent"></app-main-content>
 
             <app-resource-sidebar :ctx="ctx.appResourceLibrary" :open="libraryOpen" @close="closeLibrary"></app-resource-sidebar>
 
-            <app-mobile-controls :ctx="ctx.appMobileControls"></app-mobile-controls>
+            <app-mobile-controls v-if="!ctx.appMainContent.isMobile || ctx.appMobileControls.mobileTab !== 'schedule'" :ctx="ctx.appMobileControls"></app-mobile-controls>
         </div>
     </div>
   `,

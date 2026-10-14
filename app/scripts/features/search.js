@@ -66,7 +66,7 @@ export function registerSearchFeature(context) {
       info.notes,
     ].join(' ');
 
-    return `${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
+    return `${task.calendarTitle || ''} ${task.isCalendarEvent ? task.notes || '' : ''} ${groupName} ${mText} ${pText} ${iText} ${task.splitTag || ''} ${infoText}`;
   };
 
   const getStatsForCurrentSidebar = () => {
@@ -107,6 +107,7 @@ export function registerSearchFeature(context) {
 
     const checkTaskStatus = (task) => {
       if (statusFilters.size === 0) return true;
+      if (task.isCalendarEvent) return false;
 
       const { targetList, getTargetId } = getStatsForCurrentSidebar();
       const targetId = getTargetId(task);
@@ -119,6 +120,7 @@ export function registerSearchFeature(context) {
     const scheduleSectionMap = new Map();
     const groups = {};
     scheduledTasks.value.forEach((task) => {
+      if (task.isCalendarEvent) return;
       const sessionId = task.sessionId || 'S_DEFAULT';
       const context = scheduleContext(task);
       const key = `${context.stage}|${context.field}|${context.id}`;
@@ -141,6 +143,8 @@ export function registerSearchFeature(context) {
       if (textKeywords.length === 0) return true;
 
       const selfText = [
+        task.isCalendarEvent ? task.calendarTitle : '',
+        task.isCalendarEvent ? task.notes : '',
         getNameWithGroup(task.musicianId, 'musician'),
         getNameWithGroup(task.editorId, 'musician'),
         getNameWithGroup(task.projectId, 'project'),
@@ -152,6 +156,7 @@ export function registerSearchFeature(context) {
 
       if (textKeywords.every((keyword) => smartMatch(selfText, keyword))) return true;
 
+      if (task.isCalendarEvent) return false;
       let subItems = [];
       if (settings.workflow?.version === 11) {
         subItems = itemPool.value.filter((item) => getPartAllocation(settings, item, getScheduleStage(task))?.scheduleId === task.scheduleId);

@@ -1,0 +1,26 @@
+{
+  "title": "Musche — Complete workflow",
+  "duration": 57.6,
+  "bpm": 100,
+  "meter": "4/4",
+  "beatSeconds": 0.6,
+  "barSeconds": 2.4,
+  "totalBars": 24,
+  "master": "musche-score-v2-master.wav",
+  "key": "B minor to D major",
+  "sections": [
+    {"start":0,"end":4.8,"label":"Intro","arrangement":"Intimate piano motif, warm sustained harmony, soft rhythmic pickup in second bar","motion":"Hero gesture lands 0; motif responses at 1.2, 1.8, 3.0."},
+    {"start":4.8,"end":14.4,"label":"Library","arrangement":"First D-major lift with bass, flowing arpeggio and restrained groove","motion":"Library reveal at4.8; internal assembly accents7.2,9.6,12.0."},
+    {"start":14.4,"end":21.6,"label":"Create task","arrangement":"Three-bar piano phrase, warmer lower melody, groove grows","motion":"Task dialog14.4; fields16.8; created task19.2."},
+    {"start":21.6,"end":28.8,"label":"Drag to calendar","arrangement":"Higher piano answer and stereo rhythmic plucks","motion":"Drag starts before21.6 and lands on21.6; calendar transformations24.0,26.4."},
+    {"start":28.8,"end":36.0,"label":"Resize and ratio","arrangement":"First dynamic peak, lifted melody and more animated micro-percussion","motion":"Resize reveal28.8, duration31.2, ratio/stat update33.6."},
+    {"start":36.0,"end":40.8,"label":"EDIT","arrangement":"Percussion thins to give editing interface a calmer focus","motion":"Edit mode36.0; detail/action landing38.4."},
+    {"start":40.8,"end":45.6,"label":"Session","arrangement":"Full groove returns, strongest two-bar melodic lift","motion":"Session reveal40.8; tracks or progress land43.2."},
+    {"start":45.6,"end":52.8,"label":"Credits","arrangement":"Three-bar descent, warmth, softening texture; final bar leaves air","motion":"Credits45.6; further credit/detail48.0; settle product50.4, anticipate logo51.95–52.8."},
+    {"start":52.8,"end":57.6,"label":"Brand","arrangement":"Resolved rolled D major-nine piano chord, final responses54.0 and54.6, natural tail55.2–57.6","motion":"Logo must land52.8; tagline54.0; URL54.6; hold and breathe."}
+  ],
+  "primaryAccents":[0,4.8,14.4,21.6,28.8,36,40.8,45.6,52.8],
+  "secondaryAccents":[1.2,1.8,3,7.2,9.6,12,16.8,19.2,24,26.4,31.2,33.6,38.4,43.2,48,50.4,54,54.6],
+  "transitionSwellRanges":[[3.95,4.8],[13.25,14.4],[20.45,21.6],[27.65,28.8],[35.15,36],[39.95,40.8],[44.75,45.6],[51.95,52.8]],
+  "motionGuidance":"Start significant motions 0.3–0.6 seconds before a landing. Follow through for0.3 seconds. Eighth-note staggers are0.3 seconds; avoid making every beat a cut."
+}

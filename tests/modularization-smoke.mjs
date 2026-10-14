@@ -1092,19 +1092,47 @@ assert.match(
 );
 assert.match(
     appRootShellComponents,
-    /export const appRootShellComponents\s*=\s*\{[\s\S]*\bAppHeader\b[\s\S]*\bAppSidebar\b[\s\S]*\bAppMainContent\b[\s\S]*\bAppMobileControls\b[\s\S]*\};/,
+    /export const appRootShellComponents\s*=\s*\{[\s\S]*\bAppMobileCalendar\b[\s\S]*\bAppHeader\b[\s\S]*\bAppSidebar\b[\s\S]*\bAppMainContent\b[\s\S]*\bAppMobileControls\b[\s\S]*\};/,
     'app-root-shell-components must own the main layout child component map'
 );
 assert.doesNotMatch(
     appRootShellComponent,
-    /import \{ App(?:Header|Sidebar|MainContent|MobileControls) \}/,
+    /import \{ App(?:Header|Sidebar|MainContent|MobileControls|MobileCalendar) \}/,
     'app-root-shell should not directly import individual main layout child components after registry extraction'
 );
 assert.match(
     appRootShellComponent,
-    /template:\s*`[\s\S]*liquid-window[\s\S]*<app-header :ctx="ctx\.appHeader"[^>]*><\/app-header>[\s\S]*<app-sidebar :ctx="ctx\.appSidebar"><\/app-sidebar>[\s\S]*<app-main-content :ctx="ctx\.appMainContent"><\/app-main-content>[\s\S]*<app-mobile-controls :ctx="ctx\.appMobileControls"><\/app-mobile-controls>[\s\S]*`/,
+    /template:\s*`[\s\S]*liquid-window[\s\S]*<app-header\b[^>]*:ctx="ctx\.appHeader"[^>]*><\/app-header>[\s\S]*<app-sidebar\b[^>]*:ctx="ctx\.appSidebar"[^>]*><\/app-sidebar>[\s\S]*<app-main-content\b[^>]*:ctx="ctx\.appMainContent"[^>]*><\/app-main-content>[\s\S]*<app-mobile-controls\b[^>]*:ctx="ctx\.appMobileControls"[^>]*><\/app-mobile-controls>[\s\S]*`/,
     'app-root-shell must own the root liquid-window layout and pass the existing focused child contexts through'
 );
+assert.match(
+    appRootShellComponents,
+    /import \{ AppMobileCalendar \} from '\.\/app-mobile-calendar\.js';/,
+    'root shell child registry must own the dedicated mobile calendar import'
+);
+const mobileCalendarTag = appRootShellComponent.match(/<app-mobile-calendar\b[^>]*>/)?.[0];
+assert.ok(mobileCalendarTag, 'root shell must render the mobile calendar');
+assert.match(mobileCalendarTag, /v-if="ctx\.appMainContent\.isMobile && ctx\.appMobileControls\.mobileTab === 'schedule'"/,
+    'mobile calendar must be restricted to the mobile schedule tab');
+assert.match(mobileCalendarTag, /:ctx="ctx\.appMainContent"/,
+    'mobile calendar must reuse the main content business context');
+assert.match(mobileCalendarTag, /:controls="ctx\.appMobileControls"/,
+    'mobile calendar must receive the existing mobile controls context');
+assert.match(appRootShellComponent, /<\/app-mobile-calendar>\s*<app-main-content\b[^>]*\bv-else\b/,
+    'desktop and non-schedule contexts must keep the original main content fallback');
+for (const tag of ['app-header', 'app-sidebar', 'app-mobile-controls']) {
+    const openingTag = appRootShellComponent.match(new RegExp(`<${tag}\\b[^>]*>`))?.[0];
+    assert.ok(openingTag, `root shell must retain ${tag}`);
+    assert.match(openingTag, /v-if="!ctx\.appMainContent\.isMobile \|\| ctx\.appMobileControls\.mobileTab !== 'schedule'"/,
+        `${tag} must yield to the calendar only on the mobile schedule tab`);
+}
+const mobileMainContentState = readFixture('app/scripts/state/main-content-shell-state.js');
+assert.match(mobileMainContentState, /\['calendarEvents',\s*'features\.mobileCalendarEvents'\]/,
+    'main content context must expose the mobile calendar event feature without copying its business logic');
+assert.match(mobileMainContentState, /models:\s*\[[\s\S]*?'refs\.dayViewOpen'/,
+    'the mobile calendar must be able to write the shared day-view state');
+assert.doesNotMatch(mobileMainContentState.match(/reads:\s*\[([\s\S]*?)\],/)?.[1] || '', /'refs\.dayViewOpen'/,
+    'dayViewOpen must not remain a readonly context property');
 assert.match(
     appRootStaticComponents,
     /import \{ AppRootShell \} from '\.\/app-root-shell\.js';/,
@@ -1120,6 +1148,7 @@ for (const shellChildComponent of [
     'AppSidebar',
     'AppMainContent',
     'AppMobileControls',
+    'AppMobileCalendar',
 ]) {
     assert.doesNotMatch(
         appScript,
@@ -7879,6 +7908,11 @@ const vercelConfig = JSON.parse(readFileSync(vercelConfigPath, 'utf8'));
 assert.equal(vercelConfig.outputDirectory, 'app/dist', 'vercel.json must point Vercel at app/dist');
 
 const requiredFiles = [
+    'app/scripts/utils/calendar-spring.js',
+    'app/scripts/utils/mobile-calendar-dates.js',
+    'app/scripts/features/mobile-calendar.js',
+    'app/scripts/features/mobile-calendar-events.js',
+    'app/scripts/components/app-mobile-calendar.js',
     'app/scripts/app.js',
     'app/scripts/utils/time.js',
     'app/scripts/utils/format.js',

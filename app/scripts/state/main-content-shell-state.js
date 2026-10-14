@@ -27,7 +27,6 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.flatScrolledDays',
         'helpers.activeMonthKey',
         // 手机端日视图
-        'refs.dayViewOpen',
         'helpers.selectedDayWeek',
         'helpers.selectedDayTasks',
         'helpers.selectedDayLabel',
@@ -38,12 +37,14 @@ export const createMainContentShellState = defineShellState('createMainContentSh
         'helpers.nowIndicatorStyle',
     ],
     models: [
+        'refs.dayViewOpen',
         'refs.weekContainer',
         'refs.weekGridWrapper',
         'refs.selectedDay',
         'refs.dayViewContainer',
     ],
     values: [
+        ['calendarEvents', 'features.mobileCalendarEvents'],
         'state.settings',
         'helpers.handleInfiniteScroll',
         'helpers.scrollToMonthDate',

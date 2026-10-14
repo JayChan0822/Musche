@@ -68,11 +68,7 @@ export function registerMobileUiFeature(context) {
       isSidebarOpen.value = true;
     }
 
-    if (isMobile.value) {
-      document.body.style.display = 'none';
-      document.body.offsetHeight;
-      document.body.style.display = '';
-    }
+    // 响应式布局由 viewport/CSS 管理，不隐藏 body 强制重排，避免恢复时闪屏。
   }
 
   function toggleMobileMenu() {

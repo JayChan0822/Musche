@@ -105,6 +105,7 @@ export function registerScheduleFeature(context) {
       }
       const historical = new Set(settings.workflow.workLogs.map(log => key(log.sessionId, log.stage, String(log.scheduleId))));
       scheduledTasks.value = scheduledTasks.value.filter(block =>
+        block.isCalendarEvent === true ||
         (block.sessionId || 'S_DEFAULT') !== currentSessionId.value ||
         occupied.has(key(block.sessionId, getScheduleStage(block), block.scheduleId)) ||
         historical.has(key(block.sessionId, getScheduleStage(block), String(block.scheduleId))));
@@ -119,7 +120,7 @@ export function registerScheduleFeature(context) {
     };
 
     scheduledTasks.value.forEach((task) => {
-      if (task.templateId) return;
+      if (task.templateId || task.isCalendarEvent) return;
       const key = getGroupKey(task);
       if (!key) return;
       if (!groups[key]) groups[key] = [];
@@ -164,6 +165,7 @@ export function registerScheduleFeature(context) {
     });
 
     scheduledTasks.value = scheduledTasks.value.filter((task) => {
+      if (task.isCalendarEvent) return true;
       if ((task.sessionId || 'S_DEFAULT') !== currentSessionId.value) return true;
       if (hasHistoricalWork(task)) return true;
       if (hasStableScheduleLinks(settings)) return itemPool.value.some(item =>
@@ -186,7 +188,7 @@ export function registerScheduleFeature(context) {
       if (itemsInSection.length > 0) continue;
 
       const scheduleToRemove = listData.schedules[index];
-      if (hasHistoricalWork(scheduleToRemove)) continue;
+      if (scheduleToRemove.isCalendarEvent || hasHistoricalWork(scheduleToRemove)) continue;
       unlinkSchedule(settings, itemPool.value, scheduleToRemove);
       scheduledTasks.value = scheduledTasks.value.filter((task) => task.scheduleId !== scheduleToRemove.scheduleId);
       listData.schedules.splice(index, 1);
@@ -367,6 +369,7 @@ export function registerScheduleFeature(context) {
   function isTaskGhost(task) {
     const taskSession = task.sessionId || 'S_DEFAULT';
     if (taskSession !== currentSessionId.value) return true;
+    if (task.isCalendarEvent) return false;
 
     if (!task.stage && !task.musicianId && !task.editorId && !task.projectId) return false;
     return getScheduleStage(task) !== stageFromView(sidebarTab.value);
@@ -389,6 +392,7 @@ export function registerScheduleFeature(context) {
   }
 
   function getBlockTitle(task) {
+    if (task.isCalendarEvent) return task.calendarTitle || '未命名日程';
     const ctx = scheduleContext(task);
     if (ctx.stage === 'edit' && task.editorId) return getNameById(task.editorId, 'musician');
     if (ctx.stage === 'rec' && task.musicianId) return getNameById(task.musicianId, 'musician');

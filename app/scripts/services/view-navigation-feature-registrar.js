@@ -1,6 +1,14 @@
+import { registerMobileCalendarEvents } from '../features/mobile-calendar-events.js';
 import { registerViewNavigationFeature } from '../features/view-navigation.js';
 
 export function wireViewNavigationFeature(assembly) {
+    assembly.features.mobileCalendarEvents = registerMobileCalendarEvents({
+        refs: { scheduledTasks: assembly.refs.scheduledTasks, currentSessionId: assembly.refs.currentSessionId },
+        actions: {
+            checkOverlap: (...args) => assembly.helpers.checkOverlap(...args),
+            pushHistory: () => assembly.helpers.pushHistory(),
+        },
+    });
     const {
         currentView,
         monthViewMode,
