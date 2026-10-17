@@ -82,7 +82,7 @@ export const AppMainContent = {
                 <div class="flex-1 relative w-full overflow-hidden flex flex-col">
 
                     <app-mobile-calendar v-if="isMobile" ref="mobileCalendar" :ctx="$props.ctx" @label="calendarLabel = $event"></app-mobile-calendar>
-                    <Transition v-else name="calendar-zoom" mode="out-in"
+                    <Transition v-else name="calendar-zoom"
                                 @before-enter="prepareCalendarView">
 
                         <div v-if="currentView === 'week'"
@@ -202,7 +202,7 @@ export const AppMainContent = {
                              key="view-month"
                              data-calendar-scroller
                              class="calendar-month-view w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
-                             @scroll="handleInfiniteScroll"
+                             @scroll.passive="handleInfiniteScroll"
                              @click="clearSelection">
 
                             <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
@@ -219,7 +219,7 @@ export const AppMainContent = {
                                         </div>
 
                                         <div v-for="day in currentMonthDays" :key="day.fullDate"
-                                             class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
+                                             class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative droppable-slot group flex flex-col"
                                              :class="day.isCurrentMonth ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                              :data-date="day.fullDate"
                                          :role="isMobile ? 'button' : undefined"
@@ -284,7 +284,7 @@ export const AppMainContent = {
                                      :class="isMobile ? 'w-full' : 'min-w-[800px]'">
 
                                     <div v-for="day in flatScrolledDays" :key="day.fullDate"
-                                         class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative transition droppable-slot group flex flex-col"
+                                         class="min-h-[100px] sm:h-48 p-1.5 border-b border-r border-glass-border dark:border-glass-borderDark relative droppable-slot group flex flex-col"
                                          :class="day.monthKey === activeMonthKey ? 'hover:bg-black/5 dark:hover:bg-white/5' : 'bg-black/5 dark:bg-white/5 opacity-60'"
                                          :data-date="day.fullDate"
                                          :role="isMobile ? 'button' : undefined"

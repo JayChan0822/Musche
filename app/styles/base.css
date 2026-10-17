@@ -45,7 +45,7 @@ html.dark body {
 .list-move,
 .list-enter-active,
 .list-leave-active {
-    transition: all 0.3s cubic-bezier(0.55, 0, 0.1, 1);
+    transition: transform var(--motion-standard) var(--motion-ease), opacity var(--motion-standard) ease;
 }
 
 .list-enter-from,
@@ -98,7 +98,7 @@ html.dark body {
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.975);
     }
 
     to {
@@ -121,4 +121,23 @@ html:not(.dark) .shadow-liquid {
 
 svg rect {
     transition: all 0.1s;
+}
+
+/* Shared timing: direct manipulation stays immediate; discrete navigation eases out. */
+:root {
+    --motion-feedback: 100ms;
+    --motion-standard: 220ms;
+    --motion-navigation: 280ms;
+    --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Also cover utility-class animations and CSS-only menus, not just Vue transitions. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+        scroll-behavior: auto !important;
+    }
 }

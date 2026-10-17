@@ -1,5 +1,5 @@
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, getCurrentScope, nextTick, onScopeDispose, ref, watch } from 'vue';
 
 import { pickSidebarTab } from '../utils/sidebar-tabs.js';
 
@@ -29,6 +29,9 @@ export function registerMainViewNavigationFeature(context) {
     getWindow = () => window,
     getElementById = (id) => document.getElementById(id),
     setTimeoutFn = setTimeout,
+    requestFrame = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : null,
+    cancelFrame = typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : () => {},
+    now = () => performance.now(),
   } = actions;
 
   const viewTransitionName = ref('view-slide-left');
@@ -37,7 +40,10 @@ export function registerMainViewNavigationFeature(context) {
   const isMouseViewDrag = ref(false);
   const mouseStartX = ref(0);
   const mouseStartY = ref(0);
-  let isWheelLocked = false;
+  let wheelLastTime = -Infinity;
+  let wheelDirection = 0;
+  let wheelDistance = 0;
+  let wheelCommitted = false;
 
   const switchView = (targetView) => {
     // 手机端没有周视图（顶部按钮已去掉，看单天用日视图），任何路径都别切过去
@@ -90,7 +96,7 @@ export function registerMainViewNavigationFeature(context) {
 
   let zoomRevision = 0;
   let pendingZoom = null;
-  const setWeekZoom = (value, pointerOffset) => {
+  const applyWeekZoom = (value, pointerOffset) => {
     const container = weekContainer?.value;
     const requested = Number(value);
     if (currentView.value !== 'week' || !slotHeight || !container || !Number.isFinite(requested)) return;
@@ -113,6 +119,30 @@ export function registerMainViewNavigationFeature(context) {
       pendingZoom = null;
     });
   };
+  // High-rate trackpad/slider input should cause at most one Vue layout per frame.
+  let zoomFrame = null;
+  let queuedZoom = null;
+  const cancelQueuedZoom = () => {
+    if (zoomFrame !== null) cancelFrame(zoomFrame);
+    zoomFrame = null;
+    queuedZoom = null;
+  };
+  watch(currentView, cancelQueuedZoom, { flush: 'sync' });
+  if (getCurrentScope()) onScopeDispose(cancelQueuedZoom);
+  const setWeekZoom = (value, pointerOffset) => {
+    const height = Number(value);
+    if (!Number.isFinite(height) || currentView.value !== 'week' || !weekContainer?.value
+      || isDragActive() || isResizingMobile?.value || resizing?.value) return;
+    if (!requestFrame) return applyWeekZoom(height, pointerOffset);
+    queuedZoom = { height: Math.max(16, Math.min(120, height)), pointerOffset, container: weekContainer.value };
+    if (zoomFrame !== null) return;
+    zoomFrame = requestFrame(() => {
+      zoomFrame = null;
+      const input = queuedZoom;
+      queuedZoom = null;
+      if (input && input.container === weekContainer.value) applyWeekZoom(input.height, input.pointerOffset);
+    });
+  };
   const onMainWheel = (event) => {
     if (event.metaKey && currentView.value === 'week' && slotHeight && weekContainer?.value) {
       const container = weekContainer.value;
@@ -121,24 +151,32 @@ export function registerMainViewNavigationFeature(context) {
       if (isDragActive() || isResizingMobile.value || resizing?.value || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       const header = container.firstElementChild?.offsetHeight || 0;
       const offset = Math.max(header, event.clientY - container.getBoundingClientRect().top);
-      const oldHeight = slotHeight.value;
+      const oldHeight = queuedZoom?.height ?? slotHeight.value;
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
       const height = Math.max(16, Math.min(120, oldHeight * Math.exp(-Math.max(-240, Math.min(240, delta)) * 0.003)));
       setWeekZoom(height, offset);
       return;
     }
-    if (isWheelLocked || event.ctrlKey || event.metaKey) return;
-
-    if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 30) {
-      event.preventDefault();
-
-      const dir = event.deltaX > 0 ? 1 : -1;
-      changeDate(dir);
-
-      isWheelLocked = true;
-      setTimeoutFn(() => {
-        isWheelLocked = false;
-      }, 800);
+    if (event.ctrlKey || event.metaKey || isDragActive() || resizing?.value) return;
+    const time = now();
+    const direction = Math.sign(event.deltaX);
+    const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.5;
+    // Consume inertia as part of one gesture, but allow a new gesture or a
+    // deliberate reversal immediately instead of imposing an 800ms dead zone.
+    if (time - wheelLastTime > 160 || (horizontal && direction !== wheelDirection)) {
+      wheelDistance = 0;
+      wheelCommitted = false;
+    }
+    wheelLastTime = time;
+    if (!horizontal) return;
+    wheelDirection = direction;
+    event.preventDefault();
+    if (wheelCommitted) return;
+    const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 800 : 1;
+    wheelDistance += event.deltaX * unit;
+    if (Math.abs(wheelDistance) >= 40) {
+      wheelCommitted = true;
+      changeDate(direction);
     }
   };
 

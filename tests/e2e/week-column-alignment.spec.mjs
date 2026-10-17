@@ -9,6 +9,7 @@ test('week headers and schedule columns stay aligned throughout expand and colla
   await expect(page.locator('#global-loader')).toBeHidden();
   await page.locator('#tour-view-switch').click();
   await expect(page.locator('[data-week-header]')).toHaveCount(7);
+  await expect(page.locator('.calendar-week-view')).toHaveCSS('opacity', '1');
   for (const action of ['展开日列', '收起日列', '展开日列', '收起日列']) {
     // Record every rendered frame, including the first frame after Vue applies the click.
     const samples = await page.evaluate(async action => {

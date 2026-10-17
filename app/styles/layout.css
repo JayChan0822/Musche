@@ -94,10 +94,10 @@ html.dark .resource-sidebar {
 }
 .library-overlay-open { pointer-events: auto; }
 .library-drawer-enter-active, .library-drawer-leave-active {
-    transition: transform 300ms ease-in-out, opacity 300ms ease-in-out;
+    transition: transform var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
 }
 .library-drawer-enter-from, .library-drawer-leave-to { transform: translateX(100%); opacity: 0; }
-.library-backdrop-enter-active, .library-backdrop-leave-active { transition: opacity 300ms ease-in-out; }
+.library-backdrop-enter-active, .library-backdrop-leave-active { transition: opacity var(--motion-standard) ease; }
 .library-backdrop-enter-from, .library-backdrop-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
     .library-drawer-enter-active, .library-drawer-leave-active,
@@ -166,8 +166,12 @@ html.dark .grid-slot:nth-child(even)::after {
 
 /* Header and timeline columns use the same geometry transition and easing. */
 .calendar-week-view .week-day-column {
-    transition: min-width 300ms ease-in-out, background-color 150ms ease-in-out, color 150ms ease-in-out;
+    transition: min-width var(--motion-navigation) var(--motion-ease), background-color var(--motion-feedback), color var(--motion-feedback);
 }
 @media (prefers-reduced-motion: reduce) {
     .calendar-week-view .week-day-column { transition: none; }
+}
+
+.sidebar-motion {
+    transition: width var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
 }

@@ -9993,8 +9993,7 @@ for (const relativePath of requiredFiles) {
         deltaY: 5,
         preventDefault: () => { prevented += 1; },
     });
-    assert.equal(prevented, 1, 'wheel navigation should stay locked until the debounce timeout fires');
-    timeoutCallbacks.shift()();
+    assert.equal(prevented, 2, 'wheel inertia should remain consumed to avoid native scrolling during page navigation');
     feature.onMainWheel({
         ctrlKey: false,
         metaKey: false,
@@ -10002,7 +10001,7 @@ for (const relativePath of requiredFiles) {
         deltaY: 5,
         preventDefault: () => { prevented += 1; },
     });
-    assert.equal(dateChanges.at(-1), -1, 'negative horizontal wheel delta should move backward after lock release');
+    assert.equal(dateChanges.at(-1), -1, 'negative horizontal wheel delta should reverse navigation immediately');
 
     const ghostRefs = {
         ...refs,

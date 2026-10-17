@@ -71,3 +71,36 @@ test('Command wheel does not change the time scale during a task resize', async 
  assert.equal(refs.slotHeight.value,40);
  assert.equal(refs.weekContainer.value.scrollTop,100);
 });
+
+test('high-frequency zoom input renders once per frame and cancels on view change', async () => {
+ const frames = new Map(); let id = 0;
+ const container = { scrollTop:300, clientHeight:600, firstElementChild:{offsetHeight:56}, contains:()=>true, getBoundingClientRect:()=>({top:0}) };
+ const refs = {currentView:ref('week'),slotHeight:ref(40),weekContainer:ref(container),isMobile:ref(false),isResizingMobile:ref(false)};
+ const f = registerMainViewNavigationFeature({refs,actions:{requestFrame:cb=>{frames.set(++id,cb);return id;},cancelFrame:id=>frames.delete(id)}});
+ const event = {metaKey:true,deltaY:-10,deltaX:0,deltaMode:0,clientY:200,target:{},preventDefault(){}};
+ for(let i=0;i<5;i++) f.onMainWheel(event);
+ assert.equal(frames.size,1);
+ assert.equal(refs.slotHeight.value,40);
+ const callback = [...frames.values()][0]; frames.clear(); callback();
+ await nextTick();
+ assert.ok(Math.abs(refs.slotHeight.value - 40*Math.exp(.15))<1e-8);
+ assert.ok(Math.abs((refs.weekContainer.value.scrollTop+200-56)/refs.slotHeight.value-(300+200-56)/40)<1e-8);
+ f.setWeekZoom(100);
+ refs.currentView.value='month';
+ assert.equal(frames.size,0);
+});
+
+test('horizontal navigation groups inertia and accepts prompt reversal and new gestures', () => {
+ let time = 0; const changes = [];
+ const refs = {currentView:ref('month'),isMobile:ref(false)};
+ const f = registerMainViewNavigationFeature({refs,actions:{now:()=>time,changeDate:dir=>changes.push(dir)}});
+ const wheel = deltaX => {time += 16; f.onMainWheel({deltaX,deltaY:0,preventDefault(){}});};
+ wheel(12); wheel(16); wheel(18);
+ assert.deepEqual(changes,[1]);
+ wheel(60); wheel(20); wheel(4);
+ assert.deepEqual(changes,[1], 'momentum must not turn another page');
+ wheel(-45);
+ assert.deepEqual(changes,[1,-1], 'reversal must not wait for a fixed lock');
+ time += 170; wheel(-45);
+ assert.deepEqual(changes,[1,-1,-1]);
+});

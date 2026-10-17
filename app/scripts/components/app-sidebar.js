@@ -24,7 +24,7 @@ export const AppSidebar = {
                    class="glass-sidebar shrink-0 flex flex-col relative z-20"
 
                    :class="[
-                           isMobile ? 'w-full absolute inset-0 bg-white dark:bg-[#1e1e1e] transition-none' : 'min-w-0 transition-all duration-300 ease-in-out',
+                           isMobile ? 'w-full absolute inset-0 bg-white dark:bg-[#1e1e1e] transition-none' : 'min-w-0 sidebar-motion',
                            (isMobile && dragElClone && dragSourceType === 'pool') ? 'z-[-1] opacity-0' : 'z-40',
                            !isSidebarOpen && !isMobile ? 'border-none overflow-hidden' : ''
                        ]"

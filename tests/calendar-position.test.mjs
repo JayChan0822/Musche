@@ -59,3 +59,20 @@ test('month-end startup keeps the target month even when most visible cells are 
   feature.handleInfiniteScroll({ target: scroller });
   assert.equal(feature.currentDateLabel.value,'2026年 10月');
 });
+
+test('scrolling a long calendar reads only the anchor row and binary search path', () => {
+  let geometryReads = 0;
+  const cells = Array.from({ length: 7000 }, (_, index) => ({
+    get offsetTop() { geometryReads += 1; return 34 + Math.floor(index / 7) * 192; },
+    get offsetHeight() { geometryReads += 1; return 192; },
+    getAttribute: name => name === 'data-month-key' ? '2026-10' : '2026-10-10',
+  }));
+  const scroller = {
+    scrollTop: 96000, scrollHeight: 192034, clientHeight: 600,
+    querySelectorAll: () => cells, querySelector: () => ({ offsetHeight: 34 }),
+  };
+  const feature = setup(scroller);
+  feature.handleInfiniteScroll({ target: scroller });
+  assert.equal(feature.currentDateLabel.value, '2026年 10月');
+  assert.ok(geometryReads < 50, `Expected bounded layout reads, got ${geometryReads}`);
+});

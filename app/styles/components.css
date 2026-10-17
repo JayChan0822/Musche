@@ -123,7 +123,7 @@ html.dark .driver-popover button.driver-popover-close-btn:hover {
     border-radius: 12px;
     padding: 12px;
     margin-bottom: 8px;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform var(--motion-standard) var(--motion-ease), background-color var(--motion-feedback), box-shadow var(--motion-feedback);
     position: relative;
     border-left-width: 5px;
 }
@@ -361,9 +361,7 @@ html.dark .modal-window {
     color: #fff;
 }
 
-.cursor-ns-resize {
-    will-change: transform;
-}
+/* Resize cursors alone do not need a permanently promoted compositor layer. */
 
 .segmented-control {
     background: rgba(118, 118, 128, 0.12);
@@ -383,7 +381,7 @@ html.dark .segmented-control {
     font-weight: 500;
     color: #1d1d1f;
     cursor: default;
-    transition: all 0.2s;
+    transition: background-color var(--motion-feedback), border-color var(--motion-feedback), color var(--motion-feedback), box-shadow var(--motion-feedback);
 }
 
 html.dark .segment-btn {
@@ -411,7 +409,7 @@ html.dark .segment-btn.active {
     border-radius: 8px;
     padding: 8px 10px;
     font-size: 13px;
-    transition: all 0.2s;
+    transition: background-color var(--motion-feedback), border-color var(--motion-feedback), color var(--motion-feedback), box-shadow var(--motion-feedback);
 }
 
 /* Compact fields need room for their text inside the fixed height. */
@@ -670,7 +668,7 @@ html.dark .btn-reset {
 @keyframes bubblePop {
     0% {
         opacity: 0;
-        transform: scale(0.9) translateY(10px);
+        transform: scale(0.975) translateY(6px);
     }
 
     100% {
@@ -710,7 +708,7 @@ html.dark .settings-item-input {
     border-radius: 16px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.2);
     z-index: 9999 !important;
-    animation: menu-slide-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    animation: menu-slide-in 160ms var(--motion-ease);
     transform: translate3d(0, 0, 0);
 }
 
@@ -768,7 +766,7 @@ html.dark .week-zoom-control {
 .week-zoom-symbol { font-size: 18px; line-height: 18px; }
 .week-zoom-value { font-size: 10px; line-height: 14px; font-variant-numeric: tabular-nums; }
 
-/* 通用周/月切换：先退出再进入，避免两套网格同时叠加。 */
+/* Mount the destination immediately; the outgoing view overlays it during exit. */
 .calendar-zoom-enter-active,
 .calendar-zoom-leave-active {
     transform-origin: 50% 38.2%;
@@ -776,6 +774,9 @@ html.dark .week-zoom-control {
     pointer-events: none;
 }
 .calendar-zoom-leave-active {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
     transition-duration: 120ms;
 }
 .calendar-zoom-enter-from {
@@ -806,7 +807,7 @@ html.dark .week-zoom-control {
 .view-slide-up-leave-active,
 .view-slide-down-enter-active,
 .view-slide-down-leave-active {
-    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.35s ease;
+    transition: transform var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
     position: absolute !important;
     top: 0;
     left: 0;
@@ -857,7 +858,7 @@ html.dark .week-zoom-control {
 .view-slide-left-leave-active,
 .view-slide-right-enter-active,
 .view-slide-right-leave-active {
-    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform var(--motion-standard) var(--motion-ease), opacity var(--motion-standard) ease;
     width: 100%;
     flex: 1;
 }
@@ -900,17 +901,17 @@ html.dark .week-zoom-control {
     z-index: 1;
 }
 
-/* 入场完整滑入 0.4s；退场淡出更快（0.18s）——旧页迅速退场，方向感由新页滑入主导 */
+/* Navigation shares an ease-out curve; outgoing content fades sooner. */
 .slide-next-enter-active,
 .slide-prev-enter-active,
 .jump-fade-enter-active,
 .jump-fade-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+    transition: transform var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
 }
 
 .slide-next-leave-active,
 .slide-prev-leave-active {
-    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease;
+    transition: transform var(--motion-navigation) var(--motion-ease), opacity 0.14s ease;
 }
 
 .slide-next-enter-from {
@@ -951,7 +952,7 @@ html.dark .week-zoom-control {
 
 /* jump-fade：定位跳转（任务/今天）专用——无位移淡入淡出。
    跳转是"定位"语义，复用 slide 翻页动画会与滚动定位打架（抽搐）。
-   transform 保持 none（0.4s opacity 沿用共享过渡），滚动 auto 是唯一位移。 */
+   transform 保持 none，滚动 auto 是唯一位移。 */
 .jump-fade-enter-active {
     z-index: 20;
 }
@@ -968,7 +969,7 @@ html.dark .week-zoom-control {
 .week-slide-next-enter-active,
 .week-slide-prev-enter-active,
 .week-fade-enter-active {
-    transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+    transition: transform var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
 }
 
 .week-slide-next-leave-active,
@@ -1047,7 +1048,7 @@ html.dark .week-zoom-control {
     border-radius: 12px;
     margin-bottom: 12px;
     border: 1px solid transparent;
-    transition: all 0.2s;
+    transition: background-color var(--motion-feedback), border-color var(--motion-feedback), color var(--motion-feedback), box-shadow var(--motion-feedback);
 }
 
 html.dark .settings-group-container {
@@ -1074,7 +1075,7 @@ html.dark .settings-group-container {
     font-size: 13px;
     padding: 4px 6px;
     border-radius: 6px;
-    transition: all 0.2s;
+    transition: background-color var(--motion-feedback), border-color var(--motion-feedback), color var(--motion-feedback), box-shadow var(--motion-feedback);
     width: 100%;
 }
 
@@ -1208,3 +1209,13 @@ html .mobile-stat-card.compact-stat-card { padding: 12px 14px !important; border
 .loading-dialog-bar { height: 100%; width: 36%; border-radius: inherit; background: #3b82f6; animation: loading-dialog-progress 1.2s ease-in-out infinite; }
 @keyframes loading-dialog-progress { from { transform: translateX(-110%); } to { transform: translateX(380%); } }
 @media (prefers-reduced-motion: reduce) { .loading-dialog-bar { animation: none; width: 100%; opacity: .55; } }
+
+/* Shared modal entrance, including the fadeIn/bubblePop utility variants. */
+.modal-window {
+    animation-duration: var(--motion-standard);
+    animation-timing-function: var(--motion-ease);
+}
+/* These fields intentionally expand on focus; other inputs only animate color. */
+.glass-input[class*="focus:w-"] {
+    transition: width var(--motion-standard) var(--motion-ease), background-color var(--motion-feedback), border-color var(--motion-feedback), box-shadow var(--motion-feedback);
+}

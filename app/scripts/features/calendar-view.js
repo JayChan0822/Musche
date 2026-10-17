@@ -262,13 +262,27 @@ export function registerCalendarViewFeature(context) {
       let targetInAnchorRow = null;
       const targetDate = formatDate(viewDate.value);
       const cells = scrollerEl.querySelectorAll('[data-month-key]');
-      for (const cell of cells) {
-        const top = cell.offsetTop;
-        const bottom = top + cell.offsetHeight;
-        if (bottom <= anchor || top > anchor) continue;
-        if (!firstVisible) firstVisible = cell;
-        if (top !== firstVisible.offsetTop) break;
-        if (cell.getAttribute('data-date') === targetDate) targetInAnchorRow = cell;
+      // Grid cells are ordered by date and row. Find the anchor row in O(log n)
+      // layout reads instead of walking every loaded month on every scroll frame.
+      let low = 0;
+      let high = cells.length;
+      while (low < high) {
+        const middle = (low + high) >>> 1;
+        const cell = cells[middle];
+        if (cell.offsetTop + cell.offsetHeight <= anchor) low = middle + 1;
+        else high = middle;
+      }
+      const rowTop = cells[low]?.offsetTop;
+      if (rowTop <= anchor) {
+        firstVisible = cells[low];
+        for (let index = low; index < cells.length; index += 1) {
+          const cell = cells[index];
+          if (cell.offsetTop !== rowTop) break;
+          if (cell.getAttribute('data-date') === targetDate) {
+            targetInAnchorRow = cell;
+            break;
+          }
+        }
       }
       const best = (targetInAnchorRow || firstVisible)?.getAttribute('data-month-key');
       if (best && best !== activeMonthKey.value) {
