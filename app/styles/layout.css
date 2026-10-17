@@ -69,7 +69,16 @@ html.dark .resource-sidebar {
     line-height: normal;
 }
 .library-project-actions { display: flex; gap: 8px; }
-.resource-sidebar select.glass-input { padding-top: 4px; padding-bottom: 4px; }
+/* Keep the indicator inside a consistent inset across native select renderers. */
+.resource-sidebar select.glass-input {
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 4px 36px 4px 10px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath d='m5 7.5 5 5 5-5' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+    background-size: 14px 14px;
+    background-repeat: no-repeat;
+}
 .resource-sidebar #library-panel { flex-shrink: 0; min-height: 80px; }
 
 /* Keep the offscreen animation out of both layout and scrollable overflow. */

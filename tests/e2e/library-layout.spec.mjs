@@ -24,6 +24,19 @@ for (const viewport of [{ width: 1400, height: 900 }, { width: 320, height: 568 
       await expect(role).toHaveValue(value);
     }
     await page.locator('html').evaluate(element => element.classList.add('dark'));
+    for (const dark of [false, true]) {
+      await page.locator('html').evaluate((element, dark) => element.classList.toggle('dark', dark), dark);
+      await role.focus();
+      const arrow = await role.evaluate(element => {
+        const style = getComputedStyle(element);
+        return { appearance: style.appearance, image: style.backgroundImage, position: style.backgroundPosition, padding: parseFloat(style.paddingRight), repeat: style.backgroundRepeat };
+      });
+      expect(arrow.appearance).toBe('none');
+      expect(arrow.image).toContain('data:image/svg+xml');
+      expect(arrow.position).toContain('12px');
+      expect(arrow.padding).toBeGreaterThanOrEqual(36);
+      expect(arrow.repeat).toBe('no-repeat');
+    }
     const metrics = await role.evaluate(element => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
