@@ -1212,10 +1212,16 @@ html .mobile-stat-card.compact-stat-card { padding: 12px 14px !important; border
 
 /* Shared modal entrance, including the fadeIn/bubblePop utility variants. */
 .modal-window {
-    animation-duration: var(--motion-standard);
-    animation-timing-function: var(--motion-ease);
+    animation-name: spring-modal-enter;
+    animation-duration: var(--motion-spring-duration);
+    animation-timing-function: var(--motion-spring);
 }
 /* These fields intentionally expand on focus; other inputs only animate color. */
 .glass-input[class*="focus:w-"] {
     transition: width var(--motion-standard) var(--motion-ease), background-color var(--motion-feedback), border-color var(--motion-feedback), box-shadow var(--motion-feedback);
+}
+
+@keyframes spring-modal-enter {
+    from { opacity: 0; transform: translateY(10px) scale(.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }

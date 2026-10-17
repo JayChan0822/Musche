@@ -1,3 +1,4 @@
+import { useDesktopSpringTransition, pageSpringSpec } from '../utils/desktop-spring-transition.js';
 import { AppMobileCalendar } from './app-mobile-calendar.js';
 import { nextTick, ref, toRefs } from 'vue';
 import { lunarLabel } from '../utils/mobile-calendar-dates.js';
@@ -13,12 +14,18 @@ export const AppMainContent = {
   },
   setup(props) {
     const calendarLabel = ref('');
+    const calendarMotion = useDesktopSpringTransition(element => ({
+      exit: 1,
+      transform: position => `scale(${1 + (element.classList.contains('calendar-month-view') ? .03 : -.03) * position})`,
+    }));
+    const weekMotion = useDesktopSpringTransition(() => pageSpringSpec(props.ctx.weekTransitionName));
+    const monthMotion = useDesktopSpringTransition(() => pageSpringSpec(props.ctx.dateTransitionName));
     const prepareCalendarView = () => {
       if (props.ctx.currentView === 'month' && props.ctx.monthViewMode === 'scrolled') {
         nextTick(() => props.ctx.scrollToMonthDate(props.ctx.viewDate));
       }
     };
-    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel, lunarLabel };
+    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel, lunarLabel, calendarMotion, weekMotion, monthMotion };
   },
   template: `
             <main id="main-content"
@@ -82,7 +89,7 @@ export const AppMainContent = {
                 <div class="flex-1 relative w-full overflow-hidden flex flex-col">
 
                     <app-mobile-calendar v-if="isMobile" ref="mobileCalendar" :ctx="$props.ctx" @label="calendarLabel = $event"></app-mobile-calendar>
-                    <Transition v-else name="calendar-zoom"
+                    <Transition v-else name="calendar-zoom" v-bind="calendarMotion"
                                 @before-enter="prepareCalendarView">
 
                         <div v-if="currentView === 'week'"
@@ -127,7 +134,7 @@ export const AppMainContent = {
 
                                 <!-- 任务格容器：relative 让 leave 元素 absolute 锚定在时间列右侧 -->
                                 <div class="relative flex-1 min-w-0">
-                                    <Transition :name="weekTransitionName"
+                                    <Transition :name="weekTransitionName" v-bind="weekMotion"
                                                 @before-leave="onBeforeLeave"
                                                 @after-leave="onAfterLeave">
                                         <div :key="currentWeekDays[0].dateStr" class="flex">
@@ -205,7 +212,7 @@ export const AppMainContent = {
                              @scroll.passive="handleInfiniteScroll"
                              @click="clearSelection">
 
-                            <Transition :name="dateTransitionName" v-if="monthViewMode === 'paged'">
+                            <Transition :name="dateTransitionName" v-bind="monthMotion" v-if="monthViewMode === 'paged'">
                                 <div :key="viewDate.getFullYear() + '-' + viewDate.getMonth()"
                                      class="w-full min-h-full"
                                      :class="isMobile ? 'p-2 pb-24' : 'p-4'">

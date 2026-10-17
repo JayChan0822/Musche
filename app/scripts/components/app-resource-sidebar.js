@@ -1,3 +1,4 @@
+import { useDesktopSpringTransition } from '../utils/desktop-spring-transition.js';
 import { defineAsyncComponent, nextTick, ref, watch } from 'vue';
 import { createResourceLibrary } from '../features/resource-library.js';
 import { AppMetadataLibrary } from './app-metadata-library.js';
@@ -9,6 +10,7 @@ export const AppResourceSidebar = {
   emits: ['close'],
   setup(props) {
     const library = createResourceLibrary(props.ctx);
+    const drawerMotion = useDesktopSpringTransition(() => ({ key: 'drawer', exit: 1, transform: position => `translate3d(${Math.max(0, position) * 100}%,0,0) scaleX(${1 + Math.max(0, -position) * .3})` }));
     const nameInput = ref(null);
     const editingGroupId = ref(null);
     const infoSelection = ref(null);
@@ -41,14 +43,14 @@ export const AppResourceSidebar = {
       await nextTick();
       nameInput.value?.focus({ preventScroll: true });
     };
-    return { ...library, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, focusPanel, startCreate, trapFocus, navigateTabs };
+    return { ...library, drawerMotion, nameInput, editingGroupId, infoSelection, openInfo, openResourceInfo, panel, focusPanel, startCreate, trapFocus, navigateTabs };
   },
   template: `
     <Teleport to="body">
     <div class="library-overlay-root" :class="{'library-overlay-open': open}" :inert="!open" :aria-hidden="!open">
     <Transition name="library-backdrop"><button v-if="open" tabindex="-1" class="absolute inset-0 bg-black/25 backdrop-blur-sm" aria-label="关闭资料库遮罩" @click="$emit('close')"></button></Transition>
-    <Transition name="library-drawer" @after-enter="focusPanel">
-    <aside v-if="open" ref="panel" id="resource-library" aria-label="资料库" role="dialog" aria-modal="true"
+    <Transition name="library-drawer" v-bind="drawerMotion" @after-enter="focusPanel">
+    <aside v-if="open" ref="panel" id="resource-library" style="transform-origin: right center" aria-label="资料库" role="dialog" aria-modal="true"
            class="resource-sidebar absolute inset-y-0 right-0 shadow-2xl flex flex-col min-h-0 overflow-hidden border-l border-black/10 dark:border-white/10"
            @keydown.stop="trapFocus" @keydown.esc.stop="$emit('close')">
       <div class="resource-sidebar-content flex flex-col flex-1 min-h-0 overflow-y-auto">

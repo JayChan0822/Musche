@@ -166,12 +166,12 @@ html.dark .grid-slot:nth-child(even)::after {
 
 /* Header and timeline columns use the same geometry transition and easing. */
 .calendar-week-view .week-day-column {
-    transition: min-width var(--motion-navigation) var(--motion-ease), background-color var(--motion-feedback), color var(--motion-feedback);
+    transition: min-width var(--motion-spring-duration) var(--motion-spring), background-color var(--motion-feedback), color var(--motion-feedback);
 }
 @media (prefers-reduced-motion: reduce) {
     .calendar-week-view .week-day-column { transition: none; }
 }
 
 .sidebar-motion {
-    transition: width var(--motion-navigation) var(--motion-ease), opacity var(--motion-standard) ease;
+    transition: width var(--motion-spring-duration) var(--motion-spring), opacity var(--motion-standard) ease;
 }
