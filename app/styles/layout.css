@@ -163,3 +163,11 @@ html.dark .grid-slot:nth-child(even)::after {
     position: relative;
     overflow: hidden;
 }
+
+/* Header and timeline columns use the same geometry transition and easing. */
+.calendar-week-view .week-day-column {
+    transition: min-width 300ms ease-in-out, background-color 150ms ease-in-out, color 150ms ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+    .calendar-week-view .week-day-column { transition: none; }
+}

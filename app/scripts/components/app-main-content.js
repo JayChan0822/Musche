@@ -98,7 +98,7 @@ export const AppMainContent = {
                             <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
                                 <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
                                 <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr" :data-week-header="day.dateStr"
-                                     class="h-16 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                                     class="week-day-column h-16 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
                                      :style="{ minWidth: dayColWidth + 'px' }"
                                      @dblclick="switchView('month')"
                                      @touchend="handleHeaderDoubleTap($event)"
@@ -132,7 +132,7 @@ export const AppMainContent = {
                                                 @after-leave="onAfterLeave">
                                         <div :key="currentWeekDays[0].dateStr" class="flex">
                                             <div v-for="day in currentWeekDays" :key="day.dateStr"
-                                                 class="flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative"
+                                                 class="week-day-column flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative"
                                                  :style="{ minWidth: dayColWidth + 'px' }"
                                                  :data-date-str="day.dateStr">
                                                 <div class="relative" data-week-grid>
