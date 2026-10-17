@@ -49,7 +49,29 @@ html.dark .resource-sidebar {
     color: #f3f4f6;
 }
 
-.resource-sidebar-content { width: min(320px, 90vw); }
+.resource-sidebar-content { width: 100%; }
+/* Give names their own flexible column and secondary controls their own row. */
+.library-item-grid {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 24px 24px;
+    align-items: center;
+    gap: 6px;
+}
+.library-item-grid > button:last-child { grid-column: 4; grid-row: 1; }
+.library-item-grid > .library-role-select,
+.library-project-actions { grid-column: 2 / -1; grid-row: 2; }
+.library-item-grid > .library-role-select {
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: normal;
+}
+.library-project-actions { display: flex; gap: 8px; }
+.resource-sidebar select.glass-input { padding-top: 4px; padding-bottom: 4px; }
+.resource-sidebar #library-panel { flex-shrink: 0; min-height: 80px; }
+
 /* Keep the offscreen animation out of both layout and scrollable overflow. */
 .library-overlay-root {
     position: fixed;
@@ -75,7 +97,7 @@ html.dark .resource-sidebar {
 
 @media (max-width: 639px) {
     .resource-sidebar button { min-height: 36px; }
-    .resource-sidebar input { font-size: 16px; }
+    .resource-sidebar input, .resource-sidebar select.glass-input { font-size: 16px; }
 }
 
 html.dark .glass-sidebar {

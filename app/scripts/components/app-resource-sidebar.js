@@ -21,7 +21,7 @@ export const AppResourceSidebar = {
     };
     const trapFocus = (event) => {
       if (event.key !== 'Tab') return;
-      const controls = [...panel.value.querySelectorAll('button:not(:disabled), input, [tabindex="0"]')]
+      const controls = [...panel.value.querySelectorAll('button:not(:disabled):not([tabindex="-1"]), input:not(:disabled), select:not(:disabled), [tabindex="0"]')]
         .filter((element) => element.getClientRects().length);
       const first = controls[0], last = controls.at(-1);
       if (event.shiftKey && event.target === first) { event.preventDefault(); last?.focus({ preventScroll: true }); }
@@ -51,7 +51,7 @@ export const AppResourceSidebar = {
     <aside v-if="open" ref="panel" id="resource-library" aria-label="资料库" role="dialog" aria-modal="true"
            class="resource-sidebar absolute inset-y-0 right-0 shadow-2xl flex flex-col min-h-0 overflow-hidden border-l border-black/10 dark:border-white/10"
            @keydown.stop="trapFocus" @keydown.esc.stop="$emit('close')">
-      <div class="resource-sidebar-content flex flex-col flex-1 min-h-0">
+      <div class="resource-sidebar-content flex flex-col flex-1 min-h-0 overflow-y-auto">
       <div class="p-3 border-b border-black/5 dark:border-white/10 shrink-0 space-y-3">
         <div class="flex items-center justify-between h-9">
           <div class="flex items-baseline gap-2"><h2 class="font-bold text-sm">资料库</h2><span class="text-[10px] text-gray-500 dark:text-gray-400">LIBRARY</span></div>
@@ -93,17 +93,17 @@ export const AppResourceSidebar = {
           </div>
           <div v-show="isExpanded(group.name)" class="p-1 space-y-1">
             <div v-for="item in group.items" :key="item.id" class="group/item px-2 py-1 rounded-lg bg-white/60 dark:bg-black/10 hover:bg-white dark:hover:bg-white/10">
-              <div class="flex items-center gap-1.5">
+              <div class="library-item-grid">
                 <button @click="openInfo(item)" :aria-label="'查看' + item.name + '详情'" title="历史曲目与录音统计" class="w-7 h-7 rounded-lg shrink-0 text-white shadow-sm" :style="{backgroundColor: item.color || activeTab.color}"><i class="fa-solid text-[10px]" :class="activeTab.icon" aria-hidden="true"></i></button>
-                <input :value="item.name" :aria-label="activeTab.label + '名称'" @change="ctx.handleItemRename(activeType, item, $event)" @mousedown.stop class="min-w-0 flex-1 bg-transparent outline-none rounded focus:ring-1 focus:ring-blue-500 py-1 text-sm font-semibold">
+                <input :value="item.name" :title="item.name" :aria-label="activeTab.label + '名称'" @change="ctx.handleItemRename(activeType, item, $event)" @mousedown.stop class="min-w-0 flex-1 bg-transparent outline-none rounded focus:ring-1 focus:ring-blue-500 py-1 text-sm font-semibold">
                 <button @click="editingGroupId = editingGroupId === item.id ? null : item.id" :aria-label="'修改' + item.name + '分组'" :aria-expanded="editingGroupId === item.id" title="修改分组" class="w-6 h-7 shrink-0 rounded text-gray-400 hover:text-blue-500"><i class="fa-solid fa-folder-tree text-[10px]" aria-hidden="true"></i></button>
-                <select v-if="activeType === 'musician'" :value="getRoleValue(item)" @change="updateRoles(item, $event.target.value)" :aria-label="item.name + '角色'" class="glass-input w-20 h-7 text-[10px]">
+                <select v-if="activeType === 'musician'" :value="getRoleValue(item)" @change="updateRoles(item, $event.target.value)" :aria-label="item.name + '角色'" class="glass-input library-role-select">
                   <option value="musician">演奏员</option><option value="editor">剪辑员</option><option value="both">演奏/剪辑</option>
                 </select>
-                <template v-if="activeType === 'project'">
+                <div v-if="activeType === 'project'" class="library-project-actions">
                   <button @click="ctx.openProjectInfoModal(item)" :aria-label="item.name + '项目信息'" title="项目信息" class="w-7 h-7 rounded text-blue-500 hover:bg-blue-500/10"><i class="fa-solid fa-circle-info" aria-hidden="true"></i></button>
                   <button @click="ctx.openMidiManager(item)" :aria-label="item.name + ' MIDI 管理'" title="MIDI 管理" class="rounded px-2 h-7 text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-500/10">MIDI</button>
-                </template>
+                </div>
                 <button @click="ctx.removeSettingsItem(activeType, item.id)" :aria-label="'删除' + item.name" class="w-6 h-7 shrink-0 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-500/10"><i class="fa-solid fa-trash-can text-[10px]" aria-hidden="true"></i></button>
               </div>
               <div v-if="editingGroupId === item.id" class="pt-1 pb-1 pl-9">

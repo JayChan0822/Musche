@@ -123,16 +123,14 @@ export const AppMobileDayView = {
                                                    'is-flashing': flashingTaskId === task.scheduleId,
                                                    'is-ghost': isTaskGhost(task)
                                                  }"
-                                                 :style="getTaskStyle(task)"
+                                                 :style="getTaskStyle(task)" :title="getBlockTitle(task) + ' · ' + task.startTime + ' · 时长 ' + task.estDuration"
                                                  @click.stop="selectTask(task.scheduleId, 'schedule')">
 
-                                                <div class="flex flex-col h-full justify-between pointer-events-none">
-                                                    <div class="font-bold leading-tight truncate pr-1">
-                                                        {{ getBlockTitle(task) }}
-                                                    </div>
-                                                    <div class="mt-auto text-[11px] font-mono opacity-80 leading-none flex items-center gap-2">
-                                                        <span class="whitespace-nowrap">{{ task.startTime }}</span>
-                                                        <span class="font-bold whitespace-nowrap opacity-70">{{ task.estDuration }}</span>
+                                                <div class="schedule-block-content pointer-events-none">
+                                                    <strong class="schedule-block-title">{{ getBlockTitle(task) }}</strong>
+                                                    <div class="schedule-block-meta">
+                                                        <span data-schedule-start class="schedule-block-start">{{ task.startTime }}</span>
+                                                        <span class="schedule-block-duration">{{ task.estDuration }}</span>
                                                     </div>
                                                 </div>
                                                 <div v-if="hasRecordingInfo(task)"

@@ -147,7 +147,7 @@ export const AppMainContent = {
                                                      :key="task.scheduleId"
                                                      class="task-block group"
                                                      @mousedown="initPreciseScheduleMove($event, task)"
-                                                     title="格内拖动：15 分钟吸附；按住 ⌘ Command 可按 1 分钟微调"
+                                                     :title="getBlockTitle(task) + ' · ' + task.startTime + ' · 时长 ' + task.estDuration + ' · 格内拖动：15 分钟吸附；按住 ⌘ Command 可按 1 分钟微调'"
                                                      :draggable="!isMobile"
                                                      @dragstart.stop="dragStart($event, task, 'schedule')"
                                                      @dragend="handleDragEnd"
@@ -170,17 +170,11 @@ export const AppMainContent = {
                                                      :style="getTaskStyle(task)"
                                                      @click.stop="selectTask(task.scheduleId, 'schedule')">
 
-                                                    <div class="flex flex-col h-full justify-between pointer-events-none">
-                                                        <div class="font-bold leading-tight truncate pr-1">
-                                                            {{ getBlockTitle(task) }}
-                                                        </div>
-                                                        <div class="mt-auto text-[10px] sm:text-[11px] font-mono opacity-80 leading-none">
-                                                            <div class="flex flex-col items-start">
-                                                                <span data-schedule-start class="whitespace-nowrap">{{task.startTime}}</span>
-                                                                <span class="font-bold whitespace-nowrap text-[10px] opacity-70 mt-0.5">
-                                                                    {{task.estDuration}}
-                                                                </span>
-                                                            </div>
+                                                    <div class="schedule-block-content pointer-events-none">
+                                                        <strong class="schedule-block-title">{{ getBlockTitle(task) }}</strong>
+                                                        <div class="schedule-block-meta">
+                                                            <span data-schedule-start class="schedule-block-start">{{task.startTime}}</span>
+                                                            <span class="schedule-block-duration">{{ task.estDuration }}</span>
                                                         </div>
                                                     </div>
                                                     <div class="resize-handle"
