@@ -488,6 +488,31 @@ html.dark .mobile-resize-bar {
 .mobile-search-bar { left:16px; right:16px; height:42px; bottom:calc(80px + env(safe-area-inset-bottom,0px) + var(--mobile-keyboard-inset,0px)); }
 .mobile-search-surface { background:rgba(255,255,255,.58); }
 html.dark .mobile-search-surface { background:rgba(30,30,30,.58); }
+
+/* 搜索时保留键盘弹出前的画布，仅搜索框跟随可见视口。 */
+html.mobile-search-focused body,
+html.mobile-search-focused #app,
+html.mobile-search-focused .liquid-window {
+    height: var(--search-page-height) !important;
+    min-height: var(--search-page-height) !important;
+}
+html.mobile-search-focused body {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+}
+html.mobile-search-focused .mobile-tab-bar {
+    position: absolute;
+}
+.mobile-search-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 840;
+    background: rgba(255, 255, 255, .12);
+    -webkit-backdrop-filter: blur(7px);
+    backdrop-filter: blur(7px);
+}
+html.dark .mobile-search-backdrop { background: rgba(0, 0, 0, .18); }
 @media (max-width:767px) {
     .undo-toast { bottom:calc(134px + env(safe-area-inset-bottom,0px)); }
     .mc-scroll-tail { height:160px; }

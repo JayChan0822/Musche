@@ -8,8 +8,19 @@ export const AppMobileControls = {
       required: true,
     },
   },
-  setup() {
+  setup(props) {
     const viewportInset = ref(0);
+    const mobileSearchInput = ref(null);
+    const focusSearch = () => {
+      document.documentElement.style.setProperty('--search-page-height', `${window.innerHeight}px`);
+      document.documentElement.classList.add('mobile-search-focused');
+      props.ctx.onSearchFocus();
+    };
+    const blurSearch = () => {
+      document.documentElement.classList.remove('mobile-search-focused');
+      document.documentElement.style.removeProperty('--search-page-height');
+      props.ctx.handleSearchBlur();
+    };
     let frame = 0;
     const viewport = window.visualViewport;
     const update = () => {
@@ -32,11 +43,15 @@ export const AppMobileControls = {
       viewport?.removeEventListener('resize', update);
       viewport?.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
+      document.documentElement.classList.remove('mobile-search-focused');
+      document.documentElement.style.removeProperty('--search-page-height');
     });
-    return { viewportInset };
+    return { viewportInset, mobileSearchInput, focusSearch, blurSearch };
   },
   template: `
             <template v-if="ctx.isMobile">
+                <div v-if="ctx.isSearchFocused" class="mobile-search-backdrop"
+                     aria-hidden="true" @pointerdown.prevent="mobileSearchInput?.blur()"></div>
                 <!-- 常驻 dock 上方，输入和清空后都保持原位。 -->
                 <div class="mobile-search-bar fixed z-[850]" :style="{'--mobile-keyboard-inset':viewportInset+'px'}">
                     <div class="relative w-full h-full shadow-lg rounded-full">
@@ -46,8 +61,8 @@ export const AppMobileControls = {
 
                         <input ref="mobileSearchInput"
                                v-model="ctx.globalSearchQuery"
-                               @focus="ctx.onSearchFocus"
-                               @blur="ctx.handleSearchBlur"
+                               @focus="focusSearch"
+                               @blur="blurSearch"
                                @keydown.enter="ctx.handleSearchEnter"
                                class="relative w-full h-full bg-transparent pl-12 pr-12 text-base font-bold text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 rounded-full outline-none"
                                placeholder="Search..." aria-label="搜索日程和任务"
@@ -79,7 +94,7 @@ export const AppMobileControls = {
                     </div>
                 </Transition>
 
-                <div class="mobile-tab-bar" :style="{'--mobile-keyboard-inset':viewportInset+'px'}">
+                <div class="mobile-tab-bar">
                     <button aria-label="任务池" @click="ctx.mobileTab='pool'; ctx.showMobileTaskInput=false"
                             class="mobile-tab-item"
                             :class="{'active': ctx.mobileTab==='pool' && !ctx.showMobileTaskInput && !ctx.isSearchFocused}">
