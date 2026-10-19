@@ -504,6 +504,10 @@ html.mobile-search-focused body {
 html.mobile-search-focused .mobile-tab-bar {
     position: absolute;
 }
+html.mobile-search-focused #app {
+    /* 将画布钉在可见视口原点，并让内部 fixed 元素以锁定的画布定位。 */
+    transform: translateY(var(--search-page-offset, 0px));
+}
 .mobile-search-backdrop {
     position: fixed;
     inset: 0;

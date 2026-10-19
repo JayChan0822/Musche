@@ -10,15 +10,19 @@ export const AppMobileControls = {
   },
   setup(props) {
     const viewportInset = ref(0);
+    const searchTop = ref(null);
     const mobileSearchInput = ref(null);
     const focusSearch = () => {
       document.documentElement.style.setProperty('--search-page-height', `${window.innerHeight}px`);
       document.documentElement.classList.add('mobile-search-focused');
       props.ctx.onSearchFocus();
+      update();
     };
     const blurSearch = () => {
       document.documentElement.classList.remove('mobile-search-focused');
       document.documentElement.style.removeProperty('--search-page-height');
+      document.documentElement.style.removeProperty('--search-page-offset');
+      searchTop.value = null;
       props.ctx.handleSearchBlur();
     };
     let frame = 0;
@@ -30,6 +34,13 @@ export const AppMobileControls = {
         // Android 若已缩小布局视口，差值为零，不重复上移。
         viewportInset.value = viewport && Math.abs(viewport.scale - 1) < .01
           ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop) : 0;
+        if (props.ctx.isSearchFocused) {
+          // Safari 会平移 visual viewport，即使画布高度固定仍需补偿这个偏移。
+          const offset = viewport?.pageTop ?? window.scrollY;
+          document.documentElement.style.setProperty('--search-page-offset', `${offset}px`);
+          const bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight);
+          searchTop.value = Math.max(12, bottom - 42 - 16);
+        }
       });
     };
     onMounted(() => {
@@ -45,15 +56,17 @@ export const AppMobileControls = {
       window.removeEventListener('resize', update);
       document.documentElement.classList.remove('mobile-search-focused');
       document.documentElement.style.removeProperty('--search-page-height');
+      document.documentElement.style.removeProperty('--search-page-offset');
     });
-    return { viewportInset, mobileSearchInput, focusSearch, blurSearch };
+    return { viewportInset, searchTop, mobileSearchInput, focusSearch, blurSearch };
   },
   template: `
             <template v-if="ctx.isMobile">
+                <Teleport to="body">
                 <div v-if="ctx.isSearchFocused" class="mobile-search-backdrop"
                      aria-hidden="true" @pointerdown.prevent="mobileSearchInput?.blur()"></div>
                 <!-- 常驻 dock 上方，输入和清空后都保持原位。 -->
-                <div class="mobile-search-bar fixed z-[850]" :style="{'--mobile-keyboard-inset':viewportInset+'px'}">
+                <div class="mobile-search-bar fixed z-[850]" :style="searchTop === null ? {'--mobile-keyboard-inset':viewportInset+'px'} : {top:searchTop+'px',bottom:'auto'}">
                     <div class="relative w-full h-full shadow-lg rounded-full">
                         <div class="mobile-search-surface absolute inset-0 backdrop-blur-xl rounded-full border border-white/40 dark:border-white/10 shadow-sm"></div>
 
@@ -77,6 +90,8 @@ export const AppMobileControls = {
                         </button>
                     </div>
                 </div>
+
+                </Teleport>
 
                 <!-- 撤销条：产生可撤销改动后浮在 dock 上方，几秒后自动消失 -->
                 <Transition name="undo-toast">
