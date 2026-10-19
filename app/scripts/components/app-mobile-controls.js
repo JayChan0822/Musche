@@ -12,6 +12,19 @@ export const AppMobileControls = {
     const viewportInset = ref(0);
     const searchTop = ref(null);
     const mobileSearchInput = ref(null);
+    let revealFrame = 0;
+    const activateSearch = (event) => {
+      const input = mobileSearchInput.value;
+      if (!input || document.activeElement === input) return;
+      event.preventDefault();
+      // iOS 会对可见的底部输入框执行自动滚动；聚焦这一刻暂时隐藏文字层。
+      // 外层搜索框仍然可见，键盘仍在用户手势内同步唤起。
+      input.style.opacity = '0';
+      input.focus({ preventScroll: true });
+      revealFrame = requestAnimationFrame(() => {
+        input.style.removeProperty('opacity');
+      });
+    };
     const focusSearch = () => {
       document.documentElement.style.setProperty('--search-page-height', `${window.innerHeight}px`);
       document.documentElement.classList.add('mobile-search-focused');
@@ -25,11 +38,8 @@ export const AppMobileControls = {
       searchTop.value = null;
       props.ctx.handleSearchBlur();
     };
-    let frame = 0;
     const viewport = window.visualViewport;
     const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
         // 键盘可能只缩小 visual viewport；同时扣除 Safari 自动平移的 offsetTop。
         // Android 若已缩小布局视口，差值为零，不重复上移。
         viewportInset.value = viewport && Math.abs(viewport.scale - 1) < .01
@@ -41,24 +51,25 @@ export const AppMobileControls = {
           const bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight);
           searchTop.value = Math.max(12, bottom - 42 - 16);
         }
-      });
     };
     onMounted(() => {
       viewport?.addEventListener('resize', update);
       viewport?.addEventListener('scroll', update);
       window.addEventListener('resize', update);
+      window.addEventListener('scroll', update);
       update();
     });
     onBeforeUnmount(() => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(revealFrame);
       viewport?.removeEventListener('resize', update);
       viewport?.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update);
       document.documentElement.classList.remove('mobile-search-focused');
       document.documentElement.style.removeProperty('--search-page-height');
       document.documentElement.style.removeProperty('--search-page-offset');
     });
-    return { viewportInset, searchTop, mobileSearchInput, focusSearch, blurSearch };
+    return { viewportInset, searchTop, mobileSearchInput, activateSearch, focusSearch, blurSearch };
   },
   template: `
             <template v-if="ctx.isMobile">
@@ -74,6 +85,7 @@ export const AppMobileControls = {
 
                         <input ref="mobileSearchInput"
                                v-model="ctx.globalSearchQuery"
+                               @pointerdown="activateSearch"
                                @focus="focusSearch"
                                @blur="blurSearch"
                                @keydown.enter="ctx.handleSearchEnter"
