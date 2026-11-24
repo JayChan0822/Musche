@@ -43,3 +43,14 @@ test('editing a schedule into a conflict keeps its draft open and leaves saved d
   assert.equal(h.history.length, 0);
   assert.match(h.alerts[0][0], /冲突/);
 });
+
+test('a shared studio still conflicts when one session lists several studios', () => {
+  const h = setup();
+  const [task, other] = h.refs.scheduledTasks.value;
+  task.recordingInfo = { studio: 'Studio A / Studio B' };
+  other.stage = 'edit';
+  other.recordingInfo = { studio: 'Studio C / Studio B' };
+  assert.equal(h.actions.checkOverlap(other.date, other.startTime, task.estDuration, task.scheduleId, 'musician', task), true);
+  other.recordingInfo.studio = 'Studio AB';
+  assert.equal(h.actions.checkOverlap(other.date, other.startTime, task.estDuration, task.scheduleId, 'musician', task), false);
+});

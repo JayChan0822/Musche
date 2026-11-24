@@ -14,13 +14,14 @@ export const AppHeader = {
             <div class="flex items-center gap-2 sm:gap-5 z-50 relative shrink-0">
 
                 <div class="relative custom-select-container">
-                    <button @click.stop="ctx.toggleMobileMenu"
+                    <button @click.stop="ctx.toggleMobileMenu" aria-label="打开菜单" :aria-expanded="ctx.showMobileMenu"
                             class="w-11 h-11 rounded-full bg-white/40 dark:bg-black/20 border border-white/20 shadow-sm hover:bg-white/60 dark:hover:bg-black/30 flex items-center justify-center transition group backdrop-blur-md">
                         <i class="fa-solid fa-bars text-lg opacity-70"></i>
                     </button>
 
                     <div v-if="ctx.showMobileMenu"
-                         class="menu-shortcuts-dropdown custom-dropdown-menu w-48 absolute top-full left-0 mt-2 p-1.5 flex flex-col gap-1 bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-xl origin-top-left text-left">
+                         class="menu-shortcuts-dropdown custom-dropdown-menu w-48 absolute top-full left-0 mt-2 p-1.5 flex flex-col bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-xl border border-white/20 shadow-2xl rounded-xl origin-top-left text-left">
+                        <div class="menu-shortcuts-items flex min-h-0 flex-col gap-1 overflow-y-auto">
 
                         <button @click="ctx.toggleTheme"
                                 class="flex items-center gap-3 px-3 py-3.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold w-full">
@@ -109,9 +110,10 @@ export const AppHeader = {
                             <div class="w-5 flex justify-center text-green-500"><i class="fa-solid fa-upload"></i></div>
                             <span>恢复数据 (JSON)</span>
                         </button>
+                        </div>
 
                         <button @click="ctx.openCreditModal(); ctx.showMobileMenu=false"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold w-full">
+                                class="flex shrink-0 items-center gap-3 px-3 py-2.5 mb-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition text-sm font-bold w-full">
                             <div class="w-5 flex justify-center text-purple-500"><i class="fa-solid fa-file-contract"></i></div>
                             <span>导出 Credit</span>
                         </button>

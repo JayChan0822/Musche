@@ -1,6 +1,6 @@
 import { useDesktopSpringTransition, pageSpringSpec } from '../utils/desktop-spring-transition.js';
 import { AppMobileCalendar } from './app-mobile-calendar.js';
-import { nextTick, ref, toRefs } from 'vue';
+import { nextTick, onBeforeUnmount, ref, toRefs } from 'vue';
 import { lunarLabel } from '../utils/mobile-calendar-dates.js';
 
 export const AppMainContent = {
@@ -20,12 +20,48 @@ export const AppMainContent = {
     }));
     const weekMotion = useDesktopSpringTransition(() => pageSpringSpec(props.ctx.weekTransitionName));
     const monthMotion = useDesktopSpringTransition(() => pageSpringSpec(props.ctx.dateTransitionName));
+    const leaveWeek = (element) => {
+      element.inert = true;
+      props.ctx.onBeforeLeave(element);
+    };
+    const leaveMonth = (element) => { element.inert = true; };
     const prepareCalendarView = () => {
       if (props.ctx.currentView === 'month' && props.ctx.monthViewMode === 'scrolled') {
         nextTick(() => props.ctx.scrollToMonthDate(props.ctx.viewDate));
       }
     };
-    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel, lunarLabel, calendarMotion, weekMotion, monthMotion };
+    let monthDrag = null;
+    const resetMonthDrag = () => {
+      if (!monthDrag) return;
+      const { scroller } = monthDrag;
+      scroller.draggable = false;
+      scroller.ownerDocument.defaultView.removeEventListener('mouseup', cancelPendingMonthDrag, true);
+      monthDrag = null;
+    };
+    const cancelPendingMonthDrag = () => { if (!monthDrag?.started) resetMonthDrag(); };
+    const prepareMonthDrag = (event, task) => {
+      if (event.button !== 0) return;
+      resetMonthDrag();
+      const card = event.currentTarget;
+      const scroller = card.closest('[data-calendar-scroller]');
+      // 原生拖动由月历外层承载，切月卸载原卡片后仍可继续拖动。
+      monthDrag = { card, task, scroller, started: false };
+      scroller.draggable = true;
+      scroller.ownerDocument.defaultView.addEventListener('mouseup', cancelPendingMonthDrag, true);
+    };
+    const startMonthDrag = (event) => {
+      if (event.target !== monthDrag?.scroller) return;
+      monthDrag.started = true;
+      props.ctx.dragStart(event, monthDrag.task, 'schedule', monthDrag.card);
+    };
+    const endMonthDrag = (event) => {
+      if (event.target !== monthDrag?.scroller) return;
+      props.ctx.handleDragEnd(event, monthDrag.card);
+      resetMonthDrag();
+    };
+    onBeforeUnmount(resetMonthDrag);
+    return { ...toRefs(props.ctx), prepareCalendarView, calendarLabel, lunarLabel, calendarMotion, weekMotion, monthMotion, leaveWeek, leaveMonth,
+      prepareMonthDrag, startMonthDrag, endMonthDrag };
   },
   template: `
             <main id="main-content"
@@ -101,29 +137,12 @@ export const AppMainContent = {
                              :ref="(el) => { weekContainer = el; }"
                              :style="{ '--slot-height': slotHeight + 'px', overflowAnchor: 'none' }"
                              @click="clearSelection">
-                            <!-- 星期头行：sticky top-0，切周 slide 动画时不随内容位移；z 高于时间列，重叠处盖住时间列 -->
-                            <div class="sticky top-0 z-[900] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
-                                <div class="shrink-0 border-r border-glass-border dark:border-glass-borderDark" style="width: var(--time-col-width)"></div>
-                                <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr" :data-week-header="day.dateStr"
-                                     class="week-day-column h-16 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
-                                     :style="{ minWidth: dayColWidth + 'px' }"
-                                     @dblclick="switchView('month')"
-                                     @touchend="handleHeaderDoubleTap($event)"
-                                     title="双击返回月视图">
-                                    <span class="text-xs uppercase font-bold opacity-60 mb-0.5">{{ day.weekday }}</span>
-                                    <div class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
-                                         :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">
-                                        {{ day.dateShort.split('/')[1] }}
-                                    </div>
-                                    <span :data-week-lunar="day.dateStr" class="text-[10px] leading-3 opacity-50 whitespace-nowrap">{{ lunarLabel(day.dateStr) }}</span>
-                                </div>
-                            </div>
-
                             <!-- 时间列 + 任务格区 -->
                             <div class="flex min-w-full shrink-0" :ref="(el) => { weekGridWrapper = el; }">
                                 <!-- 时间列：sticky left-0，切周 slide 动画时不随内容位移 -->
-                                <div class="shrink-0 sticky left-0 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
+                                <div data-week-ruler class="shrink-0 sticky left-0 z-[800] bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-r border-glass-border dark:border-glass-borderDark shadow-sm"
                                      style="width: var(--time-col-width)">
+                                    <div data-week-ruler-heading class="sticky top-0 z-10 box-content h-16 bg-white dark:bg-[#1c1c1e] border-b border-glass-border dark:border-glass-borderDark"></div>
                                     <div v-for="t in timeSlots" :key="t" class="time-label-slot">
                                         {{ t.endsWith('00') ? t : '' }}
                                     </div>
@@ -135,9 +154,23 @@ export const AppMainContent = {
                                 <!-- 任务格容器：relative 让 leave 元素 absolute 锚定在时间列右侧 -->
                                 <div class="relative flex-1 min-w-0">
                                     <Transition :name="weekTransitionName" v-bind="weekMotion"
-                                                @before-leave="onBeforeLeave"
+                                                @before-leave="leaveWeek"
                                                 @after-leave="onAfterLeave">
-                                        <div :key="currentWeekDays[0].dateStr" class="flex">
+                                        <div :key="currentWeekDays[0].dateStr" data-week-page>
+                                            <div data-week-scroll-header class="sticky top-0 z-[700] flex bg-white/95 dark:bg-[#1c1c1e]/95 backdrop-blur-xl border-b border-glass-border dark:border-glass-borderDark shadow-sm">
+                                                <div v-for="day in currentWeekDays" :key="'weekday-' + day.dateStr" :data-week-header="day.dateStr"
+                                                     class="week-day-column h-16 flex-1 flex flex-col items-center justify-center border-r border-glass-border dark:border-glass-borderDark cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                                                     :style="{ minWidth: dayColWidth + 'px' }"
+                                                     @dblclick="switchView('month')"
+                                                     @touchend="handleHeaderDoubleTap($event)"
+                                                     title="双击返回月视图">
+                                                    <span class="text-xs uppercase font-bold opacity-60 mb-0.5">{{ day.weekday }}</span>
+                                                    <div class="w-8 h-8 flex items-center justify-center rounded-full text-base font-bold"
+                                                         :class="isToday(day.dateStr) ? 'bg-[#ff3b30] text-white' : 'opacity-90'">{{ day.dateShort.split('/')[1] }}</div>
+                                                    <span :data-week-lunar="day.dateStr" class="text-[10px] leading-3 opacity-50 whitespace-nowrap">{{ lunarLabel(day.dateStr) }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="flex">
                                             <div v-for="day in currentWeekDays" :key="day.dateStr"
                                                  class="week-day-column flex-1 border-r border-glass-border dark:border-glass-borderDark flex flex-col relative"
                                                  :style="{ minWidth: dayColWidth + 'px' }"
@@ -199,7 +232,8 @@ export const AppMainContent = {
 
                                             </div>
                                         </div>
-                                    </div>
+                                            </div>
+                                        </div>
                                 </Transition>
                                 </div>
                             </div>
@@ -210,10 +244,11 @@ export const AppMainContent = {
                              data-calendar-scroller
                              class="calendar-month-view w-full h-full overflow-y-auto overflow-x-hidden relative scroll-pt-[34px]"
                              @scroll.passive="handleInfiniteScroll"
+                             @dragstart="startMonthDrag" @dragover.prevent @dragend="endMonthDrag"
                              @click="clearSelection">
 
-                            <Transition :name="dateTransitionName" v-bind="monthMotion" v-if="monthViewMode === 'paged'">
-                                <div :key="viewDate.getFullYear() + '-' + viewDate.getMonth()"
+                            <Transition :name="dateTransitionName" v-bind="monthMotion" @before-leave="leaveMonth" v-if="monthViewMode === 'paged'">
+                                <div :key="viewDate.getFullYear() + '-' + viewDate.getMonth()" data-month-page
                                      class="w-full min-h-full"
                                      :class="isMobile ? 'p-2 pb-24' : 'p-4'">
 
@@ -250,6 +285,7 @@ export const AppMainContent = {
                                             <div class="space-y-1 overflow-y-auto max-h-[90px] no-scrollbar flex-1">
                                                 <div v-for="task in (tasksByDateMap[day.fullDate] || [])"
                                                      :key="task.scheduleId"
+                                                     data-month-schedule
                                                      class="text-[11px] px-2 py-1 rounded-md truncate flex items-center gap-1.5 cursor-grab hover:brightness-110 shadow-sm"
                                                      :class="{
                                                                  'ring-1 ring-white': selectedTaskId === task.scheduleId,
@@ -262,9 +298,7 @@ export const AppMainContent = {
                                                              }"
                                                      @click.stop="isMobile ? openDayView(day.fullDate) : selectTask(task.scheduleId, 'schedule')"
                                                      @dblclick.stop="handleTaskDblClick($event, task)"
-                                                     :draggable="!isMobile"
-                                                     @dragstart.stop="dragStart($event, task, 'schedule')"
-                                                     @dragend="handleDragEnd"
+                                                     @mousedown.stop="prepareMonthDrag($event, task)"
                                                      @touchstart="handleTouchStart($event, task, day.fullDate)"
                                                      @touchmove="handleTouchMove"
                                                      @touchend.stop="handleTouchEnd">
@@ -287,7 +321,7 @@ export const AppMainContent = {
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-7 border-l border-glass-border dark:border-glass-borderDark bg-white/50 dark:bg-[#1e1e1e]/50"
+                                <div data-scrolled-month-grid class="grid grid-cols-7 border-l border-glass-border dark:border-glass-borderDark bg-white/50 dark:bg-[#1e1e1e]/50"
                                      :class="isMobile ? 'w-full' : 'min-w-[800px]'">
 
                                     <div v-for="day in flatScrolledDays" :key="day.fullDate"
@@ -323,6 +357,7 @@ export const AppMainContent = {
                                         <div class="space-y-1 overflow-y-auto no-scrollbar flex-1">
                                             <div v-for="task in (tasksByDateMap[day.fullDate] || [])"
                                                  :key="task.scheduleId"
+                                                 data-month-schedule
                                                  class="text-[11px] px-2 py-1 rounded-md truncate flex items-center gap-1.5 cursor-grab hover:brightness-110 shadow-sm"
                                                  :class="{
                          'ring-1 ring-white': selectedTaskId === task.scheduleId,
@@ -335,9 +370,7 @@ export const AppMainContent = {
                      }"
                                                  @click.stop="isMobile ? openDayView(day.fullDate) : selectTask(task.scheduleId, 'schedule')"
                                                  @dblclick.stop="handleTaskDblClick($event, task)"
-                                                 :draggable="!isMobile"
-                                                 @dragstart.stop="dragStart($event, task, 'schedule')"
-                                                 @dragend="handleDragEnd"
+                                                 @mousedown.stop="prepareMonthDrag($event, task)"
                                                  @touchstart="handleTouchStart($event, task, day.fullDate)"
                                                  @touchmove="handleTouchMove"
                                                  @touchend.stop="handleTouchEnd">

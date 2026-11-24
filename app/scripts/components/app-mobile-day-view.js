@@ -143,10 +143,6 @@ export const AppMobileDayView = {
                                                 </div>
                                             </div>
 
-                                            <!-- 当前时刻红线（仅今天） -->
-                                            <div v-if="page.offset === 0 && nowIndicatorStyle" class="day-now-line" :style="nowIndicatorStyle">
-                                                <span class="day-now-dot"></span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>

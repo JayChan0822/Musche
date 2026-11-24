@@ -3,6 +3,7 @@ import { allocateNewSchedule, unlinkSchedule } from '../utils/stable-schedule.js
 import { scheduleIdentity } from '../utils/schedule-context.js';
 import { getScheduleStage, viewFromStage } from '../utils/workflow.js';
 import { formatClock } from '../utils/time.js';
+import { createDragEdgePaging, dragEdgePressure, dragScrollDistance } from '../utils/calendar-drag-edges.js';
 
 export function registerScheduleDragDropFeature(context) {
   const { refs, state, utils, actions = {} } = context;
@@ -22,9 +23,54 @@ export function registerScheduleDragDropFeature(context) {
     clearAggregateRecords = null,
     chooseSchedule = async schedules => (await import('../components/choose-assignment-schedule.js')).chooseAssignmentSchedule(schedules),
     consoleError = (...args) => console.error(...args),
+    changeDate = () => {},
   } = actions;
 
   let draggedData = null;
+  let stopMonthEdges = () => {};
+
+  const startMonthEdges = (scroller) => {
+    const doc = scroller.ownerDocument;
+    const win = doc.defaultView;
+    const pageAtEdge = createDragEdgePaging();
+    const header = scroller.querySelector('[data-calendar-weekdays]');
+    let pointer = null, frame = 0, frameTime = null;
+    const tick = (time) => {
+      if (!scroller.isConnected) { stopMonthEdges(); return; }
+      const elapsed = time - (frameTime ?? time);
+      frameTime = time;
+      const bounds = scroller.getBoundingClientRect();
+      const top = header?.getBoundingClientRect().bottom ?? bounds.top;
+      let direction = 0;
+      if (pointer && pointer.clientX >= bounds.left && pointer.clientX < bounds.left + scroller.clientWidth
+        && pointer.clientY >= bounds.top && pointer.clientY < bounds.top + scroller.clientHeight) {
+        const x = dragEdgePressure(pointer.clientX, bounds.left, bounds.left + scroller.clientWidth, 48);
+        const y = dragEdgePressure(pointer.clientY, top, bounds.top + scroller.clientHeight, 56);
+        if (Math.abs(x) >= 0.35 && Math.abs(x) >= Math.abs(y)) direction = Math.sign(x);
+        else if (y) scroller.scrollTop += dragScrollDistance(y, elapsed);
+      }
+      if (pageAtEdge(direction, time)) changeDate(direction);
+      frame = win.requestAnimationFrame(tick);
+    };
+    const dragOver = (event) => { pointer = event; };
+    const dragLeave = (event) => { if (!event.relatedTarget) pointer = null; };
+    const stop = () => {
+      win.cancelAnimationFrame(frame);
+      doc.removeEventListener('dragenter', dragOver, true);
+      doc.removeEventListener('dragover', dragOver, true);
+      doc.removeEventListener('dragleave', dragLeave, true);
+      doc.removeEventListener('drop', stop, true);
+      doc.removeEventListener('dragend', stop, true);
+      stopMonthEdges = () => {};
+    };
+    stopMonthEdges = stop;
+    doc.addEventListener('dragenter', dragOver, true);
+    doc.addEventListener('dragover', dragOver, true);
+    doc.addEventListener('dragleave', dragLeave, true);
+    doc.addEventListener('drop', stop, true);
+    doc.addEventListener('dragend', stop, true);
+    frame = win.requestAnimationFrame(tick);
+  };
 
   const clearDragOver = (selector) => {
     getDocument().querySelectorAll(selector).forEach((element) => element.classList.remove(selector === '.assignment-drop-target' ? 'assignment-drop-target' : 'drag-over'));
@@ -42,9 +88,9 @@ export function registerScheduleDragDropFeature(context) {
     return formatSecs(remainingMins * 60);
   };
 
-  const dragStart = (event, item, source) => {
+  const dragStart = (event, item, source, sourceElement = event.currentTarget || event.target) => {
+    stopMonthEdges();
     let offsetMinutes = 0;
-    const sourceElement = event.currentTarget || event.target;
 
     if (source === 'schedule' && sourceElement) {
       const rect = sourceElement.getBoundingClientRect();
@@ -57,6 +103,8 @@ export function registerScheduleDragDropFeature(context) {
     event.dataTransfer.setData?.('text/plain', String(item.id || 'task'));
 
     if (source === 'schedule' && sourceElement) {
+      const monthScroller = sourceElement.closest?.('[data-calendar-scroller]');
+      if (monthScroller) startMonthEdges(monthScroller);
       const clone = sourceElement.cloneNode(true);
       clone.classList.remove('is-selected');
       clone.style.setProperty('opacity', '0.4', 'important');
@@ -80,8 +128,8 @@ export function registerScheduleDragDropFeature(context) {
     }
   };
 
-  const handleDragEnd = (event) => {
-    const sourceElement = event.currentTarget || event.target;
+  const handleDragEnd = (event, sourceElement = event.currentTarget || event.target) => {
+    stopMonthEdges();
     if (sourceElement) {
       sourceElement.classList.remove('pointer-events-none');
       sourceElement.style.opacity = '';

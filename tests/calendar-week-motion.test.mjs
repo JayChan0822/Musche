@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {weekStripGeometry} from '../app/scripts/utils/calendar-week-motion.js';
-const screenX=g=>g.trackOffset+g.selectionLeft;
+const screenX=g=>g.trackOffset+(7+g.selectedIndex+.5)*g.cellWidth;
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
-test('within a week selection follows fractional day progress, keeping date labels stationary',()=>{
+test('within a week fixed date cells blend selection based on fractional day progress',()=>{
   const start=weekStripGeometry(3,0,402), half=weekStripGeometry(3,.5,402);
-  close(half.trackOffset,start.trackOffset); close(screenX(half)-screenX(start),402/14);
-  close(screenX(weekStripGeometry(3,-.5,402))-screenX(start),-402/14);
+  close(half.trackOffset,start.trackOffset); close(half.selectedIndex,3.5);
+  close(weekStripGeometry(3,-.5,402).selectedIndex,2.5);
 });
 test('cross-week commits have identical screen geometry in both directions and viewport widths',()=>{
   for(const width of [320,390,402,430]) {

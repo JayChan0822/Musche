@@ -1,4 +1,5 @@
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { captureScrolledMonth, slideScrolledMonth } from '../utils/calendar-month-slide.js';
 
 export function registerCalendarViewFeature(context) {
   const { refs, state, utils, actions } = context;
@@ -35,11 +36,12 @@ export function registerCalendarViewFeature(context) {
   });
   const isLoadingMore = ref(false);
   const dateTransitionName = ref('slide-next');
-  // 周视图任务格过渡（标尺已固定在外层，只滑任务格，锚定在时间列右侧）
+  // 切周时日期表头与任务格一起滑动，时间标尺固定。
   const weekTransitionName = ref('week-slide-next');
   const monthKeyOf = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   // 标题跟随黄金分割点所在周；定位日期在该周内时，保留目标月份。
   const activeMonthKey = ref(monthKeyOf(viewDate.value));
+  let pendingMonthSlide = null;
   let activeMonthRaf = null;
   let lastHeaderTap = 0;
   let lastMonthTap = { time: 0, date: null };
@@ -104,7 +106,8 @@ export function registerCalendarViewFeature(context) {
       dateTransitionName.value = dir > 0 ? 'slide-next' : 'slide-prev';
     }
 
-    const nextDate = new Date(viewDate.value);
+    const currentMonth = currentView.value === 'month' && monthViewMode.value === 'scrolled' && activeMonthKey.value;
+    const nextDate = currentMonth ? new Date(`${currentMonth}-01T00:00:00`) : new Date(viewDate.value);
     if (currentView.value === 'week') {
       nextDate.setDate(nextDate.getDate() + 7 * dir);
     } else {
@@ -112,6 +115,10 @@ export function registerCalendarViewFeature(context) {
       nextDate.setMonth(nextDate.getMonth() + dir);
     }
 
+    if (currentMonth && !isMobile?.value) {
+      const scroller = getDocument().querySelector('[data-calendar-scroller]');
+      pendingMonthSlide = { target: nextDate.getTime(), dir, previous: captureScrolledMonth(scroller) };
+    }
     viewDate.value = nextDate;
   };
 
@@ -330,7 +337,7 @@ export function registerCalendarViewFeature(context) {
   };
 
   let monthScrollRevision = 0;
-  const scrollToMonthDate = (targetDate, { smooth = false } = {}) => {
+  const scrollToMonthDate = (targetDate, { smooth = false, slide = null } = {}) => {
     const revision = ++monthScrollRevision;
     const targetDateStr = formatDate(targetDate);
     const behavior = smooth ? 'smooth' : 'auto';
@@ -348,7 +355,10 @@ export function registerCalendarViewFeature(context) {
       let top = 0;
       for (let node = el; node && node !== scroller; node = node.offsetParent) top += node.offsetTop;
       activeMonthKey.value = monthKeyOf(targetDate);
-      scroller.scrollTo({ top: Math.max(0, top + el.offsetHeight / 2 - calendarAnchorOffset(scroller)), behavior });
+      const targetTop = Math.max(0, top + el.offsetHeight / 2 - calendarAnchorOffset(scroller));
+      if (!slide || !slideScrolledMonth(scroller, targetTop, slide.dir, slide.previous)) {
+        scroller.scrollTo({ top: targetTop, behavior });
+      }
     });
   };
 
@@ -358,14 +368,14 @@ export function registerCalendarViewFeature(context) {
     }
   });
 
-  watch(viewDate, () => {
+  watch(viewDate, (date) => {
+    const slide = pendingMonthSlide?.target === date.getTime() ? pendingMonthSlide : null;
+    pendingMonthSlide = null;
     renderedRange.past = 6;
     renderedRange.future = 18;
 
     if (currentView.value === 'month' && monthViewMode.value === 'scrolled') {
-      // scrolled 模式切月：纵向平滑滚动到目标月（左右箭头语义 = 上下翻页）。
-      // 标题/灰化跟随黄金分割点所在周，不受下个月占据屏幕大部分面积影响。
-      scrollToMonthDate(viewDate.value, { smooth: true });
+      scrollToMonthDate(date, { smooth: !slide, slide });
     }
   });
 

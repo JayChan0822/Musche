@@ -23,6 +23,7 @@ export function registerScheduleInteractionsFeature(context) {
     },
     actions: {
       checkOverlap: actions.checkOverlap,
+      changeDate: actions.changeDate,
       openAlertModal: actions.openAlertModal,
       pushHistory: actions.pushHistory,
       isResourceCompleted: actions.isResourceCompleted,

@@ -107,14 +107,15 @@ for (const type of ['studio', 'engineer', 'operator', 'assistant']) {
       item('SCHEDULED'), item('EDIT', { editInfo: { [type]: 'Team A' }, sectionIndex: 4 }),
       item('OVERRIDE', { recordingInfo: { [type]: 'Team B' } }),
       item('OTHER_SESSION', { sessionId: 'S2', recordingInfo: { [type]: 'Team A' } }),
-      item('PARTIAL_NAME', { recordingInfo: { [type]: 'Team A / Team B' } })];
-    const scheduledTasks = [{ musicianId: 'M1', date: '2026-09-28', recordingInfo: { [type]: 'Team A' } }];
+      item('MULTIPLE', { recordingInfo: { [type]: 'Team A / Team B' } }),
+      item('PARTIAL_NAME', { recordingInfo: { [type]: 'Team Alpha' } })];
+    const scheduledTasks = [{ musicianId: 'M1', date: '2026-09-28', recordingInfo: { [type]: 'Team C / Team A' } }];
     const args = { type, id: 'META', settings: config, scheduledTasks };
     const result = analyze(pool, args);
-    assert.deepEqual(result.rows.map((row) => row.id).sort(), ['DIRECT', 'OTHER_SESSION', 'SCHEDULED']);
+    assert.deepEqual(result.rows.map((row) => row.id).sort(), ['DIRECT', 'MULTIPLE', 'OTHER_SESSION', 'SCHEDULED']);
     assert.equal(result.summary.averageRatio, 20);
     assert.deepEqual(result.breakdowns.map((group) => group.type), ['musician', 'instrument', 'project']);
-    assert.equal(analyze(pool, { ...args, sessionId: 'S_DEFAULT' }).summary.trackCount, 2);
+    assert.equal(analyze(pool, { ...args, sessionId: 'S_DEFAULT' }).summary.trackCount, 3);
     assert.equal(analyze(pool, { ...args, id: 'DELETED' }).summary.trackCount, 0);
   });
 }

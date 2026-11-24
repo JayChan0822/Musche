@@ -1,3 +1,5 @@
+import { recordingInfoNames, RECORDING_INFO_SEPARATOR } from '../utils/recording-info-names.js';
+
 export function registerCreditsFeature(context) {
   const { refs, state, utils, actions } = context;
   const {
@@ -69,10 +71,10 @@ export function registerCreditsFeature(context) {
   const addTechInfo = (targetTech, info) => {
     if (!info) return;
 
-    splitCreditNames(info.studio).forEach((name) => targetTech.studios.add(name));
-    splitCreditNames(info.engineer).forEach((name) => targetTech.engineers.add(name));
-    splitCreditNames(info.operator).forEach((name) => targetTech.operators.add(name));
-    splitCreditNames(info.assistant).forEach((name) => targetTech.assistants.add(name));
+    recordingInfoNames(info.studio).forEach((name) => targetTech.studios.add(name));
+    recordingInfoNames(info.engineer).forEach((name) => targetTech.engineers.add(name));
+    recordingInfoNames(info.operator).forEach((name) => targetTech.operators.add(name));
+    recordingInfoNames(info.assistant).forEach((name) => targetTech.assistants.add(name));
   };
 
   const addSessionItemsToCredits = (projectDataMap, sessionItems) => {
@@ -162,9 +164,7 @@ export function registerCreditsFeature(context) {
         if (editorName) {
           currentTaskProjectIds.forEach((projectId) => {
             const projectData = getProjectData(projectId);
-            editorName.split(/[\/,]/).forEach((name) => {
-              if (name && name.trim()) projectData.editors.add(name.trim());
-            });
+            recordingInfoNames(editorName).forEach((name) => projectData.editors.add(name));
           });
         }
       }
@@ -191,7 +191,7 @@ export function registerCreditsFeature(context) {
   };
 
   const printTechBlock = (finalLines, techData) => {
-    const join = (set) => Array.from(set).join(' / ');
+    const join = (set) => Array.from(set).join(RECORDING_INFO_SEPARATOR);
     if (techData.studios.size > 0) finalLines.push(`录音棚 Recording Studio：${join(techData.studios)}`);
     if (techData.engineers.size > 0) finalLines.push(`录音工程师 Recording Engineer：${join(techData.engineers)}`);
     if (techData.operators.size > 0) finalLines.push(`录音操作员 Recording Operator：${join(techData.operators)}`);
@@ -215,17 +215,16 @@ export function registerCreditsFeature(context) {
 
   const appendProjectCredits = (finalLines, projectId, projectData) => {
     const projectMeta = settings.projects.find((project) => project.id === projectId) || {};
-    const hasSolo = Object.keys(projectData.solo).length > 0;
+    const hasTech = (tech) => Object.values(tech).some((names) => names.size > 0);
+    const hasSolo = Object.keys(projectData.solo).length > 0 || hasTech(projectData.soloTech);
     const isOrchEmpty = projectData.orch.strings.size === 0 &&
       Object.keys(projectData.orch.woodwinds).length === 0 &&
       Object.keys(projectData.orch.brass).length === 0 &&
       Object.keys(projectData.orch.percussion).length === 0 &&
       Object.keys(projectData.orch.others).length === 0;
 
-    if ((projectId === 'Unassigned' && !hasSolo && isOrchEmpty) ||
-      (!hasSolo && isOrchEmpty && !projectMeta.title)) {
-      if (!projectMeta.title) return;
-    }
+    const hasOrchestra = !isOrchEmpty || hasTech(projectData.orchTech);
+    if (!hasSolo && !hasOrchestra && !projectMeta.title) return;
 
     finalLines.push(`曲目名称 Title：${projectMeta.title || projectData.name}`);
     finalLines.push('');
@@ -239,10 +238,10 @@ export function registerCreditsFeature(context) {
       finalLines.push('');
     }
 
-    if (!isOrchEmpty) {
+    if (hasOrchestra) {
       finalLines.push('管弦乐队录制（Orchestra Recording）');
       finalLines.push('');
-      finalLines.push('指挥 Conductor：[请填写]');
+      if (!isOrchEmpty) finalLines.push('指挥 Conductor：[请填写]');
 
       if (projectData.orch.strings.size > 0) {
         finalLines.push('');
@@ -283,7 +282,7 @@ export function registerCreditsFeature(context) {
       finalLines.push('');
 
       if (projectData.editors && projectData.editors.size > 0) {
-        finalLines.push(`音频编辑 Audio Editor：${[...projectData.editors].join(' / ')}`);
+        finalLines.push(`音频编辑 Audio Editor：${[...projectData.editors].join(RECORDING_INFO_SEPARATOR)}`);
       }
       if (projectMeta.mixingEngineer) finalLines.push(`混音工程师 Mixing Engineer：${projectMeta.mixingEngineer}`);
       if (projectMeta.mixingStudio) finalLines.push(`混音工作室 Mixing Studio：${projectMeta.mixingStudio}`);

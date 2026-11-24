@@ -8,6 +8,7 @@ export function wireScheduleInteractionsFeature(assembly) {
         sidebarTab,
         currentSessionId,
         isMobile,
+        weekContainer,
         trackListData,
         showTrackList,
         trackListContainerRef,
@@ -25,6 +26,7 @@ export function wireScheduleInteractionsFeature(assembly) {
             sidebarTab,
             currentSessionId,
             isMobile,
+            weekContainer,
             trackListData,
             showTrackList,
             trackListContainerRef,
@@ -37,6 +39,7 @@ export function wireScheduleInteractionsFeature(assembly) {
             formatSecs: formatUtils.formatSecs,
         },
         actions: {
+            changeDate: (...args) => helpers.changeDate(...args),
             checkOverlap: (...args) => helpers.checkOverlap(...args),
             openAlertModal: (...args) => helpers.openAlertModal(...args),
 

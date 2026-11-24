@@ -96,12 +96,13 @@ export function registerMainViewNavigationFeature(context) {
 
   let zoomRevision = 0;
   let pendingZoom = null;
+  const headerHeight = container => (container.querySelector?.('[data-week-ruler-heading]') ?? container.firstElementChild)?.offsetHeight || 0;
   const applyWeekZoom = (value, pointerOffset) => {
     const container = weekContainer?.value;
     const requested = Number(value);
     if (currentView.value !== 'week' || !slotHeight || !container || !Number.isFinite(requested)) return;
     if (isDragActive() || isResizingMobile?.value || resizing?.value) return;
-    const header = container.firstElementChild?.offsetHeight || 0;
+    const header = headerHeight(container);
     const offset = pointerOffset ?? (header + (container.clientHeight - header) / 2);
     const oldHeight = slotHeight.value;
     const height = Math.max(16, Math.min(120, requested));
@@ -149,7 +150,7 @@ export function registerMainViewNavigationFeature(context) {
       if (!container.contains(event.target)) return;
       event.preventDefault();
       if (isDragActive() || isResizingMobile.value || resizing?.value || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-      const header = container.firstElementChild?.offsetHeight || 0;
+      const header = headerHeight(container);
       const offset = Math.max(header, event.clientY - container.getBoundingClientRect().top);
       const oldHeight = queuedZoom?.height ?? slotHeight.value;
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? container.clientHeight : 1);
@@ -242,7 +243,7 @@ export function registerMainViewNavigationFeature(context) {
       dayColWidth.value = getWindow().innerWidth < 400 ? 45 : 52;
     } else {
       const container = weekContainer?.value;
-      const timeColumnWidth = container?.firstElementChild?.firstElementChild?.offsetWidth || 70;
+      const timeColumnWidth = container?.querySelector?.('[data-week-ruler]')?.offsetWidth || 70;
       const fittedWidth = container ? Math.max(0, container.clientWidth - timeColumnWidth) / 7 : 0;
       dayColWidth.value = Math.max(100, Math.ceil(fittedWidth * 1.6));
     }

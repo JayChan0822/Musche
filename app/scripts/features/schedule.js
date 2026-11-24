@@ -3,6 +3,7 @@ import { hasStableScheduleLinks, resolveItemSchedule, projectItemSection, assign
 import { getScheduleStage, viewFromStage, stageFromView } from '../utils/workflow.js';
 import { scheduleContext, itemMatchesSchedule } from '../utils/schedule-context.js';
 import { peekItemSplitState, setItemSplitState as writeSplitState } from '../utils/split-state.js';
+import { recordingInfoNames } from '../utils/recording-info-names.js';
 import { computed } from 'vue';
 
 
@@ -64,6 +65,8 @@ export function registerScheduleFeature(context) {
     const newEnd = newStart + parseTime(durationStr) / 60;
     const candidate = resource || scheduledTasks.value.find((entry) => entry.scheduleId === excludeId);
     const candidateStage = candidate ? getScheduleStage(candidate) : stageFromView(checkType);
+    const studiosFor = (task) => task?.studioId ? [task.studioId] : recordingInfoNames(task?.recordingInfo?.studio);
+    const candidateStudios = studiosFor(candidate);
 
     return scheduledTasks.value.some((task) => {
       if (task.scheduleId === excludeId) return false;
@@ -74,11 +77,8 @@ export function registerScheduleFeature(context) {
       if (candidate) {
         const candidateOwner = candidate.assigneeId || (getScheduleStage(candidate) === 'edit' ? candidate.editorId : candidate.musicianId);
         const taskOwner = task.assigneeId || (getScheduleStage(task) === 'edit' ? task.editorId : task.musicianId);
-        const candidateStudio = candidate.studioId || candidate.recordingInfo?.studio;
-        const taskStudio = task.studioId || task.recordingInfo?.studio;
         const samePerson = candidateOwner && candidateOwner !== '__UNASSIGNED__' && candidateOwner === taskOwner;
-        const sameStudio = candidateStudio && candidateStudio === taskStudio;
-        if (!sameStage && !samePerson && !sameStudio) return false;
+        if (!sameStage && !samePerson && !studiosFor(task).some((studio) => candidateStudios.includes(studio))) return false;
       } else if (!sameStage) return false;
 
       const taskStart = timeToMinutes(task.startTime);

@@ -137,6 +137,53 @@ test('真实触摸横向分页与纵向滚动分流', async ({page})=>{
     await expect(page.locator('.mc-editor-sheet')).toBeHidden(); await client.detach();
 });
 
+test('触摸拖动日程在边缘滚动、连续翻页并提交到目标日期', async ({page}) => {
+    await boot(page);
+    const key = await openToday(page);
+    await changeMode(page, '单日');
+    const card = page.locator(`[data-active-date="${key}"] .mc-event`).first();
+    const title = await card.locator('strong').innerText();
+    const originalLabel = await card.getAttribute('aria-label');
+    const duration = await card.locator('.schedule-block-duration').innerText();
+    const box = await card.boundingBox();
+    const timeline = page.locator('.mc-timeline-scroll');
+    const bounds = await timeline.boundingBox();
+    const search = await page.locator('.mobile-search-bar').boundingBox();
+    const dock = await page.locator('.mobile-tab-bar').boundingBox();
+    const scrollTop = () => timeline.evaluate(el => el.scrollTop);
+    const start = await scrollTop();
+    const next = await dateKey(page, 1), afterNext = await dateKey(page, 2);
+    const client = await page.context().newCDPSession(page);
+    const touch = (type, x, y) => client.send('Input.dispatchTouchEvent', {
+        type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }],
+    });
+    const preview = page.locator('.mc-event-drag-preview');
+    const active = page.locator('[data-active-date]');
+    await touch('touchStart', box.x + box.width / 2, box.y + 10);
+    await expect(preview).toBeVisible();
+    await touch('touchMove', bounds.x + bounds.width / 2, Math.min(search.y, dock.y) - 6);
+    await expect.poll(scrollTop).toBeGreaterThan(start + 20);
+    await touch('touchMove', bounds.x + bounds.width / 2, bounds.y + 6);
+    await expect.poll(scrollTop).toBeLessThan(start);
+    await touch('touchMove', bounds.x + bounds.width - 5, bounds.y + 190);
+    await expect(active).toHaveAttribute('data-active-date', afterNext);
+    await expect(page.locator(`[data-page-date="${key}"]`)).toHaveCount(0);
+    await expect(preview).toBeVisible();
+    await touch('touchMove', bounds.x + 5, bounds.y + 190);
+    await expect(active).toHaveAttribute('data-active-date', next);
+    await touch('touchMove', bounds.x + bounds.width / 2, bounds.y + 190);
+    const startTime = await preview.locator('[data-schedule-start]').innerText();
+    await touch('touchEnd');
+    await expect(preview).toHaveCount(0);
+    const moved = active.locator('.mc-event').filter({ has: page.getByText(title, { exact: true }) });
+    await expect(moved.locator('[data-schedule-start]')).toHaveText(startTime);
+    await expect(moved.locator('.schedule-block-duration')).toHaveText(duration);
+    const originalLabels = await page.locator(`[data-page-date="${key}"] .mc-event`)
+        .evaluateAll(cards => cards.map(card => card.getAttribute('aria-label')));
+    expect(originalLabels).not.toContain(originalLabel);
+    await client.detach();
+});
+
 test('浅色日历与桌面原界面切换',async({page})=>{
     await boot(page,'light');
     await expect(page.locator('.mc-calendar')).toBeVisible();
@@ -181,32 +228,45 @@ test('本地化农历 day 字段不会在月历和时间轴显示 undefined',asy
     expect(await page.locator('.mc-calendar').textContent()).not.toMatch(/undefined|NaN/);
 });
 
-test('周日期选中圆和多日范围跟手移动，取消恢复，跨周连续接续',async({page})=>{
+test('翻日时日程块和表头同向移动，周日期选中态平滑切换',async({page})=>{
     await page.clock.setFixedTime(new Date('2026-10-16T12:00:00+08:00'));
-    await boot(page); await openToday(page);
-    const marker=page.locator('.mc-week-selection'), range=page.locator('.mc-week-range');
+    await boot(page); const key=await openToday(page);
+    const selection = day => page.locator(`[data-week-date="${day}"] .mc-week-selection`);
+    const marker=selection(key);
+    const range=page.locator(`[data-week-date="${key}"] .mc-week-range`);
+    const card=page.locator(`[data-active-date="${key}"] .mc-event`).first();
+    const heading=page.locator(`[data-heading-date="${key}"]`);
     const start=await marker.boundingBox(), rangeStart=await range.boundingBox();
+    const cardStart=await card.boundingBox(), headingStart=await heading.boundingBox();
     await page.mouse.move(310,610); await page.mouse.down(); await page.mouse.move(225.75,610,{steps:6});
     const half=await marker.boundingBox(), rangeHalf=await range.boundingBox();
-    expect(half.x-start.x).toBeCloseTo(402/14,0); expect(rangeHalf.x-rangeStart.x).toBeCloseTo(402/14,0);
+    expect(half.x).toBeCloseTo(start.x,0); expect(rangeHalf.x).toBeCloseTo(rangeStart.x,0);
+    expect((await card.boundingBox()).x-cardStart.x).toBeCloseTo(-84.25,0);
+    expect((await heading.boundingBox()).x-headingStart.x).toBeCloseTo(-84.25,0);
+    await expect(marker).toHaveCSS('opacity','0.5');
+    await expect(range).toHaveCSS('opacity','0.5');
     await page.mouse.move(268,610,{steps:4});
-    expect((await marker.boundingBox()).x).toBeLessThan(half.x);
+    expect((await card.boundingBox()).x).toBeGreaterThan(cardStart.x-84.25);
     await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
-    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-start.x)).toBeLessThan(.2);
+    await expect(marker).toHaveCSS('opacity','1');
     await page.locator('[data-week-date="2026-10-17"]').click();
+    const saturday = await selection('2026-10-17').boundingBox();
     await page.mouse.move(310,610); await page.mouse.down(); await page.mouse.move(225.75,610,{steps:6});
     const track=await page.locator('.mc-calendar').evaluate(el=>parseFloat(el.style.getPropertyValue('--mc-week-track')));
     expect(track).toBeCloseTo(-603,0);
+    expect((await selection('2026-10-17').boundingBox()).x-saturday.x).toBeCloseTo(-201,0);
     await page.mouse.move(140,610,{steps:5}); await page.mouse.up();
     await expect(page.locator('[data-week-date][aria-pressed="true"]')).toHaveAttribute('data-week-date','2026-10-18');
     const strip=await page.locator('.mc-week-strip').boundingBox();
-    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
+    const sunday=selection('2026-10-18');
+    await expect.poll(async()=>Math.abs((await sunday.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
     await changeMode(page,'单日');
-    expect(await range.count()).toBe(0);
+    await expect(page.locator('.mc-week-range')).toHaveCount(0);
     await page.mouse.move(300,610); await page.mouse.down(); await page.mouse.move(99,610,{steps:8});
-    expect((await marker.boundingBox()).x-strip.x).toBeCloseTo(402/7-20,0);
+    expect((await sunday.boundingBox()).x-strip.x).toBeCloseTo(402/14-20,0);
+    await expect(sunday).toHaveCSS('opacity','0.5');
     await page.locator('.mc-time-panel').dispatchEvent('pointercancel',{pointerId:1}); await page.mouse.up();
-    await expect.poll(async()=>Math.abs((await marker.boundingBox()).x-strip.x-(402/14-20))).toBeLessThan(.2);
+    await expect(sunday).toHaveCSS('opacity','1');
 });
 
 test('日程块沿用原卡片样式，触屏双击打开 TrackList', async ({page})=>{

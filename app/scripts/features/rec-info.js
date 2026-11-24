@@ -1,6 +1,7 @@
 import { computed, reactive, ref } from 'vue';
+import { formatRecordingInfoNames, recordingInfoNames, RECORDING_INFO_SEPARATOR } from '../utils/recording-info-names.js';
 
-const REC_INFO_FIELDS = ['studio', 'engineer', 'operator', 'assistant', 'notes'];
+const REC_INFO_FIELDS = ['studio', 'engineer', 'operator', 'assistant'];
 
 function getMetadataList(settings, type) {
   if (type === 'studio') return settings.studios;
@@ -54,13 +55,16 @@ export function registerRecInfoFeature(context) {
     const task = trackListData.value.taskRef;
     if (!task) return;
 
-    const info = sidebarTab.value === 'project'
-      ? (task.editInfo || {})
-      : (task.recordingInfo || {});
+    const editing = sidebarTab.value === 'project';
+    const info = (editing ? task.editInfo : task.recordingInfo) || {};
 
     REC_INFO_FIELDS.forEach((field) => {
-      recInfoForm[field] = info[field] || '';
+      const value = info[field] || (editing && field === 'engineer' ? info.EditEngineer : '');
+      recInfoForm[field] = formatRecordingInfoNames(value);
     });
+    recInfoForm.notes = info.notes || '';
+    activeRecDropdown.value = null;
+    recDropdownSearch.value = '';
 
     showRecInfoModal.value = true;
   };
@@ -71,8 +75,9 @@ export function registerRecInfoFeature(context) {
 
     const newData = {};
     REC_INFO_FIELDS.forEach((field) => {
-      newData[field] = recInfoForm[field].trim();
+      newData[field] = formatRecordingInfoNames(recInfoForm[field]);
     });
+    newData.notes = recInfoForm.notes.trim();
 
     if (sidebarTab.value === 'project') {
       task.editInfo = newData;
@@ -89,35 +94,30 @@ export function registerRecInfoFeature(context) {
     showRecInfoModal.value = false;
   };
 
-  const selectRecOption = (item) => {
-    if (activeRecDropdown.value) {
-      recInfoForm[activeRecDropdown.value] = item.name;
+  const selectRecOption = (item, type = activeRecDropdown.value) => {
+    if (!REC_INFO_FIELDS.includes(type)) return;
+    recInfoForm[type] = formatRecordingInfoNames([recInfoForm[type], item.name].join(RECORDING_INFO_SEPARATOR));
+    if (activeRecDropdown.value === type) {
+      activeRecDropdown.value = null;
+      recDropdownSearch.value = '';
     }
-
-    activeRecDropdown.value = null;
-    recDropdownSearch.value = '';
   };
 
-  const createRecOption = () => {
-    const name = recDropdownSearch.value.trim();
-    const type = activeRecDropdown.value;
-    if (!name || !type) return;
+  const createRecOption = (type = activeRecDropdown.value, value = recDropdownSearch.value) => {
+    const names = recordingInfoNames(value);
+    if (!REC_INFO_FIELDS.includes(type) || names.length === 0) return;
+    const list = getMetadataList(settings, type) || (settings[`${type}s`] = []);
 
-    const list = getMetadataList(settings, type);
-    if (list) {
-      const exists = list.some((item) => item.name.toLowerCase() === name.toLowerCase());
-      if (!exists) {
-        list.push({
-          id: generateUniqueId('REC'),
-          name,
-        });
-        pushHistory();
-      }
-    }
-
-    recInfoForm[type] = name;
-    activeRecDropdown.value = null;
-    recDropdownSearch.value = '';
+    let added = false;
+    const selected = names.map((name) => {
+      const existing = list.find((item) => item.name.toLowerCase() === name.toLowerCase());
+      if (existing) return existing.name;
+      list.push({ id: generateUniqueId('REC'), name });
+      added = true;
+      return name;
+    });
+    if (added) pushHistory();
+    selectRecOption({ name: selected.join(RECORDING_INFO_SEPARATOR) }, type);
   };
 
   const addRecItem = (type, suppliedName) => {
@@ -154,17 +154,18 @@ export function registerRecInfoFeature(context) {
   };
 
   const updateRecordingInfoReferences = (type, oldName, targetName) => {
-    let count = 0;
+    const oldKey = oldName.toLowerCase();
     const updateTask = (task) => {
-      if (task.recordingInfo && task.recordingInfo[type] === oldName) {
-        task.recordingInfo[type] = targetName;
-        count += 1;
+      for (const info of [task.recordingInfo, task.editInfo]) {
+        const names = recordingInfoNames(info?.[type]);
+        if (names.some((name) => name.toLowerCase() === oldKey)) {
+          info[type] = formatRecordingInfoNames(names.map((name) => name.toLowerCase() === oldKey ? targetName : name).join(RECORDING_INFO_SEPARATOR));
+        }
       }
     };
 
     itemPool?.value?.forEach(updateTask);
     scheduledTasks.value.forEach(updateTask);
-    return count;
   };
 
   const handleRecRename = (type, item, event) => {

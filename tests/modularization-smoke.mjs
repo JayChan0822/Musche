@@ -3209,7 +3209,7 @@ assert.match(
 );
 assert.match(
     appRecInfoModalComponent,
-    /template:\s*`[\s\S]*v-if="showRecInfoModal"[\s\S]*sidebarTab === 'musician'[\s\S]*recInfoForm\.studio[\s\S]*activeRecDropdown === 'studio'[\s\S]*filteredRecOptions[\s\S]*selectRecOption[\s\S]*createRecOption[\s\S]*recInfoForm\.engineer[\s\S]*recInfoForm\.operator[\s\S]*recInfoForm\.assistant[\s\S]*recInfoForm\.notes[\s\S]*saveRecInfo[\s\S]*`/,
+    /template:\s*`[\s\S]*v-if="showRecInfoModal"[\s\S]*v-for="field in fields"[\s\S]*namesFor\(field\.key\)[\s\S]*removeName[\s\S]*v-model="drafts\[field\.key\]"[\s\S]*availableOptions[\s\S]*chooseOption[\s\S]*recInfoForm\.notes[\s\S]*@click="save"[\s\S]*`/,
     'app-rec-info-modal component must own the existing Recording/Editing Info modal template, including dropdown fields, notes, and save controls'
 );
 assert.doesNotMatch(
@@ -5006,7 +5006,7 @@ assert.match(
 
 assert.match(
     scheduleDragDropFeature,
-    /const\s+dragStart\s*=\s*\(event,\s*item,\s*source\)\s*=>/,
+    /const\s+dragStart\s*=\s*\(event,\s*item,\s*source,\s*sourceElement\s*=\s*event\.currentTarget\s*\|\|\s*event\.target\)\s*=>/,
     'schedule-drag-drop feature must own drag start offset and ghost-image setup'
 );
 
@@ -10584,7 +10584,7 @@ for (const relativePath of requiredFiles) {
     feature.recDropdownSearch.value = 'old';
     assert.equal(feature.filteredRecOptions.value[0].name, 'Old Engineer', 'Rec Info dropdown should filter the active metadata list');
     feature.selectRecOption({ id: 'E1', name: 'Old Engineer' });
-    assert.equal(feature.recInfoForm.engineer, 'Old Engineer', 'selecting a Rec Info dropdown item should fill the active form field');
+    assert.equal(feature.recInfoForm.engineer, 'Edit Engineer / Old Engineer', 'selecting a Rec Info dropdown item should append to the active form field');
     assert.equal(feature.activeRecDropdown.value, null, 'selecting a Rec Info dropdown item should close the dropdown');
 
     feature.activeRecDropdown.value = 'assistant';

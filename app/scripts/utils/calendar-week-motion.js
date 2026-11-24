@@ -6,6 +6,6 @@ export function weekStripGeometry(weekday, dayOffset, width) {
   return {
     cellWidth,
     trackOffset: -(1 + weekOffset) * width,
-    selectionLeft: (7 + index + .5) * cellWidth - 20,
+    selectedIndex: index,
   };
 }

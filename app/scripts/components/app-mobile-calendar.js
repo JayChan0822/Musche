@@ -52,17 +52,15 @@ export const AppMobileCalendar = {
     </div>
     <div ref="weekStrip" class="mc-week-strip" :inert="mode === 'month'" :aria-hidden="mode === 'month'">
       <div class="mc-week-track">
-        <span v-if="multi" class="mc-week-range" aria-hidden="true"></span>
-        <div class="mc-week-selection" aria-hidden="true"><div class="mc-week-selection-labels">
-          <span v-for="day in stripDays" :key="day.key" class="mc-week-label-cell"><span class="mc-date-face"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span></span>
-        </div></div>
-        <button v-for="day in stripDays" :key="day.key" :data-week-date="day.key" :inert="day.weekOffset !== 0" :aria-hidden="day.weekOffset !== 0" @click="selectDate(day.key)" :aria-label="day.key" :aria-pressed="selected===day.key">
+        <button v-for="(day,index) in stripDays" :key="day.key" :data-week-date="day.key" :inert="day.weekOffset !== 0" :aria-hidden="day.weekOffset !== 0" :style="{'--mc-week-index':index-7}" @click="selectDate(day.key)" :aria-label="day.key" :aria-pressed="selected===day.key">
+          <span v-if="multi" class="mc-week-range" aria-hidden="true"></span>
           <span class="mc-weekday">{{WEEKDAYS[day.weekday]}}</span>
           <span class="mc-date-face" :class="{'is-today':day.key===today,'is-weekend':day.weekday===0 || day.weekday===6}"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span>
+          <span class="mc-date-face mc-week-selection" :class="{'is-today':day.key===today}" aria-hidden="true"><span class="mc-date-number">{{day.number}}</span><span class="mc-lunar">{{day.lunar}}</span></span>
         </button>
       </div>
     </div>
-    <div ref="timePanel" class="mc-time-panel" :inert="mode === 'month'" :aria-hidden="mode === 'month'" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="cancelGesture">
+    <div ref="timePanel" class="mc-time-panel" :inert="mode === 'month'" :aria-hidden="mode === 'month'" @pointerdown="pointerDown" @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="eventEnd($event,true); cancelGesture()" @lostpointercapture.self="eventEnd($event,true)">
       <template v-if="mode !== 'list'">
         <div class="mc-heading-viewport" :style="{height: (58 + allDayHeight) + 'px'}">
           <div v-if="multi" class="mc-all-day-gutter">全天</div>
@@ -74,7 +72,7 @@ export const AppMobileCalendar = {
           </div>
         </div>
         <div ref="timeline" class="mc-timeline-scroll" @scroll.passive="timelineScroll">
-          <div class="mc-time-canvas" :style="{height:24*hourHeight+'px'}">
+          <div ref="timeCanvas" class="mc-time-canvas" :style="{height:24*hourHeight+'px'}">
             <div v-if="multi" class="mc-ruler mc-fixed-ruler"><span v-for="hour in rows" :key="hour" :style="{top:hour*hourHeight+'px'}">{{String(hour%24).padStart(2,'0')}}:00</span></div>
             <div class="mc-days-viewport" :style="{marginLeft:multi ? '65px' : '0'}">
               <div class="mc-days-track">
@@ -82,10 +80,9 @@ export const AppMobileCalendar = {
                   <div v-if="!multi" class="mc-ruler"><span v-for="hour in rows" :key="hour" :style="{top:hour*hourHeight+'px'}">{{String(hour%24).padStart(2,'0')}}:00</span></div>
                   <div class="mc-time-grid" :class="{'has-ruler':!multi}" :data-time-grid="day.key">
                     <div v-for="hour in rows" :key="hour" class="mc-hour-line" :style="{top:hour*hourHeight+'px'}"></div>
-                    <div v-if="day.key===today" class="mc-now-line" :style="{top:nowMinutes/60*hourHeight+'px'}" aria-hidden="true"><i></i></div>
                     <div v-if="draft?.date===day.key" class="mc-event task-block mc-draft" :style="{top:draft.minutes/60*hourHeight+'px',height:hourHeight+'px','--event-color':'#0a9cda'}">新建日程</div>
                     <div v-for="task in tasks(day.key).filter(t=>!t.allDay)" :key="task.scheduleId" class="mc-event task-block group" role="button" tabindex="0"
-                      :aria-label="title(task)+' '+eventRange(task)" :style="eventStyle(task)" :title="title(task) + ' · ' + task.startTime + ' · 时长 ' + task.estDuration" :class="{'is-selected':selectedEvent===task.scheduleId,'is-ghost':isTaskGhost(task)}"
+                      :aria-label="title(task)+' '+eventRange(task)" :style="eventStyle(task)" :title="title(task) + ' · ' + task.startTime + ' · 时长 ' + task.estDuration" :class="{'is-selected':selectedEvent===task.scheduleId,'is-ghost':isTaskGhost(task),'mc-event-origin':movingEvent===task.scheduleId}"
                       @pointerdown.stop="eventDown($event,task)" @pointermove.stop="eventMove" @pointerup.stop="eventEnd($event)" @pointercancel.stop="eventEnd($event,true)"
                       @click.stop="eventClick(task)" @dblclick.stop="openTask(task,$event)" @keydown.enter.stop="openTask(task,$event)">
                       <div class="schedule-block-content pointer-events-none">

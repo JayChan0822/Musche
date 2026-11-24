@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { reactive, ref } from 'vue';
 import { registerRecInfoFeature } from '../app/scripts/features/rec-info.js';
+import { registerCreditsFeature } from '../app/scripts/features/credits.js';
 import { AppMetadataLibrary } from '../app/scripts/components/app-metadata-library.js';
 
 function harness() {
@@ -55,11 +56,34 @@ test('metadata rename and removal use the existing shared data and recording ref
   const h = harness();
   const entry = { id: 'S', name: 'Old' };
   h.settings.studios.push(entry);
-  h.refs.itemPool.value.push({ recordingInfo: { studio: 'Old' } });
+  h.refs.itemPool.value.push({ recordingInfo: { studio: 'Other / Old' } });
+  h.refs.scheduledTasks.value.push({ editInfo: { studio: 'old / Another' } });
   h.feature.handleRecRename('studio', h.settings.studios[0], { target: { value: 'New' } });
   assert.equal(h.settings.studios[0].name, 'New');
-  assert.equal(h.refs.itemPool.value[0].recordingInfo.studio, 'New');
+  assert.equal(h.refs.itemPool.value[0].recordingInfo.studio, 'Other / New');
+  assert.equal(h.refs.scheduledTasks.value[0].editInfo.studio, 'New / Another');
   h.feature.removeRecItem('studio', 'S');
   assert.equal(h.settings.studios.length, 0);
   assert.equal(h.history(), 2);
+});
+
+test('Credits include recording roles from a scheduled task without a player roster', () => {
+  const generatedCreditText = ref('');
+  const feature = registerCreditsFeature({
+    refs: {
+      itemPool: ref([]), currentSessionId: ref('S_DEFAULT'), showCreditModal: ref(false), generatedCreditText,
+      scheduledTasks: ref([{ projectId: 'P', recordingInfo: {
+        studio: 'Old Studio', engineer: 'Engineer A / Engineer B', operator: 'Operator A，Operator B',
+        assistant: 'Assistant A\nAssistant B',
+      } }]),
+    },
+    state: { settings: { projects: [{ id: 'P', name: 'Film' }] } },
+    utils: { getNameById: () => 'Film' },
+    actions: { openAlertModal: () => assert.fail('the schedule has recording details') },
+  });
+  feature.openCreditModal();
+  assert.match(generatedCreditText.value, /Recording Studio：Old Studio\n/);
+  assert.match(generatedCreditText.value, /Recording Engineer：Engineer A \/ Engineer B\n/);
+  assert.match(generatedCreditText.value, /Recording Operator：Operator A \/ Operator B\n/);
+  assert.match(generatedCreditText.value, /Recording Assistant：Assistant A \/ Assistant B\n/);
 });

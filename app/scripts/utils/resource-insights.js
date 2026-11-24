@@ -3,6 +3,7 @@ import { parseTime, timeToMinutes } from './time.js';
 import { peekItemSplitState } from './split-state.js';
 import { getWorkLogs, getWorkPartId, getPartAllocation } from './workflow-ledger.js';
 import { metadataTypes } from './metadata-types.js';
+import { recordingInfoNames } from './recording-info-names.js';
 
 export const insightDimensions = [
   { type: 'musician', label: '人员' },
@@ -146,10 +147,11 @@ export function buildResourceInsights({ type, id, settings = {}, itemPool = [], 
       const associated = canonical ? scheduledTasks.filter(task => task.scheduleId === (record.id ? record.scheduleId : allocation?.scheduleId) && sessionOf(task) === sessionOf(item)) : exact.length ? exact : [related[split.sectionIndex]].filter(Boolean);
       if (isMetadata) {
         if (!metadataName) return [];
-        const direct = normalizedName((record[infoField] || record.metadata || item[infoField])?.[type]);
-        const assignments = associated.map((task) => normalizedName(task[infoField]?.[type]));
+        const direct = recordingInfoNames((record[infoField] || record.metadata || item[infoField])?.[type]);
         const target = normalizedName(metadataName);
-        if (direct ? direct !== target : !assignments.length || !assignments.every((name) => name === target)) return [];
+        const includesTarget = (names) => names.some((name) => normalizedName(name) === target);
+        if (direct.length ? !includesTarget(direct) : !associated.length ||
+          !associated.every((task) => includesTarget(recordingInfoNames(task[infoField]?.[type])))) return [];
       }
       const dates = [...new Set(associated.map((task) => validDate(task.date)).filter(Boolean))];
       const date = validDate(record.date) || (dates.length === 1 ? dates[0] : null);

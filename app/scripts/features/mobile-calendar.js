@@ -1,5 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { createCalendarSpring, CALENDAR_SPRINGS } from '../utils/calendar-spring.js';
+import { createDragEdgePaging, dragEdgePressure, dragScrollDistance } from '../utils/calendar-drag-edges.js';
 import { weekStripGeometry } from '../utils/calendar-week-motion.js';
 import { dateFromKey, dateWeek, describeDate, lunarLabel, monthKey, monthWindow, MONTH_NAMES, shiftDate, WEEKDAYS } from '../utils/mobile-calendar-dates.js';
 import { formatDate, formatSecs } from '../utils/format.js';
@@ -10,7 +11,7 @@ const clock = (minutes) => formatClock(Math.floor(minutes / 60), minutes % 60);
 
 // 手机浏览层单独持有几何/手势状态，业务变更只通过 calendarEvents 提交。
 export function useMobileCalendar(ctx) {
-  const root = ref(null), monthScroller = ref(null), monthContent = ref(null), timeline = ref(null);
+  const root = ref(null), monthScroller = ref(null), monthContent = ref(null), timeline = ref(null), timeCanvas = ref(null);
   const weekStrip = ref(null), transitionLayer = ref(null), timePanel = ref(null), menuElement = ref(null);
   const mode = ref(ctx.dayViewOpen ? 'multiday' : 'month');
   const lastMode = ref('multiday');
@@ -18,6 +19,7 @@ export function useMobileCalendar(ctx) {
   const visibleMonth = ref(monthKey(anchor.value));
   const menuOpen = ref(false);
   const query = ref(''), editor = ref(null), error = ref(''), selectedEvent = ref(null);
+  const movingEvent = ref(null);
   const width = ref(402), hourHeight = ref(47);
   const today = ref(formatDate(new Date()));
   const nowMinutes = ref(new Date().getHours()*60+new Date().getMinutes());
@@ -26,7 +28,6 @@ export function useMobileCalendar(ctx) {
   const selected = computed(() => ctx.selectedDay || today.value);
   const week = computed(() => dateWeek(selected.value));
   const stripDays = computed(() => Array.from({length:21}, (_, i) => ({...describeDate(shiftDate(week.value[0].key,i-7)), weekOffset:Math.floor(i/7)-1})));
-  const todayWeekIndex = computed(() => stripDays.value.findIndex(day => day.key===today.value)-7);
   const multi = computed(() => mode.value === 'multiday');
   const dates = computed(() => (multi.value ? [-2, -1, 0, 1, 2, 3] : [-1, 0, 1]).map(offset => ({ ...describeDate(shiftDate(selected.value, offset)), offset })));
   const activeDates = computed(() => multi.value ? [selected.value, shiftDate(selected.value, 1)] : [selected.value]);
@@ -68,15 +69,21 @@ export function useMobileCalendar(ctx) {
     const geometry=weekStripGeometry(weekday,dayOffset,width.value);
     root.value.style.setProperty('--mc-week-cell', `${geometry.cellWidth}px`);
     root.value.style.setProperty('--mc-week-track', `${geometry.trackOffset}px`);
-    root.value.style.setProperty('--mc-week-selection', `${geometry.selectionLeft}px`);
-    root.value.style.setProperty('--mc-week-today', `${clamp(1-Math.abs(weekday+dayOffset-todayWeekIndex.value),0,1)*100}%`);
+    root.value.style.setProperty('--mc-week-selected-index', geometry.selectedIndex);
   };
   const pager = createCalendarSpring({ config: CALENDAR_SPRINGS.pager, positionThreshold: .15, velocityThreshold: 1,
     reducedMotion, onUpdate: writePager, onComplete: () => {
       const shift = -Math.round(pager.position / pageWidth());
       if (shift) ctx.selectedDay = shiftDate(selected.value, shift);
+      if (edit) edit.pageShift = 0;
       pager.jump(0);
     } });
+  const settlePager = (target, velocity = 0) => {
+    const distance = target - pager.position;
+    const direction = Math.sign(distance);
+    const speed = clamp(direction * velocity, 0, Math.abs(distance) * CALENDAR_SPRINGS.pager.damping / 2);
+    pager.animateTo(target, direction * speed);
+  };
   const renderMorph = (value) => {
     if (!root.value) return;
     const p = clamp(value, 0, 1);
@@ -253,7 +260,7 @@ export function useMobileCalendar(ctx) {
     if (mode.value === 'month') { ctx.viewDate=new Date(); await centerMonth(today.value); }
     else { selectDate(today.value); savedScroll = Math.max(0, (new Date().getHours() - 2) * hourHeight.value); if (timeline.value) timeline.value.scrollTo({ top: savedScroll, behavior: reducedMotion() ? 'instant' : 'smooth' }); }
   };
-  const navigate = dir => { if (mode.value === 'month') { const date=dateFromKey(visibleMonth.value+'-01'); date.setMonth(date.getMonth()+dir); ctx.viewDate=date; } else { pager.stop(); pager.animateTo(-dir*pageWidth()); } };
+  const navigate = dir => { if (mode.value === 'month') { const date=dateFromKey(visibleMonth.value+'-01'); date.setMonth(date.getMonth()+dir); ctx.viewDate=date; } else settlePager(-dir*pageWidth()); };
   watch(() => ctx.viewDate, date => { if (mode.value==='month') centerMonth(formatDate(date)); });
 
   let gesture = null;
@@ -279,9 +286,14 @@ export function useMobileCalendar(ctx) {
     }
   }
   function pointerMove(event) {
+    if (edit) { eventMove(event); return; }
     if (!gesture || event.pointerId !== gesture.id) return;
     const dx = event.clientX-gesture.x, dy = event.clientY-gesture.y;
-    if (!gesture.axis && Math.hypot(dx,dy)>7) { gesture.axis = Math.abs(dx)>Math.abs(dy)*1.2 ? 'x' : 'y'; cancelPress(); }
+    if (!gesture.axis && Math.hypot(dx,dy)>7) {
+      gesture.axis = Math.abs(dx)>Math.abs(dy)*1.2 ? 'x' : 'y';
+      if (gesture.axis === 'x' && dx < 0) gesture.edge = false;
+      cancelPress();
+    }
     if (gesture.axis !== 'x') return;
     if (event.cancelable) event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
@@ -290,23 +302,24 @@ export function useMobileCalendar(ctx) {
     if (gesture.edge) {
       if (!morphGeometry) { prepareMorph(); }
       navigation.jump(clamp(1-dx/width.value,0,1));
-    } else pager.jump(clamp(gesture.start+dx,-pageWidth()*1.6,pageWidth()*1.6));
+    } else pager.jump(clamp(gesture.start+dx,-pageWidth(),pageWidth()));
   }
   function pointerUp(event) {
+    if (edit) { eventEnd(event); return; }
     cancelPress();
     if (!gesture || event.pointerId !== gesture.id) return;
     const g = gesture; gesture = null;
     if (g.axis === 'draft') { const pending=draft.value; draft.value=null; if(pending) openEditor(null,pending.date,pending.minutes); return; }
-    if (g.axis !== 'x') { if (pager.position) pager.animateTo(0); return; }
+    if (g.axis !== 'x') { if (pager.position) settlePager(0); return; }
     ignoreClickUntil = Date.now()+250;
     const first = g.samples[0], elapsed = event.timeStamp-first[0];
     const velocity = elapsed > 0 && elapsed < 160 ? (event.clientX-first[1])/elapsed*1000 : 0;
     if (g.edge) { navigation.animateTo(navigation.position < .65 || velocity>450 ? 0 : 1, -velocity/width.value); return; }
     const projected = pager.position + velocity*.16;
     const shift = clamp(Math.round(projected/pageWidth()),-1,1);
-    pager.animateTo(shift*pageWidth(), velocity);
+    settlePager(shift*pageWidth(), velocity);
   }
-  function cancelGesture() { cancelPress(); draft.value=null; if (gesture?.edge) navigation.animateTo(1); else pager.animateTo(0); gesture = null; }
+  function cancelGesture() { cancelPress(); draft.value=null; if (gesture?.edge) navigation.animateTo(1); else settlePager(0); gesture = null; }
 
   function openEditor(task = null, key = selected.value, minutes = Math.min(1380, Math.ceil((new Date().getHours()*60+new Date().getMinutes())/15)*15)) {
     selectedEvent.value = task?.scheduleId ?? null;
@@ -327,62 +340,123 @@ export function useMobileCalendar(ctx) {
     if (!result.ok) error.value = result.error; else { editor.value = null; selectedEvent.value = null; }
   }
   let edit = null, editFrame = 0, lastTap = null, lastOpened = null;
-  function editAutoScroll() {
-    if (!edit?.active || !timeline.value) { editFrame=0; return; }
-    const bounds=timeline.value.getBoundingClientRect();
-    const speed=edit.lastY<bounds.top+45 ? -Math.min(12,(bounds.top+45-edit.lastY)/4) : edit.lastY>bounds.bottom-70 ? Math.min(12,(edit.lastY-bounds.bottom+70)/4) : 0;
-    if (speed) {
-      timeline.value.scrollTop+=speed;
-      eventMove({pointerId:edit.id,clientX:edit.lastX,clientY:edit.lastY,preventDefault() {}});
+  function editAutoScroll(time) {
+    editFrame = 0;
+    const scroller = timeline.value;
+    if (!edit?.active || !scroller || !timeCanvas.value) return;
+    const elapsed = time - edit.frameTime;
+    edit.frameTime = time;
+    editFrame = requestAnimationFrame(editAutoScroll);
+    if (edit.edge === 'move' && !edit.moved) return;
+    const bounds = scroller.getBoundingClientRect();
+    let bottom = bounds.bottom;
+    for (const overlay of edit.overlays) {
+      const rect = overlay.getBoundingClientRect();
+      if (rect.height) bottom = Math.min(bottom, rect.top);
     }
-    editFrame=requestAnimationFrame(editAutoScroll);
+    const vertical = dragEdgePressure(edit.lastY, bounds.top, bottom, 56);
+    if (vertical) scroller.scrollTop += dragScrollDistance(vertical, elapsed);
+
+    if (edit.edge === 'move') {
+      const horizontal = dragEdgePressure(edit.lastX, bounds.left, bounds.right, 38);
+      const direction = Math.abs(horizontal) >= 0.35 ? Math.sign(horizontal) : 0;
+      if (edit.pageAtEdge(direction, time) && !pager.active) {
+        edit.pageShift = direction;
+        settlePager(-direction * pageWidth());
+      }
+    }
+    paintEdit();
+  }
+
+  function activateEdit() {
+    const g = edit;
+    g.active = true;
+    g.frameTime = performance.now();
+    if (g.edge === 'move') {
+      // 时间轴保留指针捕获，翻页时原卡片可以随日期列正常卸载。
+      g.preview = g.el.cloneNode(true);
+      g.preview.removeAttribute('role');
+      g.preview.setAttribute('aria-hidden', 'true');
+      g.preview.inert = true;
+      g.preview.classList.add('mc-event-editing', 'mc-event-drag-preview');
+      timeCanvas.value.append(g.preview);
+      movingEvent.value = g.task.scheduleId;
+      timePanel.value?.setPointerCapture?.(g.id);
+    } else {
+      g.origin = g.el.cloneNode(true);
+      g.origin.classList.add('mc-event-origin');
+      g.origin.setAttribute('aria-hidden', 'true');
+      g.origin.inert = true;
+      g.el.parentNode.append(g.origin);
+      g.el.classList.add('mc-event-editing');
+    }
+    paintEdit();
+    editFrame = requestAnimationFrame(editAutoScroll);
   }
 
   function eventDown(event, task, edge = 'move') {
     if (event.button > 0) return;
     if (edit) { eventEnd({pointerId:edit.id},true); return; }
-    cancelGesture(); cancelPress();
+    cancelGesture(); cancelPress(); pager.jump(0);
     const el = event.target.closest('.mc-event');
     const initialTop = timeToMinutes(task.startTime), initialDuration = Math.round(parseTime(task.estDuration)/60);
     edit = { id: event.pointerId, task, el, edge, x:event.clientX, y:event.clientY, lastX:event.clientX, lastY:event.clientY, start:initialTop, duration:initialDuration,
-      top:initialTop, bottom:initialTop+initialDuration, date:task.date, pointerType:event.pointerType, moved:false, scroll:timeline.value?.scrollTop || 0, active:false, changed:false, origin:null };
+      top:initialTop, bottom:initialTop+initialDuration, date:task.date, pointerType:event.pointerType, moved:false, scroll:timeline.value.scrollTop, active:false,
+      canvasTop:timeCanvas.value.getBoundingClientRect().top, pageShift:0, pageAtEdge:createDragEdgePaging(),
+      overlays:el.ownerDocument.querySelectorAll('.mobile-search-bar, .mobile-tab-bar') };
     selectedEvent.value = task.scheduleId;
     el.setPointerCapture?.(event.pointerId);
-    if (edge === 'move') pendingPress = setTimeout(() => { if (edit) { edit.active = true; el.classList.add('mc-event-editing'); editAutoScroll(); } }, 350);
+    if (edge === 'move') pendingPress = setTimeout(activateEdit, 350);
   }
   function eventMove(event) {
     if (!edit || event.pointerId !== edit.id) return;
     edit.lastX=event.clientX; edit.lastY=event.clientY;
-    if (Math.hypot(event.clientX-edit.x,event.clientY-edit.y)>8) { edit.moved=true; lastTap=null; }
-    const dy = event.clientY-edit.y+(timeline.value?.scrollTop || 0)-edit.scroll;
+    const dx = event.clientX-edit.x, dy = event.clientY-edit.y;
+    if (Math.hypot(dx,dy)>8) { edit.moved=true; lastTap=null; }
     // 拉伸区域上的轻点仍参与双击；实际移动后才进入拉伸，避免选中后吞掉第二次触摸。
-    if (!edit.active && edit.edge !== 'move' && Math.abs(dy)>=4) {
-      edit.active=true; edit.el.classList.add('mc-event-editing'); editAutoScroll();
+    if (!edit.active && edit.edge !== 'move' && Math.abs(dy)>=4) activateEdit();
+    if (!edit.active) {
+      if (edit.moved) cancelPress();
+      if (Math.abs(dy)>8 && timeline.value) timeline.value.scrollTop = edit.scroll-dy;
+      return;
     }
-    if (!edit.active) { if (Math.abs(dy)>8) { cancelPress(); if (timeline.value) timeline.value.scrollTop = edit.scroll-(event.clientY-edit.y); } return; }
     event.preventDefault();
-    if (!edit.origin) { edit.origin = edit.el.cloneNode(true); edit.origin.classList.add('mc-event-origin'); edit.origin.removeAttribute('id'); edit.origin.setAttribute('aria-hidden','true'); edit.el.parentNode.append(edit.origin); }
+    paintEdit();
+  }
+
+  function paintEdit() {
+    const bounds = timeCanvas.value.getBoundingClientRect();
+    const dy = edit.lastY - edit.y + edit.canvasTop - bounds.top;
     const delta = Math.round(dy/hourHeight.value*60/15)*15;
     if (edit.edge === 'start') edit.top = clamp(edit.start+delta,0,edit.bottom-15);
     else if (edit.edge === 'end') edit.bottom = clamp(edit.start+edit.duration+delta,edit.top+15,1440);
     else { edit.top = clamp(edit.start+delta,0,1440-edit.duration); edit.bottom=edit.top+edit.duration; }
-    if (edit.edge === 'move' && multi.value) {
-      const dayDelta=clamp(Math.round((event.clientX-edit.x)/pageWidth()),-1,1);
-      edit.date=shiftDate(edit.task.date,dayDelta);
-      edit.el.style.transform=`translateX(${dayDelta*pageWidth()}px)`;
+    const card = edit.preview || edit.el;
+    if (edit.preview) {
+      const column = multi.value && edit.lastX >= bounds.left + 65 + pageWidth() ? 1 : 0;
+      edit.date = shiftDate(selected.value, edit.pageShift + column);
+      card.style.left = `${65 + column * pageWidth() + 4}px`;
+      card.style.width = `${(multi.value ? pageWidth() : bounds.width - 65) - 7}px`;
     }
-    edit.changed = edit.top !== edit.start || edit.bottom !== edit.start+edit.duration || edit.date !== edit.task.date;
-    edit.el.style.top = `${edit.top/60*hourHeight.value}px`;
-    edit.el.style.height = `${Math.max(23,(edit.bottom-edit.top)/60*hourHeight.value)}px`;
-    const label = edit.el.querySelector('.mc-event-range'); if (label) { label.children[0].textContent=clock(edit.top); label.children[1].textContent=formatSecs((edit.bottom-edit.top)*60); }
+    card.style.top = `${edit.top/60*hourHeight.value}px`;
+    card.style.height = `${Math.max(23,(edit.bottom-edit.top)/60*hourHeight.value)}px`;
+    const label = card.querySelector('.mc-event-range'); if (label) { label.children[0].textContent=clock(edit.top); label.children[1].textContent=formatSecs((edit.bottom-edit.top)*60); }
   }
   function eventEnd(event, cancelled = false) {
     if (!edit || event.pointerId !== edit.id) return;
+    if (!cancelled && edit.active && timeCanvas.value) {
+      edit.lastX = event.clientX; edit.lastY = event.clientY;
+      paintEdit();
+    }
     cancelPress(); cancelAnimationFrame(editFrame); editFrame=0; const g=edit; edit=null;
-    g.origin?.remove(); g.el.style.transform=''; g.el.classList.remove('mc-event-editing');
-    g.el.style.top=`${g.start/60*hourHeight.value}px`; g.el.style.height=`${Math.max(23,g.duration/60*hourHeight.value)}px`;
-    const label=g.el.querySelector('.mc-event-range'); if(label) { label.children[0].textContent=g.task.startTime; label.children[1].textContent=g.task.estDuration; }
-    if (!cancelled && g.changed) {
+    movingEvent.value = null;
+    g.preview?.remove(); g.origin?.remove(); g.el.classList.remove('mc-event-editing');
+    if (g.origin) {
+      g.el.style.top=`${g.start/60*hourHeight.value}px`; g.el.style.height=`${Math.max(23,g.duration/60*hourHeight.value)}px`;
+      const label=g.el.querySelector('.mc-event-range'); if(label) { label.children[0].textContent=g.task.startTime; label.children[1].textContent=g.task.estDuration; }
+    }
+    const changed = g.top !== g.start || g.bottom !== g.start + g.duration || g.date !== g.task.date;
+    if (!cancelled && changed) {
       const result=ctx.calendarEvents.commitCalendarEvent(g.task,{title:title(g.task),date:g.date,startTime:clock(g.top),endTime:clock(g.bottom),allDay:false,notes:g.task.notes||''});
       if(!result.ok) error.value=result.error;
     }
@@ -426,9 +500,10 @@ export function useMobileCalendar(ctx) {
     writePager(0); renderMorph(navigation.position);
     minuteTimer=setInterval(() => { today.value=formatDate(new Date()); nowMinutes.value=new Date().getHours()*60+new Date().getMinutes(); },60000);
   });
-  onBeforeUnmount(() => { disposed=true; cancelAnimationFrame(editFrame); for (const motion of sheetMotions.values()) motion.spring.dispose(); for (const motion of modeMotions.values()) { motion.x.dispose(); motion.scale.dispose(); } ctx.dayViewContainer=null; cancelPress(); navigation.dispose(); pager.dispose(); menuSpring.dispose(); observer?.disconnect(); clearInterval(minuteTimer); cancelAnimationFrame(scrollFrame); clearMorph(); edit?.origin?.remove(); });
-  return { root, monthScroller, monthContent, timeline, weekStrip, transitionLayer, timePanel, menuElement,
-    mode, selected, selectedEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, stripDays, dates, activeDates, multi, rows, hourHeight, allDayHeight,
+  watch([mode, () => ctx.mobileTab], () => { if (edit) eventEnd({pointerId:edit.id}, true); });
+  onBeforeUnmount(() => { disposed=true; if (edit) eventEnd({pointerId:edit.id}, true); for (const motion of sheetMotions.values()) motion.spring.dispose(); for (const motion of modeMotions.values()) { motion.x.dispose(); motion.scale.dispose(); } ctx.dayViewContainer=null; cancelPress(); navigation.dispose(); pager.dispose(); menuSpring.dispose(); observer?.disconnect(); clearInterval(minuteTimer); cancelAnimationFrame(scrollFrame); clearMorph(); });
+  return { root, monthScroller, monthContent, timeline, timeCanvas, weekStrip, transitionLayer, timePanel, menuElement,
+    mode, selected, selectedEvent, movingEvent, today, nowMinutes, draft, months, visibleMonth, monthName, selectedMonth, week, stripDays, dates, activeDates, multi, rows, hourHeight, allDayHeight,
     menuOpen, query, editor, error, filteredAgenda, MONTH_NAMES, WEEKDAYS,
     hasRecordingInfo: ctx.hasRecordingInfo, isTaskGhost: ctx.isTaskGhost,
     tasks, title, color, eventStyle, eventRange, lunarLabel, dayTitle, openDate, backToMonth, selectDate, setMode, jumpToday, navigate, monthScroll, toggleMenu,
@@ -436,7 +511,7 @@ export function useMobileCalendar(ctx) {
     eventDown, eventMove, eventEnd, eventClick, openTask,
     sheetEnter: (el,done)=>animateSheet(el,done,true), sheetLeave:(el,done)=>animateSheet(el,done,false),
     timelineScroll: () => { if (!edit) selectedEvent.value=null; },
-    keyNavigate: (event, dir) => { if (event.target.closest('input,textarea') || editor.value || mode.value==='month') return; event.preventDefault(); pager.stop(); pager.animateTo(-dir*pageWidth()); },
+    keyNavigate: (event, dir) => { if (event.target.closest('input,textarea') || editor.value || mode.value==='month') return; event.preventDefault(); settlePager(-dir*pageWidth()); },
     closeError: () => { error.value=''; },
   };
 }
